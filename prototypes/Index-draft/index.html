@@ -15,66 +15,12 @@
   ═══════════════════════════════════════════════════════════ -->
   <nav id="sidebar">
 
-    <!-- Logo -->
-    <div class="logo">
-      <svg class="logo-svg" viewBox="0 0 34 38" xmlns="http://www.w3.org/2000/svg" aria-label="NagVis Logo">
-
-        <!-- Hexagon – Outline invertiert zum Theme (dark=hell, light=dunkel) -->
-        <polygon points="17,2  31,10  31,28  17,36  3,28  3,10"
-          fill="none" stroke="var(--text)" stroke-width="2" stroke-linejoin="round"/>
-
-        <!--
-          Globus-Netz in #29b6d4, Mittelpunkt cx=17 cy=19, r=9
-          Besteht aus:
-            - Äußerer Kreis (Umriss)
-            - Vertikale Mittellinie (Längengrad)
-            - 2 geschwungene Längengrad-Bögen links/rechts
-            - 2 horizontale Breitengrad-Linien (oben + unten)
-            - Horizontale Mittellinie (Äquator)
-        -->
-
-        <!-- Äußerer Kreis -->
-        <circle cx="17" cy="19" r="9"
-          fill="none" stroke="#29b6d4" stroke-width="1.4"/>
-
-        <!-- Äquator (horizontal) -->
-        <line x1="8" y1="19" x2="26" y2="19"
-          stroke="#29b6d4" stroke-width="1.1"/>
-
-        <!-- Vertikale Mittellinie -->
-        <line x1="17" y1="10" x2="17" y2="28"
-          stroke="#29b6d4" stroke-width="1.1"/>
-
-        <!-- Oberer Breitengrad -->
-        <path d="M 10.5,14.5 A 7,3.5 0 0,1 23.5,14.5"
-          fill="none" stroke="#29b6d4" stroke-width="1.1"/>
-
-        <!-- Unterer Breitengrad -->
-        <path d="M 10.5,23.5 A 7,3.5 0 0,0 23.5,23.5"
-          fill="none" stroke="#29b6d4" stroke-width="1.1"/>
-
-        <!-- Linker Längengrad-Bogen -->
-        <path d="M 17,10 A 5,9 0 0,0 17,28"
-          fill="none" stroke="#29b6d4" stroke-width="1.1"/>
-
-        <!-- Rechter Längengrad-Bogen -->
-        <path d="M 17,10 A 5,9 0 0,1 17,28"
-          fill="none" stroke="#29b6d4" stroke-width="1.1"/>
-
-      </svg>
-
-      <div class="logo-text">
-        <div class="logo-name"><span class="logo-nag">Nag</span><span class="logo-vis">Vis</span></div>
-        <div class="logo-ver">v2 · FastAPI + WebSocket</div>
-      </div>
-    </div>
-
     <!-- Navigation -->
     <div class="nav">
 
       <div class="nav-section">Navigation</div>
 
-      <button class="nav-btn active" id="nav-btn-overview" onclick="showOverview()">
+      <button class="nav-btn active" id="nav-btn-overview" onclick="showOverview()" data-label="Übersicht">
         <span class="nav-ico">◈</span>
         Übersicht
       </button>
@@ -84,12 +30,12 @@
 
       <div class="nav-section">System</div>
 
-      <button class="nav-btn" onclick="window.open('/docs','_blank')">
+      <button class="nav-btn" onclick="window.open('/docs','_blank')" data-label="API Docs">
         <span class="nav-ico">⊞</span>
         API Docs
       </button>
 
-      <button class="nav-btn" id="nav-btn-health">
+      <button class="nav-btn" id="nav-btn-health" data-label="Health">
         <span class="nav-ico">⊙</span>
         Health
         <span class="nav-chip ok" id="health-chip">OK</span>
@@ -101,13 +47,16 @@
     <div class="sidebar-foot">
       <div class="foot-dot" id="foot-dot"></div>
       <span id="sidebar-status">Verbinde…</span>
-      <button class="theme-toggle" id="btn-theme" title="Theme wechseln">
-        <!--
-          Wir nutzen das CSS-Custom-Property --theme-icon nicht direkt,
-          da content: attr() für Buttons unzuverlässig ist.
-          Das Icon wird per JS beim Theme-Switch gesetzt.
-        -->
-        ☀
+      <button class="theme-toggle" id="btn-theme" title="Theme wechseln">☀</button>
+
+      <!-- Sidebar-Toggle mit CMK-SVG-Icon -->
+      <button class="theme-toggle" id="btn-sidebar-toggle-foot" onclick="toggleSidebar()" title="Sidebar ein-/ausklappen (B)">
+        <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" width="14" height="14">
+          <path fill="currentColor" fill-rule="evenodd" d="
+            M15,16H1C0.4,16,0,15.6,0,15V1C0,0.4,0.4,0,1,0h14c0.6,0,1,0.4,1,1v14C16,15.6,15.6,16,15,16z
+            M1,1v14h14V1H1z"/>
+          <rect fill="currentColor" x="1" y="1" width="5.5" height="14"/>
+        </svg>
       </button>
     </div>
 
@@ -115,12 +64,30 @@
 
 
   <!-- ═══════════════════════════════════════════════════════════
-       MAIN
+       TOPBAR  (direkt in #app – volle Breite via Grid)
   ═══════════════════════════════════════════════════════════ -->
-  <div id="main">
+  <div id="topbar">
 
-    <!-- Topbar -->
-    <div id="topbar">
+      <!-- Logo (in der Topbar) -->
+      <div class="tb-logo" id="tb-logo" onclick="showOverview()" title="Übersicht">
+        <svg class="tb-logo-svg" viewBox="0 0 34 38" xmlns="http://www.w3.org/2000/svg" aria-label="NagVis Logo">
+          <polygon points="17,2  31,10  31,28  17,36  3,28  3,10"
+            fill="none" stroke="var(--text)" stroke-width="2" stroke-linejoin="round"/>
+          <circle cx="17" cy="19" r="9" fill="none" stroke="#29b6d4" stroke-width="1.4"/>
+          <line x1="8"  y1="19" x2="26" y2="19" stroke="#29b6d4" stroke-width="1.1"/>
+          <line x1="17" y1="10" x2="17" y2="28" stroke="#29b6d4" stroke-width="1.1"/>
+          <path d="M 10.5,14.5 A 7,3.5 0 0,1 23.5,14.5" fill="none" stroke="#29b6d4" stroke-width="1.1"/>
+          <path d="M 10.5,23.5 A 7,3.5 0 0,0 23.5,23.5" fill="none" stroke="#29b6d4" stroke-width="1.1"/>
+          <path d="M 17,10 A 5,9 0 0,0 17,28"          fill="none" stroke="#29b6d4" stroke-width="1.1"/>
+          <path d="M 17,10 A 5,9 0 0,1 17,28"          fill="none" stroke="#29b6d4" stroke-width="1.1"/>
+        </svg>
+        <div class="tb-logo-text">
+          <div class="tb-logo-name"><span class="logo-nag">Nag</span><span class="logo-vis">Vis</span></div>
+          <div class="tb-logo-ver">v2 · FastAPI + WebSocket</div>
+        </div>
+      </div>
+
+      <div class="tb-sep"></div>
 
       <!-- Verbindungs-Dot -->
       <div id="nv2-conn-dot" class="conn-dot connecting"></div>
@@ -171,8 +138,24 @@
         </button>
       </div><!-- /map-toolbar -->
 
-    </div><!-- /topbar -->
+      <div class="tb-gap"></div>
 
+      <!-- Burger-Menü ganz rechts (Login, Einstellungen, etc. – später) -->
+      <button class="tb-btn tb-btn-icon" id="btn-menu" title="Menü">
+        <svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+          <rect fill="currentColor" x="1" y="3"  width="16" height="1.8" rx="0.9"/>
+          <rect fill="currentColor" x="1" y="8.1" width="16" height="1.8" rx="0.9"/>
+          <rect fill="currentColor" x="1" y="13.2" width="16" height="1.8" rx="0.9"/>
+        </svg>
+      </button>
+
+  </div><!-- /topbar -->
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       MAIN  (Sidebar-Content: Overview + Map-Canvas)
+  ═══════════════════════════════════════════════════════════ -->
+  <div id="main">
 
     <!-- ═══════════════════════════════════════════════════════
          OVERVIEW

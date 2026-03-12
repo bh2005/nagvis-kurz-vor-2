@@ -226,12 +226,22 @@ body,
 
 
 /* ───────────────────────────────────────────────────────────────────────
-   LAYOUT SHELL
+   LAYOUT SHELL  –  Grid: Topbar oben (volle Breite), Sidebar + Content unten
 ─────────────────────────────────────────────────────────────────────── */
 #app {
-  display: flex;
+  display: grid;
+  grid-template-rows: var(--topbar) 1fr;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "topbar  topbar"
+    "sidebar content";
   height: 100vh;
+  overflow: hidden;
 }
+
+#topbar  { grid-area: topbar;  }
+#sidebar { grid-area: sidebar; }
+#main    { grid-area: content; }
 
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -245,62 +255,128 @@ body,
   display: flex;
   flex-direction: column;
   z-index: 200;
+  overflow: hidden;
+  transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ── Logo ── */
-.logo {
-  padding: 10px 12px 9px;
-  border-bottom: 1px solid var(--border);
+/* ── Collapsed state ── */
+#sidebar.collapsed {
+  width: 44px;
+}
+
+/* ── Collapsed: nur Icons + Status-Dots ── */
+#sidebar.collapsed .nav-section     { display: none; }
+#sidebar.collapsed .nav-chip        { display: none; }
+#sidebar.collapsed #sidebar-status  { display: none; }
+#sidebar.collapsed .theme-toggle    { display: none; }
+
+#sidebar.collapsed .nav-btn {
+  justify-content: center;
+  padding: 9px 0;
+  gap: 0;
+}
+#sidebar.collapsed .nav-btn .nav-ico {
+  width: 44px;
+  text-align: center;
+  font-size: 14px;
+  opacity: 0.75;
+}
+/* Alle Text-Spans in nav-btn ausblenden */
+#sidebar.collapsed .nav-btn > *:not(.nav-ico) { display: none; }
+
+#sidebar.collapsed .map-entry {
+  justify-content: center;
+  padding: 8px 0;
+  gap: 0;
+}
+#sidebar.collapsed .map-entry .map-pip {
+  width: 9px;
+  height: 9px;
+}
+#sidebar.collapsed .map-entry > *:not(.map-pip) { display: none; }
+
+#sidebar.collapsed .sidebar-foot {
+  justify-content: center;
+  padding: 10px 0;
+  gap: 4px;
+}
+#sidebar.collapsed .foot-dot        { width: 9px; height: 9px; }
+/* btn-sidebar-toggle-foot bleibt immer sichtbar */
+#sidebar.collapsed #sidebar-status  { display: none; }
+#sidebar.collapsed .theme-toggle:not(#btn-sidebar-toggle-foot) { display: none; }
+
+/* Active-Indikator bleibt */
+#sidebar.collapsed .nav-btn.active::before { width: 3px; }
+
+/* Hover-Tooltip rechts vom Icon */
+#sidebar.collapsed [data-label] { position: relative; }
+#sidebar.collapsed [data-label]:hover::after {
+  content: attr(data-label);
+  position: absolute;
+  left: calc(100% + 6px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--r);
+  padding: 4px 9px;
+  font-size: 11px;
+  white-space: nowrap;
+  color: var(--text);
+  pointer-events: none;
+  z-index: 400;
+  box-shadow: 0 2px 8px var(--node-shadow);
+}
+
+/* ── Logo in Topbar ── */
+.tb-logo {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
+  cursor: pointer;
+  padding: 0 4px;
+  border-radius: var(--r);
+  transition: opacity var(--t);
   flex-shrink: 0;
-  background: var(--header-bg);
+  text-decoration: none;
 }
+.tb-logo:hover { opacity: 0.80; }
 
-/* SVG Hexagon-Mark */
-.logo-svg {
-  width: 30px;
-  height: 34px;
+.tb-logo-svg {
+  width: 26px;
+  height: 29px;
   flex-shrink: 0;
-  transition: filter 0.2s ease;
   filter: drop-shadow(0 1px 4px rgba(19, 211, 142, 0.35));
+  transition: filter 0.2s ease;
 }
-[data-theme="light"] .logo-svg {
-  filter: drop-shadow(0 1px 3px rgba(0, 168, 107, 0.25));
+.tb-logo:hover .tb-logo-svg {
+  filter: drop-shadow(0 0 7px rgba(19, 211, 142, 0.60));
 }
-.logo:hover .logo-svg {
-  filter: drop-shadow(0 0 8px rgba(19, 211, 142, 0.60));
-}
-[data-theme="light"] .logo:hover .logo-svg {
-  filter: drop-shadow(0 0 7px rgba(0, 168, 107, 0.45));
+[data-theme="light"] .tb-logo-svg {
+  filter: drop-shadow(0 1px 3px rgba(0, 168, 107, 0.22));
 }
 
-.logo-text {}
+.tb-logo-text { line-height: 1; }
 
-.logo-name {
-  font-size: 16px;
+.tb-logo-name {
+  font-size: 15px;
   font-weight: 700;
   letter-spacing: -0.3px;
-  line-height: 1;
   font-family: var(--sans);
 }
-/* „Nag" – Textfarbe wie im Original leicht gedimmt */
-.logo-nag {
-  color: var(--text);
-}
-/* „Vis" – in Cyan, leicht kursiv wie im Original */
-.logo-vis {
-  color: #29b6d4;
-  font-style: italic;
-}
-
-.logo-ver {
+.logo-nag { color: var(--text); }
+.logo-vis  { color: #29b6d4; font-style: italic; }
+.tb-logo-ver {
   font-family: var(--mono);
   font-size: 8px;
   color: var(--text-dim);
   letter-spacing: 0.5px;
   margin-top: 2px;
+}
+
+/* Sidebar hat kein Logo mehr → kein extra top-border nötig */
+#sidebar {
+  border-top: none;
 }
 
 /* ── Nav ── */
@@ -457,10 +533,11 @@ body,
    MAIN CONTENT AREA
 ═══════════════════════════════════════════════════════════════════════ */
 #main {
-  flex: 1;
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* ── Topbar ── */
@@ -527,6 +604,13 @@ body,
 @keyframes pillblink {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.55; }
+}
+
+.tb-btn.tb-btn-icon {
+  padding: 4px 8px;
+  min-width: 30px;
+  justify-content: center;
+  font-size: 14px;
 }
 
 /* Topbar buttons */
