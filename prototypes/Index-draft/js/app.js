@@ -77,6 +77,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const savedTheme = localStorage.getItem('nv2-theme') ?? 'dark';
   setTheme(savedTheme, false);
 
+  // Sidebar-State wiederherstellen
+  restoreSidebar();
+
   // Button-Verdrahtung
   document.getElementById('btn-edit')      .addEventListener('click', toggleEdit);
   document.getElementById('btn-refresh')   .addEventListener('click', () => wsClient?.forceRefresh());
@@ -87,6 +90,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (e.target.files[0]) uploadBg(e.target.files[0]);
     e.target.value = '';
   });
+  document.getElementById('btn-sidebar-toggle-foot').addEventListener('click', toggleSidebar);
   document.getElementById('btn-theme').addEventListener('click', () => {
     setTheme(currentTheme === 'dark' ? 'light' : 'dark');
   });
@@ -110,8 +114,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
 // ═══════════════════════════════════════════════════════════════════════
-//  THEME
+//  SIDEBAR TOGGLE
 // ═══════════════════════════════════════════════════════════════════════
+
+let sidebarCollapsed = false;
+
+function toggleSidebar() {
+  sidebarCollapsed = !sidebarCollapsed;
+  const sidebar = document.getElementById('sidebar');
+  sidebar.classList.toggle('collapsed', sidebarCollapsed);
+  localStorage.setItem('nv2-sidebar', sidebarCollapsed ? '1' : '0');
+}
+
+function restoreSidebar() {
+  if (localStorage.getItem('nv2-sidebar') === '1') {
+    sidebarCollapsed = true;
+    document.getElementById('sidebar').classList.add('collapsed');
+  }
+}
+
+
+
 
 /**
  * Schaltet Light/Dark-Theme und persistiert die Auswahl.
@@ -904,6 +927,10 @@ function esc(s) {
 
 function onKeyDown(e) {
   const inInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
+
+  if (e.key === 'b' && !inInput && !e.ctrlKey && !e.metaKey) {
+    toggleSidebar();
+  }
 
   if (e.key === 'Escape') {
     window.closeDlg('dlg-add-host');
