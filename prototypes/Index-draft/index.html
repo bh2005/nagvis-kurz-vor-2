@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NagVis 2</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+<div id="app">
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SIDEBAR
+  ═══════════════════════════════════════════════════════════ -->
+  <nav id="sidebar">
+
+    <!-- Logo -->
+    <div class="logo">
+      <svg class="logo-svg" viewBox="0 0 34 38" xmlns="http://www.w3.org/2000/svg" aria-label="NagVis Logo">
+
+        <!-- Hexagon – Outline invertiert zum Theme (dark=hell, light=dunkel) -->
+        <polygon points="17,2  31,10  31,28  17,36  3,28  3,10"
+          fill="none" stroke="var(--text)" stroke-width="2" stroke-linejoin="round"/>
+
+        <!--
+          Globus-Netz in #29b6d4, Mittelpunkt cx=17 cy=19, r=9
+          Besteht aus:
+            - Äußerer Kreis (Umriss)
+            - Vertikale Mittellinie (Längengrad)
+            - 2 geschwungene Längengrad-Bögen links/rechts
+            - 2 horizontale Breitengrad-Linien (oben + unten)
+            - Horizontale Mittellinie (Äquator)
+        -->
+
+        <!-- Äußerer Kreis -->
+        <circle cx="17" cy="19" r="9"
+          fill="none" stroke="#29b6d4" stroke-width="1.4"/>
+
+        <!-- Äquator (horizontal) -->
+        <line x1="8" y1="19" x2="26" y2="19"
+          stroke="#29b6d4" stroke-width="1.1"/>
+
+        <!-- Vertikale Mittellinie -->
+        <line x1="17" y1="10" x2="17" y2="28"
+          stroke="#29b6d4" stroke-width="1.1"/>
+
+        <!-- Oberer Breitengrad -->
+        <path d="M 10.5,14.5 A 7,3.5 0 0,1 23.5,14.5"
+          fill="none" stroke="#29b6d4" stroke-width="1.1"/>
+
+        <!-- Unterer Breitengrad -->
+        <path d="M 10.5,23.5 A 7,3.5 0 0,0 23.5,23.5"
+          fill="none" stroke="#29b6d4" stroke-width="1.1"/>
+
+        <!-- Linker Längengrad-Bogen -->
+        <path d="M 17,10 A 5,9 0 0,0 17,28"
+          fill="none" stroke="#29b6d4" stroke-width="1.1"/>
+
+        <!-- Rechter Längengrad-Bogen -->
+        <path d="M 17,10 A 5,9 0 0,1 17,28"
+          fill="none" stroke="#29b6d4" stroke-width="1.1"/>
+
+      </svg>
+
+      <div class="logo-text">
+        <div class="logo-name"><span class="logo-nag">Nag</span><span class="logo-vis">Vis</span></div>
+        <div class="logo-ver">v2 · FastAPI + WebSocket</div>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="nav">
+
+      <div class="nav-section">Navigation</div>
+
+      <button class="nav-btn active" id="nav-btn-overview" onclick="showOverview()">
+        <span class="nav-ico">◈</span>
+        Übersicht
+      </button>
+
+      <div class="nav-section">Maps</div>
+      <div id="sidebar-maps" class="map-list"></div>
+
+      <div class="nav-section">System</div>
+
+      <button class="nav-btn" onclick="window.open('/docs','_blank')">
+        <span class="nav-ico">⊞</span>
+        API Docs
+      </button>
+
+      <button class="nav-btn" id="nav-btn-health">
+        <span class="nav-ico">⊙</span>
+        Health
+        <span class="nav-chip ok" id="health-chip">OK</span>
+      </button>
+
+    </div><!-- /nav -->
+
+    <!-- Footer: Livestatus-Status + Theme-Toggle -->
+    <div class="sidebar-foot">
+      <div class="foot-dot" id="foot-dot"></div>
+      <span id="sidebar-status">Verbinde…</span>
+      <button class="theme-toggle" id="btn-theme" title="Theme wechseln">
+        <!--
+          Wir nutzen das CSS-Custom-Property --theme-icon nicht direkt,
+          da content: attr() für Buttons unzuverlässig ist.
+          Das Icon wird per JS beim Theme-Switch gesetzt.
+        -->
+        ☀
+      </button>
+    </div>
+
+  </nav><!-- /sidebar -->
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       MAIN
+  ═══════════════════════════════════════════════════════════ -->
+  <div id="main">
+
+    <!-- Topbar -->
+    <div id="topbar">
+
+      <!-- Verbindungs-Dot -->
+      <div id="nv2-conn-dot" class="conn-dot connecting"></div>
+
+      <!-- Map-Titel -->
+      <div class="tb-ident">
+        <div class="tb-title" id="tb-title">NagVis 2</div>
+        <div class="tb-sub"   id="tb-sub">Wähle eine Map</div>
+      </div>
+
+      <!-- Status-Pills (nur wenn Map geöffnet) -->
+      <div id="tb-pills" style="display:none; align-items:center; gap:5px;">
+        <div class="tb-sep"></div>
+        <span class="pill ok"   id="pill-ok">  ● –</span>
+        <span class="pill warn" id="pill-warn">● –</span>
+        <span class="pill crit" id="pill-crit">● –</span>
+      </div>
+
+      <div class="tb-gap"></div>
+
+      <!-- Live-Statuszeile -->
+      <span id="nv2-status-bar"></span>
+
+      <!-- Map-Toolbar (nur wenn Map geöffnet) -->
+      <div id="map-toolbar" style="display:none; align-items:center; gap:6px;">
+        <div class="tb-sep"></div>
+
+        <button class="tb-btn" id="btn-bg-upload" title="Hintergrundbild hochladen">
+          <span class="tb-icon">🖼</span> Hintergrund
+        </button>
+
+        <button class="tb-btn" id="btn-edit">
+          <span class="tb-icon">✏</span> Bearbeiten
+        </button>
+
+        <button class="tb-btn" id="btn-add-host" style="display:none;" title="Host platzieren">
+          <span class="tb-icon">＋</span> Host
+        </button>
+
+        <button class="tb-btn danger" id="btn-delete-map" title="Map löschen">
+          <span class="tb-icon">🗑</span>
+        </button>
+
+        <div class="tb-sep"></div>
+
+        <button class="tb-btn" id="btn-refresh" title="Refresh erzwingen (r)">
+          <span class="tb-icon">↻</span>
+        </button>
+      </div><!-- /map-toolbar -->
+
+    </div><!-- /topbar -->
+
+
+    <!-- ═══════════════════════════════════════════════════════
+         OVERVIEW
+    ══════════════════════════════════════════════════════= -->
+    <div id="overview">
+      <div class="ov-head">
+        <h2>Übersicht</h2>
+        <p>Wähle eine Map oder erstelle eine neue</p>
+      </div>
+      <div class="ov-grid" id="ov-grid">
+        <!-- Karten werden per JS eingefügt -->
+      </div>
+    </div>
+
+
+    <!-- ═══════════════════════════════════════════════════════
+         MAP CANVAS
+    ══════════════════════════════════════════════════════= -->
+    <div id="map-area">
+
+      <!-- Hintergrundbild-Hinweis (leer) -->
+      <div id="upload-prompt">
+        <div class="upload-box" id="upload-box"
+             onclick="document.getElementById('bg-file-input').click()">
+          <div class="upload-emo">🗺️</div>
+          <div class="upload-title">Hintergrundbild hochladen</div>
+          <div class="upload-hint">PNG · JPG · SVG · WebP · Drag &amp; Drop</div>
+        </div>
+      </div>
+
+      <!-- Node-Canvas -->
+      <div id="nv2-canvas" id="nv2-map-root" data-map-id=""></div>
+
+      <!-- Edit-Mode Banner -->
+      <div id="nv2-edit-banner">
+        <span style="color:var(--acc);font-weight:600">✏ EDIT</span>
+        <span class="banner-key">Klick</span> Host platzieren
+        <span class="banner-key">Drag</span> verschieben
+        <span class="banner-key">Rechtsklick</span> entfernen
+        <span class="banner-key">Esc</span> beenden
+      </div>
+
+      <!-- Snap-In Tabs (rechts am Rand) -->
+      <div id="snap-tabs">
+        <div class="snap-tab" id="tab-hosts"  onclick="toggleSnapin('hosts')">Hosts</div>
+        <div class="snap-tab" id="tab-events" onclick="toggleSnapin('events')">Events</div>
+      </div>
+
+      <!-- Snap-In Panels -->
+      <div id="snapin-container">
+
+        <!-- Hosts -->
+        <div class="snapin" id="snapin-hosts">
+          <div class="snapin-head">
+            <span class="snapin-ico">⬦</span>
+            <span class="snapin-title">Hosts</span>
+            <button class="snapin-close" onclick="closeSnapin('hosts')" title="Schließen">✕</button>
+          </div>
+          <div class="snapin-body" id="body-hosts">
+            <div class="empty-hint">Lade…</div>
+          </div>
+        </div>
+
+        <!-- Events -->
+        <div class="snapin" id="snapin-events">
+          <div class="snapin-head">
+            <span class="snapin-ico">◎</span>
+            <span class="snapin-title">Event-Stream</span>
+            <button class="snapin-close" onclick="closeSnapin('events')" title="Schließen">✕</button>
+          </div>
+          <div class="snapin-body" id="body-events">
+            <div class="empty-hint">Warte auf Events…</div>
+          </div>
+        </div>
+
+      </div><!-- /snapin-container -->
+
+    </div><!-- /map-area -->
+
+  </div><!-- /main -->
+
+</div><!-- /app -->
+
+
+<!-- Verstecktes File-Input für Hintergrundbilder -->
+<input type="file" id="bg-file-input" accept="image/*,.svg">
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     DIALOG – Host hinzufügen
+═══════════════════════════════════════════════════════════ -->
+<div class="dlg-overlay" id="dlg-add-host">
+  <div class="dlg">
+    <h3>Host auf Map platzieren</h3>
+
+    <div class="f-row">
+      <label class="f-label" for="dlg-hname">Hostname</label>
+      <input  class="f-input" id="dlg-hname" type="text"
+              placeholder="z.B. srv-web-01" autocomplete="off"
+              list="known-hosts">
+      <datalist id="known-hosts"></datalist>
+    </div>
+
+    <div class="f-row">
+      <label class="f-label" for="dlg-iconset">Icon</label>
+      <select class="f-select" id="dlg-iconset">
+        <option value="server">🖥  Server</option>
+        <option value="router">🌐  Router</option>
+        <option value="switch">🔀  Switch</option>
+        <option value="firewall">🔥  Firewall</option>
+        <option value="storage">💾  Storage / Backup</option>
+        <option value="database">🗄  Datenbank</option>
+        <option value="ups">⚡  USV</option>
+        <option value="ap">📡  Access Point</option>
+        <option value="default">⬡  Generisch</option>
+      </select>
+    </div>
+
+    <div class="f-row">
+      <label class="f-label" for="dlg-type">Typ</label>
+      <select class="f-select" id="dlg-type">
+        <option value="host">Host</option>
+        <option value="service">Service</option>
+        <option value="hostgroup">Hostgruppe</option>
+      </select>
+    </div>
+
+    <div class="dlg-foot">
+      <button class="btn-cancel" onclick="closeDlg('dlg-add-host')">Abbrechen</button>
+      <button class="btn-ok"     onclick="confirmAddHost()">Platzieren</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     DIALOG – Neue Map
+═══════════════════════════════════════════════════════════ -->
+<div class="dlg-overlay" id="dlg-new-map">
+  <div class="dlg">
+    <h3>Neue Map erstellen</h3>
+
+    <div class="f-row">
+      <label class="f-label" for="nm-title">Titel</label>
+      <input  class="f-input" id="nm-title" type="text"
+              placeholder="z.B. Datacenter Hamburg">
+    </div>
+
+    <div class="f-row">
+      <label class="f-label" for="nm-id">ID <span style="color:var(--text-dim);font-weight:400">(optional)</span></label>
+      <input  class="f-input" id="nm-id" type="text"
+              placeholder="datacenter-hh (wird sonst auto-generiert)">
+    </div>
+
+    <div class="dlg-foot">
+      <button class="btn-cancel" onclick="closeDlg('dlg-new-map')">Abbrechen</button>
+      <button class="btn-ok"     onclick="confirmNewMap()">Erstellen</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Theme sofort anwenden bevor CSS geladen ist – verhindert Flash -->
+<script>
+  (function() {
+    const t = localStorage.getItem('nv2-theme') ?? 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
+
+<!-- Application Script -->
+<script src="js/app.js"></script>
+
+</body>
+</html>
