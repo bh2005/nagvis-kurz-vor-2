@@ -1,0 +1,1436 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NagVis 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   TOKENS
+═══════════════════════════════════════════════════════════════ */
+:root {
+  --bg:           #07090e;
+  --bg-surf:      #0b0f18;
+  --bg-panel:     #0f1520;
+  --bg-card:      #111827;
+  --bg-hover:     #162030;
+  --border:       #1a2a3a;
+  --border-hi:    #243548;
+
+  --ok:           #00e5a0;
+  --ok-glow:      rgba(0,229,160,.35);
+  --ok-dim:       rgba(0,229,160,.10);
+  --warn:         #ffb627;
+  --warn-glow:    rgba(255,182,39,.35);
+  --warn-dim:     rgba(255,182,39,.10);
+  --crit:         #ff3b55;
+  --crit-glow:    rgba(255,59,85,.40);
+  --crit-dim:     rgba(255,59,85,.10);
+  --unkn:         #8b7cf6;
+  --unkn-glow:    rgba(139,124,246,.30);
+  --unkn-dim:     rgba(139,124,246,.10);
+  --acc:          #0ea5e9;
+  --acc-glow:     rgba(14,165,233,.30);
+  --acc-dim:      rgba(14,165,233,.08);
+  --acc-hi:       rgba(14,165,233,.18);
+
+  --text:         #dce8f5;
+  --text-mid:     #6b8499;
+  --text-dim:     #334455;
+
+  --mono:   'JetBrains Mono', monospace;
+  --sans:   'Syne', system-ui, sans-serif;
+
+  --r:      7px;
+  --r-sm:   4px;
+  --r-lg:   12px;
+
+  --sidebar:    212px;
+  --topbar:      50px;
+  --snapw:      288px;
+  --t:          0.14s ease;
+}
+
+/* ── Reset ──────────────────────────────────────────────────── */
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--text); font-family:var(--sans); }
+button { font-family:inherit; cursor:pointer; }
+input,select { font-family:var(--mono); }
+::-webkit-scrollbar { width:4px; height:4px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border-hi); border-radius:2px; }
+::selection { background:var(--acc-dim); }
+
+/* ═══════════════════════════════════════════════════════════════
+   LAYOUT SHELL
+═══════════════════════════════════════════════════════════════ */
+#app { display:flex; height:100vh; }
+
+/* ═══════════════════════════════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════════════════════════════ */
+#sidebar {
+  width:var(--sidebar); flex-shrink:0;
+  background:var(--bg-surf);
+  border-right:1px solid var(--border);
+  display:flex; flex-direction:column;
+  z-index:200;
+  animation:slideInLeft .3s ease both;
+}
+@keyframes slideInLeft { from{transform:translateX(-8px);opacity:0} to{transform:none;opacity:1} }
+
+/* Logo */
+.logo {
+  padding:14px 14px 13px;
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:10px;
+  flex-shrink:0;
+}
+.logo-mark {
+  width:30px; height:30px; border-radius:7px; flex-shrink:0;
+  background:linear-gradient(135deg, var(--acc) 0%, var(--ok) 100%);
+  display:flex; align-items:center; justify-content:center;
+  font-size:15px; box-shadow:0 0 14px var(--acc-glow);
+}
+.logo-name { font-size:18px; font-weight:800; letter-spacing:-.4px; line-height:1; }
+.logo-name span { color:var(--acc); }
+.logo-ver  { font-family:var(--mono); font-size:8.5px; color:var(--text-dim); letter-spacing:1.5px; margin-top:2px; }
+
+/* Nav section */
+.nav { flex:1; overflow-y:auto; padding:6px 0 10px; }
+.nav-section {
+  font-family:var(--mono); font-size:8.5px; font-weight:600;
+  letter-spacing:2px; text-transform:uppercase;
+  color:var(--text-dim); padding:14px 13px 5px;
+}
+.nav-btn {
+  display:flex; align-items:center; gap:9px;
+  padding:7px 9px; margin:1px 5px;
+  border-radius:var(--r-sm); border:none; background:transparent;
+  color:var(--text-mid); font-family:var(--sans); font-size:12.5px; font-weight:600;
+  transition:background var(--t),color var(--t);
+  width:calc(100% - 10px); text-align:left;
+  position:relative;
+}
+.nav-btn:hover  { background:var(--bg-hover); color:var(--text); }
+.nav-btn.active { background:var(--acc-dim); color:var(--acc); }
+.nav-btn.active::before {
+  content:''; position:absolute; left:0; top:22%; height:56%;
+  width:2.5px; border-radius:0 2px 2px 0; background:var(--acc);
+}
+.nav-ico { font-size:13px; width:16px; text-align:center; flex-shrink:0; opacity:.7; }
+.nav-btn.active .nav-ico { opacity:1; }
+.nav-chip {
+  margin-left:auto; font-family:var(--mono); font-size:9px; font-weight:700;
+  padding:1px 5px; border-radius:8px;
+}
+.nav-chip.crit { background:var(--crit-dim); color:var(--crit); }
+.nav-chip.ok   { background:var(--ok-dim);   color:var(--ok); }
+
+/* Map list */
+.map-list { padding:0 5px 4px; }
+.map-entry {
+  display:flex; align-items:center; gap:8px;
+  padding:6px 9px; border-radius:var(--r-sm);
+  cursor:pointer; transition:background var(--t), color var(--t);
+  font-size:12px; font-weight:600; color:var(--text-mid);
+}
+.map-entry:hover  { background:var(--bg-hover); color:var(--text); }
+.map-entry.active { color:var(--text); background:var(--bg-hover); }
+.map-pip { width:6px; height:6px; border-radius:50%; flex-shrink:0; transition:box-shadow var(--t); }
+.map-pip.ok   { background:var(--ok);   box-shadow:0 0 5px var(--ok-glow); }
+.map-pip.warn { background:var(--warn); box-shadow:0 0 5px var(--warn-glow); }
+.map-pip.crit { background:var(--crit); box-shadow:0 0 5px var(--crit-glow); }
+.map-pip.unkn { background:var(--border-hi); }
+
+/* Footer */
+.sidebar-foot {
+  padding:10px 13px; border-top:1px solid var(--border);
+  flex-shrink:0; display:flex; align-items:center; gap:7px;
+}
+.foot-dot {
+  width:6px; height:6px; border-radius:50%;
+  background:var(--ok); box-shadow:0 0 6px var(--ok-glow);
+  animation:pulse 2.4s ease-in-out infinite; flex-shrink:0;
+}
+.foot-dot.off { background:var(--crit); box-shadow:0 0 6px var(--crit-glow); animation:none; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.2} }
+#sidebar-status { font-family:var(--mono); font-size:9.5px; color:var(--text-dim); }
+
+/* ═══════════════════════════════════════════════════════════════
+   MAIN
+═══════════════════════════════════════════════════════════════ */
+#main { flex:1; display:flex; flex-direction:column; min-width:0; }
+
+/* ── Topbar ───────────────────────────────────────────────── */
+#topbar {
+  height:var(--topbar); flex-shrink:0;
+  background:var(--bg-surf); border-bottom:1px solid var(--border);
+  display:flex; align-items:center; padding:0 13px; gap:8px;
+  z-index:100;
+}
+.tb-ident { min-width:0; }
+.tb-title {
+  font-size:13.5px; font-weight:700;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px;
+}
+.tb-sub {
+  font-family:var(--mono); font-size:9px; color:var(--text-dim);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px;
+}
+.tb-sep { width:1px; height:18px; background:var(--border); flex-shrink:0; }
+.tb-gap { flex:1; min-width:8px; }
+
+/* Status pills */
+.pill {
+  display:flex; align-items:center; gap:5px;
+  font-family:var(--mono); font-size:9.5px; font-weight:700;
+  padding:3px 8px; border-radius:100px; flex-shrink:0;
+  white-space:nowrap;
+}
+.pill.ok   { background:var(--ok-dim);   color:var(--ok);   border:1px solid rgba(0,229,160,.15); }
+.pill.warn { background:var(--warn-dim); color:var(--warn); border:1px solid rgba(255,182,39,.15); }
+.pill.crit { background:var(--crit-dim); color:var(--crit); border:1px solid rgba(255,59,85,.18);
+             animation:pillblink 1.7s ease infinite; }
+@keyframes pillblink { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+/* Topbar buttons */
+.tb-btn {
+  display:flex; align-items:center; gap:5px;
+  padding:5px 10px; border-radius:var(--r);
+  border:1px solid var(--border); background:transparent;
+  color:var(--text-mid); font-family:var(--sans); font-size:11.5px; font-weight:600;
+  transition:all var(--t); white-space:nowrap; flex-shrink:0;
+}
+.tb-btn:hover  { background:var(--bg-hover); color:var(--text); border-color:var(--border-hi); }
+.tb-btn.on     { background:var(--acc-dim);  color:var(--acc);  border-color:rgba(14,165,233,.25); }
+.tb-btn.danger { color:var(--crit); border-color:var(--crit-dim); }
+.tb-btn.danger:hover { background:var(--crit-dim); }
+.tb-icon { font-size:12px; }
+
+/* Connection dot */
+#nv2-conn-dot {
+  width:8px; height:8px; border-radius:50%; flex-shrink:0;
+  transition:background var(--t), box-shadow var(--t);
+}
+.conn-dot.connected    { background:var(--ok);   box-shadow:0 0 7px var(--ok-glow); }
+.conn-dot.disconnected { background:var(--crit); box-shadow:0 0 7px var(--crit-glow); }
+.conn-dot.connecting   { background:var(--warn); box-shadow:0 0 7px var(--warn-glow); animation:pulse 1s ease infinite; }
+
+#nv2-status-bar {
+  font-family:var(--mono); font-size:9px; color:var(--text-dim);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:240px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   OVERVIEW SCREEN
+═══════════════════════════════════════════════════════════════ */
+#overview {
+  flex:1; overflow-y:auto; padding:32px 36px;
+}
+.ov-head { margin-bottom:26px; }
+.ov-head h2 { font-size:21px; font-weight:800; margin-bottom:4px; }
+.ov-head p  { font-size:12.5px; color:var(--text-mid); }
+
+.ov-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
+  gap:12px;
+}
+.ov-card {
+  background:var(--bg-card); border:1px solid var(--border);
+  border-radius:var(--r-lg); padding:16px 18px;
+  cursor:pointer; position:relative; overflow:hidden;
+  transition:border-color .2s, transform .2s, box-shadow .2s;
+}
+.ov-card:hover {
+  border-color:var(--border-hi); transform:translateY(-2px);
+  box-shadow:0 8px 24px rgba(0,0,0,.4);
+}
+.ov-card::after {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(135deg,var(--acc-dim) 0%,transparent 55%);
+  opacity:0; transition:opacity .2s;
+}
+.ov-card:hover::after { opacity:1; }
+.ov-card-title { font-size:14px; font-weight:700; margin-bottom:5px; }
+.ov-card-meta  { font-family:var(--mono); font-size:9.5px; color:var(--text-dim); }
+.ov-card-pips  { display:flex; gap:4px; margin-top:12px; }
+.ov-card-pip   { width:7px; height:7px; border-radius:50%; }
+
+.ov-new {
+  background:transparent; border:1.5px dashed var(--border);
+  border-radius:var(--r-lg); padding:16px 18px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  gap:8px; color:var(--text-dim); font-size:13px; font-weight:600;
+  transition:all .2s; min-height:82px;
+}
+.ov-new:hover { border-color:var(--acc); color:var(--acc); background:var(--acc-dim); }
+
+/* ═══════════════════════════════════════════════════════════════
+   MAP CANVAS AREA
+═══════════════════════════════════════════════════════════════ */
+#map-area {
+  flex:1; position:relative; overflow:hidden;
+  background:var(--bg);
+  display:none;
+}
+
+/* Fine dot-grid atmosphere */
+#map-area::before {
+  content:''; position:absolute; inset:0; z-index:0; pointer-events:none;
+  background-image:radial-gradient(circle, rgba(14,165,233,.06) 1px, transparent 1px);
+  background-size:36px 36px;
+}
+
+/* Drop-zone prompt */
+#upload-prompt {
+  position:absolute; inset:0; z-index:2;
+  display:flex; align-items:center; justify-content:center;
+  pointer-events:none;
+}
+#upload-prompt.hidden { display:none; }
+.upload-box {
+  pointer-events:all;
+  border:2px dashed var(--border-hi); border-radius:var(--r-lg);
+  padding:38px 56px; text-align:center;
+  background:rgba(11,15,24,.94); cursor:pointer;
+  transition:border-color .2s, background .2s, transform .2s;
+}
+.upload-box:hover, .upload-box.drag-over {
+  border-color:var(--acc); background:rgba(14,165,233,.05);
+  transform:scale(1.015);
+}
+.upload-emo   { font-size:34px; margin-bottom:12px; opacity:.5; }
+.upload-title { font-size:15px; font-weight:700; color:var(--text); margin-bottom:5px; }
+.upload-hint  { font-family:var(--mono); font-size:10.5px; color:var(--text-dim); }
+
+/* The map canvas – nodes live here */
+#nv2-canvas {
+  position:absolute; inset:0; z-index:1;
+  background-size:contain; background-repeat:no-repeat; background-position:center;
+}
+#nv2-canvas.nv2-edit-mode { cursor:crosshair; }
+
+/* ── NODE STYLES ────────────────────────────────────────── */
+.nv2-node {
+  position:absolute; transform:translate(-50%,-50%);
+  display:flex; flex-direction:column; align-items:center;
+  cursor:pointer; user-select:none; z-index:10;
+  animation:nodeIn .25s ease both;
+}
+.nv2-node:hover { z-index:30; }
+@keyframes nodeIn {
+  from { opacity:0; transform:translate(-50%,-44%) scale(.85); }
+  to   { opacity:1; transform:translate(-50%,-50%) scale(1); }
+}
+
+.nv2-ring {
+  width:44px; height:44px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:18px; position:relative;
+  border:2px solid transparent;
+  background:var(--bg-panel);
+  transition:transform .12s ease, box-shadow .22s ease;
+}
+.nv2-node:hover .nv2-ring { transform:scale(1.14); }
+
+/* Status ring colours */
+.nv2-ok       .nv2-ring { border-color:var(--ok);   box-shadow:0 0 0 2px var(--bg),0 0 12px var(--ok-glow); }
+.nv2-warning  .nv2-ring { border-color:var(--warn);  box-shadow:0 0 0 2px var(--bg),0 0 12px var(--warn-glow); }
+.nv2-critical .nv2-ring { border-color:var(--crit);  box-shadow:0 0 0 2px var(--bg),0 0 16px var(--crit-glow); animation:critPulse 1.5s ease infinite; }
+.nv2-unknown  .nv2-ring { border-color:var(--unkn);  box-shadow:0 0 0 2px var(--bg),0 0 8px var(--unkn-glow); border-style:dashed; }
+.nv2-ack      .nv2-ring { opacity:.62; filter:saturate(.4); }
+.nv2-downtime .nv2-ring { border-color:#2e8af6; box-shadow:0 0 0 2px var(--bg),0 0 10px rgba(46,138,246,.3); }
+@keyframes critPulse { 0%,100%{box-shadow:0 0 0 2px var(--bg),0 0 16px var(--crit-glow)} 50%{box-shadow:0 0 0 2px var(--bg),0 0 28px rgba(255,59,85,.65)} }
+
+/* CRITICAL ripple */
+.nv2-critical .nv2-ring::after {
+  content:''; position:absolute; inset:-6px; border-radius:50%;
+  border:1.5px solid var(--crit); opacity:0;
+  animation:ripple 2.2s ease-out infinite;
+}
+@keyframes ripple { 0%{transform:scale(.82);opacity:.7} 100%{transform:scale(1.7);opacity:0} }
+
+/* Status badge */
+.nv2-badge {
+  position:absolute; top:-3px; right:-3px;
+  width:14px; height:14px; border-radius:50%;
+  border:2px solid var(--bg);
+  font-size:6.5px; font-weight:800; font-family:var(--mono);
+  display:flex; align-items:center; justify-content:center;
+}
+.nv2-ok       .nv2-badge { background:var(--ok);   color:#000; }
+.nv2-warning  .nv2-badge { background:var(--warn);  color:#000; }
+.nv2-critical .nv2-badge { background:var(--crit);  color:#fff; }
+.nv2-unknown  .nv2-badge { background:var(--unkn);  color:#fff; }
+.nv2-ack      .nv2-badge { background:#e8a000; color:#000; }
+.nv2-downtime .nv2-badge { background:#2e8af6; color:#fff; }
+
+/* Label */
+.nv2-label {
+  margin-top:6px; padding:2px 7px; border-radius:4px;
+  font-family:var(--mono); font-size:9.5px; font-weight:500;
+  color:var(--text); background:rgba(7,9,14,.9);
+  border:1px solid var(--border);
+  white-space:nowrap; max-width:120px; overflow:hidden; text-overflow:ellipsis;
+  backdrop-filter:blur(4px);
+  transition:color var(--t), border-color var(--t);
+}
+.nv2-node:hover .nv2-label { color:var(--acc); border-color:rgba(14,165,233,.3); }
+
+/* Dragging state */
+.nv2-dragging .nv2-ring { border-style:dashed!important; }
+.nv2-dragging { opacity:.75; }
+
+/* Status flash */
+@keyframes statusFlash { 0%,100%{opacity:1} 35%{opacity:.15} }
+.nv2-status-changed { animation:statusFlash .65s ease; }
+
+/* ── TOOLTIP ─────────────────────────────────────────────── */
+.nv2-tooltip {
+  position:absolute;
+  background:rgba(13,19,30,.97);
+  border:1px solid var(--border-hi);
+  border-radius:var(--r); padding:11px 13px;
+  min-width:195px; z-index:200;
+  pointer-events:none;
+  box-shadow:0 12px 36px rgba(0,0,0,.6);
+  backdrop-filter:blur(8px);
+  transform:translateX(-50%) translateY(-100%) translateY(-12px);
+  animation:ttIn .1s ease;
+}
+@keyframes ttIn { from{opacity:0;transform:translateX(-50%) translateY(-100%) translateY(-6px)} to{opacity:1;transform:translateX(-50%) translateY(-100%) translateY(-12px)} }
+.tt-name {
+  font-size:12.5px; font-weight:700; color:var(--text);
+  padding-bottom:7px; margin-bottom:7px; border-bottom:1px solid var(--border);
+}
+.tt-row {
+  display:flex; justify-content:space-between; gap:12px;
+  font-family:var(--mono); font-size:10px; color:var(--text-mid);
+  margin-bottom:3px;
+}
+.tt-row b { color:var(--text); font-weight:600; }
+.tt-ok   { color:var(--ok)!important; }
+.tt-warn { color:var(--warn)!important; }
+.tt-crit { color:var(--crit)!important; }
+.tt-unkn { color:var(--unkn)!important; }
+
+/* ── EDIT BANNER ─────────────────────────────────────────── */
+#nv2-edit-banner {
+  position:absolute; bottom:16px; left:50%; z-index:20;
+  transform:translateX(-50%);
+  background:rgba(14,165,233,.10); border:1px solid rgba(14,165,233,.25);
+  backdrop-filter:blur(10px); border-radius:100px;
+  padding:7px 20px; display:none; align-items:center;
+  gap:10px; white-space:nowrap;
+  font-family:var(--mono); font-size:10.5px; font-weight:600; color:var(--acc);
+}
+#nv2-edit-banner.show { display:flex; animation:fadeUp .22s ease; }
+@keyframes fadeUp { from{opacity:0;transform:translateX(-50%) translateY(5px)} to{opacity:1;transform:translateX(-50%)} }
+.banner-key {
+  background:rgba(14,165,233,.15); border:1px solid rgba(14,165,233,.25);
+  border-radius:3px; padding:0 5px; font-size:9px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SNAP-IN PANELS
+═══════════════════════════════════════════════════════════════ */
+#snapin-container {
+  position:absolute; inset:0; z-index:50;
+  pointer-events:none; display:none;
+}
+
+.snapin {
+  position:absolute; top:0; right:0; bottom:0;
+  width:var(--snapw);
+  background:var(--bg-surf); border-left:1px solid var(--border);
+  display:flex; flex-direction:column;
+  transform:translateX(100%);
+  transition:transform .25s cubic-bezier(.4,0,.2,1);
+  pointer-events:all;
+}
+.snapin.open { transform:translateX(0); }
+
+.snapin-head {
+  display:flex; align-items:center; gap:7px;
+  padding:10px 12px; border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.snapin-ico   { font-size:13px; }
+.snapin-title { flex:1; font-size:12px; font-weight:700; }
+.snapin-close {
+  width:22px; height:22px; border-radius:4px;
+  border:1px solid var(--border); background:transparent;
+  color:var(--text-mid); font-size:11px;
+  display:flex; align-items:center; justify-content:center;
+  transition:all var(--t);
+}
+.snapin-close:hover { background:var(--bg-hover); color:var(--text); }
+.snapin-body { flex:1; overflow-y:auto; }
+
+/* Snap tabs */
+#snap-tabs {
+  position:absolute; right:0; top:50%; z-index:51;
+  transform:translateY(-50%);
+  display:flex; flex-direction:column; gap:1px;
+  pointer-events:all; transition:right .25s cubic-bezier(.4,0,.2,1);
+  display:none;
+}
+#snap-tabs.panel-open { right:var(--snapw); }
+
+.snap-tab {
+  writing-mode:vertical-rl;
+  padding:11px 5px; background:var(--bg-panel);
+  border:1px solid var(--border); border-right:none;
+  border-radius:5px 0 0 5px;
+  font-family:var(--mono); font-size:8.5px; font-weight:700;
+  letter-spacing:1.2px; text-transform:uppercase;
+  color:var(--text-mid); cursor:pointer;
+  transition:all var(--t); white-space:nowrap;
+}
+.snap-tab:hover  { background:var(--bg-hover); color:var(--text); }
+.snap-tab.active { background:var(--acc-dim); color:var(--acc); border-color:rgba(14,165,233,.25); }
+
+/* Host rows */
+.host-row {
+  display:flex; align-items:center; gap:8px;
+  padding:8px 12px; border-bottom:1px solid rgba(26,42,58,.5);
+  cursor:pointer; transition:background var(--t);
+}
+.host-row:hover { background:var(--bg-hover); }
+.hr-pip { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.hr-pip.ok   { background:var(--ok);   box-shadow:0 0 5px var(--ok-glow); }
+.hr-pip.warn { background:var(--warn); box-shadow:0 0 5px var(--warn-glow); }
+.hr-pip.crit { background:var(--crit); box-shadow:0 0 5px var(--crit-glow); animation:pulse .9s ease infinite; }
+.hr-pip.unkn { background:var(--border-hi); }
+.hr-body { flex:1; min-width:0; }
+.hr-name { font-family:var(--mono); font-size:11px; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.hr-out  { font-family:var(--mono); font-size:9.5px; color:var(--text-mid); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px; margin-top:1px; }
+.hr-tag  {
+  font-family:var(--mono); font-size:8.5px; font-weight:700;
+  padding:1px 5px; border-radius:4px; flex-shrink:0;
+}
+.hr-tag.ok   { background:var(--ok-dim);   color:var(--ok); }
+.hr-tag.warn { background:var(--warn-dim); color:var(--warn); }
+.hr-tag.crit { background:var(--crit-dim); color:var(--crit); }
+.hr-tag.unkn { background:var(--unkn-dim); color:var(--unkn); }
+
+/* Event rows */
+.ev-row {
+  display:flex; gap:8px; padding:9px 12px;
+  border-bottom:1px solid rgba(26,42,58,.5);
+  cursor:default; transition:background var(--t);
+}
+.ev-row:hover { background:var(--bg-hover); }
+.ev-bar { width:2.5px; border-radius:2px; flex-shrink:0; align-self:stretch; min-height:32px; }
+.ev-bar.ok   { background:var(--ok); }
+.ev-bar.warn { background:var(--warn); }
+.ev-bar.crit { background:var(--crit); }
+.ev-bar.info { background:var(--acc); }
+.ev-body { flex:1; min-width:0; }
+.ev-host { font-family:var(--mono); font-size:10.5px; font-weight:600; color:var(--text); }
+.ev-msg  { font-family:var(--mono); font-size:9.5px; color:var(--text-mid); margin-top:1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ev-time { font-family:var(--mono); font-size:8.5px; color:var(--text-dim); margin-top:3px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   DIALOGS
+═══════════════════════════════════════════════════════════════ */
+.dlg-overlay {
+  position:fixed; inset:0; z-index:400;
+  background:rgba(7,9,14,.75); backdrop-filter:blur(4px);
+  display:none; align-items:center; justify-content:center;
+}
+.dlg-overlay.show { display:flex; }
+.dlg {
+  background:var(--bg-card); border:1px solid var(--border-hi);
+  border-radius:var(--r-lg); padding:22px;
+  width:328px; box-shadow:0 24px 60px rgba(0,0,0,.7);
+  animation:dlgIn .18s ease;
+}
+@keyframes dlgIn { from{opacity:0;transform:scale(.96) translateY(6px)} to{opacity:1;transform:none} }
+.dlg h3 { font-size:14px; font-weight:700; margin-bottom:16px; }
+.f-row   { margin-bottom:11px; }
+.f-label {
+  display:block; font-family:var(--mono); font-size:8.5px; font-weight:600;
+  letter-spacing:1.5px; text-transform:uppercase; color:var(--text-dim);
+  margin-bottom:4px;
+}
+.f-input, .f-select {
+  width:100%; background:var(--bg-panel);
+  border:1px solid var(--border); border-radius:var(--r-sm);
+  padding:7px 9px; color:var(--text);
+  font-family:var(--mono); font-size:11.5px; outline:none;
+  transition:border-color var(--t), box-shadow var(--t);
+}
+.f-input:focus, .f-select:focus {
+  border-color:var(--acc); box-shadow:0 0 0 3px var(--acc-dim);
+}
+.f-select option { background:var(--bg-panel); }
+.dlg-foot { display:flex; gap:7px; margin-top:18px; }
+.btn-cancel {
+  flex:1; padding:8px; border-radius:var(--r);
+  border:1px solid var(--border); background:transparent;
+  color:var(--text-mid); font-family:var(--sans); font-size:12px; font-weight:600;
+  transition:all var(--t);
+}
+.btn-cancel:hover { background:var(--bg-hover); color:var(--text); }
+.btn-ok {
+  flex:2; padding:8px; border-radius:var(--r);
+  border:none; background:var(--acc); color:#000;
+  font-family:var(--sans); font-size:12px; font-weight:700;
+  transition:background var(--t);
+}
+.btn-ok:hover { background:#38b6ff; }
+
+/* ── misc ────────────────────────────────────────────────── */
+#bg-file-input { display:none; }
+.empty-hint {
+  padding:22px 14px; text-align:center;
+  font-family:var(--mono); font-size:10.5px; color:var(--text-dim);
+}
+</style>
+</head>
+
+<body>
+<div id="app">
+
+<!-- ═══════════════════════════════════════════════════════════
+     SIDEBAR
+═══════════════════════════════════════════════════════════ -->
+<nav id="sidebar">
+  <div class="logo">
+    <div class="logo-mark">⬡</div>
+    <div>
+      <div class="logo-name">Nag<span>Vis</span></div>
+      <div class="logo-ver">v2 · FastAPI + WebSocket</div>
+    </div>
+  </div>
+
+  <div class="nav">
+    <div class="nav-section">Navigation</div>
+    <button class="nav-btn active" id="nav-btn-overview" onclick="showOverview()">
+      <span class="nav-ico">◈</span> Übersicht
+    </button>
+
+    <div class="nav-section" style="margin-top:4px">Maps</div>
+    <div id="sidebar-maps" class="map-list"></div>
+
+    <div class="nav-section" style="margin-top:4px">System</div>
+    <button class="nav-btn" onclick="window.open('/docs','_blank')">
+      <span class="nav-ico">⊞</span> API Docs
+    </button>
+    <button class="nav-btn" id="nav-btn-health">
+      <span class="nav-ico">⊙</span> Health
+      <span class="nav-chip ok" id="health-chip">OK</span>
+    </button>
+  </div>
+
+  <div class="sidebar-foot">
+    <div class="foot-dot" id="foot-dot"></div>
+    <span id="sidebar-status">Verbinde…</span>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════
+     TOPBAR
+═══════════════════════════════════════════════════════════ -->
+<div id="main">
+  <div id="topbar">
+    <div id="nv2-conn-dot" class="conn-dot connecting"></div>
+
+    <div class="tb-ident">
+      <div class="tb-title" id="tb-title">NagVis 2</div>
+      <div class="tb-sub"   id="tb-sub">Wähle eine Map</div>
+    </div>
+
+    <!-- Status pills – nur wenn Map offen -->
+    <div id="tb-pills" style="display:none;align-items:center;gap:5px">
+      <div class="tb-sep"></div>
+      <span class="pill ok"   id="pill-ok">  ● –</span>
+      <span class="pill warn" id="pill-warn">● –</span>
+      <span class="pill crit" id="pill-crit">● –</span>
+    </div>
+
+    <div class="tb-gap"></div>
+    <span id="nv2-status-bar"></span>
+
+    <!-- Map toolbar – nur wenn Map offen -->
+    <div id="map-toolbar" style="display:none;align-items:center;gap:6px">
+      <div class="tb-sep"></div>
+      <button class="tb-btn" id="btn-bg-upload" title="Hintergrundbild hochladen">
+        <span class="tb-icon">🖼</span> Hintergrund
+      </button>
+      <button class="tb-btn" id="btn-edit">
+        <span class="tb-icon">✏</span> Bearbeiten
+      </button>
+      <button class="tb-btn" id="btn-add-host" style="display:none" title="Host hinzufügen (Klick auf Canvas)">
+        <span class="tb-icon">＋</span> Host
+      </button>
+      <button class="tb-btn danger" id="btn-delete-map" title="Map löschen">
+        <span class="tb-icon">🗑</span>
+      </button>
+      <div class="tb-sep"></div>
+      <button class="tb-btn" id="btn-refresh" title="Refresh erzwingen (r)">
+        <span class="tb-icon">↻</span>
+      </button>
+    </div>
+  </div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     OVERVIEW
+═══════════════════════════════════════════════════════════ -->
+  <div id="overview">
+    <div class="ov-head">
+      <h2>Map-Übersicht</h2>
+      <p>Wähle eine bestehende Map oder erstelle eine neue</p>
+    </div>
+    <div class="ov-grid" id="ov-grid">
+      <!-- Karten werden via JS eingefügt -->
+      <div class="ov-new" onclick="dlgNewMap()">
+        <span style="font-size:18px">＋</span> Neue Map erstellen
+      </div>
+    </div>
+  </div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MAP CANVAS
+═══════════════════════════════════════════════════════════ -->
+  <div id="map-area">
+
+    <!-- Upload-Prompt (wenn noch kein Hintergrundbild) -->
+    <div id="upload-prompt">
+      <div class="upload-box" id="upload-box"
+           onclick="document.getElementById('bg-file-input').click()">
+        <div class="upload-emo">🗺️</div>
+        <div class="upload-title">Hintergrundbild hochladen</div>
+        <div class="upload-hint">PNG · JPG · SVG · WebP · Drag &amp; Drop</div>
+      </div>
+    </div>
+
+    <!-- Nodes werden hier gerendert; data-map-id wird per JS gesetzt -->
+    <div id="nv2-canvas" id="nv2-map-root" data-map-id=""></div>
+
+    <!-- Edit-Mode Banner -->
+    <div id="nv2-edit-banner">
+      <span>✏ EDIT MODE</span>
+      <span class="banner-key">Drag</span> Nodes verschieben
+      <span class="banner-key">Rechtsklick</span> Entfernen
+      <span class="banner-key">Klick</span> Host platzieren
+      <span class="banner-key">Esc</span> Beenden
+    </div>
+
+    <!-- Snap-in tabs (vertical, rechter Rand) -->
+    <div id="snap-tabs">
+      <div class="snap-tab" id="tab-hosts"  onclick="toggleSnapin('hosts')">Hosts</div>
+      <div class="snap-tab" id="tab-events" onclick="toggleSnapin('events')">Events</div>
+    </div>
+
+    <!-- Snap-in panels -->
+    <div id="snapin-container">
+      <!-- Hosts -->
+      <div class="snapin" id="snapin-hosts">
+        <div class="snapin-head">
+          <span class="snapin-ico">⬦</span>
+          <span class="snapin-title">Hosts</span>
+          <button class="snapin-close" onclick="closeSnapin('hosts')">✕</button>
+        </div>
+        <div class="snapin-body" id="body-hosts">
+          <div class="empty-hint">Lade…</div>
+        </div>
+      </div>
+      <!-- Events -->
+      <div class="snapin" id="snapin-events">
+        <div class="snapin-head">
+          <span class="snapin-ico">◎</span>
+          <span class="snapin-title">Event-Stream</span>
+          <button class="snapin-close" onclick="closeSnapin('events')">✕</button>
+        </div>
+        <div class="snapin-body" id="body-events">
+          <div class="empty-hint">Warte auf Events…</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /map-area -->
+
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- Hidden file input -->
+<input type="file" id="bg-file-input" accept="image/*,.svg">
+
+<!-- ═══════════════════════════════════════════════════════════
+     DIALOG – Host hinzufügen
+═══════════════════════════════════════════════════════ -->
+<div class="dlg-overlay" id="dlg-add-host">
+  <div class="dlg">
+    <h3>Host auf Map platzieren</h3>
+    <div class="f-row">
+      <label class="f-label">Hostname</label>
+      <input class="f-input" id="dlg-hname" type="text"
+             placeholder="z.B. srv-web-01" autocomplete="off"
+             list="known-hosts">
+      <datalist id="known-hosts"></datalist>
+    </div>
+    <div class="f-row">
+      <label class="f-label">Icon</label>
+      <select class="f-select" id="dlg-iconset">
+        <option value="server">🖥  Server</option>
+        <option value="router">🌐  Router</option>
+        <option value="switch">🔀  Switch</option>
+        <option value="firewall">🔥  Firewall</option>
+        <option value="storage">💾  Storage / Backup</option>
+        <option value="database">🗄  Datenbank</option>
+        <option value="ups">⚡  USV</option>
+        <option value="ap">📡  Access Point</option>
+        <option value="default">⬡  Generisch</option>
+      </select>
+    </div>
+    <div class="f-row">
+      <label class="f-label">Typ</label>
+      <select class="f-select" id="dlg-type">
+        <option value="host">Host</option>
+        <option value="service">Service</option>
+        <option value="hostgroup">Hostgruppe</option>
+      </select>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn-cancel" onclick="closeDlg('dlg-add-host')">Abbrechen</button>
+      <button class="btn-ok"     onclick="confirmAddHost()">Platzieren</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     DIALOG – Neue Map erstellen
+═══════════════════════════════════════════════════════ -->
+<div class="dlg-overlay" id="dlg-new-map">
+  <div class="dlg">
+    <h3>Neue Map erstellen</h3>
+    <div class="f-row">
+      <label class="f-label">Titel</label>
+      <input class="f-input" id="nm-title" type="text" placeholder="z.B. Datacenter Hamburg">
+    </div>
+    <div class="f-row">
+      <label class="f-label">ID (optional – wird automatisch generiert)</label>
+      <input class="f-input" id="nm-id"    type="text" placeholder="datacenter-hh">
+    </div>
+    <div class="dlg-foot">
+      <button class="btn-cancel" onclick="closeDlg('dlg-new-map')">Abbrechen</button>
+      <button class="btn-ok"     onclick="confirmNewMap()">Erstellen</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════════════════ -->
+<script type="module">
+
+// ─── Imports ──────────────────────────────────────────────────
+// NV2App aus dem Client laden – es registriert sich selbst auf
+// das Element #nv2-map-root. Wir brauchen es nur für Snapshot-
+// Callbacks und delegieren den Rest an unsere eigene UI-Logik.
+// (nagvis2-client.js muss neben index.html liegen)
+// import { NV2App } from './js/nagvis2-client.js';
+// Für maximale Kompatibilität inline:
+
+// ─── Globaler State ───────────────────────────────────────────
+let activeMapId  = null;
+let activeMapCfg = null;
+let wsClient     = null;
+let editActive   = false;
+let pendingPos   = null;   // {x%, y%} für neuen Host via Canvas-Klick
+let hostCache    = {};     // name → hostData (vom letzten Snapshot/Update)
+let eventLog     = [];     // für Events-Snapin (max 60 Einträge)
+let activeSnapin = null;
+
+// ─── Konstanten ───────────────────────────────────────────────
+const ICON   = { server:'🖥', router:'🌐', switch:'🔀', firewall:'🔥', storage:'💾', database:'🗄', ups:'⚡', ap:'📡', default:'⬡' };
+const SCLS   = { UP:'nv2-ok', OK:'nv2-ok', WARNING:'nv2-warning', CRITICAL:'nv2-critical', UNKNOWN:'nv2-unknown', DOWN:'nv2-critical', UNREACHABLE:'nv2-critical', PENDING:'nv2-unknown' };
+const SBADGE = { UP:'✓', OK:'✓', WARNING:'!', CRITICAL:'✕', UNKNOWN:'?', DOWN:'↓', UNREACHABLE:'↕', PENDING:'…' };
+const SCIPCLS = { UP:'ok', OK:'ok', WARNING:'warn', CRITICAL:'crit', DOWN:'crit', UNREACHABLE:'crit', UNKNOWN:'unkn', PENDING:'unkn' };
+
+// ─── Init ──────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  // Toolbar-Buttons verdrahten
+  document.getElementById('btn-edit')     .addEventListener('click', toggleEdit);
+  document.getElementById('btn-refresh')  .addEventListener('click', () => wsClient?.forceRefresh());
+  document.getElementById('btn-add-host') .addEventListener('click', () => openDlg('dlg-add-host'));
+  document.getElementById('btn-delete-map').addEventListener('click', confirmDeleteMap);
+  document.getElementById('btn-bg-upload').addEventListener('click', () => document.getElementById('bg-file-input').click());
+  document.getElementById('bg-file-input').addEventListener('change', e => { if (e.target.files[0]) uploadBg(e.target.files[0]); e.target.value=''; });
+
+  // Canvas-Klick für Host-Platzierung
+  document.getElementById('nv2-canvas').addEventListener('click', onCanvasClick);
+
+  // Drag & Drop auf den Map-Bereich
+  setupDragDrop();
+
+  // Keyboard
+  document.addEventListener('keydown', onKeyDown);
+
+  // Maps laden + Overview aufbauen
+  await loadMaps();
+
+  // Health polling
+  pollHealth();
+  setInterval(pollHealth, 30_000);
+});
+
+// ─── Maps laden ────────────────────────────────────────────────
+async function loadMaps() {
+  const maps = await api('/api/maps') ?? [];
+  renderSidebar(maps);
+  renderOverview(maps);
+}
+
+function renderSidebar(maps) {
+  const el = document.getElementById('sidebar-maps');
+  el.innerHTML = maps.map(m => `
+    <div class="map-entry" id="smap-${esc(m.id)}" onclick="openMap('${esc(m.id)}')">
+      <div class="map-pip unkn" id="mpip-${esc(m.id)}"></div>
+      ${esc(m.title)}
+    </div>`).join('') || '<div style="padding:6px 9px;font-size:11px;color:var(--text-dim)">Keine Maps</div>';
+}
+
+function renderOverview(maps) {
+  const grid = document.getElementById('ov-grid');
+  const cards = maps.map(m => `
+    <div class="ov-card" onclick="openMap('${esc(m.id)}')">
+      <div class="ov-card-title">${esc(m.title)}</div>
+      <div class="ov-card-meta">${m.object_count} Objekte · ${esc(m.id)}</div>
+      <div class="ov-card-pips">
+        <div class="ov-card-pip" style="background:var(--ok)"></div>
+        <div class="ov-card-pip" style="background:var(--border)"></div>
+        <div class="ov-card-pip" style="background:var(--border)"></div>
+      </div>
+    </div>`).join('');
+  grid.innerHTML = cards + `
+    <div class="ov-new" onclick="dlgNewMap()">
+      <span style="font-size:18px">＋</span> Neue Map erstellen
+    </div>`;
+}
+
+// ─── Map öffnen ────────────────────────────────────────────────
+window.openMap = async function(mapId) {
+  activeMapId  = mapId;
+  activeMapCfg = await api(`/api/maps/${mapId}`);
+  if (!activeMapCfg) { alert('Map nicht gefunden'); return; }
+
+  // UI-Switch: Overview ↔ MapView
+  document.getElementById('overview')     .style.display = 'none';
+  document.getElementById('map-area')     .style.display = 'block';
+  document.getElementById('map-toolbar')  .style.display = 'flex';
+  document.getElementById('tb-pills')     .style.display = 'flex';
+  document.getElementById('snap-tabs')    .style.display = 'flex';
+  document.getElementById('snapin-container').style.display = 'block';
+
+  document.getElementById('tb-title').textContent = activeMapCfg.title;
+  document.getElementById('tb-sub')  .textContent = `${activeMapCfg.objects?.length ?? 0} Objekte · ${mapId}`;
+
+  // Sidebar-Highlight
+  document.querySelectorAll('.map-entry').forEach(e => e.classList.remove('active'));
+  document.getElementById('nav-btn-overview')?.classList.remove('active');
+  document.getElementById(`smap-${mapId}`)?.classList.add('active');
+
+  // Canvas leeren + neu aufbauen
+  const canvas = document.getElementById('nv2-canvas');
+  canvas.innerHTML = '';
+  canvas.dataset.mapId = mapId;
+
+  if (activeMapCfg.background) {
+    setBg(`/${activeMapCfg.background}`);
+  } else {
+    canvas.style.backgroundImage = '';
+    document.getElementById('upload-prompt').classList.remove('hidden');
+  }
+
+  for (const obj of activeMapCfg.objects ?? []) createNode(obj);
+
+  // WebSocket verbinden
+  if (wsClient) { wsClient._dead = true; wsClient.ws?.close(); }
+  wsClient = makeWsClient(mapId);
+  wsClient.connect();
+};
+
+// ─── Overview anzeigen ──────────────────────────────────────────
+window.showOverview = async function() {
+  document.getElementById('overview')       .style.display = 'block';
+  document.getElementById('map-area')       .style.display = 'none';
+  document.getElementById('map-toolbar')    .style.display = 'none';
+  document.getElementById('tb-pills')       .style.display = 'none';
+  document.getElementById('snap-tabs')      .style.display = 'none';
+  document.getElementById('snapin-container').style.display = 'none';
+
+  document.getElementById('tb-title').textContent = 'NagVis 2';
+  document.getElementById('tb-sub')  .textContent = 'Wähle eine Map';
+  document.getElementById('nav-btn-overview').classList.add('active');
+  document.querySelectorAll('.map-entry').forEach(e => e.classList.remove('active'));
+  activeMapId = null;
+  if (wsClient) { wsClient._dead = true; wsClient.ws?.close(); wsClient = null; }
+  closeSnapin(activeSnapin);
+  await loadMaps();
+};
+
+// ─── WebSocket Client ──────────────────────────────────────────
+function makeWsClient(mapId) {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const url   = `${proto}://${location.host}/ws/map/${mapId}`;
+  const c = {
+    mapId, ws:null, _dead:false, delay:2000,
+    connect() {
+      this.ws = new WebSocket(url);
+      this.ws.onopen    = () => { this.delay=2000; onWsOpen(); };
+      this.ws.onmessage = e  => onWsMsg(JSON.parse(e.data));
+      this.ws.onclose   = () => { if(!this._dead){ onWsClose(); setTimeout(()=>this.connect(), this.delay); this.delay=Math.min(this.delay*1.5,30000); }};
+      this.ws.onerror   = () => {};
+    },
+    send(d)         { if(this.ws?.readyState===1) this.ws.send(JSON.stringify(d)); },
+    forceRefresh()  { this.send({cmd:'force_refresh'}); },
+  };
+  return c;
+}
+
+function onWsOpen() {
+  setConnDot('connected');
+  setSidebarLive(true, 'Livestatus · verbunden');
+}
+function onWsClose() {
+  setConnDot('disconnected');
+  setSidebarLive(false, 'Getrennt – verbinde…');
+  setStatusBar('Verbindung getrennt…');
+}
+
+// ─── WebSocket Nachrichten ──────────────────────────────────────
+function onWsMsg(ev) {
+  switch (ev.event) {
+
+    case 'snapshot':
+      applyStatuses(ev.hosts ?? [], ev.services ?? []);
+      updatePills(ev.hosts ?? []);
+      renderHostsPanel(ev.hosts ?? []);
+      fillHostDatalist(ev.hosts ?? []);
+      setStatusBar(`${fmt(ev.ts)} · Snapshot · ${ev.hosts?.length ?? 0} Hosts`);
+      break;
+
+    case 'status_update':
+      applyStatuses(ev.hosts ?? [], ev.services ?? []);
+      updatePills(Object.values(hostCache));
+      renderHostsPanel(Object.values(hostCache));
+      appendEvents(ev.hosts ?? [], ev.services ?? [], ev.ts);
+      const n = (ev.hosts?.length??0)+(ev.services?.length??0);
+      setStatusBar(`${fmt(ev.ts)} · ${n} Änderung${n!==1?'en':''} · ${ev.elapsed}ms`);
+      break;
+
+    case 'heartbeat':
+      setStatusBar(`${fmt(ev.ts)} · live ♥`);
+      break;
+
+    case 'object_added':
+      if (ev.map_id === activeMapId) {
+        const el = createNode(ev.object);
+        if (editActive) makeDraggable(el);
+      }
+      break;
+
+    case 'object_removed':
+      document.getElementById(`nv2-${ev.object_id}`)?.remove();
+      break;
+
+    case '_connected':
+      setConnDot('connected');
+      break;
+
+    case '_disconnected':
+      setConnDot('disconnected');
+      break;
+
+    case 'backend_error':
+      setStatusBar(`⚠ ${ev.message}`);
+      break;
+  }
+}
+
+// ─── Node DOM ───────────────────────────────────────────────────
+function createNode(obj) {
+  if (document.getElementById(`nv2-${obj.object_id}`)) return;
+  const icon = ICON[obj.iconset] ?? ICON.default;
+  const el   = document.createElement('div');
+  el.id = `nv2-${obj.object_id}`;
+  el.className      = 'nv2-node nv2-unknown';
+  el.dataset.objectId = obj.object_id;
+  el.dataset.name     = obj.name;
+  el.style.left = `${obj.x}%`;
+  el.style.top  = `${obj.y}%`;
+  el.innerHTML = `
+    <div class="nv2-ring">
+      <span aria-hidden="true">${icon}</span>
+      <span class="nv2-badge" aria-label="UNKNOWN">?</span>
+    </div>
+    <div class="nv2-label" title="${esc(obj.label||obj.name)}">${esc(obj.label||obj.name)}</div>`;
+
+  el.addEventListener('mouseenter', () => showTooltip(el, obj));
+  el.addEventListener('mouseleave', hideTooltip);
+  el.addEventListener('contextmenu', e => { e.preventDefault(); if (editActive) removeNode(el, obj); });
+
+  document.getElementById('nv2-canvas').appendChild(el);
+
+  // Sofort Status aus Cache anwenden falls vorhanden
+  const h = hostCache[obj.name];
+  if (h) applyNodeStatus(el, h.state_label, h.acknowledged, h.in_downtime);
+
+  return el;
+}
+
+// ─── Status anwenden ────────────────────────────────────────────
+function applyStatuses(hosts, services) {
+  for (const h of hosts) {
+    hostCache[h.name] = h;
+    document.querySelectorAll(`[data-name="${esc(h.name)}"]`).forEach(el =>
+      applyNodeStatus(el, h.state_label, h.acknowledged, h.in_downtime));
+  }
+  for (const s of services) {
+    const el = document.querySelector(`[data-name="${esc(s.host_name)}::${esc(s.description)}"]`);
+    if (el) applyNodeStatus(el, s.state_label, s.acknowledged, s.in_downtime);
+  }
+}
+
+function applyNodeStatus(el, label, ack, downtime) {
+  const cls = 'nv2-node ' + (SCLS[label]??'nv2-unknown') + (ack?' nv2-ack':'') + (downtime?' nv2-downtime':'');
+  if (el.className === cls) return;
+  const wasUnknown = el.className.includes('nv2-unknown');
+  el.className = cls;
+  const badge = el.querySelector('.nv2-badge');
+  if (badge) { badge.textContent = SBADGE[label]??'?'; badge.setAttribute('aria-label', label); }
+  if (!wasUnknown) { el.classList.add('nv2-status-changed'); setTimeout(() => el.classList.remove('nv2-status-changed'), 700); }
+}
+
+// ─── Tooltip ────────────────────────────────────────────────────
+let _tt = null;
+function showTooltip(el, obj) {
+  hideTooltip();
+  const h     = hostCache[obj.name];
+  const label = h?.state_label ?? 'UNKNOWN';
+  const tcls  = SCIPCLS[label] ?? 'unkn';
+  const tt = document.createElement('div');
+  tt.className = 'nv2-tooltip';
+  tt.innerHTML = `
+    <div class="tt-name">${esc(obj.name)}</div>
+    <div class="tt-row"><span>Status</span><b class="tt-${tcls}">${label}</b></div>
+    ${h ? `<div class="tt-row"><span>Output</span><b>${esc((h.output??'–').substring(0,42))}</b></div>` : ''}
+    ${h ? `<div class="tt-row"><span>Services</span><b><span class="tt-ok">${h.services_ok??0}ok</span> / <span class="tt-warn">${h.services_warn??0}w</span> / <span class="tt-crit">${h.services_crit??0}c</span></b></div>` : ''}
+    <div class="tt-row"><span>Typ</span><b>${esc(obj.type)}</b></div>
+    <div class="tt-row"><span>Pos</span><b>${parseFloat(obj.x).toFixed(1)}% / ${parseFloat(obj.y).toFixed(1)}%</b></div>`;
+
+  const cvRect = document.getElementById('nv2-canvas').getBoundingClientRect();
+  const elRect = el.getBoundingClientRect();
+  tt.style.left = `${elRect.left - cvRect.left + elRect.width / 2}px`;
+  tt.style.top  = `${elRect.top  - cvRect.top}px`;
+  document.getElementById('nv2-canvas').appendChild(tt);
+  _tt = tt;
+}
+function hideTooltip() { _tt?.remove(); _tt = null; }
+
+// ─── Status Pills ────────────────────────────────────────────────
+function updatePills(hosts) {
+  let ok=0, warn=0, crit=0;
+  for (const h of hosts) {
+    const l = h.state_label;
+    if      (l==='UP'||l==='OK')          ok++;
+    else if (l==='WARNING')               warn++;
+    else if (l==='CRITICAL'||l==='DOWN')  crit++;
+  }
+  document.getElementById('pill-ok')  .textContent = `● ${ok}`;
+  document.getElementById('pill-warn').textContent = `● ${warn}`;
+  document.getElementById('pill-crit').textContent = `● ${crit}`;
+  // Map-Pip in der Sidebar aktualisieren
+  if (activeMapId) {
+    const pip = document.getElementById(`mpip-${activeMapId}`);
+    if (pip) {
+      pip.className = 'map-pip ' + (crit>0?'crit':warn>0?'warn':ok>0?'ok':'unkn');
+    }
+  }
+}
+
+// ─── Hosts Snapin ────────────────────────────────────────────────
+function renderHostsPanel(hosts) {
+  const body = document.getElementById('body-hosts');
+  if (!hosts.length) { body.innerHTML = '<div class="empty-hint">Keine Hosts</div>'; return; }
+  const sorted = [...hosts].sort((a,b) => b.state - a.state);
+  body.innerHTML = sorted.map(h => {
+    const c = SCIPCLS[h.state_label]??'unkn';
+    return `<div class="host-row" onclick="focusHost('${esc(h.name)}')">
+      <div class="hr-pip ${c}"></div>
+      <div class="hr-body">
+        <div class="hr-name">${esc(h.name)}</div>
+        <div class="hr-out">${esc((h.output??'–').substring(0,55))}</div>
+      </div>
+      <div class="hr-tag ${c}">${h.state_label}</div>
+    </div>`;
+  }).join('');
+}
+
+window.focusHost = function(name) {
+  const el = document.querySelector(`[data-name="${esc(name)}"]`);
+  if (!el) return;
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+  el.classList.add('nv2-status-changed');
+  setTimeout(() => el.classList.remove('nv2-status-changed'), 900);
+};
+
+// ─── Event-Log ───────────────────────────────────────────────────
+function appendEvents(hosts, services, ts) {
+  const items = [
+    ...hosts.map(h => ({
+      bar:  h.state_label==='CRITICAL'||h.state_label==='DOWN' ? 'crit'
+           :h.state_label==='WARNING' ? 'warn'
+           :h.state_label==='UP'||h.state_label==='OK' ? 'ok' : 'info',
+      host: h.name, msg:`${h.state_label}: ${(h.output??'').substring(0,60)}`, ts
+    })),
+    ...services.map(s => ({
+      bar:  s.state_label==='CRITICAL'?'crit':s.state_label==='WARNING'?'warn':s.state_label==='OK'?'ok':'info',
+      host: `${s.host_name} · ${s.description}`, msg:`${s.state_label}: ${(s.output??'').substring(0,50)}`, ts
+    }))
+  ];
+  eventLog = [...items, ...eventLog].slice(0, 60);
+  const body = document.getElementById('body-events');
+  body.innerHTML = eventLog.map(e => `
+    <div class="ev-row">
+      <div class="ev-bar ${e.bar}"></div>
+      <div class="ev-body">
+        <div class="ev-host">${esc(e.host)}</div>
+        <div class="ev-msg">${esc(e.msg)}</div>
+        <div class="ev-time">${fmt(e.ts)}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ─── Snap-Ins ─────────────────────────────────────────────────────
+window.toggleSnapin = function(name) {
+  if (activeSnapin === name) { closeSnapin(name); return; }
+  if (activeSnapin) closeSnapin(activeSnapin);
+  activeSnapin = name;
+  document.getElementById(`snapin-${name}`).classList.add('open');
+  document.getElementById(`tab-${name}`)   .classList.add('active');
+  document.getElementById('snap-tabs')     .classList.add('panel-open');
+};
+window.closeSnapin = function(name) {
+  if (!name) return;
+  document.getElementById(`snapin-${name}`)?.classList.remove('open');
+  document.getElementById(`tab-${name}`)   ?.classList.remove('active');
+  document.getElementById('snap-tabs')     ?.classList.remove('panel-open');
+  activeSnapin = null;
+};
+
+// ─── Edit-Mode ────────────────────────────────────────────────────
+function toggleEdit() {
+  editActive = !editActive;
+  const btn    = document.getElementById('btn-edit');
+  const addBtn = document.getElementById('btn-add-host');
+  const banner = document.getElementById('nv2-edit-banner');
+  const canvas = document.getElementById('nv2-canvas');
+
+  btn.textContent  = editActive ? '✓ Fertig' : '✏ Bearbeiten';
+  btn.classList.toggle('on', editActive);
+  addBtn.style.display = editActive ? 'flex' : 'none';
+  banner.classList.toggle('show', editActive);
+  canvas.classList.toggle('nv2-edit-mode', editActive);
+
+  if (editActive) {
+    document.querySelectorAll('.nv2-node').forEach(makeDraggable);
+  }
+}
+
+function makeDraggable(el) {
+  if (el._drag) return;
+  el._drag = true;
+  el.addEventListener('mousedown', e => {
+    if (!editActive || e.button !== 0) return;
+    e.preventDefault(); e.stopPropagation();
+    hideTooltip();
+    const canvas = document.getElementById('nv2-canvas');
+    const rect   = canvas.getBoundingClientRect();
+    const x0     = parseFloat(el.style.left);
+    const y0     = parseFloat(el.style.top);
+    const sx     = e.clientX, sy = e.clientY;
+
+    el.classList.add('nv2-dragging');
+    el.style.zIndex = 40;
+
+    const mv = ev => {
+      el.style.left = `${Math.max(0,Math.min(100, x0+(ev.clientX-sx)/rect.width*100)).toFixed(2)}%`;
+      el.style.top  = `${Math.max(0,Math.min(97,  y0+(ev.clientY-sy)/rect.height*100)).toFixed(2)}%`;
+    };
+    const up = async () => {
+      el.classList.remove('nv2-dragging'); el.style.zIndex='';
+      document.removeEventListener('mousemove', mv);
+      document.removeEventListener('mouseup', up);
+      await api(`/api/maps/${activeMapId}/objects/${el.dataset.objectId}/pos`, 'PATCH',
+        { x: parseFloat(el.style.left), y: parseFloat(el.style.top) });
+    };
+    document.addEventListener('mousemove', mv);
+    document.addEventListener('mouseup', up);
+  });
+}
+
+async function removeNode(el, obj) {
+  if (!confirm(`"${obj.name}" von der Map entfernen?`)) return;
+  await api(`/api/maps/${activeMapId}/objects/${obj.object_id}`, 'DELETE');
+  el.remove();
+}
+
+// ─── Canvas-Klick → Host platzieren ──────────────────────────────
+function onCanvasClick(e) {
+  if (!editActive) return;
+  if (e.target.closest('.nv2-node')) return;
+  const rect = document.getElementById('nv2-canvas').getBoundingClientRect();
+  pendingPos = {
+    x: ((e.clientX - rect.left) / rect.width  * 100).toFixed(2),
+    y: ((e.clientY - rect.top)  / rect.height * 100).toFixed(2),
+  };
+  openDlg('dlg-add-host');
+}
+
+// ─── Dialog: Host hinzufügen ──────────────────────────────────────
+window.confirmAddHost = async function() {
+  const name    = document.getElementById('dlg-hname')  .value.trim();
+  const iconset = document.getElementById('dlg-iconset').value;
+  const type    = document.getElementById('dlg-type')   .value;
+  if (!name) { document.getElementById('dlg-hname').focus(); return; }
+
+  const pos = pendingPos ?? {
+    x: (15 + Math.random() * 70).toFixed(1),
+    y: (15 + Math.random() * 70).toFixed(1),
+  };
+
+  const obj = await api(`/api/maps/${activeMapId}/objects`, 'POST', {
+    type, name, iconset,
+    x: parseFloat(pos.x), y: parseFloat(pos.y),
+    label: name,
+  });
+  if (obj) {
+    const el = createNode(obj);
+    if (el && editActive) makeDraggable(el);
+  }
+  closeDlg('dlg-add-host');
+  pendingPos = null;
+};
+
+function fillHostDatalist(hosts) {
+  document.getElementById('known-hosts').innerHTML =
+    hosts.map(h => `<option value="${esc(h.name)}">`).join('');
+}
+
+// ─── Dialog: Neue Map ─────────────────────────────────────────────
+window.dlgNewMap = function() { openDlg('dlg-new-map'); };
+window.confirmNewMap = async function() {
+  const title = document.getElementById('nm-title').value.trim();
+  const mapId = document.getElementById('nm-id')   .value.trim();
+  if (!title) { document.getElementById('nm-title').focus(); return; }
+  closeDlg('dlg-new-map');
+  const created = await api('/api/maps', 'POST', { title, map_id: mapId });
+  if (created) openMap(created.id);
+};
+
+// ─── Map löschen ──────────────────────────────────────────────────
+async function confirmDeleteMap() {
+  if (!activeMapId) return;
+  if (!confirm(`Map "${activeMapCfg?.title ?? activeMapId}" wirklich löschen?`)) return;
+  await api(`/api/maps/${activeMapId}`, 'DELETE');
+  showOverview();
+}
+
+// ─── Hintergrundbild ──────────────────────────────────────────────
+async function uploadBg(file) {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetch(`/api/maps/${activeMapId}/background`, { method:'POST', body:form });
+  if (!res.ok) { alert('Upload fehlgeschlagen: ' + await res.text()); return; }
+  const data = await res.json();
+  setBg(data.url);
+}
+function setBg(url) {
+  const canvas = document.getElementById('nv2-canvas');
+  canvas.style.backgroundImage    = `url('${url}?t=${Date.now()}')`;
+  canvas.style.backgroundSize     = 'contain';
+  canvas.style.backgroundRepeat   = 'no-repeat';
+  canvas.style.backgroundPosition = 'center';
+  document.getElementById('upload-prompt').classList.add('hidden');
+}
+
+// ─── Drag & Drop aufs Canvas ──────────────────────────────────────
+function setupDragDrop() {
+  const area = document.getElementById('map-area');
+  const box  = document.getElementById('upload-box');
+  area.addEventListener('dragenter', e => { e.preventDefault(); box?.classList.add('drag-over'); });
+  area.addEventListener('dragover',  e => { e.preventDefault(); });
+  area.addEventListener('dragleave', ()  => box?.classList.remove('drag-over'));
+  area.addEventListener('drop', e => {
+    e.preventDefault(); box?.classList.remove('drag-over');
+    if (e.dataTransfer.files[0] && activeMapId) uploadBg(e.dataTransfer.files[0]);
+  });
+}
+
+// ─── Health ────────────────────────────────────────────────────────
+async function pollHealth() {
+  const h = await api('/api/health');
+  if (!h) return;
+  const ok   = h.status === 'ok';
+  const chip = document.getElementById('health-chip');
+  chip.textContent = ok ? 'OK' : '!';
+  chip.className   = 'nav-chip ' + (ok ? 'ok' : 'crit');
+  setSidebarLive(ok, `${h.demo_mode ? 'Demo' : 'Livestatus'} · ${h.status}`);
+}
+
+// ─── UI-Helfer ────────────────────────────────────────────────────
+function setStatusBar(msg) { document.getElementById('nv2-status-bar').textContent = msg; }
+function setConnDot(state) { document.getElementById('nv2-conn-dot').className = `conn-dot ${state}`; }
+function setSidebarLive(ok, txt) {
+  document.getElementById('foot-dot').className = `foot-dot${ok?'':' off'}`;
+  document.getElementById('sidebar-status').textContent = txt ?? (ok ? 'verbunden' : 'getrennt');
+}
+function fmt(ts) { return ts ? new Date(ts*1000).toLocaleTimeString('de-DE') : ''; }
+
+// ─── Dialog-Helfer ────────────────────────────────────────────────
+window.openDlg  = id => document.getElementById(id)?.classList.add('show');
+window.closeDlg = id => document.getElementById(id)?.classList.remove('show');
+
+// ─── Keyboard ─────────────────────────────────────────────────────
+function onKeyDown(e) {
+  if (e.key === 'Escape') {
+    closeDlg('dlg-add-host'); closeDlg('dlg-new-map');
+    if (editActive) toggleEdit();
+    closeSnapin(activeSnapin);
+  }
+  if ((e.metaKey||e.ctrlKey) && e.key==='e' && activeMapId) { e.preventDefault(); toggleEdit(); }
+  if (e.key==='r' && activeMapId && !e.ctrlKey && !e.metaKey && document.activeElement.tagName!=='INPUT') {
+    wsClient?.forceRefresh();
+  }
+}
+
+// ─── Escape HTML ─────────────────────────────────────────────────
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── API-Wrapper ─────────────────────────────────────────────────
+async function api(path, method='GET', body=null) {
+  try {
+    const opt = { method, headers:{} };
+    if (body) { opt.body=JSON.stringify(body); opt.headers['Content-Type']='application/json'; }
+    const r = await fetch(path, opt);
+    if (!r.ok) { console.warn(`API ${method} ${path} → ${r.status}`); return null; }
+    if (method==='DELETE') return true;
+    return r.json();
+  } catch(e) { console.error('api()', e); return null; }
+}
+
+</script>
+</body>
+</html>
