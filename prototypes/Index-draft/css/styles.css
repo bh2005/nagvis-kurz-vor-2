@@ -923,6 +923,26 @@ body,
   border-color: var(--border-hi);
 }
 
+/* ── Typ-Pill (oben-links, für service/hostgroup/servicegroup/map) ── */
+.nv2-type-pill {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--mono);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 1px 4px;
+  border-radius: 2px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  white-space: nowrap;
+  z-index: 5;
+  pointer-events: none;
+}
+
 /* ── Edit-Mode / Drag ── */
 .nv2-dragging .nv2-ring {
   border-style: dashed !important;
@@ -1211,6 +1231,59 @@ body,
 /* ═══════════════════════════════════════════════════════════════════════
    DIALOGS
 ═══════════════════════════════════════════════════════════════════════ */
+/* ── Dialog: breite Variante + Typ-Chips ── */
+.dlg-wide { width: 420px; }
+
+.dlg-type-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+  margin-bottom: 2px;
+}
+.type-chip {
+  padding: 5px 4px;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--text-mid);
+  font-size: 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--t);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.type-chip:hover  { border-color: var(--border-hi); color: var(--text); }
+.type-chip.active { border-color: var(--acc); background: var(--bg-active); color: var(--acc); font-weight: 700; }
+
+.dlg-fields { margin-top: 10px; }
+
+.f-row-inline {
+  display: flex;
+  gap: 10px;
+}
+.f-row-inline > div { flex: 1; }
+
+.f-input-sm  { width: 100%; }
+.f-opt { font-weight: 400; font-style: italic; color: var(--text-dim); text-transform: none; letter-spacing: 0; }
+.f-hint {
+  font-size: 9px;
+  font-family: var(--mono);
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.f-input-color {
+  width: 100%;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--input-bg);
+  cursor: pointer;
+  padding: 1px 2px;
+}
+
 .dlg-overlay {
   position: fixed;
   inset: 0;
@@ -1221,6 +1294,50 @@ body,
   justify-content: center;
 }
 .dlg-overlay.show { display: flex; }
+
+/* ── Statische Objekte auf Canvas ── */
+
+/* Textbox */
+.nv2-textbox {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  padding: 5px 10px;
+  border-radius: var(--r);
+  white-space: pre-wrap;
+  word-break: break-word;
+  cursor: default;
+  user-select: none;
+  min-width: 60px;
+  min-height: 24px;
+}
+.nv2-textbox:hover { outline: 1px dashed var(--acc); }
+
+/* Linie */
+.nv2-line-svg {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+.nv2-line-el { cursor: default; pointer-events: stroke; }
+.nv2-line-el:hover { stroke-opacity: 0.6; }
+
+/* Container / Bild */
+.nv2-container {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  overflow: hidden;
+  border-radius: var(--r);
+}
+.nv2-container img,
+.nv2-container object {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.nv2-container:hover { outline: 1px dashed var(--acc); }
 
 .dlg {
   background: var(--dlg-bg);

@@ -83,7 +83,7 @@
         </svg>
         <div class="tb-logo-text">
           <div class="tb-logo-name"><span class="logo-nag">Nag</span><span class="logo-vis">Vis</span></div>
-          <div class="tb-logo-ver">v2 ·</div>
+          <div class="tb-logo-ver">v2 · FastAPI + WebSocket</div>
         </div>
       </div>
 
@@ -123,8 +123,8 @@
           <span class="tb-icon">✏</span> Bearbeiten
         </button>
 
-        <button class="tb-btn" id="btn-add-host" style="display:none;" title="Host platzieren">
-          <span class="tb-icon">＋</span> Host
+        <button class="tb-btn" id="btn-add-host" style="display:none;" title="Objekt platzieren">
+          <span class="tb-icon">＋</span> Objekt
         </button>
 
         <button class="tb-btn danger" id="btn-delete-map" title="Map löschen">
@@ -245,47 +245,135 @@
 
 
 <!-- ═══════════════════════════════════════════════════════════
-     DIALOG – Host hinzufügen
+     DIALOG – Objekt hinzufügen
 ═══════════════════════════════════════════════════════════ -->
-<div class="dlg-overlay" id="dlg-add-host">
-  <div class="dlg">
-    <h3>Host auf Map platzieren</h3>
+<div class="dlg-overlay" id="dlg-add-object">
+  <div class="dlg dlg-wide">
+    <h3>Objekt auf Map platzieren</h3>
 
+    <!-- Typ-Auswahl (immer sichtbar) -->
     <div class="f-row">
-      <label class="f-label" for="dlg-hname">Hostname</label>
-      <input  class="f-input" id="dlg-hname" type="text"
-              placeholder="z.B. srv-web-01" autocomplete="off"
-              list="known-hosts">
-      <datalist id="known-hosts"></datalist>
+      <label class="f-label">Typ</label>
+      <div class="dlg-type-grid" id="dlg-type-grid">
+        <button class="type-chip active" data-type="host"         onclick="selectObjType('host')">🖥 Host</button>
+        <button class="type-chip"        data-type="service"      onclick="selectObjType('service')">⚙ Service</button>
+        <button class="type-chip"        data-type="hostgroup"    onclick="selectObjType('hostgroup')">🖥🖥 Hostgruppe</button>
+        <button class="type-chip"        data-type="servicegroup" onclick="selectObjType('servicegroup')">⚙⚙ Servicegruppe</button>
+        <button class="type-chip"        data-type="map"          onclick="selectObjType('map')">🗺 Map (nested)</button>
+        <button class="type-chip"        data-type="textbox"      onclick="selectObjType('textbox')">T Textbox</button>
+        <button class="type-chip"        data-type="line"         onclick="selectObjType('line')">— Linie</button>
+        <button class="type-chip"        data-type="container"    onclick="selectObjType('container')">🖼 Container</button>
+      </div>
     </div>
 
-    <div class="f-row">
-      <label class="f-label" for="dlg-iconset">Icon</label>
-      <select class="f-select" id="dlg-iconset">
-        <option value="server">🖥  Server</option>
-        <option value="router">🌐  Router</option>
-        <option value="switch">🔀  Switch</option>
-        <option value="firewall">🔥  Firewall</option>
-        <option value="storage">💾  Storage / Backup</option>
-        <option value="database">🗄  Datenbank</option>
-        <option value="ups">⚡  USV</option>
-        <option value="ap">📡  Access Point</option>
-        <option value="default">⬡  Generisch</option>
-      </select>
+    <!-- Felder: Monitoring-Objekte (host / hostgroup / servicegroup / map) -->
+    <div id="dlg-fields-monitoring" class="dlg-fields">
+      <div class="f-row">
+        <label class="f-label" for="dlg-obj-name" id="dlg-name-label">Name</label>
+        <input class="f-input" id="dlg-obj-name" type="text"
+               placeholder="z.B. srv-web-01" autocomplete="off" list="known-hosts">
+        <datalist id="known-hosts"></datalist>
+      </div>
+      <div class="f-row" id="dlg-row-iconset">
+        <label class="f-label" for="dlg-iconset">Icon</label>
+        <select class="f-select" id="dlg-iconset">
+          <option value="server">🖥  Server</option>
+          <option value="router">🌐  Router</option>
+          <option value="switch">🔀  Switch</option>
+          <option value="firewall">🔥  Firewall</option>
+          <option value="storage">💾  Storage</option>
+          <option value="database">🗄  Datenbank</option>
+          <option value="ups">⚡  USV</option>
+          <option value="ap">📡  Access Point</option>
+          <option value="map">🗺  Map</option>
+          <option value="default">⬡  Generisch</option>
+        </select>
+      </div>
+      <div class="f-row" id="dlg-row-label">
+        <label class="f-label" for="dlg-obj-label">Label <span class="f-opt">(optional)</span></label>
+        <input class="f-input" id="dlg-obj-label" type="text" placeholder="Anzeigename">
+      </div>
     </div>
 
-    <div class="f-row">
-      <label class="f-label" for="dlg-type">Typ</label>
-      <select class="f-select" id="dlg-type">
-        <option value="host">Host</option>
-        <option value="service">Service</option>
-        <option value="hostgroup">Hostgruppe</option>
-      </select>
+    <!-- Felder: Service (zusätzlich host_name) -->
+    <div id="dlg-fields-service" class="dlg-fields" style="display:none">
+      <div class="f-row">
+        <label class="f-label" for="dlg-svc-host">Hostname</label>
+        <input class="f-input" id="dlg-svc-host" type="text"
+               placeholder="z.B. srv-db-01" autocomplete="off" list="known-hosts-svc">
+        <datalist id="known-hosts-svc"></datalist>
+      </div>
+      <div class="f-row">
+        <label class="f-label" for="dlg-svc-name">Service</label>
+        <input class="f-input" id="dlg-svc-name" type="text"
+               placeholder="z.B. CPU Load" autocomplete="off">
+      </div>
+      <div class="f-row">
+        <label class="f-label" for="dlg-svc-label">Label <span class="f-opt">(optional)</span></label>
+        <input class="f-input" id="dlg-svc-label" type="text" placeholder="Anzeigename">
+      </div>
+    </div>
+
+    <!-- Felder: Textbox -->
+    <div id="dlg-fields-textbox" class="dlg-fields" style="display:none">
+      <div class="f-row">
+        <label class="f-label" for="dlg-tb-text">Text</label>
+        <input class="f-input" id="dlg-tb-text" type="text" placeholder="Beschriftung">
+      </div>
+      <div class="f-row f-row-inline">
+        <div>
+          <label class="f-label" for="dlg-tb-size">Schriftgröße</label>
+          <input class="f-input f-input-sm" id="dlg-tb-size" type="number" value="13" min="8" max="48">
+        </div>
+        <div>
+          <label class="f-label" for="dlg-tb-bold">Fett</label>
+          <input type="checkbox" id="dlg-tb-bold" style="margin-top:6px">
+        </div>
+        <div>
+          <label class="f-label" for="dlg-tb-color">Farbe</label>
+          <input class="f-input-color" id="dlg-tb-color" type="color" value="#e0e0e0">
+        </div>
+        <div>
+          <label class="f-label" for="dlg-tb-bg">Hintergrund</label>
+          <input class="f-input-color" id="dlg-tb-bg" type="color" value="#2b2b2b">
+        </div>
+      </div>
+    </div>
+
+    <!-- Felder: Linie -->
+    <div id="dlg-fields-line" class="dlg-fields" style="display:none">
+      <div class="f-row f-row-inline">
+        <div>
+          <label class="f-label" for="dlg-ln-style">Stil</label>
+          <select class="f-select" id="dlg-ln-style">
+            <option value="solid">Durchgehend</option>
+            <option value="dashed">Gestrichelt</option>
+            <option value="dotted">Gepunktet</option>
+          </select>
+        </div>
+        <div>
+          <label class="f-label" for="dlg-ln-width">Breite (px)</label>
+          <input class="f-input f-input-sm" id="dlg-ln-width" type="number" value="1" min="1" max="8">
+        </div>
+        <div>
+          <label class="f-label" for="dlg-ln-color">Farbe</label>
+          <input class="f-input-color" id="dlg-ln-color" type="color" value="#555555">
+        </div>
+      </div>
+      <p class="f-hint">Endpunkt: wird durch zweiten Klick auf Canvas gesetzt, oder 200px rechts.</p>
+    </div>
+
+    <!-- Felder: Container -->
+    <div id="dlg-fields-container" class="dlg-fields" style="display:none">
+      <div class="f-row">
+        <label class="f-label" for="dlg-ct-url">Bild-URL</label>
+        <input class="f-input" id="dlg-ct-url" type="text" placeholder="/backgrounds/logo.svg">
+      </div>
     </div>
 
     <div class="dlg-foot">
-      <button class="btn-cancel" onclick="closeDlg('dlg-add-host')">Abbrechen</button>
-      <button class="btn-ok"     onclick="confirmAddHost()">Platzieren</button>
+      <button class="btn-cancel" onclick="closeDlg('dlg-add-object')">Abbrechen</button>
+      <button class="btn-ok"     onclick="confirmAddObject()">Platzieren</button>
     </div>
   </div>
 </div>
