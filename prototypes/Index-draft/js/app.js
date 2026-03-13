@@ -83,7 +83,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Button-Verdrahtung
   document.getElementById('btn-edit')      .addEventListener('click', toggleEdit);
   document.getElementById('btn-refresh')   .addEventListener('click', () => wsClient?.forceRefresh());
-  document.getElementById('btn-add-host')  .addEventListener('click', () => openDlg('dlg-add-host'));
+  document.getElementById('btn-add-host').addEventListener('click', () => openDlg('dlg-add-object'));
   document.getElementById('btn-delete-map').addEventListener('click', confirmDeleteMap);
   document.getElementById('btn-bg-upload') .addEventListener('click', () => document.getElementById('bg-file-input').click());
   document.getElementById('bg-file-input') .addEventListener('change', e => {
@@ -414,54 +414,172 @@ function onWsMsg(ev) {
 
 
 // ═══════════════════════════════════════════════════════════════════════
-//  NODE RENDERING
+//  NODE RENDERING  – alle Objekttypen
 // ═══════════════════════════════════════════════════════════════════════
 
 /**
- * Erstellt einen Host-/Service-Node auf dem Canvas.
- * @param {object} obj – Map-Object vom Server
- * @returns {HTMLElement|null}
+ * Erzeugt das passende DOM-Element je Objekttyp.
  */
 function createNode(obj) {
   if (document.getElementById(`nv2-${obj.object_id}`)) return null;
 
+  switch (obj.type) {
+    case 'host':
+    case 'service':
+    case 'hostgroup':
+    case 'servicegroup':
+    case 'map':
+      return _renderMonitoringNode(obj);
+    case 'textbox':
+      return _renderTextbox(obj);
+    case 'line':
+      return _renderLine(obj);
+    case 'container':
+      return _renderContainer(obj);
+    default:
+      console.warn('[NV2] createNode: unbekannter Typ', obj.type);
+      return null;
+  }
+}
+
+/** Monitoring-Knoten (host / service / hostgroup / servicegroup / map) */
+function _renderMonitoringNode(obj) {
   const icon = ICONS[obj.iconset] ?? ICONS.default;
   const el   = document.createElement('div');
   el.id               = `nv2-${obj.object_id}`;
   el.className        = 'nv2-node nv2-unknown';
   el.dataset.objectId = obj.object_id;
-  el.dataset.name     = obj.name;
+  el.dataset.name     = obj.type === 'service'
+    ? `${obj.host_name}::${obj.name}`
+    : obj.name;
+  el.dataset.type     = obj.type;
   el.style.left       = `${obj.x}%`;
   el.style.top        = `${obj.y}%`;
 
+  // Typ-Badge oben links
+  const typeBadge = { service:'svc', hostgroup:'hg', servicegroup:'sg', map:'map' };
+  const typePill  = typeBadge[obj.type]
+    ? `<span class="nv2-type-pill">${typeBadge[obj.type]}</span>`
+    : '';
+
   el.innerHTML = `
+    ${typePill}
     <div class="nv2-ring">
       <span aria-hidden="true">${icon}</span>
       <span class="nv2-badge" aria-label="UNKNOWN">?</span>
     </div>
     <div class="nv2-label" title="${esc(obj.label || obj.name)}">${esc(obj.label || obj.name)}</div>`;
 
-  // Events
   el.addEventListener('mouseenter', () => showTooltip(el, obj));
   el.addEventListener('mouseleave', hideTooltip);
-  el.addEventListener('contextmenu', e => {
-    e.preventDefault();
-    if (editActive) removeNode(el, obj);
-  });
+  el.addEventListener('contextmenu', e => { e.preventDefault(); if (editActive) removeNode(el, obj); });
 
   document.getElementById('nv2-canvas').appendChild(el);
 
-  // Sofort Status aus Cache anwenden
-  const cached = hostCache[obj.name];
+  // Sofort Status aus Cache
+  const cacheKey = obj.type === 'service'
+    ? `${obj.host_name}::${obj.name}`
+    : obj.name;
+  const cached = hostCache[cacheKey];
   if (cached) applyNodeStatus(el, cached.state_label, cached.acknowledged, cached.in_downtime);
 
   return el;
 }
 
+/** Textbox */
+function _renderTextbox(obj) {
+  const el = document.createElement('div');
+  el.id               = `nv2-${obj.object_id}`;
+  el.className        = 'nv2-textbox';
+  el.dataset.objectId = obj.object_id;
+  el.dataset.type     = 'textbox';
+  el.style.left       = `${obj.x}%`;
+  el.style.top        = `${obj.y}%`;
+  el.style.fontSize   = `${obj.font_size ?? 13}px`;
+  el.style.fontWeight = obj.bold ? '700' : '400';
+  el.style.color      = obj.color      || 'var(--text)';
+  el.style.background = obj.bg_color   || '';
+  el.style.border     = obj.border_color ? `1px solid ${obj.border_color}` : '';
+  if (obj.w) el.style.width  = `${obj.w}%`;
+  el.textContent = obj.text ?? '';
+
+  el.addEventListener('contextmenu', e => { e.preventDefault(); if (editActive) removeNode(el, obj); });
+  document.getElementById('nv2-canvas').appendChild(el);
+  return el;
+}
+
+/** Linie – gezeichnet als SVG-Overlay */
+function _renderLine(obj) {
+  // Einen einzigen SVG-Overlay pro Canvas anlegen und wiederverwenden
+  let svg = document.getElementById('nv2-lines-svg');
+  if (!svg) {
+    svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.id        = 'nv2-lines-svg';
+    svg.classList.add('nv2-line-svg');
+    document.getElementById('nv2-canvas').appendChild(svg);
+  }
+
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  line.id = `nv2-${obj.object_id}`;
+  line.classList.add('nv2-line-el');
+  line.dataset.objectId = obj.object_id;
+  line.dataset.type     = 'line';
+
+  // Koordinaten in % → SVG-Attribute
+  line.setAttribute('x1', `${obj.x}%`);
+  line.setAttribute('y1', `${obj.y}%`);
+  line.setAttribute('x2', `${obj.x2 ?? obj.x + 20}%`);
+  line.setAttribute('y2', `${obj.y2 ?? obj.y}%`);
+  line.setAttribute('stroke',       obj.color       || 'var(--border-hi)');
+  line.setAttribute('stroke-width', obj.line_width  ?? 1);
+
+  const dashMap = { dashed: '8,4', dotted: '2,4' };
+  const dash    = dashMap[obj.line_style];
+  if (dash) line.setAttribute('stroke-dasharray', dash);
+
+  line.addEventListener('contextmenu', e => { e.preventDefault(); if (editActive) { line.remove(); _patchRemove(obj); } });
+  svg.appendChild(line);
+  return line;
+}
+
+/** Container / Bild */
+function _renderContainer(obj) {
+  const el  = document.createElement('div');
+  el.id               = `nv2-${obj.object_id}`;
+  el.className        = 'nv2-container';
+  el.dataset.objectId = obj.object_id;
+  el.dataset.type     = 'container';
+  el.style.left       = `${obj.x}%`;
+  el.style.top        = `${obj.y}%`;
+  if (obj.w) el.style.width  = `${obj.w}%`;
+  if (obj.h) el.style.height = `${obj.h}vmin`;
+
+  if (obj.url) {
+    const isSvg = obj.url.toLowerCase().endsWith('.svg');
+    if (isSvg) {
+      const o  = document.createElement('object');
+      o.type   = 'image/svg+xml';
+      o.data   = obj.url;
+      el.appendChild(o);
+    } else {
+      const img = document.createElement('img');
+      img.src   = obj.url;
+      img.alt   = '';
+      el.appendChild(img);
+    }
+  }
+
+  el.addEventListener('contextmenu', e => { e.preventDefault(); if (editActive) removeNode(el, obj); });
+  document.getElementById('nv2-canvas').appendChild(el);
+  return el;
+}
+
+async function _patchRemove(obj) {
+  await api(`/api/maps/${activeMapId}/objects/${obj.object_id}`, 'DELETE');
+}
+
 /**
  * Wendet Statusfarbe + Badge auf alle Nodes einer Host/Service-Gruppe an.
- * @param {Array} hosts
- * @param {Array} services
  */
 function applyStatuses(hosts, services) {
   for (const h of hosts) {
@@ -747,18 +865,19 @@ async function removeNode(el, obj) {
 
 
 // ═══════════════════════════════════════════════════════════════════════
-//  CANVAS-KLICK → HOST PLATZIEREN
+// ═══════════════════════════════════════════════════════════════════════
+//  CANVAS-KLICK → OBJEKT PLATZIEREN
 // ═══════════════════════════════════════════════════════════════════════
 
 function onCanvasClick(e) {
   if (!editActive) return;
-  if (e.target.closest('.nv2-node')) return;
+  if (e.target.closest('.nv2-node, .nv2-textbox, .nv2-container')) return;
   const rect = document.getElementById('nv2-canvas').getBoundingClientRect();
   pendingPos = {
     x: ((e.clientX - rect.left) / rect.width  * 100).toFixed(2),
     y: ((e.clientY - rect.top)  / rect.height * 100).toFixed(2),
   };
-  openDlg('dlg-add-host');
+  openDlg('dlg-add-object');
 }
 
 
@@ -766,31 +885,102 @@ function onCanvasClick(e) {
 //  DIALOGE
 // ═══════════════════════════════════════════════════════════════════════
 
-/** Host hinzufügen bestätigen */
-async function confirmAddHost() {
-  const name    = document.getElementById('dlg-hname')  .value.trim();
-  const iconset = document.getElementById('dlg-iconset').value;
-  const type    = document.getElementById('dlg-type')   .value;
-  if (!name) { document.getElementById('dlg-hname').focus(); return; }
+let _activeObjType = 'host';
 
-  const pos = pendingPos ?? {
+/** Typ-Chip anklicken → richtige Felder anzeigen */
+function selectObjType(type) {
+  _activeObjType = type;
+
+  // Chips
+  document.querySelectorAll('.type-chip').forEach(c =>
+    c.classList.toggle('active', c.dataset.type === type)
+  );
+
+  // Felder-Sektionen
+  const monTypes = ['host','hostgroup','servicegroup','map'];
+  document.getElementById('dlg-fields-monitoring').style.display =
+    monTypes.includes(type) ? 'block' : 'none';
+  document.getElementById('dlg-fields-service').style.display =
+    type === 'service' ? 'block' : 'none';
+  document.getElementById('dlg-fields-textbox').style.display =
+    type === 'textbox' ? 'block' : 'none';
+  document.getElementById('dlg-fields-line').style.display =
+    type === 'line' ? 'block' : 'none';
+  document.getElementById('dlg-fields-container').style.display =
+    type === 'container' ? 'block' : 'none';
+
+  // Label-Hinweis je Typ
+  const lbl = { host:'Hostname', hostgroup:'Gruppenname', servicegroup:'Gruppenname', map:'Map-ID' };
+  const nameLabel = document.getElementById('dlg-name-label');
+  if (nameLabel) nameLabel.textContent = lbl[type] ?? 'Name';
+}
+
+/** Objekt hinzufügen bestätigen */
+async function confirmAddObject() {
+  const type = _activeObjType;
+  const pos  = pendingPos ?? {
     x: (15 + Math.random() * 70).toFixed(1),
     y: (15 + Math.random() * 70).toFixed(1),
   };
 
-  const obj = await api(`/api/maps/${activeMapId}/objects`, 'POST', {
-    type, name, iconset,
-    x: parseFloat(pos.x),
-    y: parseFloat(pos.y),
-    label: name,
-  });
+  let payload = { type, x: parseFloat(pos.x), y: parseFloat(pos.y) };
 
+  if (type === 'service') {
+    const hostName = document.getElementById('dlg-svc-host').value.trim();
+    const svcName  = document.getElementById('dlg-svc-name').value.trim();
+    if (!hostName || !svcName) {
+      document.getElementById(!hostName ? 'dlg-svc-host' : 'dlg-svc-name').focus();
+      return;
+    }
+    Object.assign(payload, {
+      name:      svcName,
+      host_name: hostName,
+      iconset:   'default',
+      label:     document.getElementById('dlg-svc-label').value.trim() || svcName,
+    });
+
+  } else if (['host','hostgroup','servicegroup','map'].includes(type)) {
+    const name = document.getElementById('dlg-obj-name').value.trim();
+    if (!name) { document.getElementById('dlg-obj-name').focus(); return; }
+    Object.assign(payload, {
+      name,
+      iconset: document.getElementById('dlg-iconset').value,
+      label:   document.getElementById('dlg-obj-label').value.trim() || name,
+    });
+
+  } else if (type === 'textbox') {
+    const text = document.getElementById('dlg-tb-text').value.trim() || 'Text';
+    Object.assign(payload, {
+      text,
+      font_size:    parseInt(document.getElementById('dlg-tb-size').value) || 13,
+      bold:         document.getElementById('dlg-tb-bold').checked,
+      color:        document.getElementById('dlg-tb-color').value,
+      bg_color:     document.getElementById('dlg-tb-bg').value,
+      border_color: '',
+      w: 14, h: 4,
+    });
+
+  } else if (type === 'line') {
+    Object.assign(payload, {
+      x2:         parseFloat(pos.x) + 20,
+      y2:         parseFloat(pos.y),
+      line_style: document.getElementById('dlg-ln-style').value,
+      line_width: parseInt(document.getElementById('dlg-ln-width').value) || 1,
+      color:      document.getElementById('dlg-ln-color').value,
+    });
+
+  } else if (type === 'container') {
+    const url = document.getElementById('dlg-ct-url').value.trim();
+    Object.assign(payload, { url, w: 12, h: 8 });
+  }
+
+  const obj = await api(`/api/maps/${activeMapId}/objects`, 'POST', payload);
   if (obj) {
     const el = createNode(obj);
     if (el && editActive) makeDraggable(el);
   }
-  closeDlg('dlg-add-host');
-  document.getElementById('dlg-hname').value = '';
+
+  closeDlg('dlg-add-object');
   pendingPos = null;
 }
 
@@ -815,18 +1005,20 @@ async function confirmDeleteMap() {
 function dlgNewMap() { openDlg('dlg-new-map'); }
 
 function fillHostDatalist(hosts) {
-  document.getElementById('known-hosts').innerHTML =
-    hosts.map(h => `<option value="${esc(h.name)}">`).join('');
+  const opts = hosts.map(h => `<option value="${esc(h.name)}">`).join('');
+  document.getElementById('known-hosts').innerHTML     = opts;
+  document.getElementById('known-hosts-svc').innerHTML = opts;
 }
 
 // Globale Exports
-window.confirmAddHost = confirmAddHost;
-window.confirmNewMap  = confirmNewMap;
-window.dlgNewMap      = dlgNewMap;
+window.confirmAddObject = confirmAddObject;
+window.selectObjType    = selectObjType;
+window.confirmNewMap    = confirmNewMap;
+window.dlgNewMap        = dlgNewMap;
 window.openDlg  = id => document.getElementById(id)?.classList.add('show');
 window.closeDlg = id => {
   document.getElementById(id)?.classList.remove('show');
-  document.querySelectorAll(`#${id} input`).forEach(i => i.value = '');
+  document.querySelectorAll(`#${id} input[type=text], #${id} textarea`).forEach(i => i.value = '');
 };
 
 
@@ -933,7 +1125,7 @@ function onKeyDown(e) {
   }
 
   if (e.key === 'Escape') {
-    window.closeDlg('dlg-add-host');
+    window.closeDlg('dlg-add-object');
     window.closeDlg('dlg-new-map');
     if (editActive) toggleEdit();
     closeSnapin(activeSnapin);
