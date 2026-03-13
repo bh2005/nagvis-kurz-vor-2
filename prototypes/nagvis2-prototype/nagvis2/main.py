@@ -54,7 +54,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from backend.livestatus.client import LivestatusConfig
+from backend.livestatus.client import LivestatusConfig, BackendRegistry
 from backend.core.poller       import StatusPoller
 from backend.core.ws_manager   import WebSocketManager
 from backend.core.map_store    import MapStore
@@ -66,19 +66,30 @@ logging.basicConfig(
 )
 log = logging.getLogger("nagvis.app")
 
-# ── Konfiguration ─────────────────────────────────────────────
-# In Produktion: aus Umgebungsvariablen / nagvis.ini.php lesen
-LIVESTATUS_CONFIG = LivestatusConfig(
-    backend_id  = "default",
-    socket_path = "/var/run/nagios/rw/live",   # OMD: /omd/sites/<site>/tmp/run/live
-    timeout     = 8.0,
-)
+# ── Backend-Konfiguration ─────────────────────────────────────
+# Mehrere CMK-Sites als eigene Einträge möglich.
+# In Produktion: aus nagvis.ini.php oder Umgebungsvariablen lesen.
+BACKENDS: list[LivestatusConfig] = [
+    LivestatusConfig(
+        backend_id  = "default",
+        socket_path = "/omd/sites/cmk/tmp/run/live",
+        timeout     = 8.0,
+    ),
+    # Weiteres Backend (TCP, remote Site) – Beispiel auskommentiert:
+    # LivestatusConfig(
+    #     backend_id = "site-berlin",
+    #     use_tcp    = True,
+    #     host       = "mon-berlin.example.com",
+    #     port       = 6557,
+    # ),
+]
 POLL_INTERVAL = 30.0   # Sekunden
 
 # ── Singleton-Instanzen ───────────────────────────────────────
-poller     = StatusPoller(LIVESTATUS_CONFIG, interval=POLL_INTERVAL)
-ws_manager = WebSocketManager()
-map_store  = MapStore()
+backend_registry = BackendRegistry(BACKENDS)
+poller           = StatusPoller(BACKENDS[0], interval=POLL_INTERVAL)
+ws_manager       = WebSocketManager()
+map_store        = MapStore()
 
 # ── Demo-Daten für Dev ohne echtes Livestatus ─────────────────
 DEMO_MODE = True   # auf False setzen wenn echtes Livestatus vorhanden
@@ -108,7 +119,10 @@ if DEMO_MODE:
             ("host","fw-main",       "firewall",80,22),
         ]
         for typ, name, iconset, x, y in positions:
-            map_store.add_object("datacenter-a", typ, name, x, y, iconset)
+            map_store.add_object("datacenter-a", {
+                "type": typ, "name": name, "iconset": iconset,
+                "x": x, "y": y, "label": name,
+            })
 
 
 # ── Application Lifespan ──────────────────────────────────────
@@ -214,9 +228,11 @@ async def _handle_ws_message(client_id: str, map_id: str, raw: str):
         cmd = msg.get("cmd")
         if cmd == "force_refresh":
             if not DEMO_MODE:
-                await poller._poll()
-            else:
-                await ws_manager.send(client_id, poller.get_full_snapshot())
+                # trigger_refresh() setzt asyncio.Event → unterbricht sleep()
+                # und löst sofortigen Poll aus, ohne den Task neu zu starten.
+                poller.trigger_refresh()
+            # In DEMO_MODE: Snapshot direkt zurückschicken
+            await ws_manager.send(client_id, poller.get_full_snapshot())
         elif cmd == "ping":
             await ws_manager.send(client_id, {"event": "pong"})
     except Exception as e:
@@ -438,18 +454,57 @@ async def get_host(host_name: str):
 
 # ── Health ────────────────────────────────────────────────────
 
+@app.get("/api/backends", tags=["system"])
+async def list_backends():
+    """Alle konfigurierten Livestatus-Backends mit Live-Health-Status."""
+    if DEMO_MODE:
+        return {
+            "backends": [{"backend_id": "default", "type": "unix",
+                          "address": "DEMO_MODE", "enabled": True,
+                          "reachable": True, "latency_ms": 0}]
+        }
+    health_list = await backend_registry.health()
+    backends    = backend_registry.list_backends()
+    health_map  = {h.backend_id: h for h in health_list}
+    return {
+        "backends": [
+            {**b,
+             "reachable":  health_map[b["backend_id"]].reachable
+                           if b["backend_id"] in health_map else None,
+             "latency_ms": health_map[b["backend_id"]].latency_ms
+                           if b["backend_id"] in health_map else None,
+             "error":      health_map[b["backend_id"]].error
+                           if b["backend_id"] in health_map else ""}
+            for b in backends
+        ]
+    }
+
+
 @app.get("/api/health", tags=["system"])
 async def health():
-    livestatus_ok = True
-    if not DEMO_MODE:
-        livestatus_ok = await poller.client.ping()
+    if DEMO_MODE:
+        return {
+            "status":     "ok",
+            "demo_mode":  True,
+            "backends":   [{"backend_id": "default", "reachable": True}],
+            "poller":     poller.stats,
+            "websockets": ws_manager.stats,
+        }
+
+    health_list   = await backend_registry.health()
+    all_reachable = all(h.reachable for h in health_list)
+    any_reachable = any(h.reachable for h in health_list)
 
     return {
-        "status":           "ok" if livestatus_ok else "degraded",
-        "demo_mode":        DEMO_MODE,
-        "livestatus":       "ok" if livestatus_ok else "unreachable",
-        "poller":           poller.stats,
-        "websockets":       ws_manager.stats,
+        "status":     "ok" if all_reachable else ("degraded" if any_reachable else "down"),
+        "demo_mode":  False,
+        "backends":   [
+            {"backend_id": h.backend_id, "reachable": h.reachable,
+             "latency_ms": h.latency_ms, "error": h.error}
+            for h in health_list
+        ],
+        "poller":     poller.stats,
+        "websockets": ws_manager.stats,
     }
 
 
