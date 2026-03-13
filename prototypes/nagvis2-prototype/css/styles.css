@@ -1472,3 +1472,12 @@ body,
   font-size: 10px;
   color: var(--text-dim);
 }
+
+/* Gadget-spezifische Styles */
+.linear-gauge .threshold {
+  position: absolute; top: 0; bottom: 0; width: 2px; background: var(--warn);
+}
+.linear-gauge .threshold.critical { background: var(--crit); }
+
+.sparkline { width: 100px; height: 40px; }
+.weather-line { filter: drop-shadow(0 0 4px var(--acc-glow)); }
