@@ -1,0 +1,197 @@
+#!/bin/bash
+# NagVis 2 – OMD-Hook
+# ═══════════════════════════════════════════════════════════════
+#
+# Integriert NagVis 2 in den omd start / omd stop Zyklus einer
+# Checkmk-Site. Der Hook wird von OMD als Teil des Site-Starts
+# und -Stops aufgerufen.
+#
+# Installation:
+#   # Als root oder Site-User:
+#   cp deploy/omd-hook/nagvis2 /omd/sites/<SITE>/etc/rc.d/85-nagvis2
+#   chmod +x /omd/sites/<SITE>/etc/rc.d/85-nagvis2
+#
+#   # Oder mit dem install-Skript:
+#   sudo bash deploy/install.sh --site <SITE>
+#
+# Konventionen:
+#   - Dateiname beginnt mit Zahl (Startreihenfolge). 85 = nach
+#     Livestatus (80) und vor Apache (90).
+#   - Exit 0 = OK, Exit 1 = Fehler (omd bricht ab)
+#   - OMD setzt folgende Env-Variablen:
+#       $OMD_ROOT   → /omd/sites/<site>
+#       $OMD_SITE   → <site>
+#
+# ═══════════════════════════════════════════════════════════════
+
+set -euo pipefail
+
+# ── Konfiguration ─────────────────────────────────────────────
+
+# Wo liegt das NagVis-2-Repo?
+NAGVIS2_DIR="${NAGVIS2_DIR:-${OMD_ROOT}/nagvis2}"
+
+# PID-Datei (innerhalb der Site, damit kein root nötig)
+PIDFILE="${OMD_ROOT}/tmp/run/nagvis2.pid"
+
+# Log-Datei
+LOGFILE="${OMD_ROOT}/var/log/nagvis2.log"
+
+# Bind-Adresse und Port
+NAGVIS2_HOST="${NAGVIS2_HOST:-127.0.0.1}"
+NAGVIS2_PORT="${NAGVIS2_PORT:-8080}"
+
+# Anzahl uvicorn-Worker
+NAGVIS2_WORKERS="${NAGVIS2_WORKERS:-1}"
+
+# Secret-Datei (wird beim ersten Start erzeugt falls nicht vorhanden)
+SECRET_FILE="${OMD_ROOT}/etc/nagvis2/secret"
+
+# Python aus Site-Venv oder System
+PYTHON="${NAGVIS2_DIR}/.venv/bin/python"
+[ -x "$PYTHON" ] || PYTHON="$(which python3)"
+
+# ── Hilfsfunktionen ───────────────────────────────────────────
+
+log() { echo "[nagvis2] $*" >&2; }
+
+is_running() {
+    [ -f "$PIDFILE" ] || return 1
+    local pid; pid=$(cat "$PIDFILE")
+    kill -0 "$pid" 2>/dev/null
+}
+
+ensure_secret() {
+    if [ ! -f "$SECRET_FILE" ]; then
+        mkdir -p "$(dirname "$SECRET_FILE")"
+        python3 -c "import secrets; print(secrets.token_hex(32))" > "$SECRET_FILE"
+        chmod 600 "$SECRET_FILE"
+        log "Neues NAGVIS_SECRET erzeugt: $SECRET_FILE"
+    fi
+}
+
+start_nagvis2() {
+    if is_running; then
+        log "Bereits gestartet (PID $(cat "$PIDFILE"))"
+        return 0
+    fi
+
+    if [ ! -d "$NAGVIS2_DIR" ]; then
+        log "FEHLER: NagVis-2-Verzeichnis nicht gefunden: $NAGVIS2_DIR"
+        return 1
+    fi
+
+    ensure_secret
+    export NAGVIS_SECRET; NAGVIS_SECRET=$(cat "$SECRET_FILE")
+
+    mkdir -p "$(dirname "$PIDFILE")" "$(dirname "$LOGFILE")"
+    mkdir -p "${NAGVIS2_DIR}/data/maps" "${NAGVIS2_DIR}/data/backgrounds"
+
+    log "Starte NagVis 2 auf ${NAGVIS2_HOST}:${NAGVIS2_PORT} …"
+
+    # Hintergrundprozess starten, PID merken
+    cd "$NAGVIS2_DIR"
+    "$PYTHON" -m uvicorn main:app \
+        --host "$NAGVIS2_HOST" \
+        --port "$NAGVIS2_PORT" \
+        --workers "$NAGVIS2_WORKERS" \
+        --log-level info \
+        --access-log \
+        >> "$LOGFILE" 2>&1 &
+
+    local pid=$!
+    echo "$pid" > "$PIDFILE"
+
+    # Kurz warten und prüfen ob der Prozess noch läuft
+    sleep 2
+    if kill -0 "$pid" 2>/dev/null; then
+        log "Gestartet (PID $pid)"
+        return 0
+    else
+        log "FEHLER: Prozess sofort beendet – siehe $LOGFILE"
+        rm -f "$PIDFILE"
+        return 1
+    fi
+}
+
+stop_nagvis2() {
+    if ! is_running; then
+        log "Nicht gestartet"
+        rm -f "$PIDFILE"
+        return 0
+    fi
+
+    local pid; pid=$(cat "$PIDFILE")
+    log "Stoppe NagVis 2 (PID $pid) …"
+
+    kill -TERM "$pid" 2>/dev/null || true
+
+    # Auf sauberes Ende warten (max. 15s)
+    local waited=0
+    while kill -0 "$pid" 2>/dev/null && [ $waited -lt 15 ]; do
+        sleep 1
+        waited=$((waited + 1))
+    done
+
+    if kill -0 "$pid" 2>/dev/null; then
+        log "Prozess antwortet nicht – SIGKILL"
+        kill -KILL "$pid" 2>/dev/null || true
+    fi
+
+    rm -f "$PIDFILE"
+    log "Gestoppt"
+    return 0
+}
+
+status_nagvis2() {
+    if is_running; then
+        log "Läuft (PID $(cat "$PIDFILE")) auf ${NAGVIS2_HOST}:${NAGVIS2_PORT}"
+        return 0
+    else
+        log "Nicht gestartet"
+        return 1
+    fi
+}
+
+reload_nagvis2() {
+    if is_running; then
+        local pid; pid=$(cat "$PIDFILE")
+        log "Reload (SIGHUP → PID $pid)"
+        kill -HUP "$pid" 2>/dev/null || true
+    else
+        log "Nicht gestartet – starte neu"
+        start_nagvis2
+    fi
+}
+
+# ── OMD-Hook Dispatcher ───────────────────────────────────────
+# OMD ruft den Hook mit einem der folgenden Argumente auf:
+#   start | stop | restart | reload | status | cmk-activate-changes
+
+case "${1:-}" in
+    start)
+        start_nagvis2
+        ;;
+    stop)
+        stop_nagvis2
+        ;;
+    restart)
+        stop_nagvis2
+        start_nagvis2
+        ;;
+    reload)
+        reload_nagvis2
+        ;;
+    status)
+        status_nagvis2
+        ;;
+    cmk-activate-changes)
+        # Checkmk ruft diesen Hook nach "Activate Changes" auf.
+        # NagVis 2 benötigt keinen Reload, da es Livestatus live abfragt.
+        log "cmk-activate-changes – kein Reload nötig"
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|reload|status}" >&2
+        exit 1
+        ;;
+esac
