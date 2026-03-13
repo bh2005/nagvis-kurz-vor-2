@@ -254,7 +254,7 @@ async function openMap(mapId) {
 
   // Nodes platzieren
   for (const obj of activeMapCfg.objects ?? []) {
-    createNode(obj);
+    createNode(obj);          // ← nur diese eine Zeile!
   }
 
   // WebSocket
@@ -405,6 +405,11 @@ function onWsMsg(ev) {
       document.getElementById(`nv2-${ev.object_id}`)?.remove();
       break;
 
+    case 'gadget_update':
+      const gadget = document.getElementById(`nv2-${ev.object_id}`);
+      if (gadget) updateGadget(gadget, ev);
+      break;
+    
     case '_connected':
       setConnDot('connected');
       break;
@@ -437,12 +442,19 @@ function createNode(obj) {
     case 'servicegroup':
     case 'map':
       return _renderMonitoringNode(obj);
+
     case 'textbox':
       return _renderTextbox(obj);
+
     case 'line':
       return _renderLine(obj);
+
     case 'container':
       return _renderContainer(obj);
+
+    case 'gadget':                    // ← NEU
+      return createGadget(obj);       // ← hier wird das Gadget gerendert
+
     default:
       console.warn('[NV2] createNode: unbekannter Typ', obj.type);
       return null;
@@ -1306,22 +1318,3 @@ async function api(path, method = 'GET', body = null) {
     return null;
   }
 }
-
-// ═══════════════════════════════════════════════════════════════════════
-//  Gadet Rendering & Updates
-// ═══════════════════════════════════════════════════════════════════════
-
-import { createGadget, updateGadget } from './gadget-renderer.js';
-
-// In createNode():
-if (obj.type === 'gadget') {
-  const gadgetEl = createGadget(obj);
-  document.getElementById('nv2-canvas').appendChild(gadgetEl);
-  return gadgetEl;
-}
-
-// Im WebSocket onWsMsg():
-case 'gadget_update':
-  const gadget = document.getElementById(`nv2-${ev.object_id}`);
-  if (gadget) updateGadget(gadget, ev);
-  break;
