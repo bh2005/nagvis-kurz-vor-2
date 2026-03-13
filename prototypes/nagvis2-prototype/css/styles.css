@@ -1425,6 +1425,31 @@ body,
 /* ═══════════════════════════════════════════════════════════════════════
    MISC
 ═══════════════════════════════════════════════════════════════════════ */
+/* ── Downtime-Banner ── */
+.nv2-dt-banner {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  background: var(--bg-panel);
+  border: 1px solid var(--downtime);
+  border-left: 3px solid var(--downtime);
+  border-radius: var(--r);
+  padding: 6px 14px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text);
+  white-space: nowrap;
+  z-index: 150;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.nv2-dt-banner.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
 #bg-file-input { display: none; }
 
 .empty-hint {

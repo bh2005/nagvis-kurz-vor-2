@@ -378,6 +378,9 @@ function onWsMsg(ev) {
       updateTopbarPills(Object.values(hostCache));
       renderHostsPanel(Object.values(hostCache));
       appendEvents(ev.hosts ?? [], ev.services ?? [], ev.ts);
+      // Downtime-Transitions → kurzer Hinweis-Banner
+      if (ev.downtime_started?.length) showDowntimeBanner(ev.downtime_started, true);
+      if (ev.downtime_ended?.length)   showDowntimeBanner(ev.downtime_ended,   false);
       const n = (ev.hosts?.length ?? 0) + (ev.services?.length ?? 0);
       setStatusBar(`${fmt(ev.ts)} · ${n} Änderung${n !== 1 ? 'en' : ''} · ${ev.elapsed}ms`);
       break;
@@ -1096,6 +1099,30 @@ function setSidebarLive(ok, txt) {
   if (dot) dot.className = `foot-dot${ok ? '' : ' off'}`;
   const status = document.getElementById('sidebar-status');
   if (status) status.textContent = txt ?? (ok ? 'verbunden' : 'getrennt');
+}
+
+/**
+ * Zeigt kurzen Downtime-Banner oben auf dem Canvas an.
+ * started=true → Downtime begonnen, false → Downtime beendet.
+ * Blendet sich nach 4s automatisch aus.
+ */
+let _dtBannerTimer = null;
+function showDowntimeBanner(hostNames, started) {
+  let banner = document.getElementById('nv2-dt-banner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'nv2-dt-banner';
+    banner.className = 'nv2-dt-banner';
+    document.getElementById('nv2-canvas')?.appendChild(banner);
+  }
+  const verb  = started ? 'Downtime gestartet' : 'Downtime beendet';
+  const names = hostNames.slice(0, 3).map(esc).join(', ')
+                + (hostNames.length > 3 ? ` +${hostNames.length - 3}` : '');
+  banner.textContent = `🔧 ${verb}: ${names}`;
+  banner.classList.add('show');
+
+  clearTimeout(_dtBannerTimer);
+  _dtBannerTimer = setTimeout(() => banner.classList.remove('show'), 4000);
 }
 
 /** Unix-Timestamp → HH:MM:SS */
