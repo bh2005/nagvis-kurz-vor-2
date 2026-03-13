@@ -1,0 +1,83 @@
+# NagVis 2 – Systemd Service Unit
+# ═══════════════════════════════════════════════════════════════
+#
+# Installation (standalone, ohne OMD):
+#
+#   sudo cp deploy/nagvis2.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now nagvis2
+#
+# Konfiguration:
+#   - NAGVIS_INSTALL_DIR anpassen (Zeile ExecStart + WorkingDirectory)
+#   - NAGVIS_SECRET in /etc/nagvis2/env setzen (siehe unten)
+#   - NAGVIS_USER ggf. ändern
+#
+# Secret-Datei anlegen:
+#   sudo mkdir -p /etc/nagvis2
+#   echo "NAGVIS_SECRET=$(python3 -c 'import secrets; print(secrets.token_hex(32))')" \
+#     | sudo tee /etc/nagvis2/env
+#   sudo chmod 600 /etc/nagvis2/env
+#
+# ═══════════════════════════════════════════════════════════════
+
+[Unit]
+Description=NagVis 2 – Monitoring Visualization (FastAPI/uvicorn)
+Documentation=https://github.com/your-org/nagvis2
+After=network.target
+# Bei Checkmk-Setups ohne OMD-Hook: nach checkmk starten
+# After=network.target checkmk.service
+
+[Service]
+Type=simple
+User=nagvis2
+Group=nagvis2
+
+# Arbeitsverzeichnis = Repo-Root (wo main.py liegt)
+WorkingDirectory=/opt/nagvis2
+
+# Secret und weitere Env-Variablen aus gesicherter Datei laden
+EnvironmentFile=-/etc/nagvis2/env
+
+# Optionale Overrides direkt hier (EnvironmentFile hat Vorrang):
+# Environment=NAGVIS_HOST=127.0.0.1
+# Environment=NAGVIS_PORT=8080
+# Environment=DEMO_MODE=false
+
+# Venv-Python verwenden falls vorhanden, sonst System-Python
+ExecStart=/bin/sh -c '\
+  PYTHON=/opt/nagvis2/.venv/bin/python; \
+  [ -x "$PYTHON" ] || PYTHON=$(which python3); \
+  exec $PYTHON -m uvicorn main:app \
+    --host ${NAGVIS_HOST:-127.0.0.1} \
+    --port ${NAGVIS_PORT:-8080} \
+    --workers ${NAGVIS_WORKERS:-1} \
+    --log-level ${NAGVIS_LOG_LEVEL:-info} \
+    --access-log'
+
+# Graceful Shutdown: SIGTERM → 30s warten → SIGKILL
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+# Neustart-Verhalten
+Restart=on-failure
+RestartSec=5s
+StartLimitBurst=5
+StartLimitIntervalSec=60s
+
+# Sicherheits-Härtung
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/nagvis2/data /opt/nagvis2/frontend
+# Livestatus-Socket muss lesbar sein:
+ReadWritePaths=/omd/sites
+
+# Logging → journald (abrufbar mit: journalctl -u nagvis2 -f)
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=nagvis2
+
+[Install]
+WantedBy=multi-user.target
