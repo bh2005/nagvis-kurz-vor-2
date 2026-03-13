@@ -55,6 +55,12 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from backend.livestatus.client import LivestatusConfig, BackendRegistry
+from backend.core.auth import (
+    AuthManager, AuthUser, set_auth_manager,
+    require_viewer, require_editor, require_admin,
+    ROLE_RANK,
+)
+from fastapi.security import HTTPBearer
 from backend.core.poller       import StatusPoller
 from backend.core.ws_manager   import WebSocketManager
 from backend.core.map_store    import MapStore
@@ -90,6 +96,8 @@ backend_registry = BackendRegistry(BACKENDS)
 poller           = StatusPoller(BACKENDS[0], interval=POLL_INTERVAL)
 ws_manager       = WebSocketManager()
 map_store        = MapStore()
+auth_manager     = AuthManager()
+set_auth_manager(auth_manager)   # Dependency-Injection vorbereiten
 
 # ── Demo-Daten für Dev ohne echtes Livestatus ─────────────────
 DEMO_MODE = True   # auf False setzen wenn echtes Livestatus vorhanden
@@ -169,6 +177,38 @@ app.add_middleware(
     allow_headers     = ["*"],
 )
 
+# ── Auth-Middleware ───────────────────────────────────────────
+# Schützt alle /api/*-Routen. Statische Dateien und / bleiben offen.
+AUTH_SKIP_PATHS = {"/", "/api/auth/login", "/api/health"}
+AUTH_SKIP_PREFIXES = ("/static/", "/backgrounds/", "/docs", "/openapi")
+
+@app.middleware("http")
+async def auth_middleware(request, call_next):
+    path = request.url.path
+    # Freigegebene Pfade durchlassen
+    if path in AUTH_SKIP_PATHS or path.startswith(AUTH_SKIP_PREFIXES):
+        return await call_next(request)
+    # Nur /api/* und /ws/* absichern
+    if not (path.startswith("/api/") or path.startswith("/ws/")):
+        return await call_next(request)
+    # Token aus Header lesen (WebSocket: Query-Param wird in Handler geprüft)
+    if path.startswith("/ws/"):
+        return await call_next(request)
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "Authorization-Header fehlt"},
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    token = auth_header.removeprefix("Bearer ").strip()
+    try:
+        user = auth_manager.verify(token)
+        request.state.user = user
+    except HTTPException as e:
+        return JSONResponse(status_code=e.status_code, content={"detail": e.detail})
+    return await call_next(request)
+
 # Static Files
 Path("data/backgrounds").mkdir(parents=True, exist_ok=True)
 Path("frontend").mkdir(parents=True, exist_ok=True)
@@ -185,7 +225,9 @@ async def ws_map(websocket: WebSocket, map_id: str):
     """
     WebSocket für eine bestimmte Map.
     Browser erhält sofort einen Snapshot, dann nur noch Diffs.
+    Token wird als Query-Parameter erwartet: ?token=<jwt>
     """
+    user = auth_manager.verify_ws_token(websocket)   # 4001 bei Fehler
     client_id = f"{map_id}::{uuid.uuid4().hex[:8]}"
 
     conn = await ws_manager.connect(websocket, client_id, map_id=map_id)
@@ -205,7 +247,11 @@ async def ws_map(websocket: WebSocket, map_id: str):
 
 @app.websocket("/ws/global")
 async def ws_global(websocket: WebSocket):
-    """Admin-/Debug-Stream: alle Events, alle Maps."""
+    """Admin-/Debug-Stream: alle Events, alle Maps. Nur admin-Tokens."""
+    user = auth_manager.verify_ws_token(websocket)
+    if ROLE_RANK.get(user.role, 0) < ROLE_RANK["admin"]:
+        from fastapi import WebSocketException
+        raise WebSocketException(code=4003, reason="admin-Rolle erforderlich")
     client_id = f"global::{uuid.uuid4().hex[:8]}"
     await ws_manager.connect(websocket, client_id)
     await ws_manager.send_snapshot(client_id)
@@ -252,17 +298,17 @@ class RenameTitleRequest(BaseModel):
 
 
 @app.get("/api/maps", tags=["maps"])
-async def list_maps():
+async def list_maps(user: AuthUser = Depends(require_viewer)):
     return map_store.list_maps()
 
 
 @app.post("/api/maps", tags=["maps"], status_code=201)
-async def create_map(req: CreateMapRequest):
+async def create_map(req: CreateMapRequest, user: AuthUser = Depends(require_editor)):
     return map_store.create_map(req.title, req.map_id)
 
 
 @app.get("/api/maps/{map_id}", tags=["maps"])
-async def get_map(map_id: str):
+async def get_map(map_id: str, user: AuthUser = Depends(require_viewer)):
     cfg = map_store.get_map(map_id)
     if not cfg:
         raise HTTPException(404, f"Map '{map_id}' not found")
@@ -270,14 +316,14 @@ async def get_map(map_id: str):
 
 
 @app.delete("/api/maps/{map_id}", tags=["maps"])
-async def delete_map(map_id: str):
+async def delete_map(map_id: str, user: AuthUser = Depends(require_admin)):
     if not map_store.delete_map(map_id):
         raise HTTPException(404, f"Map '{map_id}' not found")
     return {"deleted": map_id}
 
 
 @app.put("/api/maps/{map_id}/title", tags=["maps"])
-async def rename_map(map_id: str, req: RenameTitleRequest):
+async def rename_map(map_id: str, req: RenameTitleRequest, user: AuthUser = Depends(require_editor)):
     if not map_store.update_map_title(map_id, req.title):
         raise HTTPException(404, f"Map '{map_id}' not found")
     return {"map_id": map_id, "title": req.title}
@@ -286,7 +332,7 @@ async def rename_map(map_id: str, req: RenameTitleRequest):
 # ── Hintergrundbild ───────────────────────────────────────────
 
 @app.post("/api/maps/{map_id}/background", tags=["maps"])
-async def upload_background(map_id: str, file: UploadFile = File(...)):
+async def upload_background(map_id: str, file: UploadFile = File(...), user: AuthUser = Depends(require_editor)):
     """
     Nimmt ein Bild entgegen (PNG/JPG/SVG/WebP),
     speichert es unter data/backgrounds/ und verknüpft es mit der Map.
@@ -369,7 +415,7 @@ class UpdatePropsRequest(BaseModel):
 
 
 @app.post("/api/maps/{map_id}/objects", tags=["objects"], status_code=201)
-async def add_object(map_id: str, req: AddObjectRequest):
+async def add_object(map_id: str, req: AddObjectRequest, user: AuthUser = Depends(require_editor)):
     from backend.core.map_store import ALL_TYPES
     if req.type not in ALL_TYPES:
         raise HTTPException(400, f"Unbekannter Typ '{req.type}'. "
@@ -387,7 +433,7 @@ async def add_object(map_id: str, req: AddObjectRequest):
 
 
 @app.patch("/api/maps/{map_id}/objects/{object_id}/pos", tags=["objects"])
-async def update_position(map_id: str, object_id: str, req: UpdatePositionRequest):
+async def update_position(map_id: str, object_id: str, req: UpdatePositionRequest, user: AuthUser = Depends(require_editor)):
     ok = map_store.update_object_position(map_id, object_id, req.x, req.y)
     if not ok:
         raise HTTPException(404, "Object not found")
@@ -395,7 +441,7 @@ async def update_position(map_id: str, object_id: str, req: UpdatePositionReques
 
 
 @app.patch("/api/maps/{map_id}/objects/{object_id}/size", tags=["objects"])
-async def update_size(map_id: str, object_id: str, req: UpdateSizeRequest):
+async def update_size(map_id: str, object_id: str, req: UpdateSizeRequest, user: AuthUser = Depends(require_editor)):
     ok = map_store.update_object_size(map_id, object_id, req.w, req.h)
     if not ok:
         raise HTTPException(404, "Object not found")
@@ -403,7 +449,7 @@ async def update_size(map_id: str, object_id: str, req: UpdateSizeRequest):
 
 
 @app.patch("/api/maps/{map_id}/objects/{object_id}/props", tags=["objects"])
-async def update_props(map_id: str, object_id: str, req: UpdatePropsRequest):
+async def update_props(map_id: str, object_id: str, req: UpdatePropsRequest, user: AuthUser = Depends(require_editor)):
     updated = map_store.update_object_props(map_id, object_id, req.props)
     if updated is None:
         raise HTTPException(404, "Object not found")
@@ -415,7 +461,7 @@ async def update_props(map_id: str, object_id: str, req: UpdatePropsRequest):
 
 
 @app.delete("/api/maps/{map_id}/objects/{object_id}", tags=["objects"])
-async def remove_object(map_id: str, object_id: str):
+async def remove_object(map_id: str, object_id: str, user: AuthUser = Depends(require_editor)):
     ok = map_store.remove_object(map_id, object_id)
     if not ok:
         raise HTTPException(404, "Object not found")
@@ -425,6 +471,48 @@ async def remove_object(map_id: str, object_id: str):
         map_id=map_id,
     )
     return {"deleted": object_id}
+
+
+# ════════════════════════════════════════════════════════════════
+#  REST – Auth-Verwaltung (admin only)
+# ════════════════════════════════════════════════════════════════
+
+class CreateTokenRequest(BaseModel):
+    username:   str
+    role:       str        = "viewer"   # viewer | editor | admin
+    expires_in: int | None = None       # Sekunden; None = unbegrenzt
+
+@app.post("/api/auth/tokens", tags=["auth"], status_code=201)
+async def create_token(
+    req:  CreateTokenRequest,
+    user: AuthUser = Depends(require_admin),
+):
+    """Neues API-Token erzeugen (nur admin)."""
+    token = auth_manager.create_token(req.username, req.role, req.expires_in)
+    return {"token": token, "username": req.username, "role": req.role}
+
+
+@app.get("/api/auth/tokens", tags=["auth"])
+async def list_tokens_route(user: AuthUser = Depends(require_admin)):
+    """Alle bekannten Tokens auflisten (nur admin, JWT nicht enthalten)."""
+    return {"tokens": auth_manager.list_tokens()}
+
+
+@app.delete("/api/auth/tokens/{jti}", tags=["auth"])
+async def revoke_token(jti: str, user: AuthUser = Depends(require_admin)):
+    """Token per jti widerrufen (nur admin)."""
+    auth_manager.revoke(jti)
+    return {"revoked": jti}
+
+
+@app.get("/api/auth/me", tags=["auth"])
+async def whoami(user: AuthUser = Depends(require_viewer)):
+    """Gibt den aktuell eingeloggten User zurück."""
+    return {
+        "username":   user.username,
+        "role":       user.role,
+        "expires_at": user.expires_at or None,
+    }
 
 
 # ════════════════════════════════════════════════════════════════
@@ -455,7 +543,7 @@ async def get_host(host_name: str):
 # ── Health ────────────────────────────────────────────────────
 
 @app.get("/api/backends", tags=["system"])
-async def list_backends():
+async def list_backends(user: AuthUser = Depends(require_admin)):
     """Alle konfigurierten Livestatus-Backends mit Live-Health-Status."""
     if DEMO_MODE:
         return {
