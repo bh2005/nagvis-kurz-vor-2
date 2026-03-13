@@ -2,12 +2,14 @@
 
 Modernes Rewrite von [NagVis](https://www.nagvis.org/) mit einem Vanilla-JS-SPA-Frontend und einer Python/FastAPI-Middleware. Das bestehende PHP/Livestatus-Backend bleibt unangetastet.
 
+> **Stand:** März 2026 · Frontend: ~2700 Zeilen JS · Backend: ~1200 Zeilen Python · 86 Tests
+
 ---
 
 ## Architektur
 
 ```
-Browser (Vanilla JS + CSS Custom Properties)
+Browser (Vanilla JS + CSS Custom Properties – kein Framework, kein Build-Step)
   ├── WebSocket  →  Live-Status-Updates (Diffs, Heartbeat, Downtime-Events)
   └── Fetch API  →  Map-CRUD, Objekte, Background-Upload, Migration
 
@@ -28,15 +30,27 @@ Backend (unangetastet): PHP + Livestatus (CMK / Nagios / Icinga)
 
 ## Features
 
-- **Live-Status** per WebSocket – nur geänderte Objekte werden übertragen
+### Frontend
+- **Live-Status** per WebSocket – nur geänderte Objekte werden übertragen (Diff-only)
 - **8 Objekttypen**: `host`, `service`, `hostgroup`, `servicegroup`, `map`, `textbox`, `line`, `container`
-- **Multi-Backend**: mehrere Checkmk-Sites parallel abfragen (Unix-Socket + TCP)
+- **Iconset-System** – Inline SVG Data-URIs, 10 Geräteshapes, kein Dateisystem-Iconset nötig
+- **Edit-Mode** (`Ctrl+E`) – Drag & Drop, Rechtsklick-Kontextmenü, Resize-Slider, Iconset-Dialog
+- **Linien** – Drag-Handles an Endpunkten, Winkel-Slider (0–359°), Stil/Farbe/Breite
+- **Layer-System** – Ein-/Ausblenden von Objektgruppen, Umbenennen, z-Index-Steuerung
+- **Kiosk-Modus** (`F11`) – Vollbild, Auto-Refresh, Exit-Button bei Mausbewegung
+- **Snap-In Panels** – Hosts (nach Severity), Events (Live-Stream, letzte 60 Änderungen)
+- **Burger-Menü** – Map-Verwaltung, Benutzereinstellungen, System – alles an einem Ort
+- **Übersicht** – Karten-Grid mit ⋯-Kontextmenü, Parent-Map-Hierarchie, „Alle Maps verwalten"
+- **Light/Dark-Theme** – CSS Custom Properties, Checkmk 2.4 Farbpalette, flash-frei
+- **Demo-Modus** – funktioniert ohne Nagios/Checkmk, simuliert Statuswechsel
+
+### Backend
+- **Multi-Backend**: mehrere Checkmk-Sites parallel (Unix-Socket + TCP)
 - **Diff-Poller**: erkennt `state_change`, `ack_change`, `downtime_change`, `output_change`
-- **Downtime-Transitions**: Browser zeigt Downtime-Banner bei `downtime_started` / `downtime_ended`
-- **Force-Refresh**: Browser kann sofortigen Poll auslösen (`{ cmd: "force_refresh" }`)
-- **JWT-Auth**: Rollen `viewer` / `editor` / `admin`, Token-Revocation, WebSocket-Auth via Query-Parameter
-- **NagVis-1-Migration**: `.cfg`-Dateien per Upload migrieren, inkl. Dry-Run-Vorschau
-- **Checkmk 2.4 Design**: Light/Dark-Theme via CSS Custom Properties
+- **Downtime-Transitions**: Banner bei `downtime_started` / `downtime_ended`
+- **Force-Refresh**: Browser löst sofortigen Poll aus
+- **JWT-Auth**: Rollen `viewer` / `editor` / `admin`, Token-Revocation, WebSocket-Auth
+- **NagVis-1-Migration**: `.cfg`-Dateien hochladen, Dry-Run-Vorschau, alle 8 Objekttypen
 
 ---
 
@@ -59,7 +73,7 @@ pip install -r requirements.txt
 
 ### Frontend einrichten
 
-Das Frontend-Prototype liegt unter `nagvis2-prototype/`. Vor dem Start in das Serve-Verzeichnis kopieren:
+Das Frontend liegt unter `nagvis2-prototype/`. Vor dem Start in das Serve-Verzeichnis kopieren:
 
 ```bash
 cp -r nagvis2-prototype/* frontend/
@@ -118,8 +132,7 @@ export NAGVIS_SECRET="dein-geheimer-schluessel"
 uvicorn main:app --host 0.0.0.0 --port 8080 --reload
 ```
 
-Aufruf im Browser: `http://localhost:8080`
-
+Aufruf im Browser: `http://localhost:8080`  
 API-Dokumentation: `http://localhost:8080/docs`
 
 ---
@@ -145,6 +158,59 @@ curl -X POST http://localhost:8080/api/auth/tokens \
 
 ---
 
+## Benutzeroberfläche
+
+### Topbar
+| Element | Funktion |
+|---|---|
+| Logo | Klick → Übersicht |
+| Conn-Dot | WebSocket-Status (grün/gelb/rot) |
+| Status-Pills | OK / WARN / CRIT – nur wenn Map offen, CRIT blinkt |
+| ↻ | Force-Refresh (`R`) |
+| ⛶ | Kiosk-Modus (`F11`) |
+| ☰ | Burger-Menü |
+
+### Burger-Menü
+```
+Aktive Map        [nur wenn Map offen]
+  ✏ Bearbeiten   Ctrl+E
+  🖼 Hintergrund hochladen
+  ✎ Umbenennen
+  🗺 Parent-Map setzen
+  ⛶ Kiosk-Modus  F11
+  🗑 Map löschen
+
+Maps verwalten
+  ＋ Neue Map erstellen
+  ⊟ Alle Maps verwalten
+  ↑ NagVis 1 importieren
+
+Benutzereinstellungen
+  ☀/☽ Theme-Toggle
+  ⚙  Einstellungen…
+
+System
+  ⊙ Health-Status
+  ⊞ API Docs
+```
+
+### Keyboard-Shortcuts
+| Taste | Funktion |
+|---|---|
+| `B` | Sidebar ein-/ausklappen |
+| `Ctrl+E` | Edit-Mode toggle |
+| `R` | Force-Refresh (wenn Map offen) |
+| `F11` | Kiosk-Modus toggle |
+| `Esc` | Kiosk beenden / Dialoge schließen / Edit-Mode beenden |
+
+### Kiosk-Modus
+- Vollbild via Fullscreen-API
+- Exit-Button erscheint bei Mausbewegung, verschwindet nach 2,5 s
+- Status-Ticker unten: Map-Titel + Uhrzeit
+- Optionen (über ⚙ Einstellungen): Sidebar/Topbar ausblenden, Auto-Refresh, Intervall 30 s–5 min
+
+---
+
 ## API-Übersicht
 
 ### WebSocket
@@ -160,6 +226,16 @@ curl -X POST http://localhost:8080/api/auth/tokens \
 { "cmd": "ping" }
 ```
 
+**Server → Browser Events:**
+```
+snapshot       {hosts[], services[], ts}
+status_update  {hosts[], services[], ts, elapsed}
+heartbeat      {ts}
+object_added   {map_id, object}
+object_removed {map_id, object_id}
+backend_error  {message}
+```
+
 ### Maps
 
 | Methode  | Pfad                              | Rolle    |
@@ -169,6 +245,7 @@ curl -X POST http://localhost:8080/api/auth/tokens \
 | `GET`    | `/api/maps/{id}`                  | viewer   |
 | `DELETE` | `/api/maps/{id}`                  | admin    |
 | `PUT`    | `/api/maps/{id}/title`            | editor   |
+| `PUT`    | `/api/maps/{id}/parent`           | editor   |
 | `POST`   | `/api/maps/{id}/background`       | editor   |
 
 ### Objekte
@@ -192,18 +269,18 @@ curl -X POST http://localhost:8080/api/auth/tokens \
 
 ### System
 
-| Methode | Pfad               | Beschreibung                          | Auth   |
-|---------|--------------------|---------------------------------------|--------|
-| `GET`   | `/api/health`      | Health + Poller-Stats                 | offen  |
-| `GET`   | `/api/backends`    | Alle Backends mit Live-Reachability   | admin  |
-| `GET`   | `/api/status/hosts`         | Host-Status-Snapshot       | viewer |
-| `GET`   | `/api/status/hosts/{name}`  | Einzelner Host             | viewer |
+| Methode | Pfad                        | Beschreibung                        | Auth   |
+|---------|-----------------------------|-------------------------------------|--------|
+| `GET`   | `/api/health`               | Health + Poller-Stats               | offen  |
+| `GET`   | `/api/backends`             | Alle Backends mit Live-Reachability | admin  |
+| `GET`   | `/api/status/hosts`         | Host-Status-Snapshot                | viewer |
+| `GET`   | `/api/status/hosts/{name}`  | Einzelner Host                      | viewer |
 
 ### Migration
 
-| Methode | Pfad           | Beschreibung                        | Rolle  |
-|---------|----------------|-------------------------------------|--------|
-| `POST`  | `/api/migrate` | NagVis-1-.cfg nach NagVis-2 migrieren | admin |
+| Methode | Pfad           | Beschreibung                          | Rolle  |
+|---------|----------------|---------------------------------------|--------|
+| `POST`  | `/api/migrate` | NagVis-1-.cfg nach NagVis-2 migrieren | admin  |
 
 ```bash
 # Dry-Run (Vorschau ohne Speichern)
@@ -221,25 +298,28 @@ curl -X POST "http://localhost:8080/api/migrate?canvas_w=1200&canvas_h=800" \
 
 ## Rollen
 
-| Rolle    | Rechte                                                      |
-|----------|-------------------------------------------------------------|
-| `viewer` | Maps und Host-Status lesen, WebSocket verbinden             |
-| `editor` | + Objekte anlegen/verschieben/löschen, Hintergrund hochladen, Maps erstellen/umbenennen |
+| Rolle    | Rechte |
+|----------|--------|
+| `viewer` | Maps und Host-Status lesen, WebSocket verbinden |
+| `editor` | + Objekte anlegen/verschieben/löschen, Hintergrund hochladen, Maps erstellen/umbenennen/parent setzen |
 | `admin`  | + Maps löschen, Backends verwalten, Tokens verwalten, Migration |
 
 ---
 
 ## NagVis-1-Migration
 
-1. Im Browser die Übersicht öffnen → **„NagVis 1 importieren"**
+**Im Browser:**
+1. Übersicht öffnen → Burger-Menü `☰` → **„NagVis 1 importieren"**
 2. `.cfg`-Datei wählen oder per Drag & Drop ablegen
 3. Canvas-Größe des Hintergrundbilds angeben (Standard: 1200×800 px)
 4. Optional: **Dry Run** aktivieren für eine Vorschau ohne Speichern
 5. **Importieren** klicken
 
+**Per API:** siehe [Migration](#migration)
+
 **Unterstützte Objekttypen:** `host`, `service`, `hostgroup`, `servicegroup`, `map`, `textbox`, `line`, `container`
 
-**Koordinaten:** NagVis-1 speichert absolute Pixel-Koordinaten. Diese werden auf Basis der angegebenen Canvas-Größe in %-Koordinaten umgerechnet.
+**Koordinaten:** NagVis 1 speichert absolute Pixel-Koordinaten – diese werden anhand der angegebenen Canvas-Größe in %-Koordinaten umgerechnet.
 
 **Hintergrundbild:** Der Pfad aus dem `global`-Block wird in der Antwort zurückgemeldet. Das Bild muss anschließend manuell über `POST /api/maps/{id}/background` hochgeladen werden.
 
@@ -251,13 +331,13 @@ curl -X POST "http://localhost:8080/api/migrate?canvas_w=1200&canvas_h=800" \
 pytest tests/ --asyncio-mode=auto -v
 ```
 
-| Datei                    | Tests | Abdeckung                                      |
-|--------------------------|-------|------------------------------------------------|
-| `test_core.py`           | 11    | MapStore CRUD, Poller Diff-Logik               |
-| `test_auth.py`           | 22    | JWT, Rollen, Revocation, WebSocket-Auth        |
-| `test_ws_manager.py`     | 19    | Connect/Disconnect, Send, Broadcast, Fan-out   |
-| `test_migration.py`      | 34    | Parser, alle Objekttypen, Koordinaten, Warnungen |
-| **Gesamt**               | **86**|                                                |
+| Datei                    | Tests | Abdeckung                                         |
+|--------------------------|-------|---------------------------------------------------|
+| `test_core.py`           | 11    | MapStore CRUD, Poller Diff-Logik                  |
+| `test_auth.py`           | 22    | JWT, Rollen, Revocation, WebSocket-Auth           |
+| `test_ws_manager.py`     | 19    | Connect/Disconnect, Send, Broadcast, Fan-out      |
+| `test_migration.py`      | 34    | Parser, alle Objekttypen, Koordinaten, Warnungen  |
+| **Gesamt**               | **86**|                                                   |
 
 ---
 
@@ -287,9 +367,12 @@ nagvis2/
 │   ├── test_migration.py
 │   └── test_ws_manager.py
 └── nagvis2-prototype/              # Frontend-Quelldateien
-    ├── index.html
-    ├── css/styles.css
-    └── js/app.js
+    ├── index.html                  # ~610 Zeilen – reines Markup
+    ├── css/
+    │   └── styles.css              # ~1700 Zeilen – Design-Tokens, alle Komponenten
+    └── js/
+        ├── app.js                  # ~2700 Zeilen – komplette App-Logik
+        └── gadget-renderer.js      # Gauge, Sparkline, Weather Line
 ```
 
 ---
@@ -334,19 +417,43 @@ WantedBy=multi-user.target
 systemctl enable --now nagvis2
 ```
 
+### nginx Reverse Proxy (empfohlen)
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name monitoring.example.com;
+
+    location /nagvis2/ {
+        proxy_pass         http://127.0.0.1:8080/;
+        proxy_http_version 1.1;
+        proxy_set_header   Upgrade $http_upgrade;
+        proxy_set_header   Connection "upgrade";  # WebSocket
+        proxy_set_header   Host $host;
+    }
+}
+```
+
 ---
 
 ## Offene Punkte
 
-| Priorität | Thema                                         |
-|-----------|-----------------------------------------------|
-| Hoch      | Frontend mit Auth verdrahten (Login-Dialog)   |
-| Hoch      | `nagvis2-prototype/` → `frontend/` syncen     |
-| Mittel    | SQLite statt JSON-Files (MapStore)            |
-| Mittel    | Hostgroup/Servicegroup-Aggregation im Frontend|
-| Mittel    | Node-Labels konfigurierbar                    |
-| Niedrig   | Map-Zoom/Pan                                  |
-| Niedrig   | Multi-Map-Dashboard                           |
+| Priorität | Thema | Status |
+|-----------|-------|--------|
+| 🔴 Hoch | Frontend mit Auth verdrahten (Login-Dialog, Token im Header) | offen |
+| 🔴 Hoch | `nagvis2-prototype/` → `frontend/` syncen | offen |
+| 🔴 Hoch | CORS auf konkrete Hostnamen einschränken | offen |
+| 🟡 Mittel | Zoom & Pan auf der Map (CSS transform) | geplant |
+| 🟡 Mittel | Verbindungslinien mit Status-Farbe zwischen Nodes | geplant |
+| 🟡 Mittel | Echte Status-Pills in der Übersicht (OK/WARN/CRIT-Zähler) | geplant |
+| 🟡 Mittel | Service-Nodes vollständig (Datalist aus WS-Snapshot) | geplant |
+| 🟡 Mittel | SQLite statt JSON-Files (MapStore) | offen |
+| 🟡 Mittel | Hostgroup/Servicegroup-Aggregation im Frontend | offen |
+| 🟡 Mittel | Node-Labels konfigurierbar (`{name} – {output}`) | offen |
+| 🟢 Niedrig | URL-Routing (`#/map/id` → Map direkt öffnen) | offen |
+| 🟢 Niedrig | Mobile-Ansicht / Touch-Events | offen |
+| 🟢 Niedrig | Browser-Push-Benachrichtigungen bei CRITICAL | offen |
+| 🟢 Niedrig | Map-Export/Import als ZIP (inkl. Hintergrundbild) | offen |
 
 ---
 
