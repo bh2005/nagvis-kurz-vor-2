@@ -172,6 +172,53 @@
 
 
     <!-- ═══════════════════════════════════════════════════════
+         DIALOG – NagVis-1 Migration
+    ══════════════════════════════════════════════════════= -->
+    <div class="dlg-overlay" id="dlg-migrate">
+      <div class="dlg-box" style="width:440px">
+        <h3>NagVis&#x202F;1 Map importieren</h3>
+
+        <label class="f-label">.cfg-Datei</label>
+        <div class="upload-box" id="cfg-drop-zone"
+             onclick="document.getElementById('cfg-file-input').click()"
+             style="padding:18px;text-align:center;cursor:pointer">
+          <div id="cfg-drop-label">📄 Datei wählen oder hier ablegen</div>
+        </div>
+        <input type="file" id="cfg-file-input" accept=".cfg" style="display:none">
+
+        <label class="f-label" for="mig-id" style="margin-top:10px">
+          Map-ID <span style="color:var(--text-dim);font-weight:400">(optional)</span>
+        </label>
+        <input class="f-input" id="mig-id" type="text" placeholder="aus Dateiname ableiten">
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+          <div>
+            <label class="f-label" for="mig-w">Canvas-Breite (px)</label>
+            <input class="f-input" id="mig-w" type="number" value="1200" min="100" max="9999">
+          </div>
+          <div>
+            <label class="f-label" for="mig-h">Canvas-Höhe (px)</label>
+            <input class="f-input" id="mig-h" type="number" value="800" min="100" max="9999">
+          </div>
+        </div>
+
+        <label class="f-label" style="margin-top:10px;display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input type="checkbox" id="mig-dryrun"> Nur Vorschau (dry run)
+        </label>
+
+        <div id="mig-result" style="display:none;margin-top:12px;padding:10px;
+             background:var(--bg-base);border-radius:var(--r);font-size:11px;
+             font-family:var(--mono);max-height:160px;overflow-y:auto;
+             border:1px solid var(--border)"></div>
+
+        <div class="dlg-actions" style="margin-top:14px">
+          <button class="btn-cancel" onclick="closeDlg('dlg-migrate')">Abbrechen</button>
+          <button class="btn-ok" id="mig-btn-ok" onclick="confirmMigrate()" disabled>Importieren</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
          MAP CANVAS
     ══════════════════════════════════════════════════════= -->
     <div id="map-area">
