@@ -882,9 +882,6 @@ function toggleEdit() {
   banner.classList.toggle('show', editActive);
   canvas.classList.toggle('nv2-edit-mode', editActive);
 
-  // Upload-Prompt: liegt nicht auf dem Canvas – Upload läuft über Toolbar-Button
-  // (kein classList-Toggle nötig)
-
   if (editActive) {
     document.querySelectorAll('.nv2-node').forEach(makeDraggable);
   }
@@ -970,6 +967,9 @@ function showNodeContextMenu(e, el, obj) {
     menu.appendChild(btn);
   });
 
+  // FIX 3: Klicks innerhalb des Kontextmenüs nicht zum Canvas durchreichen
+  menu.addEventListener('click', e => e.stopPropagation());
+
   document.body.appendChild(menu);
   _ctxMenu = menu;
   setTimeout(() => document.addEventListener('click', closeContextMenu, { once: true }), 0);
@@ -987,7 +987,6 @@ function openResizeDialog(el, obj) {
   closeResizeDialog();
   const isNode    = ['host','service','hostgroup','servicegroup','map'].includes(obj.type);
   const isGadget  = obj.type === 'gadget';
-  const isLine    = obj.type === 'line';
 
   const cur = isNode
     ? parseInt(el.style.getPropertyValue('--node-size') || '32')
@@ -1034,6 +1033,10 @@ function openResizeDialog(el, obj) {
     valLbl.textContent = v + unit;
     applySize(el, obj, v, isNode, isGadget);
   });
+
+  // FIX 1: Alle Klicks innerhalb des Resize-Panels (Slider, Buttons)
+  //         nicht zum Canvas durchreichen → kein versehentlicher Objekt-Dialog
+  panel.addEventListener('click', e => e.stopPropagation());
 
   panel.querySelector('#rp-close-btn').onclick  =
   panel.querySelector('#rp-cancel-btn').onclick = () => {
@@ -1131,12 +1134,10 @@ function openIconsetDialog(el, obj) {
     const file = e.target.files[0];
     if (!file) return;
     const setName = file.name.replace(/\.zip$/i, '').toLowerCase().replace(/[^a-z0-9-]/g, '-');
-    // In Demo-Mode: nur registrieren (keine echte Serverübertragung)
     if (!customIconsets.includes(setName)) {
       customIconsets.push(setName);
       localStorage.setItem('nv2-custom-iconsets', JSON.stringify(customIconsets));
     }
-    // Karte hinzufügen
     const card = document.createElement('div');
     card.className = 'iconset-card';
     card.dataset.set = setName;
@@ -1164,13 +1165,42 @@ function openIconsetDialog(el, obj) {
 
 
 // ═══════════════════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════════════════
 //  CANVAS-KLICK → OBJEKT PLATZIEREN
 // ═══════════════════════════════════════════════════════════════════════
 
+/**
+ * FIX 2: Canvas-Klick öffnet den Objekt-Dialog nur wenn:
+ *   - Edit-Mode aktiv
+ *   - kein Klick auf einen bestehenden Node / Textbox / Container
+ *   - kein Resize-Panel offen
+ *   - kein Kontextmenü offen
+ *   - kein Iconset-Dialog offen
+ *   - kein Klick auf das SVG-Linien-Overlay
+ */
 function onCanvasClick(e) {
   if (!editActive) return;
+
+  // Bereits auf ein Objekt geklickt → ignorieren
   if (e.target.closest('.nv2-node, .nv2-textbox, .nv2-container')) return;
+
+  // SVG-Overlay (Linien) → ignorieren
+  if (e.target.closest('#nv2-lines-svg')) return;
+
+  // Resize-Panel offen → nur schließen, kein Dialog
+  if (document.getElementById('nv2-resize-panel')) {
+    closeResizeDialog();
+    return;
+  }
+
+  // Kontextmenü offen → nur schließen, kein Dialog
+  if (_ctxMenu) {
+    closeContextMenu();
+    return;
+  }
+
+  // Iconset-Dialog offen → ignorieren
+  if (document.getElementById('nv2-iconset-dlg')) return;
+
   const rect = document.getElementById('nv2-canvas').getBoundingClientRect();
   pendingPos = {
     x: ((e.clientX - rect.left) / rect.width  * 100).toFixed(2),
@@ -1319,12 +1349,10 @@ function dlgMigrate() {
   document.getElementById('mig-dryrun').checked = false;
   openDlg('dlg-migrate');
 
-  // File-Input Listener (einmalig registrieren)
   const inp = document.getElementById('cfg-file-input');
   inp.value = '';
   inp.onchange = e => _migHandleFile(e.target.files[0]);
 
-  // Drag & Drop
   const zone = document.getElementById('cfg-drop-zone');
   zone.ondragover = e => { e.preventDefault(); zone.classList.add('drag-over'); };
   zone.ondragleave = () => zone.classList.remove('drag-over');
@@ -1344,7 +1372,6 @@ function _migHandleFile(file) {
   _migFile = file;
   document.getElementById('cfg-drop-label').textContent = `✓ ${file.name}`;
   document.getElementById('mig-btn-ok').disabled = false;
-  // Map-ID aus Dateiname vorschlagen
   const suggestedId = file.name.replace(/\.cfg$/i, '').toLowerCase().replace(/[^a-z0-9-]/g, '-');
   const idField = document.getElementById('mig-id');
   if (!idField.value) idField.value = suggestedId;
@@ -1393,7 +1420,6 @@ async function confirmMigrate() {
     resultBox.textContent = lines.join('\n');
 
     if (!dryRun) {
-      // Übersicht neu laden damit neue Map erscheint
       setTimeout(() => {
         closeDlg('dlg-migrate');
         showOverview();
@@ -1498,11 +1524,6 @@ function setSidebarLive(ok, txt) {
   if (status) status.textContent = txt ?? (ok ? 'verbunden' : 'getrennt');
 }
 
-/**
- * Zeigt kurzen Downtime-Banner oben auf dem Canvas an.
- * started=true → Downtime begonnen, false → Downtime beendet.
- * Blendet sich nach 4s automatisch aus.
- */
 let _dtBannerTimer = null;
 function showDowntimeBanner(hostNames, started) {
   let banner = document.getElementById('nv2-dt-banner');
@@ -1551,6 +1572,8 @@ function onKeyDown(e) {
   if (e.key === 'Escape') {
     window.closeDlg('dlg-add-object');
     window.closeDlg('dlg-new-map');
+    closeResizeDialog();
+    closeContextMenu();
     if (editActive) toggleEdit();
     closeSnapin(activeSnapin);
   }
@@ -1567,8 +1590,7 @@ function onKeyDown(e) {
 
 
 // ═══════════════════════════════════════════════════════════════════════
-//  DEMO MODE – statische Daten wenn kein Backend erreichbar
-//  (VS Code Live Server, file://, GitHub Pages, etc.)
+//  DEMO MODE
 // ═══════════════════════════════════════════════════════════════════════
 
 const DEMO_MAP = {
@@ -1615,26 +1637,21 @@ const DEMO_MAP = {
 };
 
 const DEMO_STATUS = [
-  { name: "srv-web-01",  state: 0, state_label: "UP",       acknowledged: false, in_downtime: false,
+  { name: "srv-web-01",  state: 0, state_label: "UP",   acknowledged: false, in_downtime: false,
     output: "PING OK - 1.4ms", services_ok: 8, services_warn: 0, services_crit: 1, services_unkn: 0 },
-  { name: "srv-db-01",   state: 0, state_label: "UP",       acknowledged: true,  in_downtime: true,
+  { name: "srv-db-01",   state: 0, state_label: "UP",   acknowledged: true,  in_downtime: true,
     output: "PING OK - 0.8ms", services_ok: 5, services_warn: 1, services_crit: 0, services_unkn: 0 },
-  { name: "srv-backup",  state: 1, state_label: "DOWN",     acknowledged: false, in_downtime: false,
+  { name: "srv-backup",  state: 1, state_label: "DOWN", acknowledged: false, in_downtime: false,
     output: "Connection refused", services_ok: 0, services_warn: 0, services_crit: 3, services_unkn: 0 },
-  { name: "srv-monitor", state: 0, state_label: "UP",       acknowledged: false, in_downtime: false,
+  { name: "srv-monitor", state: 0, state_label: "UP",   acknowledged: false, in_downtime: false,
     output: "PING OK - 2.1ms", services_ok: 12, services_warn: 2, services_crit: 0, services_unkn: 0 },
 ];
 
-/** true wenn wir im statischen Modus laufen (kein FastAPI erreichbar) */
 let _demoMode = false;
 let _demoMaps = [
   { id: "demo-features", title: "NagVis 2 – Feature Demo", background: null, object_count: DEMO_MAP.objects.length }
 ];
 
-/**
- * Prüft beim Start ob das Backend erreichbar ist.
- * Wenn nicht → Demo-Modus aktivieren.
- */
 async function detectDemoMode() {
   try {
     const r = await fetch('/api/health', { signal: AbortSignal.timeout(1500) });
@@ -1647,17 +1664,14 @@ async function detectDemoMode() {
   document.getElementById('nv2-conn-dot').className = 'conn-dot connected';
 }
 
-/** Demo-WebSocket-Ersatz: simuliert Snapshots + periodische Status-Updates */
 function makeDemoWsClient(mapId) {
   let _interval = null;
-  let _dead = false;
 
   return {
     mapId, ws: null, _dead: false,
 
     connect() {
       if (this._dead) return;
-      // Sofortiger Snapshot
       setTimeout(() => {
         if (this._dead) return;
         onWsMsg({ event: 'snapshot', ts: Date.now() / 1000,
@@ -1665,11 +1679,10 @@ function makeDemoWsClient(mapId) {
         onWsOpen();
       }, 200);
 
-      // Alle 8s simulierter Status-Update mit zufälliger Änderung
       _interval = setInterval(() => {
         if (this._dead) { clearInterval(_interval); return; }
-        const changed = DEMO_STATUS[Math.floor(Math.random() * DEMO_STATUS.length)];
-        const states  = ['UP', 'UP', 'UP', 'DOWN', 'WARNING'];
+        const changed  = DEMO_STATUS[Math.floor(Math.random() * DEMO_STATUS.length)];
+        const states   = ['UP', 'UP', 'UP', 'DOWN', 'WARNING'];
         const newState = states[Math.floor(Math.random() * states.length)];
         const fake = { ...changed, state_label: newState,
           output: newState === 'UP' ? 'PING OK' : 'Check failed',
@@ -1697,26 +1710,18 @@ function makeDemoWsClient(mapId) {
 //  API WRAPPER
 // ═══════════════════════════════════════════════════════════════════════
 
-/**
- * Im Demo-Modus werden API-Calls gegen die lokalen DEMO_*-Objekte
- * aufgelöst. Im normalen Betrieb wird fetch() verwendet.
- */
 async function api(path, method = 'GET', body = null) {
 
-  // ── DEMO-MODUS ──────────────────────────────────────────────
   if (_demoMode) {
-    // GET /api/maps
     if (path === '/api/maps' && method === 'GET')
       return [..._demoMaps];
 
-    // GET /api/maps/:id
     const mGet = path.match(/^\/api\/maps\/([\w-]+)$/);
     if (mGet && method === 'GET') {
       if (mGet[1] === 'demo-features') return JSON.parse(JSON.stringify(DEMO_MAP));
       return null;
     }
 
-    // POST /api/maps
     if (path === '/api/maps' && method === 'POST') {
       const id  = body.map_id || body.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       const map = { id, title: body.title, background: null, objects: [] };
@@ -1724,14 +1729,12 @@ async function api(path, method = 'GET', body = null) {
       return { ...map };
     }
 
-    // DELETE /api/maps/:id
     const mDel = path.match(/^\/api\/maps\/([\w-]+)$/);
     if (mDel && method === 'DELETE') {
       _demoMaps = _demoMaps.filter(m => m.id !== mDel[1]);
       return true;
     }
 
-    // POST /api/maps/:id/objects
     const mObj = path.match(/^\/api\/maps\/([\w-]+)\/objects$/);
     if (mObj && method === 'POST') {
       const obj = { ...body,
@@ -1741,11 +1744,9 @@ async function api(path, method = 'GET', body = null) {
       return obj;
     }
 
-    // PATCH pos/size/props + DELETE object → still response
     if (method === 'PATCH' || (method === 'DELETE' && path.includes('/objects/')))
       return method === 'DELETE' ? true : body;
 
-    // GET /api/health
     if (path === '/api/health')
       return { status: 'ok', demo_mode: true };
 
@@ -1753,7 +1754,6 @@ async function api(path, method = 'GET', body = null) {
     return null;
   }
 
-  // ── NORMALER MODUS ───────────────────────────────────────────
   try {
     const opts = { method, headers: {} };
     if (body) {
