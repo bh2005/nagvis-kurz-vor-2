@@ -453,7 +453,7 @@ server {
 | 🟢 Niedrig | URL-Routing (`#/map/id` → Map direkt öffnen) | offen |
 | 🟢 Niedrig | Mobile-Ansicht / Touch-Events | offen |
 | 🟢 Niedrig | Browser-Push-Benachrichtigungen bei CRITICAL | offen |
-| 🟢 Niedrig | Map-Export/Import als ZIP (inkl. Hintergrundbild) | offen |
+| 🟢 Niedrig | Map-Export/Import als ZIP (inkl. Hintergrundbild) | erledigt |
 
 ---
 
