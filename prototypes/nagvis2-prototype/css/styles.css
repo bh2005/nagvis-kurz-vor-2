@@ -1786,3 +1786,654 @@ img.nv2-icon {
   opacity: .7;
 }
 .iconset-upload:hover { opacity: 1; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LAYER PANEL – in styles.css ans Ende anhängen
+═══════════════════════════════════════════════════════════════════════ */
+.layer-list { padding: 0; }
+
+.layer-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px 5px 14px;
+  font-size: 12px;
+  color: var(--text-mid);
+  border-bottom: 1px solid var(--border);
+  transition: background var(--t);
+}
+.layer-row:hover { background: var(--bg-hover); }
+
+.layer-toggle {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.layer-toggle input[type=checkbox] { display: none; }
+
+.layer-eye {
+  font-size: 13px;
+  opacity: 0.6;
+  transition: opacity var(--t);
+}
+.layer-toggle:hover .layer-eye { opacity: 1; }
+
+.layer-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: text;
+  color: var(--text);
+  font-size: 11.5px;
+}
+
+.layer-name-input {
+  flex: 1;
+  background: var(--input-bg);
+  border: 1px solid var(--acc);
+  border-radius: var(--r-sm);
+  padding: 2px 5px;
+  font-size: 11px;
+  color: var(--text);
+  outline: none;
+}
+
+.layer-z {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+/* Collapsed: Layer-Panel ausblenden */
+#sidebar.collapsed #layer-section,
+#sidebar.collapsed .layer-list { display: none !important; }
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LINE DRAG HANDLES
+   Erscheinen nur wenn Edit-Mode aktiv (.nv2-edit-mode auf #nv2-canvas)
+═══════════════════════════════════════════════════════════════════════ */
+.line-handle {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+#nv2-canvas.nv2-edit-mode .line-handle {
+  opacity: 1;
+  pointer-events: all;
+  cursor: crosshair;
+}
+
+.line-handle:hover {
+  filter: drop-shadow(0 0 5px var(--acc));
+}
+
+/* SVG-Overlay: im Edit-Mode pointer-events aktivieren */
+#nv2-lines-svg { pointer-events: none; }
+#nv2-canvas.nv2-edit-mode #nv2-lines-svg { pointer-events: all; }
+
+/* Hit-Target-Linien im Edit-Mode leicht andeuten */
+#nv2-canvas.nv2-edit-mode .nv2-line-el {
+  stroke: var(--acc);
+  stroke-opacity: 0.07;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LAYER PANEL – in styles.css ans Ende anhängen
+═══════════════════════════════════════════════════════════════════════ */
+.layer-list { padding: 0; }
+
+.layer-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px 5px 14px;
+  font-size: 12px;
+  color: var(--text-mid);
+  border-bottom: 1px solid var(--border);
+  transition: background var(--t);
+}
+.layer-row:hover { background: var(--bg-hover); }
+
+.layer-toggle {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.layer-toggle input[type=checkbox] { display: none; }
+
+.layer-eye {
+  font-size: 13px;
+  opacity: 0.6;
+  transition: opacity var(--t);
+}
+.layer-toggle:hover .layer-eye { opacity: 1; }
+
+.layer-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: text;
+  color: var(--text);
+  font-size: 11.5px;
+}
+
+.layer-name-input {
+  flex: 1;
+  background: var(--input-bg);
+  border: 1px solid var(--acc);
+  border-radius: var(--r-sm);
+  padding: 2px 5px;
+  font-size: 11px;
+  color: var(--text);
+  outline: none;
+}
+
+.layer-z {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+/* Collapsed: Layer-Panel ausblenden */
+#sidebar.collapsed #layer-section,
+#sidebar.collapsed .layer-list { display: none !important; }
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LINE DRAG HANDLES
+   Erscheinen nur wenn Edit-Mode aktiv (.nv2-edit-mode auf #nv2-canvas)
+═══════════════════════════════════════════════════════════════════════ */
+.line-handle {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+#nv2-canvas.nv2-edit-mode .line-handle {
+  opacity: 1;
+  pointer-events: all;
+  cursor: crosshair;
+}
+
+.line-handle:hover {
+  filter: drop-shadow(0 0 5px var(--acc));
+}
+
+/* SVG-Overlay: im Edit-Mode pointer-events aktivieren */
+#nv2-lines-svg { pointer-events: none; }
+#nv2-canvas.nv2-edit-mode #nv2-lines-svg { pointer-events: all; }
+
+/* Hit-Target-Linien im Edit-Mode leicht andeuten */
+#nv2-canvas.nv2-edit-mode .nv2-line-el {
+  stroke: var(--acc);
+  stroke-opacity: 0.07;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   BURGER-MENÜ DROPDOWN
+═══════════════════════════════════════════════════════════════════════ */
+.burger-dropdown {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  z-index: 500;
+  background: var(--dlg-bg);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--r-lg);
+  box-shadow: 0 8px 28px var(--dlg-shadow);
+  min-width: 210px;
+  padding: 6px 0;
+  animation: dlgIn 0.12s ease;
+}
+
+.burger-head {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding: 8px 14px 3px;
+  user-select: none;
+}
+
+.burger-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 14px;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--t);
+}
+.burger-item:hover { background: var(--bg-hover); }
+
+.burger-item.on {
+  color: var(--acc);
+  background: var(--bg-active);
+}
+
+.burger-item-danger { color: var(--crit); }
+.burger-item-danger:hover { background: var(--crit-bg); }
+
+.burger-ico {
+  font-size: 13px;
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+.burger-kbd {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-dim);
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 1px 5px;
+}
+
+.burger-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LAYER PANEL – in styles.css ans Ende anhängen
+═══════════════════════════════════════════════════════════════════════ */
+.layer-list { padding: 0; }
+
+.layer-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px 5px 14px;
+  font-size: 12px;
+  color: var(--text-mid);
+  border-bottom: 1px solid var(--border);
+  transition: background var(--t);
+}
+.layer-row:hover { background: var(--bg-hover); }
+
+.layer-toggle {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.layer-toggle input[type=checkbox] { display: none; }
+
+.layer-eye {
+  font-size: 13px;
+  opacity: 0.6;
+  transition: opacity var(--t);
+}
+.layer-toggle:hover .layer-eye { opacity: 1; }
+
+.layer-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: text;
+  color: var(--text);
+  font-size: 11.5px;
+}
+
+.layer-name-input {
+  flex: 1;
+  background: var(--input-bg);
+  border: 1px solid var(--acc);
+  border-radius: var(--r-sm);
+  padding: 2px 5px;
+  font-size: 11px;
+  color: var(--text);
+  outline: none;
+}
+
+.layer-z {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+/* Collapsed: Layer-Panel ausblenden */
+#sidebar.collapsed #layer-section,
+#sidebar.collapsed .layer-list { display: none !important; }
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LINE DRAG HANDLES
+   Erscheinen nur wenn Edit-Mode aktiv (.nv2-edit-mode auf #nv2-canvas)
+═══════════════════════════════════════════════════════════════════════ */
+.line-handle {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+#nv2-canvas.nv2-edit-mode .line-handle {
+  opacity: 1;
+  pointer-events: all;
+  cursor: crosshair;
+}
+
+.line-handle:hover {
+  filter: drop-shadow(0 0 5px var(--acc));
+}
+
+/* SVG-Overlay: im Edit-Mode pointer-events aktivieren */
+#nv2-lines-svg { pointer-events: none; }
+#nv2-canvas.nv2-edit-mode #nv2-lines-svg { pointer-events: all; }
+
+/* Hit-Target-Linien im Edit-Mode leicht andeuten */
+#nv2-canvas.nv2-edit-mode .nv2-line-el {
+  stroke: var(--acc);
+  stroke-opacity: 0.07;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   BURGER-MENÜ DROPDOWN
+═══════════════════════════════════════════════════════════════════════ */
+.burger-dropdown {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  z-index: 500;
+  background: var(--dlg-bg);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--r-lg);
+  box-shadow: 0 8px 28px var(--dlg-shadow);
+  min-width: 210px;
+  padding: 6px 0;
+  animation: dlgIn 0.12s ease;
+}
+
+.burger-head {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding: 8px 14px 3px;
+  user-select: none;
+}
+
+.burger-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 14px;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--t);
+}
+.burger-item:hover { background: var(--bg-hover); }
+
+.burger-item.on {
+  color: var(--acc);
+  background: var(--bg-active);
+}
+
+.burger-item-danger { color: var(--crit); }
+.burger-item-danger:hover { background: var(--crit-bg); }
+
+.burger-ico {
+  font-size: 13px;
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+.burger-kbd {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-dim);
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 1px 5px;
+}
+
+.burger-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   OVERVIEW CARD – Header mit ⋯-Menü-Button
+═══════════════════════════════════════════════════════════════════════ */
+.ov-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 4px;
+  margin-bottom: 3px;
+}
+
+.ov-card-menu-btn {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity var(--t), background var(--t), color var(--t);
+}
+.ov-card:hover .ov-card-menu-btn { opacity: 1; }
+.ov-card-menu-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.ov-card-id {
+  font-family: var(--mono);
+  opacity: 0.7;
+}
+
+.ov-card-parent {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-dim);
+  margin-bottom: 5px;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MANAGE MAPS OVERLAY
+═══════════════════════════════════════════════════════════════════════ */
+.manage-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  transition: background var(--t);
+}
+.manage-row:last-child { border-bottom: none; }
+.manage-row:hover { background: var(--bg-hover); }
+
+.manage-pip {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border-hi);
+  flex-shrink: 0;
+}
+
+.manage-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.manage-title {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.manage-meta {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--text-dim);
+}
+
+.manage-actions {
+  display: flex;
+  gap: 3px;
+  flex-shrink: 0;
+}
+.manage-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--text-mid);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background var(--t), color var(--t), border-color var(--t);
+}
+.manage-btn:hover       { background: var(--bg-hover); color: var(--text); border-color: var(--border-hi); }
+.manage-btn-danger      { color: var(--crit); }
+.manage-btn-danger:hover { background: var(--crit-bg); border-color: var(--crit-border); }
+
+/* burger-item-noaction: kein Hover-Effekt (Health-Anzeige) */
+.burger-item-noaction { cursor: default; }
+.burger-item-noaction:hover { background: transparent; }
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   KIOSK-MODUS
+═══════════════════════════════════════════════════════════════════════ */
+.kiosk-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#kiosk-canvas-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Canvas füllt den Kiosk-Wrap vollständig */
+#kiosk-canvas-wrap #nv2-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* Exit-Button – oben rechts, versteckt bis Mausbewegung */
+.kiosk-exit-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 1010;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: var(--r);
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(0,0,0,0.65);
+  color: #ccc;
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, background 0.15s;
+  backdrop-filter: blur(4px);
+}
+.kiosk-exit-btn.visible {
+  opacity: 1;
+  pointer-events: all;
+}
+.kiosk-exit-btn:hover {
+  background: rgba(244,67,54,0.75);
+  border-color: rgba(244,67,54,0.5);
+  color: #fff;
+}
+
+/* Status-Ticker unten */
+.kiosk-status-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0; right: 0;
+  height: 26px;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: rgba(255,255,255,0.45);
+  letter-spacing: 0.5px;
+  pointer-events: none;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   BENUTZEREINSTELLUNGEN – Theme-Chips im Dialog
+═══════════════════════════════════════════════════════════════════════ */
+#theme-chip-dark,
+#theme-chip-light {
+  padding: 8px 12px;
+  font-size: 12px;
+}
