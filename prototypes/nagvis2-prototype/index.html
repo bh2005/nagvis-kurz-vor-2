@@ -30,8 +30,9 @@
 
       <div class="nav-section">System</div>
 
-      <button class="nav-btn" onclick="window.open('api-doc.html','_blank')">
-        <span class="nav-ico">⊞</span> API Docs
+      <button class="nav-btn" onclick="window.open('api-doc.html','_blank')" data-label="API Docs">
+        <span class="nav-ico">⊞</span>
+        API Docs
       </button>
 
       <button class="nav-btn" id="nav-btn-health" data-label="Health">
@@ -222,15 +223,6 @@
     ══════════════════════════════════════════════════════= -->
     <div id="map-area">
 
-      <!-- Hintergrundbild-Hinweis (leer) -->
-      <div id="upload-prompt">
-        <div class="upload-box" id="upload-box"
-             onclick="document.getElementById('bg-file-input').click()">
-          <div class="upload-emo">🗺️</div>
-          <div class="upload-title">Hintergrundbild hochladen</div>
-          <div class="upload-hint">PNG · JPG · SVG · WebP · Drag &amp; Drop</div>
-        </div>
-      </div>
 
       <!-- Node-Canvas -->
       <div id="nv2-canvas" id="nv2-map-root" data-map-id=""></div>
@@ -321,19 +313,28 @@
         <datalist id="known-hosts"></datalist>
       </div>
       <div class="f-row" id="dlg-row-iconset">
-        <label class="f-label" for="dlg-iconset">Icon</label>
+        <label class="f-label" for="dlg-iconset">Iconset</label>
         <select class="f-select" id="dlg-iconset">
-          <option value="server">🖥  Server</option>
-          <option value="router">🌐  Router</option>
-          <option value="switch">🔀  Switch</option>
-          <option value="firewall">🔥  Firewall</option>
-          <option value="storage">💾  Storage</option>
-          <option value="database">🗄  Datenbank</option>
-          <option value="ups">⚡  USV</option>
-          <option value="ap">📡  Access Point</option>
-          <option value="map">🗺  Map</option>
-          <option value="default">⬡  Generisch</option>
+          <option value="std_small">◉ std_small (Standard)</option>
+          <option value="server">🖥 server</option>
+          <option value="router">🌐 router</option>
+          <option value="switch">🔀 switch</option>
+          <option value="firewall">🔥 firewall</option>
+          <option value="storage">💾 storage</option>
+          <option value="database">🗄 database</option>
+          <option value="ups">⚡ ups</option>
+          <option value="ap">📡 ap</option>
         </select>
+      </div>
+      <div class="f-row" id="dlg-row-iconsize">
+        <label class="f-label" for="dlg-iconsize">Größe</label>
+        <div style="display:flex;align-items:center;gap:8px;flex:1">
+          <input type="range" id="dlg-iconsize" min="16" max="96" step="4" value="32"
+                 style="flex:1;accent-color:var(--acc)"
+                 oninput="document.getElementById('dlg-iconsize-val').textContent=this.value+'px'">
+          <span id="dlg-iconsize-val" style="font-family:var(--mono);font-size:11px;
+                color:var(--text-mid);min-width:36px">32px</span>
+        </div>
       </div>
       <div class="f-row" id="dlg-row-label">
         <label class="f-label" for="dlg-obj-label">Label <span class="f-opt">(optional)</span></label>
