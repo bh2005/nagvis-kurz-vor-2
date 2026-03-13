@@ -55,6 +55,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from backend.livestatus.client import LivestatusConfig, BackendRegistry
+from backend.core.cfg_migration import migrate_cfg, MigrationResult
 from backend.core.auth import (
     AuthManager, AuthUser, set_auth_manager,
     require_viewer, require_editor, require_admin,
@@ -593,6 +594,103 @@ async def health():
         ],
         "poller":     poller.stats,
         "websockets": ws_manager.stats,
+    }
+
+
+# ════════════════════════════════════════════════════════════════
+#  REST – NagVis-1 Migration
+# ════════════════════════════════════════════════════════════════
+
+@app.post("/api/migrate", tags=["migration"])
+async def migrate_nagvis1_cfg(
+    file:     UploadFile = File(...),
+    map_id:   str        = Query("", description="Ziel-Map-ID (leer = aus Dateiname)"),
+    canvas_w: float      = Query(1200.0, description="Canvas-Breite in Pixeln"),
+    canvas_h: float      = Query( 800.0, description="Canvas-Höhe in Pixeln"),
+    dry_run:  bool       = Query(False,  description="Nur Preview, nichts speichern"),
+    user:     AuthUser   = Depends(require_admin),
+):
+    """
+    Migriert eine NagVis-1-.cfg-Datei nach NagVis 2.
+
+    - Parst alle Objekttypen (host, service, hostgroup, servicegroup,
+      map, textbox, line, container)
+    - Rechnet Pixel-Koordinaten in %-Koordinaten um
+    - Legt die Map direkt im MapStore an (außer dry_run=true)
+    - Gibt Warnungen und übersprungene Objekte zurück
+
+    dry_run=true: liefert nur die Vorschau ohne zu speichern.
+    """
+    if not file.filename.endswith(".cfg"):
+        raise HTTPException(400, "Nur .cfg-Dateien werden akzeptiert")
+
+    content = (await file.read()).decode("utf-8", errors="replace")
+
+    # map_id aus Dateiname ableiten wenn nicht angegeben
+    derived_id = map_id or file.filename.removesuffix(".cfg")
+
+    result = migrate_cfg(
+        content   = content,
+        map_id    = derived_id,
+        canvas_w  = canvas_w,
+        canvas_h  = canvas_h,
+    )
+
+    if dry_run:
+        return {
+            "dry_run":    True,
+            "map_id":     result.map_id,
+            "title":      result.title,
+            "background": result.background,
+            "object_count": len(result.objects),
+            "objects":    result.objects,
+            "warnings":   [
+                {"type": w.object_type, "field": w.field, "message": w.message}
+                for w in result.warnings
+            ],
+            "skipped":    result.skipped,
+        }
+
+    # Map anlegen und Objekte einfügen
+    existing = map_store.get_map(result.map_id)
+    if existing:
+        raise HTTPException(
+            409,
+            f"Map '{result.map_id}' existiert bereits. "
+            "Andere map_id wählen oder Map zuerst löschen."
+        )
+
+    map_store.create_map(result.title, result.map_id)
+
+    inserted = []
+    failed   = []
+    for obj in result.objects:
+        created = map_store.add_object(result.map_id, obj)
+        if created:
+            inserted.append(created)
+        else:
+            failed.append(obj)
+
+    log.info(
+        "Migration abgeschlossen: map=%s, %d eingefügt, %d fehlgeschlagen",
+        result.map_id, len(inserted), len(failed),
+    )
+
+    return {
+        "dry_run":      False,
+        "map_id":       result.map_id,
+        "title":        result.title,
+        "background":   result.background,
+        "object_count": len(inserted),
+        "warnings": [
+            {"type": w.object_type, "field": w.field, "message": w.message}
+            for w in result.warnings
+        ],
+        "skipped":      result.skipped + len(failed),
+        "note": (
+            f"Hintergrundbild '{result.background}' muss manuell hochgeladen werden."
+            if result.background else ""
+        ),
     }
 
 

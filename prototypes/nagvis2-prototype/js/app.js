@@ -199,6 +199,9 @@ function renderOverview(maps) {
   grid.innerHTML = cards + `
     <div class="ov-new" id="btn-new-map">
       <span style="font-size:18px;line-height:1">＋</span> Neue Map
+    </div>
+    <div class="ov-new ov-import" id="btn-migrate-map">
+      <span style="font-size:18px;line-height:1">↑</span> NagVis&#x202F;1 importieren
     </div>`;
 
   // Click-Handler
@@ -206,6 +209,7 @@ function renderOverview(maps) {
     card.addEventListener('click', () => openMap(card.dataset.mapId));
   });
   document.getElementById('btn-new-map')?.addEventListener('click', dlgNewMap);
+  document.getElementById('btn-migrate-map')?.addEventListener('click', dlgMigrate);
 }
 
 
@@ -1007,6 +1011,106 @@ async function confirmDeleteMap() {
 
 function dlgNewMap() { openDlg('dlg-new-map'); }
 
+// ═══════════════════════════════════════════════════════════════════════
+//  MIGRATION – NagVis 1 .cfg Import
+// ═══════════════════════════════════════════════════════════════════════
+
+let _migFile = null;
+
+function dlgMigrate() {
+  _migFile = null;
+  document.getElementById('cfg-drop-label').textContent = '📄 Datei wählen oder hier ablegen';
+  document.getElementById('mig-btn-ok').disabled = true;
+  document.getElementById('mig-result').style.display = 'none';
+  document.getElementById('mig-result').textContent = '';
+  document.getElementById('mig-dryrun').checked = false;
+  openDlg('dlg-migrate');
+
+  // File-Input Listener (einmalig registrieren)
+  const inp = document.getElementById('cfg-file-input');
+  inp.value = '';
+  inp.onchange = e => _migHandleFile(e.target.files[0]);
+
+  // Drag & Drop
+  const zone = document.getElementById('cfg-drop-zone');
+  zone.ondragover = e => { e.preventDefault(); zone.classList.add('drag-over'); };
+  zone.ondragleave = () => zone.classList.remove('drag-over');
+  zone.ondrop = e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f) _migHandleFile(f);
+  };
+}
+
+function _migHandleFile(file) {
+  if (!file || !file.name.endsWith('.cfg')) {
+    document.getElementById('cfg-drop-label').textContent = '⚠ Nur .cfg-Dateien erlaubt';
+    return;
+  }
+  _migFile = file;
+  document.getElementById('cfg-drop-label').textContent = `✓ ${file.name}`;
+  document.getElementById('mig-btn-ok').disabled = false;
+  // Map-ID aus Dateiname vorschlagen
+  const suggestedId = file.name.replace(/\.cfg$/i, '').toLowerCase().replace(/[^a-z0-9-]/g, '-');
+  const idField = document.getElementById('mig-id');
+  if (!idField.value) idField.value = suggestedId;
+}
+
+async function confirmMigrate() {
+  if (!_migFile) return;
+
+  const mapId   = document.getElementById('mig-id').value.trim();
+  const canvasW = document.getElementById('mig-w').value || 1200;
+  const canvasH = document.getElementById('mig-h').value || 800;
+  const dryRun  = document.getElementById('mig-dryrun').checked;
+
+  const resultBox = document.getElementById('mig-result');
+  resultBox.style.display = 'block';
+  resultBox.textContent   = '⏳ Migriere…';
+
+  const form = new FormData();
+  form.append('file', _migFile);
+
+  const params = new URLSearchParams({
+    map_id:   mapId,
+    canvas_w: canvasW,
+    canvas_h: canvasH,
+    dry_run:  dryRun,
+  });
+
+  try {
+    const res  = await fetch(`/api/migrate?${params}`, { method: 'POST', body: form });
+    const data = await res.json();
+
+    if (!res.ok) {
+      resultBox.textContent = `❌ ${data.detail || 'Fehler beim Import'}`;
+      return;
+    }
+
+    const lines = [
+      dryRun ? '📋 VORSCHAU (nicht gespeichert)' : '✅ Import erfolgreich',
+      `Map-ID: ${data.map_id}`,
+      `Titel:  ${data.title}`,
+      `Objekte: ${data.object_count}`,
+      data.skipped  ? `⚠ Übersprungen: ${data.skipped}` : null,
+      ...(data.warnings ?? []).map(w => `⚠ ${w.type}.${w.field}: ${w.message}`),
+      data.note ? `ℹ ${data.note}` : null,
+    ].filter(Boolean);
+    resultBox.textContent = lines.join('\n');
+
+    if (!dryRun) {
+      // Übersicht neu laden damit neue Map erscheint
+      setTimeout(() => {
+        closeDlg('dlg-migrate');
+        showOverview();
+      }, 1800);
+    }
+  } catch (err) {
+    resultBox.textContent = `❌ Netzwerkfehler: ${err.message}`;
+  }
+}
+
 function fillHostDatalist(hosts) {
   const opts = hosts.map(h => `<option value="${esc(h.name)}">`).join('');
   document.getElementById('known-hosts').innerHTML     = opts;
@@ -1018,6 +1122,8 @@ window.confirmAddObject = confirmAddObject;
 window.selectObjType    = selectObjType;
 window.confirmNewMap    = confirmNewMap;
 window.dlgNewMap        = dlgNewMap;
+window.dlgMigrate       = dlgMigrate;
+window.confirmMigrate   = confirmMigrate;
 window.openDlg  = id => document.getElementById(id)?.classList.add('show');
 window.closeDlg = id => {
   document.getElementById(id)?.classList.remove('show');

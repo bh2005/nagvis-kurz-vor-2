@@ -1425,6 +1425,19 @@ body,
 /* ═══════════════════════════════════════════════════════════════════════
    MISC
 ═══════════════════════════════════════════════════════════════════════ */
+/* ── Import-Button Variante ── */
+.ov-import {
+  border-style: dashed;
+  opacity: 0.8;
+}
+.ov-import:hover { opacity: 1; }
+
+/* Drag-over Zustand im Migration-Dialog */
+#cfg-drop-zone.drag-over {
+  border-color: var(--acc);
+  background: color-mix(in srgb, var(--acc) 8%, transparent);
+}
+
 /* ── Downtime-Banner ── */
 .nv2-dt-banner {
   position: absolute;
