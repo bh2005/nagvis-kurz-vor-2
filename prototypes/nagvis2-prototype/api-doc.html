@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NagVis 2 · API Docs</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    /* ── Layout ── */
+    #doc-root {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      grid-template-rows: var(--topbar) 1fr;
+      grid-template-areas: "sidebar topbar" "sidebar content";
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Topbar ── */
+    #doc-topbar {
+      grid-area: topbar;
+      background: var(--header-bg);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 16px;
+    }
+    #doc-topbar .tb-title { font-weight: 600; font-size: 14px; }
+    #doc-topbar .tb-sub   { font-size: 11px; color: var(--text-mid); }
+
+    /* ── Sidebar ── */
+    #doc-sidebar {
+      grid-area: sidebar;
+      background: var(--bg-surf);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 10px 0 24px;
+    }
+    .ds-section {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      padding: 14px 16px 4px;
+    }
+    .ds-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 16px;
+      font-size: 12px;
+      color: var(--text-mid);
+      cursor: pointer;
+      border-radius: 0;
+      transition: background var(--t), color var(--t);
+      text-decoration: none;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+    }
+    .ds-link:hover { background: var(--bg-hover); color: var(--text); }
+    .ds-link.active { background: var(--acc-bg); color: var(--acc); font-weight: 500; }
+    .ds-link .m-badge {
+      font-size: 9px;
+      font-family: var(--mono);
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .m-get    { background: rgba(19,211,142,.15); color: var(--ok); }
+    .m-post   { background: rgba(255,167,38,.15);  color: var(--warn); }
+    .m-patch  { background: rgba(41,182,212,.15);  color: #29b6d4; }
+    .m-put    { background: rgba(41,182,212,.15);  color: #29b6d4; }
+    .m-delete { background: rgba(244,67,54,.15);   color: var(--crit); }
+    .m-ws     { background: rgba(19,211,142,.15);  color: var(--acc); }
+
+    /* ── Content ── */
+    #doc-content {
+      grid-area: content;
+      overflow-y: auto;
+      padding: 32px 40px 80px;
+      background: var(--bg);
+    }
+
+    /* ── Sections ── */
+    .doc-section {
+      max-width: 860px;
+      margin-bottom: 56px;
+      scroll-margin-top: 24px;
+    }
+    .doc-section h2 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--text);
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .doc-section h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 28px 0 8px;
+      color: var(--text);
+    }
+    .doc-section p {
+      color: var(--text-mid);
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+
+    /* ── Endpoint cards ── */
+    .ep-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+    .ep-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .ep-head:hover { background: var(--bg-hover); }
+    .ep-method {
+      font-size: 10px;
+      font-family: var(--mono);
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 3px;
+      flex-shrink: 0;
+      min-width: 54px;
+      text-align: center;
+    }
+    .ep-path {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--text);
+      flex: 1;
+    }
+    .ep-summary { font-size: 12px; color: var(--text-mid); }
+    .ep-role {
+      font-size: 10px;
+      font-family: var(--mono);
+      padding: 2px 7px;
+      border-radius: 3px;
+      background: var(--bg-hover);
+      color: var(--text-mid);
+      flex-shrink: 0;
+    }
+    .ep-role.viewer { background: rgba(19,211,142,.12); color: var(--ok); }
+    .ep-role.editor { background: rgba(255,167,38,.12);  color: var(--warn); }
+    .ep-role.admin  { background: rgba(244,67,54,.12);   color: var(--crit); }
+    .ep-role.open   { background: rgba(158,158,158,.12); color: var(--unkn); }
+
+    .ep-body {
+      padding: 0 16px 16px;
+      border-top: 1px solid var(--border);
+      display: none;
+    }
+    .ep-body.open { display: block; }
+    .ep-toggle { font-size: 10px; color: var(--text-dim); margin-left: auto; }
+
+    /* ── Params / Response tables ── */
+    .param-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin: 10px 0;
+    }
+    .param-table th {
+      text-align: left;
+      padding: 5px 10px;
+      background: var(--bg-surf);
+      color: var(--text-mid);
+      font-weight: 500;
+      border-bottom: 1px solid var(--border);
+    }
+    .param-table td {
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text);
+    }
+    .param-table tr:last-child td { border-bottom: none; }
+    .param-table code {
+      font-family: var(--mono);
+      font-size: 11px;
+      background: var(--bg-surf);
+      padding: 1px 4px;
+      border-radius: 2px;
+      color: #29b6d4;
+    }
+    .required { color: var(--crit); font-size: 10px; margin-left: 4px; }
+
+    /* ── Code blocks ── */
+    pre {
+      background: var(--bg-surf);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 12px 14px;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 1.6;
+      color: var(--text);
+      margin: 10px 0;
+    }
+    .pre-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin: 14px 0 4px;
+    }
+    .hl-key   { color: #29b6d4; }
+    .hl-str   { color: var(--ok); }
+    .hl-num   { color: var(--warn); }
+    .hl-bool  { color: #b0b0ff; }
+    .hl-null  { color: var(--unkn); }
+    .hl-cmt   { color: var(--text-dim); font-style: italic; }
+
+    /* ── Badges & pills ── */
+    .badge {
+      display: inline-block;
+      font-size: 10px;
+      font-family: var(--mono);
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-weight: 600;
+    }
+    .badge-ws  { background: rgba(19,211,142,.15); color: var(--acc); }
+    .badge-jwt { background: rgba(41,182,212,.15);  color: #29b6d4; }
+
+    /* ── Flow diagram ── */
+    .flow {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin: 14px 0;
+    }
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      position: relative;
+      padding-bottom: 18px;
+    }
+    .flow-step:last-child { padding-bottom: 0; }
+    .flow-num {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--acc);
+      color: #000;
+      font-weight: 700;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 1;
+    }
+    .flow-step:not(:last-child) .flow-num::after {
+      content: '';
+      position: absolute;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 1px;
+      height: calc(100% + 14px);
+      background: var(--border);
+    }
+    .flow-body { padding-top: 2px; }
+    .flow-body strong { color: var(--text); font-size: 13px; }
+    .flow-body p { margin: 3px 0 0; font-size: 12px; color: var(--text-mid); }
+
+    /* ── Theme toggle ── */
+    #doc-theme-btn {
+      margin-left: auto;
+      font-size: 14px;
+      padding: 4px 8px;
+      border-radius: var(--r);
+      background: var(--bg-hover);
+      color: var(--text);
+      cursor: pointer;
+      border: 1px solid var(--border);
+    }
+    #doc-theme-btn:hover { background: var(--bg-active); }
+
+    /* ── Event types table ── */
+    .event-row { display: grid; grid-template-columns: 160px 1fr; gap: 0; }
+    .event-name {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: #29b6d4;
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-surf);
+    }
+    .event-desc {
+      padding: 6px 10px;
+      font-size: 12px;
+      color: var(--text-mid);
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── Callout ── */
+    .callout {
+      border-left: 3px solid var(--acc);
+      background: var(--acc-bg);
+      padding: 10px 14px;
+      border-radius: 0 var(--r) var(--r) 0;
+      margin: 12px 0;
+      font-size: 12px;
+      color: var(--text-mid);
+    }
+    .callout.warn { border-color: var(--warn); background: var(--warn-bg); }
+    .callout.crit { border-color: var(--crit); background: var(--crit-bg); }
+  </style>
+</head>
+<body>
+<div id="doc-root">
+
+  <!-- ═══ SIDEBAR ═══════════════════════════════════════════════ -->
+  <nav id="doc-sidebar">
+
+    <div style="padding:12px 16px 4px;display:flex;align-items:center;gap:8px">
+      <svg viewBox="0 0 34 38" width="22" height="22" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="17,2 31,10 31,28 17,36 3,28 3,10"
+          fill="none" stroke="var(--text)" stroke-width="2" stroke-linejoin="round"/>
+        <circle cx="17" cy="19" r="9" fill="none" stroke="#29b6d4" stroke-width="1.4"/>
+        <line x1="8" y1="19" x2="26" y2="19" stroke="#29b6d4" stroke-width="1.1"/>
+        <line x1="17" y1="10" x2="17" y2="28" stroke="#29b6d4" stroke-width="1.1"/>
+      </svg>
+      <span style="font-weight:700;font-size:14px">
+        <span style="color:var(--text)">Nag</span><span style="color:#29b6d4">Vis</span>
+        <span style="color:var(--text-dim);font-weight:400;font-size:11px"> API</span>
+      </span>
+    </div>
+
+    <div class="ds-section">Einstieg</div>
+    <a class="ds-link active" href="#overview">Übersicht</a>
+    <a class="ds-link" href="#auth-flow">Auth-Flow</a>
+    <a class="ds-link" href="#roles">Rollen</a>
+
+    <div class="ds-section">Auth</div>
+    <a class="ds-link" href="#ep-token-create"><span class="m-badge m-post">POST</span>/api/auth/tokens</a>
+    <a class="ds-link" href="#ep-token-list"><span class="m-badge m-get">GET</span>/api/auth/tokens</a>
+    <a class="ds-link" href="#ep-token-revoke"><span class="m-badge m-delete">DEL</span>/api/auth/tokens/{jti}</a>
+    <a class="ds-link" href="#ep-me"><span class="m-badge m-get">GET</span>/api/auth/me</a>
+
+    <div class="ds-section">Maps</div>
+    <a class="ds-link" href="#ep-maps-list"><span class="m-badge m-get">GET</span>/api/maps</a>
+    <a class="ds-link" href="#ep-maps-create"><span class="m-badge m-post">POST</span>/api/maps</a>
+    <a class="ds-link" href="#ep-maps-get"><span class="m-badge m-get">GET</span>/api/maps/{id}</a>
+    <a class="ds-link" href="#ep-maps-delete"><span class="m-badge m-delete">DEL</span>/api/maps/{id}</a>
+    <a class="ds-link" href="#ep-maps-rename"><span class="m-badge m-put">PUT</span>/api/maps/{id}/title</a>
+    <a class="ds-link" href="#ep-background"><span class="m-badge m-post">POST</span>/api/maps/{id}/background</a>
+
+    <div class="ds-section">Objekte</div>
+    <a class="ds-link" href="#ep-obj-add"><span class="m-badge m-post">POST</span>/api/maps/{id}/objects</a>
+    <a class="ds-link" href="#ep-obj-pos"><span class="m-badge m-patch">PATCH</span>…/objects/{oid}/pos</a>
+    <a class="ds-link" href="#ep-obj-size"><span class="m-badge m-patch">PATCH</span>…/objects/{oid}/size</a>
+    <a class="ds-link" href="#ep-obj-props"><span class="m-badge m-patch">PATCH</span>…/objects/{oid}/props</a>
+    <a class="ds-link" href="#ep-obj-delete"><span class="m-badge m-delete">DEL</span>…/objects/{oid}</a>
+
+    <div class="ds-section">Status</div>
+    <a class="ds-link" href="#ep-hosts"><span class="m-badge m-get">GET</span>/api/status/hosts</a>
+    <a class="ds-link" href="#ep-host"><span class="m-badge m-get">GET</span>/api/status/hosts/{name}</a>
+    <a class="ds-link" href="#ep-backends"><span class="m-badge m-get">GET</span>/api/backends</a>
+    <a class="ds-link" href="#ep-health"><span class="m-badge m-get">GET</span>/api/health</a>
+
+    <div class="ds-section">Migration</div>
+    <a class="ds-link" href="#ep-migrate"><span class="m-badge m-post">POST</span>/api/migrate</a>
+
+    <div class="ds-section">WebSocket</div>
+    <a class="ds-link" href="#ws-map"><span class="m-badge m-ws">WS</span>/ws/map/{id}</a>
+    <a class="ds-link" href="#ws-global"><span class="m-badge m-ws">WS</span>/ws/global</a>
+    <a class="ds-link" href="#ws-events">Events & Kommandos</a>
+
+    <div style="padding:16px 16px 0">
+      <a href="index.html" style="font-size:11px;color:var(--text-dim);text-decoration:none">
+        ← zurück zur App
+      </a>
+    </div>
+  </nav>
+
+  <!-- ═══ TOPBAR ════════════════════════════════════════════════ -->
+  <div id="doc-topbar">
+    <div>
+      <div class="tb-title">NagVis 2 – API Dokumentation</div>
+      <div class="tb-sub">REST + WebSocket · JWT Bearer Auth</div>
+    </div>
+    <button id="doc-theme-btn" onclick="toggleTheme()">☀</button>
+  </div>
+
+  <!-- ═══ CONTENT ═══════════════════════════════════════════════ -->
+  <div id="doc-content">
+
+    <!-- ── Übersicht ──────────────────────────────────────────── -->
+    <div class="doc-section" id="overview">
+      <h2>Übersicht</h2>
+      <p>Die NagVis-2-API ist eine REST/WebSocket-API auf Basis von <strong>FastAPI</strong>. Alle <code>/api/*</code>-Endpunkte erfordern einen JWT-Bearer-Token im <code>Authorization</code>-Header. Der WebSocket-Endpunkt akzeptiert den Token als Query-Parameter <code>?token=</code>.</p>
+
+      <div class="callout">
+        <strong>Base URL:</strong> <code>http://&lt;host&gt;:8080</code><br>
+        Interaktive Swagger-UI: <a href="/docs" style="color:var(--acc)">/docs</a>
+      </div>
+
+      <h3>Request-Format</h3>
+      <pre><span class="hl-cmt"># Alle /api/*-Endpunkte</span>
+Authorization: Bearer &lt;jwt-token&gt;
+Content-Type: application/json</pre>
+
+      <h3>HTTP-Status-Codes</h3>
+      <table class="param-table">
+        <tr><th>Code</th><th>Bedeutung</th></tr>
+        <tr><td><code>200</code></td><td>OK</td></tr>
+        <tr><td><code>201</code></td><td>Erstellt</td></tr>
+        <tr><td><code>400</code></td><td>Ungültige Anfrage (Validierungsfehler)</td></tr>
+        <tr><td><code>401</code></td><td>Kein oder ungültiges Token</td></tr>
+        <tr><td><code>403</code></td><td>Rolle nicht ausreichend</td></tr>
+        <tr><td><code>404</code></td><td>Ressource nicht gefunden</td></tr>
+        <tr><td><code>409</code></td><td>Konflikt (z.B. Map-ID existiert bereits)</td></tr>
+        <tr><td><code>413</code></td><td>Datei zu groß</td></tr>
+      </table>
+
+      <h3>Fehler-Response</h3>
+      <pre>{
+  <span class="hl-key">"detail"</span>: <span class="hl-str">"Fehlermeldung"</span>
+}</pre>
+    </div>
+
+    <!-- ── Auth-Flow ──────────────────────────────────────────── -->
+    <div class="doc-section" id="auth-flow">
+      <h2>Auth-Flow</h2>
+      <p>NagVis 2 verwendet stateless JWT-Bearer-Tokens (HS256). Tokens werden einmalig erzeugt und im <code>Authorization</code>-Header mitgeschickt.</p>
+
+      <div class="flow">
+        <div class="flow-step">
+          <div class="flow-num">1</div>
+          <div class="flow-body">
+            <strong>Admin-Token erzeugen (einmalig, CLI)</strong>
+            <p>Das erste Token wird direkt auf dem Server erzeugt:</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num">2</div>
+          <div class="flow-body">
+            <strong>Weitere Tokens über die API anlegen</strong>
+            <p>Mit dem Admin-Token können weitere Tokens für andere User/Rollen erzeugt werden.</p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num">3</div>
+          <div class="flow-body">
+            <strong>Token in jedem Request mitschicken</strong>
+            <p>REST: <code>Authorization: Bearer &lt;token&gt;</code><br>
+            WebSocket: <code>ws://host/ws/map/id?token=&lt;token&gt;</code></p>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num">4</div>
+          <div class="flow-body">
+            <strong>Token widerrufen (optional)</strong>
+            <p>Über <code>DELETE /api/auth/tokens/{jti}</code> kann ein Token sofort gesperrt werden.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="pre-label">Schritt 1 – Erstes Admin-Token erzeugen</div>
+      <pre>python3 -c "
+from backend.core.auth import AuthManager
+am = AuthManager()
+print(am.create_token(<span class="hl-str">'admin'</span>, <span class="hl-str">'admin'</span>))
+"</pre>
+
+      <div class="pre-label">Schritt 2 – Weitere Tokens über die API</div>
+      <pre>curl -X POST http://localhost:8080/api/auth/tokens \
+  -H <span class="hl-str">"Authorization: Bearer &lt;admin-token&gt;"</span> \
+  -H <span class="hl-str">"Content-Type: application/json"</span> \
+  -d <span class="hl-str">'{"username": "alice", "role": "editor", "expires_in": 86400}'</span></pre>
+
+      <div class="pre-label">Schritt 3 – Token verwenden</div>
+      <pre>curl http://localhost:8080/api/maps \
+  -H <span class="hl-str">"Authorization: Bearer eyJhbGci..."</span></pre>
+
+      <div class="callout warn">
+        Der Secret Key muss als Umgebungsvariable <code>NAGVIS_SECRET</code> gesetzt sein. Ohne ihn wird ein unsicherer Dev-Key verwendet.
+      </div>
+    </div>
+
+    <!-- ── Rollen ─────────────────────────────────────────────── -->
+    <div class="doc-section" id="roles">
+      <h2>Rollen</h2>
+      <p>Rollen sind kumulativ – <code>admin</code> hat alle <code>editor</code>-Rechte, <code>editor</code> alle <code>viewer</code>-Rechte.</p>
+      <table class="param-table">
+        <tr><th>Rolle</th><th>Rechte</th></tr>
+        <tr>
+          <td><span class="ep-role viewer">viewer</span></td>
+          <td>Maps und Host-Status lesen, WebSocket verbinden</td>
+        </tr>
+        <tr>
+          <td><span class="ep-role editor">editor</span></td>
+          <td>+ Objekte anlegen/verschieben/löschen, Hintergrund hochladen, Maps erstellen/umbenennen</td>
+        </tr>
+        <tr>
+          <td><span class="ep-role admin">admin</span></td>
+          <td>+ Maps löschen, Backends abfragen, Tokens verwalten, NagVis-1-Migration</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         AUTH ENDPUNKTE
+    ══════════════════════════════════════════════════════════ -->
+    <div class="doc-section" id="ep-token-create">
+      <h2>Auth</h2>
+      <div class="ep-card">
+        <div class="ep-head" onclick="toggle(this)">
+          <span class="ep-method m-post">POST</span>
+          <span class="ep-path">/api/auth/tokens</span>
+          <span class="ep-summary">Neues Token erzeugen</span>
+          <span class="ep-role admin">admin</span>
+          <span class="ep-toggle">▾</span>
+        </div>
+        <div class="ep-body">
+          <div class="pre-label">Request Body</div>
+          <table class="param-table">
+            <tr><th>Feld</th><th>Typ</th><th>Beschreibung</th></tr>
+            <tr><td><code>username</code> <span class="required">*</span></td><td>string</td><td>Anzeigename des Users</td></tr>
+            <tr><td><code>role</code></td><td>string</td><td><code>viewer</code> | <code>editor</code> | <code>admin</code> (default: viewer)</td></tr>
+            <tr><td><code>expires_in</code></td><td>integer | null</td><td>Gültigkeitsdauer in Sekunden. <code>null</code> = unbegrenzt</td></tr>
+          </table>
+          <div class="pre-label">Beispiel Request</div>
+          <pre>{
+  <span class="hl-key">"username"</span>:   <span class="hl-str">"alice"</span>,
+  <span class="hl-key">"role"</span>:       <span class="hl-str">"editor"</span>,
+  <span class="hl-key">"expires_in"</span>: <span class="hl-num">86400</span>
+}</pre>
+          <div class="pre-label">Response 201</div>
+          <pre>{
+  <span class="hl-key">"token"</span>:    <span class="hl-str">"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."</span>,
+  <span class="hl-key">"username"</span>: <span class="hl-str">"alice"</span>,
+  <span class="hl-key">"role"</span>:     <span class="hl-str">"editor"</span>
+}</pre>
+          <div class="callout">Der JWT-String wird nur einmalig zurückgegeben. Bitte sicher aufbewahren.</div>
+        </div>
+      </div>
+
+      <div class="ep-card" id="ep-token-list">
+        <div class="ep-head" onclick="toggle(this)">
+          <span class="ep-method m-get">GET</span>
+          <span class="ep-path">/api/auth/tokens</span>
+          <span class="ep-summary">Alle Tokens auflisten</span>
+          <span class="ep-role admin">admin</span>
+          <span class="ep-toggle">▾</span>
+        </div>
+        <div class="ep-body">
+          <p>Gibt alle bekannten Tokens zurück (ohne den JWT-String selbst).</p>
+          <div class="pre-label">Response 200</div>
+          <pre>{
+  <span class="hl-key">"tokens"</span>: [
+    {
+      <span class="hl-key">"jti"</span>:        <span class="hl-str">"a1b2c3d4e5f6..."</span>,
+      <span class="hl-key">"username"</span>:   <span class="hl-str">"alice"</span>,
+      <span class="hl-key">"role"</span>:       <span class="hl-str">"editor"</span>,
+      <span class="hl-key">"created_at"</span>: <span class="hl-num">1710000000</span>,
+      <span class="hl-key">"expires_in"</span>: <span class="hl-num">86400</span>,
+      <span class="hl-key">"revoked"</span>:    <span class="hl-bool">false</span>
+    }
+  ]
+}</pre>
+        </div>
+      </div>
+
+      <div class="ep-card" id="ep-token-revoke">
+        <div class="ep-head" onclick="toggle(this)">
+          <span class="ep-method m-delete">DELETE</span>
+          <span class="ep-path">/api/auth/tokens/{jti}</span>
+          <span class="ep-summary">Token widerrufen</span>
+          <span class="ep-role admin">admin</span>
+          <span class="ep-toggle">▾</span>
+        </div>
+        <div class="ep-body">
+          <p>Sperrt ein Token sofort. Der <code>jti</code>-Wert kommt aus der Token-Liste.</p>
+          <div class="pre-label">Response 200</div>
+          <pre>{ <span class="hl-key">"revoked"</span>: <span class="hl-str">"a1b2c3d4e5f6..."</span> }</pre>
+        </div>
+      </div>
+
+      <div class="ep-card" id="ep-me">
+        <div class="ep-head" onclick="toggle(this)">
+          <span class="ep-method m-get">GET</span>
+          <span class="ep-path">/api/auth/me</span>
+          <span class="ep-summary">Eigenen User abfragen</span>
+          <span class="ep-role viewer">viewer</span>
+          <span class="ep-toggle">▾</span>
+        </div>
+        <div class="ep-body">
+          <div class="pre-label">Response 200</div>
+          <pre>{
+  <span class="hl-key">"username"</span>:   <span class="hl-str">"alice"</span>,
+  <span class="hl-key">"role"</span>:       <span class="hl-str">"editor"</span>,
+  <span class="hl-key">"expires_at"</span>: <span class="hl-num">1710086400</span>   <span class="hl-cmt">// null = kein Ablaufdatum</span>
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         MAPS
+    ══════════════════════════════════════════════════════════ -->
+    <div class="doc-section" id="ep-maps-list">
+      <h2>Maps</h2>
+
+      <div class="ep-card">
+        <div class="ep-head" onclick="toggle(this)">
+          <span class="ep-method m-get">GET</span>
+          <span class="ep-path">/api/maps</span>
+          <span class="ep-summary">Alle Maps auflisten</span>
+          <span class="ep-role viewer">viewer</span>
+          <span class="ep-toggle">▾</span>
+        </div>
+        <div class="ep-body">
+          <div class="pre-label">Response 200</div>
+          <pre>[
+  {
+    <span class="hl-key">"id"</span>:           <span class="hl-str">"datacenter-a"</span>,
+    <span class="hl-key">"title"</span>:        <span class="hl-str">"Datacenter A"</span>,
+    <span class="hl-key">"background"</span>:   <span class="hl-str">"backgrounds/datacenter-a.png"</span>,
+    <span class="hl-key">"object_count"</span>: <span class="hl-num">12</span>
+  }
+]</pre>
+        </div>
+      </div>
+
+      <div class="ep-card" id="ep-maps-create">
+        <div class="ep-head" onclick="toggle(this)">
+          <span class="ep-method m-post">POST</span>
+          <span class="ep-path">/api/maps</span>
+          <span class="ep-summary">Neue Map anlegen</span>
+          <span class="ep-role editor">editor</span>
+          <span class="ep-toggle">▾</span>
+        </div>
+        <div class="ep-body">
+          <table class="param-table">
+            <tr><th>Feld</th><th>Typ</th><th>Beschreibung</th></tr>
+            <tr><td><code>title</code> <span class="required">*</span></td><td>string</td><td>Anzeigename der Map</td></tr>
+            <tr><td><code>map_id</code></td><td>string</td><td>ID (leer = aus Titel ableiten)</td></tr>
+          </table>
+          <div class="pre-label">Request</div>
+          <pre>{ <span class="hl-key">"title"</span>: <span class="hl-str">"Netzwerk Hamburg"</span>, <span class="hl-key">"map_id"</span>: <span class="hl-str">"nw-hamburg"</span> }</pre>
+          <div class="pre-label">Response 201</div>
+          <pre>{ <span class="hl-key">"id"</span>: <span class="hl-str">"nw-hamburg"</span>, <span class="hl-key">"title"</span>: <span class="hl-str">"Netzwerk Hamburg"</span>, <span class="hl-key">"background"</span>: <span class="hl-str">""</span>, <span class="hl-key">"objects"</span>: [] }</pre>
+        </div>
+      </div>
+
+      <div class="ep-card" id="ep-maps-get">
+        <div class="ep-head" onclick="toggle(this)">
+          <span class="ep-method m-get">GET</span>
+          <span class="ep-path">/api/maps/{map_id}</span>
+          <span class="ep-summary">Map-Konfiguration laden</span>
+          <span class="ep-role viewer">viewer</span>
+          <span class="ep-toggle">▾</span>
+        </div>
+        <div class="ep-body">
+          <p>Gibt die vollständige Map-Konfiguration inkl. aller Objekte zurück.</p>
+          <div class="pre-label">Response 200</div>
+          <pre>{
+  <span class="hl-key">"id"</span>:         <span class="hl-str">"nw-hamburg"</span>,
+  <span class="hl-key">"title"</span>:      <span class="hl-str">"Netzwerk Hamburg"</span>,
+  <span class="hl-key">"background"</span>: <span class="hl-str">"backgrounds/nw-hamburg.png"</span>,
+  <span class="hl-key">"objects"</span>:    [ <span class="hl-cmt">/* Objekt-Array, siehe Objekttypen */</span> ]
+}</pre>
+        </div>
+      </div>
+
+      <div class="ep-card" id="ep-maps-delete">
+        <div class="ep-head" onclick="toggle(this)">
+          <span class="ep-method m-delete">DELETE</span>
+          <span class="ep-path">/api/maps/{map_id}</span>
+          <span class="ep-summary">Map löschen</span>
+          <span class="ep-role admin">admin</span>
+          <span class="ep-toggle">▾</span>
+        </div>
+        <div class="ep-body">
+          <div class="pre-label">Response 200</div>
+          <pre>{ <span class="hl-key">"deleted"</span>: <span class="hl-str">"nw-hamburg"</span> }</pre>
+        </div>
+      </div>
+
+      <div class="ep-card" id="ep-maps-rename">
+        <div class="ep-head" onclick="toggle(this)">
+          <span class="ep-method m-put">PUT</span>
+          <span class="ep-path">/api/maps/{map_id}/title</span>
+          <span class="ep-summary">Map umbenennen</span>
+          <span class="ep-role editor">editor</span>
+          <span class="ep-toggle">▾</span>
+        </div>
+        <div class="ep-body">
+          <div class="pre-label">Request</div>
+          <pre>{ <span class="hl-key">"title"</span>: <span class="hl-str">"Neuer Name"</span> }</pre>
+          <div class="pre-label">Response 200</div>
+          <pre>{ <span class="hl-key">"map_id"</span>: <span class="hl-str">"nw-hamburg"</span>, <span class="hl-key">"title"</span>: <span class="hl-str">"Neuer Name"</span> }</pre>
+        </div>
+      </div>
+
+      <div class="ep-card" id="ep-background">
+        <div class="ep-head" onclick="toggle(this)">
+          <span class="ep-method m-post">POST</span>
+          <span class="ep-path">/api/maps/{map_id}/background</span>
+          <span class="ep-summary">Hintergrundbild hochladen</span>
+          <span class="ep-role editor">editor</span>
+          <span class="ep-toggle">▾</span>
+        </div>
+        <div class="ep-body">
+          <p>Erlaubte Formate: <code>PNG</code>, <code>JPG</code>, <code>SVG</code>, <code>WebP</code>, <code>GIF</code>. Max. 20 MB. Multipart/form-data.</p>
+          <div class="pre-label">cURL Beispiel</div>
+          <pre>curl -X POST http://localhost:8080/api/maps/nw-hamburg/background \
+  -H <span class="hl-str">"Authorization: Bearer &lt;token&gt;"</span> \
+  -F <span class="hl-str">"file=@map.png"</span></pre>
+          <div class="pre-label">Response 200</div>
+          <pre>{
+  <span class="hl-key">"map_id"</span>:   <span class="hl-str">"nw-hamburg"</span>,
+  <span class="hl-key">"filename"</span>: <span class="hl-str">"nw-hamburg.png"</span>,
+  <span class="hl-key">"url"</span>:      <span class="hl-str">"/backgrounds/nw-hamburg.png"</span>,
+  <span class="hl-key">"size"</span>:     <span class="hl-num">204800</span>
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         OBJEKTE
+    ══════════════════════════════════════════════════════════ -->
+    <div class="doc-section" id="ep-obj-add">
+      <h2>Objekte</h2>
+      <p>Koordinaten (<code>x</code>, <code>y</code>, <code>w</code>, <code>h</code>) sind immer <strong>Prozentwerte</strong> relativ zur Canvas-Größe (0–100).</p>
+
+      <h3>Objekttypen</h3>
+      <table class="param-table">
+        <tr><th>Typ</th><th>Kategorie</th><th>Pflichtfelder</th></tr>
+        <tr><td><code>host</code></td><td>Monitoring</td><td>name, x, y</td></tr>
+        <tr><td><code>service</code></td><td>Monitoring</td><td>name, host_name, x, y</td></tr>
+        <tr><td><code>hostgroup</code></td><td>Monitoring</td><td>name, x, y</td></tr>
+        <tr><td><code>servicegroup</code></td><td>Monitoring</td><td>name, x, y</td></tr>
+        <tr><td><code>map</code></td><td>Monitoring</td><td>name, x, y</td></tr>
+        <tr><td><code>textbox</code></td><td>Statisch</td><td>x, y</td></tr>
+        <tr><td><code>line</code></td><td>Statisch</td><td>x, y, x2, y2</td></tr>
+        <tr><td><code>container</code></td><td>Statisch</td><td>x, y</td></tr>
+      </table>
+
+      <div class="ep-card">
+        <div class="ep-head" onclick="toggle(this)">
+          <span class="ep-method m-post">POST</span>
+          <span class="ep-path">/api/maps/{map_id}/objects</span>
+          <span class="ep-summary">Objekt platzieren</span>
+          <span class="ep-role editor">editor</span>
+          <span class="ep-toggle">▾</span>
+        </div>
+        <div class="ep-body">
+          <div class="pre-label">Beispiel: Host</div>
+          <pre>{
+  <span class="hl-key">"type"</span>:    <span class="hl-str">"host"</span>,
+  <span class="hl-key">"name"</span>:    <span class="hl-str">"srv-web-01"</span>,
+  <span class="hl-key">"x"</span>:       <span class="hl-num">42.5</span>,
+  <span class="hl-key">"y"</span>:       <span class="hl-num">31.2</span>,
+  <span class="hl-key">"iconset"</span>: <span class="hl-str">"server"</span>,
+  <span class="hl-key">"label"</span>:   <span class="hl-str">"Web Server 01"</span>
+}</pre>
+          <div class="pre-label">Beispiel: Service</div>
+          <pre>{
+  <span class="hl-key">"type"</span>:      <span class="hl-str">"service"</span>,
+  <span class="hl-key">"host_name"</span>: <span class="hl-str">"srv-db-01"</span>,
+  <span class="hl-key">"name"</span>:      <span class="hl-str">"CPU Load"</span>,
+  <span class="hl-key">"x"</span>:         <span class="hl-num">55.0</span>,
+  <span class="hl-key">"y"</span>:         <span class="hl-num">40.0</span>
+}</pre>
+          <div class="pre-label">Beispiel: Textbox</div>
+          <pre>{
+  <span class="hl-key">"type"</span>:      <span class="hl-str">"textbox"</span>,
+  <span class="hl-key">"text"</span>:      <span class="hl-str">"Netzwerk-Zone A"</span>,
+  <span class="hl-key">"x"</span>:         <span class="hl-num">5.0</span>,
+  <span class="hl-key">"y"</span>:         <span class="hl-num">5.0</span>,
+  <span class="hl-key">"w"</span>:         <span class="hl-num">15.0</span>,
+  <span class="hl-key">"h"</span>:         <span class="hl-num">4.0</span>,
+  <span class="hl-key">"font_size"</span>: <span class="hl-num">13</span>,
+  <span class="hl-key">"bold"</span>:      <span class="hl-bool">true</span>,
+  <span class="hl-key">"color"</span>:    <span class="hl-str">"#e0e0e0"</span>
+}</pre>
+          <div class="pre-label">Beispiel: Linie</div>
+          <pre>{
+  <span class="hl-key">"type"</span>:       <span class="hl-str">"line"</span>,
+  <span class="hl-key">"x"</span>:          <span class="hl-num">10.0</span>, <span class="hl-key">"y"</span>:  <span class="hl-num">20.0</span>,
+  <span class="hl-key">"x2"</span>:         <span class="hl-num">90.0</span>, <span class="hl-key">"y2"</span>: <span class="hl-num">20.0</span>,
+  <span class="hl-key">"line_style"</span>: <span class="hl-str">"dashed"</span>,
+  <span class="hl-key">"line_width"</span>: <span class="hl-num">2</span>,
+  <span class="hl-key">"color"</span>:     <span class="hl-str">"#444444"</span>
+}</pre>
+          <div class="pre-label">Response 201 – Objekt mit generierter ID</div>
+          <pre>{
+  <span class="hl-key">"object_id"</span>: <span class="hl-str">"host::srv-web-01::ab12cd34"</span>,
+  <span class="hl-key">"type"</span>:      <span class="hl-str">"host"</span>,
+  <span class="hl-key">"name"</span>:      <span class="hl-str">"srv-web-01"</span>,
+  <span class="hl-key">"x"</span>:         <span class="hl-num">42.5</span>,
+  <span class="hl-key">"y"</span>:         <span class="hl-num">31.2</span>,
+  <span class="hl-cmt">// ... weitere Felder je nach Typ</span>
+}</pre>
+        </div>
+      </div>
+
+      <div class="ep-card" id="ep-obj-pos">
+        <div class="ep-head" onclick="toggle(this)">
+          <span class="ep-method m-patch">PATCH</span>
+          <span class="ep-path">/api/maps/{map_id}/objects/{object_id}/pos</span>
+          <span class="ep-summary">Position aktualisieren</span>
+          <span class="ep-role editor">editor</span>
+          <span class="ep-toggle">▾</span>
+        </div>
+        <div class="ep-body">
+          <pre>{ <span class="hl-key">"x"</span>: <span class="hl-num">55.5</span>, <span class="hl-key">"y"</span>: <span class="hl-num">66.6</span> }</pre>
+        </div>
+      </div>
+
+      <div class="ep-card" id="ep-obj-size">
+        <div class="ep-head" onclick="toggle(this)">
+          <span class="ep-method m-patch">PATCH</span>
+          <span class="ep-path">/api/maps/{map_id}/objects/{object_id}/size</span>
+          <span class="ep-summary">Größe aktualisieren</span>
+          <span class="ep-role editor">editor</span>
+          <span class="ep-toggle">▾</span>
+        </div>
+        <div class="ep-body">
+          <pre>{ <span class="hl-key">"w"</span>: <span class="hl-num">20.0</span>, <span class="hl-key">"h"</span>: <span class="hl-num">8.0</span> }</pre>
+        </div>
+      </div>
+
+      <div class="ep-card" id="ep-obj-props">
+        <div class="ep-head" onclick="toggle(this)">
+          <span class="ep-method m-patch">PATCH</span>
+          <span class="ep-path">/api/maps/{map_id}/objects/{object_id}/props</span>
+          <span class="ep-summary">Beliebige Eigenschaften aktualisieren</span>
+          <span class="ep-role editor">editor</span>
+          <span class="ep-toggle">▾</span>
+        </div>
+        <div class="ep-body">
+          <p><code>type</code> und <code>object_id</code> sind schreibgeschützt und werden ignoriert.</p>
+          <pre>{ <span class="hl-key">"props"</span>: { <span class="hl-key">"label"</span>: <span class="hl-str">"Neues Label"</span>, <span class="hl-key">"iconset"</span>: <span class="hl-str">"database"</span> } }</pre>
+          <div class="callout">Löst ein <code>object_updated</code>-WebSocket-Event aus.</div>
+        </div>
+      </div>
+
+      <div class="ep-card" id="ep-obj-delete">
+        <div class="ep-head" onclick="toggle(this)">
+          <span class="ep-method m-delete">DELETE</span>
+          <span class="ep-path">/api/maps/{map_id}/objects/{object_id}</span>
+          <span class="ep-summary">Objekt entfernen</span>
+          <span class="ep-role editor">editor</span>
+          <span class="ep-toggle">▾</span>
+        </div>
+        <div class="ep-body">
+          <div class="pre-label">Response 200</div>
+          <pre>{ <span class="hl-key">"deleted"</span>: <span class="hl-str">"host::srv-web-01::ab12cd34"</span> }</pre>
+          <div class="callout">Löst ein <code>object_removed</code>-WebSocket-Event aus.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         STATUS
+    ══════════════════════════════════════════════════════════ -->
+    <div class="doc-section" id="ep-hosts">
+      <h2>Status</h2>
+
+      <div class="ep-card">
+        <div class="ep-head" onclick="toggle(this)">
+          <span class="ep-method m-get">GET</span>
+          <span class="ep-path">/api/status/hosts</span>
+          <span class="ep-summary">Alle Host-Stati (Snapshot)</span>
+          <span class="ep-role viewer">viewer</span>
+          <span class="ep-toggle">▾</span>
+        </div>
+        <div class="ep-body">
+          <div class="pre-label">Response 200</div>
+          <pre>[
+  {
+    <span class="hl-key">"type"</span>:          <span class="hl-str">"host"</span>,
+    <span class="hl-key">"name"</span>:          <span class="hl-str">"srv-web-01"</span>,
+    <span class="hl-key">"alias"</span>:         <span class="hl-str">"Web Server 01"</span>,
+    <span class="hl-key">"state"</span>:         <span class="hl-num">0</span>,
+    <span class="hl-key">"state_label"</span>:   <span class="hl-str">"UP"</span>,
+    <span class="hl-key">"output"</span>:        <span class="hl-str">"PING OK - 1.2ms"</span>,
+    <span class="hl-key">"last_check"</span>:    <span class="hl-num">1710000000</span>,
+    <span class="hl-key">"acknowledged"</span>:  <span class="hl-bool">false</span>,
+    <span class="hl-key">"in_downtime"</span>:   <span class="hl-bool">false</span>,
+    <span class="hl-key">"services_ok"</span>:   <span class="hl-num">12</span>,
+    <span class="hl-key">"services_warn"</span>: <span class="hl-num">0</span>,
+    <span class="hl-key">"services_crit"</span>: <span class="hl-num">0</span>,
+    <span class="hl-key">"services_unkn"</span>: <span class="hl-num">0</span>,
+    <span class="hl-key">"backend_id"</span>:    <span class="hl-str">"default"</span>
+  }
+]</pre>
+        </div>
+      </div>
+
+      <div class="ep-card" id="ep-host">
+        <div class="ep-head" onclick="toggle(this)">
+          <span class="ep-method m-get">GET</span>
+          <span class="ep-path">/api/status/hosts/{host_name}</span>
+          <span class="ep-summary">Einzelner Host</span>
+          <span class="ep-role viewer">viewer</span>
+          <span class="ep-toggle">▾</span>
+        </div>
+        <div class="ep-body">
+          <p>Gibt denselben Status-Datensatz wie oben für einen einzelnen Host zurück. 404 wenn Host nicht gefunden.</p>
+        </div>
+      </div>
+
+      <div class="ep-card" id="ep-backends">
+        <div class="ep-head" onclick="toggle(this)">
+          <span class="ep-method m-get">GET</span>
+          <span class="ep-path">/api/backends</span>
+          <span class="ep-summary">Backend-Status</span>
+          <span class="ep-role admin">admin</span>
+          <span class="ep-toggle">▾</span>
+        </div>
+        <div class="ep-body">
+          <div class="pre-label">Response 200</div>
+          <pre>{
+  <span class="hl-key">"backends"</span>: [
+    {
+      <span class="hl-key">"backend_id"</span>: <span class="hl-str">"default"</span>,
+      <span class="hl-key">"type"</span>:       <span class="hl-str">"unix"</span>,
+      <span class="hl-key">"address"</span>:    <span class="hl-str">"/omd/sites/cmk/tmp/run/live"</span>,
+      <span class="hl-key">"enabled"</span>:    <span class="hl-bool">true</span>,
+      <span class="hl-key">"reachable"</span>:  <span class="hl-bool">true</span>,
+      <span class="hl-key">"latency_ms"</span>: <span class="hl-num">2.4</span>,
+      <span class="hl-key">"error"</span>:      <span class="hl-str">""</span>
+    }
+  ]
+}</pre>
+        </div>
+      </div>
+
+      <div class="ep-card" id="ep-health">
+        <div class="ep-head" onclick="toggle(this)">
+          <span class="ep-method m-get">GET</span>
+          <span class="ep-path">/api/health</span>
+          <span class="ep-summary">Health-Check</span>
+          <span class="ep-role open">offen</span>
+          <span class="ep-toggle">▾</span>
+        </div>
+        <div class="ep-body">
+          <p>Kein Auth-Token erforderlich. Geeignet für Monitoring/Loadbalancer-Checks.</p>
+          <div class="pre-label">Response 200</div>
+          <pre>{
+  <span class="hl-key">"status"</span>:    <span class="hl-str">"ok"</span>,    <span class="hl-cmt">// ok | degraded | down</span>
+  <span class="hl-key">"demo_mode"</span>: <span class="hl-bool">false</span>,
+  <span class="hl-key">"backends"</span>:  [ { <span class="hl-key">"backend_id"</span>: <span class="hl-str">"default"</span>, <span class="hl-key">"reachable"</span>: <span class="hl-bool">true</span> } ],
+  <span class="hl-key">"poller"</span>: {
+    <span class="hl-key">"running"</span>:      <span class="hl-bool">true</span>,
+    <span class="hl-key">"poll_count"</span>:   <span class="hl-num">42</span>,
+    <span class="hl-key">"error_count"</span>:  <span class="hl-num">0</span>,
+    <span class="hl-key">"hosts_cached"</span>: <span class="hl-num">87</span>
+  },
+  <span class="hl-key">"websockets"</span>: { <span class="hl-key">"total_connections"</span>: <span class="hl-num">3</span> }
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         MIGRATION
+    ══════════════════════════════════════════════════════════ -->
+    <div class="doc-section" id="ep-migrate">
+      <h2>Migration</h2>
+
+      <div class="ep-card">
+        <div class="ep-head" onclick="toggle(this)">
+          <span class="ep-method m-post">POST</span>
+          <span class="ep-path">/api/migrate</span>
+          <span class="ep-summary">NagVis-1-.cfg importieren</span>
+          <span class="ep-role admin">admin</span>
+          <span class="ep-toggle">▾</span>
+        </div>
+        <div class="ep-body">
+          <p>Nimmt eine NagVis-1-Konfigurationsdatei entgegen, parst alle Objekttypen und legt die Map direkt im MapStore an.</p>
+          <table class="param-table">
+            <tr><th>Query-Param</th><th>Typ</th><th>Default</th><th>Beschreibung</th></tr>
+            <tr><td><code>map_id</code></td><td>string</td><td>(aus Dateiname)</td><td>Ziel-Map-ID</td></tr>
+            <tr><td><code>canvas_w</code></td><td>float</td><td>1200</td><td>Canvas-Breite in Pixeln für Koordinaten-Umrechnung</td></tr>
+            <tr><td><code>canvas_h</code></td><td>float</td><td>800</td><td>Canvas-Höhe in Pixeln</td></tr>
+            <tr><td><code>dry_run</code></td><td>bool</td><td>false</td><td>Nur Vorschau, nichts speichern</td></tr>
+          </table>
+          <div class="pre-label">cURL Beispiel</div>
+          <pre>curl -X POST \
+  "http://localhost:8080/api/migrate?canvas_w=1200&canvas_h=800&dry_run=false" \
+  -H <span class="hl-str">"Authorization: Bearer &lt;admin-token&gt;"</span> \
+  -F <span class="hl-str">"file=@datacenter.cfg"</span></pre>
+          <div class="pre-label">Response 200</div>
+          <pre>{
+  <span class="hl-key">"dry_run"</span>:      <span class="hl-bool">false</span>,
+  <span class="hl-key">"map_id"</span>:       <span class="hl-str">"datacenter"</span>,
+  <span class="hl-key">"title"</span>:        <span class="hl-str">"Datacenter Hamburg"</span>,
+  <span class="hl-key">"background"</span>:   <span class="hl-str">"images/maps/dc-hamburg.png"</span>,
+  <span class="hl-key">"object_count"</span>: <span class="hl-num">24</span>,
+  <span class="hl-key">"warnings"</span>: [
+    { <span class="hl-key">"type"</span>: <span class="hl-str">"host"</span>, <span class="hl-key">"field"</span>: <span class="hl-str">"host_name"</span>, <span class="hl-key">"message"</span>: <span class="hl-str">"host_name fehlt"</span> }
+  ],
+  <span class="hl-key">"skipped"</span>: <span class="hl-num">1</span>,
+  <span class="hl-key">"note"</span>: <span class="hl-str">"Hintergrundbild 'images/...' muss manuell hochgeladen werden."</span>
+}</pre>
+          <div class="callout warn">Das Hintergrundbild wird nicht automatisch übertragen. Den Pfad aus <code>background</code> notieren und anschließend per <code>POST /api/maps/{id}/background</code> hochladen.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         WEBSOCKET
+    ══════════════════════════════════════════════════════════ -->
+    <div class="doc-section" id="ws-map">
+      <h2>WebSocket</h2>
+      <p>Der Server sendet Diffs – nur geänderte Objekte werden übertragen. Neu verbundene Clients erhalten sofort einen vollständigen Snapshot.</p>
+
+      <div class="ep-card">
+        <div class="ep-head" onclick="toggle(this)">
+          <span class="ep-method m-ws">WS</span>
+          <span class="ep-path">/ws/map/{map_id}</span>
+          <span class="ep-summary">Live-Updates für eine Map</span>
+          <span class="ep-role viewer">viewer</span>
+          <span class="ep-toggle">▾</span>
+        </div>
+        <div class="ep-body">
+          <div class="pre-label">Verbindung aufbauen</div>
+          <pre>const ws = new WebSocket(
+  <span class="hl-str">`ws://localhost:8080/ws/map/datacenter-a?token=${myToken}`</span>
+);</pre>
+          <div class="callout">Token als Query-Parameter <code>?token=&lt;jwt&gt;</code>. Fehlendes oder ungültiges Token → Close-Code <code>4001</code>.</div>
+        </div>
+      </div>
+
+      <div class="ep-card" id="ws-global">
+        <div class="ep-head" onclick="toggle(this)">
+          <span class="ep-method m-ws">WS</span>
+          <span class="ep-path">/ws/global</span>
+          <span class="ep-summary">Alle Events (Admin/Debug)</span>
+          <span class="ep-role admin">admin</span>
+          <span class="ep-toggle">▾</span>
+        </div>
+        <div class="ep-body">
+          <p>Empfängt alle Events aller Maps. Nur für <code>admin</code>-Tokens. Nützlich für Monitoring, Debugging und Multi-Map-Dashboards.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         WS EVENTS
+    ══════════════════════════════════════════════════════════ -->
+    <div class="doc-section" id="ws-events">
+      <h2>WebSocket – Events & Kommandos</h2>
+
+      <h3>Server → Browser</h3>
+      <div style="border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin:8px 0">
+        <div class="event-row"><div class="event-name">snapshot</div><div class="event-desc">Vollständiger Status-Snapshot. Wird sofort nach dem Verbindungsaufbau gesendet.</div></div>
+        <div class="event-row"><div class="event-name">status_update</div><div class="event-desc">Geänderte Hosts und Services seit dem letzten Poll. Enthält <code>change_type</code> pro Objekt.</div></div>
+        <div class="event-row"><div class="event-name">heartbeat</div><div class="event-desc">Kein State-Change erkannt. Bestätigt dass der Server noch läuft.</div></div>
+        <div class="event-row"><div class="event-name">object_added</div><div class="event-desc">Ein neues Objekt wurde über die REST-API zur Map hinzugefügt.</div></div>
+        <div class="event-row"><div class="event-name">object_removed</div><div class="event-desc">Ein Objekt wurde gelöscht.</div></div>
+        <div class="event-row"><div class="event-name">object_updated</div><div class="event-desc">Eigenschaften eines Objekts wurden geändert (props-PATCH).</div></div>
+        <div class="event-row"><div class="event-name">backend_error</div><div class="event-desc">Livestatus nicht erreichbar. Enthält <code>message</code>.</div></div>
+        <div class="event-row" style="border-bottom:none"><div class="event-name">pong</div><div class="event-desc">Antwort auf <code>ping</code>-Kommando.</div></div>
+      </div>
+
+      <div class="pre-label">status_update – vollständiges Beispiel</div>
+      <pre>{
+  <span class="hl-key">"event"</span>:            <span class="hl-str">"status_update"</span>,
+  <span class="hl-key">"ts"</span>:               <span class="hl-num">1710000030</span>,
+  <span class="hl-key">"poll"</span>:             <span class="hl-num">5</span>,
+  <span class="hl-key">"elapsed"</span>:          <span class="hl-num">43</span>,               <span class="hl-cmt">// ms</span>
+  <span class="hl-key">"hosts"</span>: [
+    {
+      <span class="hl-key">"name"</span>:          <span class="hl-str">"srv-web-01"</span>,
+      <span class="hl-key">"state"</span>:         <span class="hl-num">1</span>,
+      <span class="hl-key">"state_label"</span>:   <span class="hl-str">"DOWN"</span>,
+      <span class="hl-key">"change_type"</span>:   <span class="hl-str">"state_change"</span>, <span class="hl-cmt">// state_change|ack_change|downtime_change|output_change</span>
+      <span class="hl-key">"acknowledged"</span>:  <span class="hl-bool">false</span>,
+      <span class="hl-key">"in_downtime"</span>:   <span class="hl-bool">false</span>,
+      <span class="hl-key">"backend_id"</span>:    <span class="hl-str">"default"</span>
+    }
+  ],
+  <span class="hl-key">"services"</span>:         [],
+  <span class="hl-key">"downtime_started"</span>: [ <span class="hl-str">"srv-backup-01"</span> ], <span class="hl-cmt">// optional</span>
+  <span class="hl-key">"downtime_ended"</span>:   []                   <span class="hl-cmt">// optional</span>
+}</pre>
+
+      <h3>Browser → Server (Kommandos)</h3>
+      <div class="pre-label">Force-Refresh – sofortigen Poll auslösen</div>
+      <pre>ws.send(JSON.stringify({ <span class="hl-key">"cmd"</span>: <span class="hl-str">"force_refresh"</span> }));</pre>
+      <div class="pre-label">Ping / Keepalive</div>
+      <pre>ws.send(JSON.stringify({ <span class="hl-key">"cmd"</span>: <span class="hl-str">"ping"</span> }));
+<span class="hl-cmt">// → { "event": "pong" }</span></pre>
+
+      <h3>WebSocket Close-Codes</h3>
+      <table class="param-table">
+        <tr><th>Code</th><th>Bedeutung</th></tr>
+        <tr><td><code>4001</code></td><td>Token fehlt oder ungültig</td></tr>
+        <tr><td><code>4003</code></td><td>Rolle nicht ausreichend (nur bei /ws/global)</td></tr>
+      </table>
+
+      <h3>Reconnect-Empfehlung</h3>
+      <pre>ws.onclose = (e) => {
+  if (e.code === <span class="hl-num">4001</span> || e.code === <span class="hl-num">4003</span>) return; <span class="hl-cmt">// Auth-Fehler: kein Retry</span>
+  setTimeout(() => connect(), <span class="hl-num">3000</span>); <span class="hl-cmt">// Netzwerkfehler: Retry nach 3s</span>
+};</pre>
+    </div>
+
+  </div><!-- /doc-content -->
+</div><!-- /doc-root -->
+
+<script>
+  // ── Theme-Toggle ──────────────────────────────────────────────
+  function toggleTheme() {
+    const html  = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    document.getElementById('doc-theme-btn').textContent = isDark ? '☽' : '☀';
+    localStorage.setItem('nv2-theme', isDark ? 'light' : 'dark');
+  }
+  // Theme aus localStorage laden
+  const savedTheme = localStorage.getItem('nv2-theme');
+  if (savedTheme) {
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    document.getElementById('doc-theme-btn').textContent = savedTheme === 'dark' ? '☀' : '☽';
+  }
+
+  // ── Accordion Toggle ──────────────────────────────────────────
+  function toggle(head) {
+    const body = head.nextElementSibling;
+    const open  = body.classList.toggle('open');
+    head.querySelector('.ep-toggle').textContent = open ? '▴' : '▾';
+  }
+
+  // ── Sidebar active link on scroll ────────────────────────────
+  const links    = document.querySelectorAll('.ds-link[href^="#"]');
+  const sections = [];
+  links.forEach(l => {
+    const id = l.getAttribute('href').slice(1);
+    const el = document.getElementById(id);
+    if (el) sections.push({ el, link: l });
+  });
+
+  const content = document.getElementById('doc-content');
+  content.addEventListener('scroll', () => {
+    const top = content.scrollTop + 80;
+    let active = sections[0];
+    for (const s of sections) {
+      if (s.el.offsetTop <= top) active = s;
+    }
+    links.forEach(l => l.classList.remove('active'));
+    if (active) active.link.classList.add('active');
+  }, { passive: true });
+
+  // ── Smooth scroll for sidebar links ──────────────────────────
+  links.forEach(link => {
+    link.addEventListener('click', e => {
+      e.preventDefault();
+      const id = link.getAttribute('href').slice(1);
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+</script>
+</body>
+</html>
