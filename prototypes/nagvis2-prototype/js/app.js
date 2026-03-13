@@ -52,51 +52,63 @@ const KNOWN_ICONSETS = ['std_small','server','router','switch','firewall','datab
 let customIconsets = JSON.parse(localStorage.getItem('nv2-custom-iconsets') || '[]');
 
 /**
- * Liefert die Icon-URL für ein Iconset + State.
- * Fällt auf Emoji zurück wenn kein Bild bekannt.
- * @returns {{ type: 'img'|'emoji', src: string }}
+ * Inline-SVG Data-URIs je Status – kein Dateisystem nötig.
+ * Farben via CSS-Variablen funktionieren in Data-URIs nicht →
+ * daher feste Hex-Werte passend zum Design-System.
  */
-function iconSrc(iconset, stateLabel) {
-  const all = [...KNOWN_ICONSETS, ...customIconsets];
-  const set = all.includes(iconset) ? iconset : null;
-  if (!set) return { type: 'emoji', src: ICONS_FALLBACK[iconset] ?? ICONS_FALLBACK.default };
-  const state = stateLabel
-    ? (stateLabel === 'UP' || stateLabel === 'OK' ? 'ok'
-      : stateLabel === 'WARNING'   ? 'warning'
-      : stateLabel === 'CRITICAL' || stateLabel === 'DOWN' ? 'critical'
-      : stateLabel === 'UNKNOWN'   ? 'unknown'
-      : stateLabel === 'PENDING'   ? 'pending'
-      : 'unknown')
-    : 'unknown';
-  return { type: 'img', src: `assets/icons/${set}/${state}.svg` };
+const ICON_SVG = {
+  ok:       `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><circle cx="18" cy="18" r="16" fill="#13d38e"/><path d="M11 18l5 5 9-9" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  warning:  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><circle cx="18" cy="18" r="16" fill="#ffa726"/><text x="18" y="24" text-anchor="middle" font-size="20" font-weight="bold" fill="#fff">!</text></svg>`,
+  critical: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><circle cx="18" cy="18" r="16" fill="#f44336"/><path d="M12 12l12 12M24 12l-12 12" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>`,
+  unknown:  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><circle cx="18" cy="18" r="16" fill="#9e9e9e"/><text x="18" y="24" text-anchor="middle" font-size="20" font-weight="bold" fill="#fff">?</text></svg>`,
+  pending:  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><circle cx="18" cy="18" r="16" fill="#9e9e9e"/><text x="18" y="24" text-anchor="middle" font-size="16" fill="#fff">…</text></svg>`,
+  down:     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><circle cx="18" cy="18" r="16" fill="#f44336"/><text x="18" y="24" text-anchor="middle" font-size="18" font-weight="bold" fill="#fff">↓</text></svg>`,
+};
+
+/** Iconset-spezifische Shapes als SVG-Overlay (wird über Status-Kreis gelegt) */
+const ICONSET_SHAPE = {
+  server:   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><rect x="6" y="8" width="24" height="7" rx="2" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/><rect x="6" y="18" width="24" height="7" rx="2" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/><circle cx="10" cy="11.5" r="1.2" fill="rgba(255,255,255,0.85)"/><circle cx="10" cy="21.5" r="1.2" fill="rgba(255,255,255,0.85)"/></svg>`,
+  router:   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><circle cx="18" cy="18" r="8" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/><line x1="18" y1="6" x2="18" y2="30" stroke="rgba(255,255,255,0.85)" stroke-width="1"/><line x1="6" y1="18" x2="30" y2="18" stroke="rgba(255,255,255,0.85)" stroke-width="1"/></svg>`,
+  switch:   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><rect x="5" y="14" width="26" height="8" rx="2" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/><line x1="10" y1="14" x2="10" y2="10" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/><line x1="18" y1="14" x2="18" y2="10" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/><line x1="26" y1="14" x2="26" y2="10" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/><line x1="10" y1="22" x2="10" y2="26" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/><line x1="18" y1="22" x2="18" y2="26" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/><line x1="26" y1="22" x2="26" y2="26" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/></svg>`,
+  firewall: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><rect x="7" y="7" width="22" height="22" rx="2" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/><line x1="7" y1="14" x2="29" y2="14" stroke="rgba(255,255,255,0.85)" stroke-width="1"/><line x1="7" y1="22" x2="29" y2="22" stroke="rgba(255,255,255,0.85)" stroke-width="1"/><line x1="14" y1="7" x2="14" y2="29" stroke="rgba(255,255,255,0.85)" stroke-width="1"/><line x1="22" y1="7" x2="22" y2="29" stroke="rgba(255,255,255,0.85)" stroke-width="1"/></svg>`,
+  database: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><ellipse cx="18" cy="11" rx="10" ry="4" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/><path d="M8 11v14c0 2.2 4.5 4 10 4s10-1.8 10-4V11" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/><path d="M8 18c0 2.2 4.5 4 10 4s10-1.8 10-4" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1"/></svg>`,
+  storage:  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><rect x="6" y="9" width="24" height="18" rx="2" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/><line x1="6" y1="16" x2="30" y2="16" stroke="rgba(255,255,255,0.85)" stroke-width="1"/><line x1="6" y1="22" x2="30" y2="22" stroke="rgba(255,255,255,0.85)" stroke-width="1"/></svg>`,
+  ups:      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><rect x="8" y="7" width="20" height="22" rx="2" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/><path d="M20 16l-4 5h4l-4 5" stroke="rgba(255,255,255,0.85)" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>`,
+  ap:       `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><circle cx="18" cy="22" r="3" fill="rgba(255,255,255,0.85)"/><path d="M12 17a8.5 8.5 0 0 1 12 0" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-linecap="round"/><path d="M8 13a14 14 0 0 1 20 0" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+  map:      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><path d="M6 8l8 3 8-3 8 3v18l-8-3-8 3-8-3z" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-linejoin="round"/><line x1="14" y1="8" x2="14" y2="28" stroke="rgba(255,255,255,0.85)" stroke-width="1"/><line x1="22" y1="5" x2="22" y2="25" stroke="rgba(255,255,255,0.85)" stroke-width="1"/></svg>`,
+  default:  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><polygon points="18,4 32,28 4,28" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-linejoin="round"/></svg>`,
+  std_small:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><rect x="9" y="9" width="18" height="18" rx="3" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/></svg>`,
+};
+
+/** Konvertiert SVG-String zu Data-URI */
+function svgToDataUri(svg) {
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 }
 
 /**
- * Aktualisiert das Icon-Bild eines Node-Elements nach Statuswechsel.
+ * Liefert Status-Icon als Data-URI (kein Dateisystem nötig).
+ * @returns {{ type: 'img', src: string }}
+ */
+function iconSrc(iconset, stateLabel) {
+  const stateKey = !stateLabel ? 'unknown'
+    : stateLabel === 'UP' || stateLabel === 'OK'              ? 'ok'
+    : stateLabel === 'WARNING'                                 ? 'warning'
+    : stateLabel === 'CRITICAL' || stateLabel === 'DOWN'       ? 'critical'
+    : stateLabel === 'UNREACHABLE'                             ? 'critical'
+    : stateLabel === 'PENDING'                                 ? 'pending'
+    : 'unknown';
+  return { type: 'img', src: svgToDataUri(ICON_SVG[stateKey] ?? ICON_SVG.unknown) };
+}
+
+/**
+ * Aktualisiert Status-Icon eines Node-Elements nach Statuswechsel.
  */
 function updateNodeIcon(el, stateLabel) {
-  const iconset = el.dataset.iconset;
-  if (!iconset) return;
   const ring = el.querySelector('.nv2-ring');
   if (!ring) return;
-  const { type, src } = iconSrc(iconset, stateLabel);
-  const existing = ring.querySelector('img.nv2-icon, span.nv2-icon-emoji');
-  if (type === 'img') {
-    if (existing?.tagName === 'IMG') {
-      existing.src = src;
-    } else {
-      const img = document.createElement('img');
-      img.className = 'nv2-icon';
-      img.src = src;
-      img.alt = '';
-      existing?.remove();
-      ring.insertBefore(img, ring.firstChild);
-    }
-  } else {
-    if (existing?.tagName !== 'IMG') {
-      existing.textContent = src;
-    }
-  }
+  const { src } = iconSrc(null, stateLabel);
+  const img = ring.querySelector('img.nv2-icon');
+  if (img) img.src = src;
 }
 
 
@@ -129,18 +141,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   restoreSidebar();
 
   // Button-Verdrahtung
-  document.getElementById('btn-edit')      .addEventListener('click', toggleEdit);
+  // btn-edit, btn-bg-upload, btn-delete-map → im Burger-Dropdown via onclick
   document.getElementById('btn-refresh')   .addEventListener('click', () => wsClient?.forceRefresh());
-  document.getElementById('btn-add-host').addEventListener('click', () => openDlg('dlg-add-object'));
-  document.getElementById('btn-delete-map').addEventListener('click', confirmDeleteMap);
-  document.getElementById('btn-bg-upload') .addEventListener('click', () => document.getElementById('bg-file-input').click());
+  document.getElementById('btn-add-host')  .addEventListener('click', () => openDlg('dlg-add-object'));
+  document.getElementById('btn-kiosk')     .addEventListener('click', toggleKiosk);
   document.getElementById('bg-file-input') .addEventListener('change', e => {
     if (e.target.files[0]) uploadBg(e.target.files[0]);
     e.target.value = '';
   });
+
+  // Sidebar-Toggle
   document.getElementById('btn-sidebar-toggle-foot').addEventListener('click', toggleSidebar);
-  document.getElementById('btn-theme').addEventListener('click', () => {
-    setTheme(currentTheme === 'dark' ? 'light' : 'dark');
+
+  // Burger-Menü: Außenklick schließt
+  document.addEventListener('click', e => {
+    if (_burgerOpen && !e.target.closest('#burger-wrap')) closeBurgerMenu();
   });
 
   // Canvas-Klick → Host platzieren
@@ -185,6 +200,41 @@ function restoreSidebar() {
 }
 
 
+// ═══════════════════════════════════════════════════════════════════════
+//  BURGER MENÜ
+// ═══════════════════════════════════════════════════════════════════════
+
+let _burgerOpen = false;
+
+function toggleBurgerMenu() {
+  _burgerOpen ? closeBurgerMenu() : openBurgerMenu();
+}
+
+function openBurgerMenu() {
+  _burgerOpen = true;
+  const dd = document.getElementById('burger-dropdown');
+  dd.style.display = 'block';
+  // Map-Sektion nur anzeigen wenn Map geöffnet
+  const mapSec = document.getElementById('burger-map-section');
+  if (mapSec) mapSec.style.display = activeMapId ? 'block' : 'none';
+  // Theme-Label aktualisieren
+  const ico   = document.getElementById('burger-theme-ico');
+  const label = document.getElementById('burger-theme-label');
+  if (ico)   ico.textContent   = currentTheme === 'dark' ? '☀' : '☽';
+  if (label) label.textContent = currentTheme === 'dark' ? 'Light-Theme' : 'Dark-Theme';
+  document.getElementById('btn-menu').classList.add('on');
+}
+
+function closeBurgerMenu() {
+  _burgerOpen = false;
+  const dd = document.getElementById('burger-dropdown');
+  if (dd) dd.style.display = 'none';
+  document.getElementById('btn-menu')?.classList.remove('on');
+}
+
+// Globale Exports für onclick-Attribute
+window.toggleBurgerMenu = toggleBurgerMenu;
+window.closeBurgerMenu  = closeBurgerMenu;
 
 
 /**
@@ -195,12 +245,13 @@ function restoreSidebar() {
 function setTheme(theme, save = true) {
   currentTheme = theme;
   document.documentElement.setAttribute('data-theme', theme);
-  const btn = document.getElementById('btn-theme');
-  if (btn) {
-    btn.textContent = theme === 'dark' ? '☀' : '☽';
-    btn.title = theme === 'dark' ? 'Zu Light-Theme wechseln' : 'Zu Dark-Theme wechseln';
-  }
+  // Burger-Dropdown-Label
+  const ico   = document.getElementById('burger-theme-ico');
+  const label = document.getElementById('burger-theme-label');
+  if (ico)   ico.textContent   = theme === 'dark' ? '☀' : '☽';
+  if (label) label.textContent = theme === 'dark' ? 'Light-Theme' : 'Dark-Theme';
   if (save) localStorage.setItem('nv2-theme', theme);
+  updateThemeChips();
 }
 
 
@@ -236,10 +287,16 @@ function renderSidebarMaps(maps) {
 /** Overview-Karten-Raster befüllen */
 function renderOverview(maps) {
   const grid = document.getElementById('ov-grid');
+
   const cards = maps.map(m => `
     <div class="ov-card" data-map-id="${esc(m.id)}">
-      <div class="ov-card-title">${esc(m.title)}</div>
-      <div class="ov-card-meta">${m.object_count ?? 0} Objekte · ${esc(m.id)}</div>
+      <div class="ov-card-header">
+        <div class="ov-card-title">${esc(m.title)}</div>
+        <button class="ov-card-menu-btn" data-map-id="${esc(m.id)}"
+                title="Map-Optionen" onclick="event.stopPropagation(); openCardMenu(event, '${esc(m.id)}', '${esc(m.title)}')">⋯</button>
+      </div>
+      <div class="ov-card-meta">${m.object_count ?? 0} Objekte · <span class="ov-card-id">${esc(m.id)}</span></div>
+      ${m.parent_map ? `<div class="ov-card-parent">↳ ${esc(m.parent_map)}</div>` : ''}
       <div class="ov-card-pills">
         <span class="ov-card-pill ok">UP –</span>
         <span class="ov-card-pill warn">W –</span>
@@ -250,17 +307,44 @@ function renderOverview(maps) {
   grid.innerHTML = cards + `
     <div class="ov-new" id="btn-new-map">
       <span style="font-size:18px;line-height:1">＋</span> Neue Map
-    </div>
-    <div class="ov-new ov-import" id="btn-migrate-map">
-      <span style="font-size:18px;line-height:1">↑</span> NagVis&#x202F;1 importieren
     </div>`;
 
-  // Click-Handler
+  // Click-Handler: Karte öffnet Map
   grid.querySelectorAll('.ov-card').forEach(card => {
     card.addEventListener('click', () => openMap(card.dataset.mapId));
   });
   document.getElementById('btn-new-map')?.addEventListener('click', dlgNewMap);
-  document.getElementById('btn-migrate-map')?.addEventListener('click', dlgMigrate);
+}
+
+/** Kleines Kontextmenü für eine Karte in der Übersicht */
+function openCardMenu(e, mapId, mapTitle) {
+  closeCardMenu();
+  const menu = document.createElement('div');
+  menu.id = 'card-ctx-menu';
+  menu.className = 'ctx-menu';
+  menu.style.cssText = `position:fixed;top:${e.clientY + 4}px;left:${e.clientX - 140}px`;
+  menu.innerHTML = `
+    <button class="ctx-item" onclick="closeCardMenu(); openMap('${esc(mapId)}')">
+      ▶ Öffnen
+    </button>
+    <button class="ctx-item" onclick="closeCardMenu(); _renameMapId='${esc(mapId)}';
+      document.getElementById('rename-map-title').value='${esc(mapTitle)}';
+      openDlg('dlg-rename-map')">
+      ✎ Umbenennen
+    </button>
+    <button class="ctx-item" onclick="closeCardMenu(); _parentMapId='${esc(mapId)}'; openParentMapDlg()">
+      🗺 Parent-Map setzen
+    </button>
+    <button class="ctx-item ctx-danger"
+      onclick="closeCardMenu(); _deleteMapId='${esc(mapId)}'; _deleteMapTitle='${esc(mapTitle)}'; confirmDeleteMapById()">
+      🗑 Löschen
+    </button>`;
+  document.body.appendChild(menu);
+  setTimeout(() => document.addEventListener('click', closeCardMenu, { once: true }), 0);
+}
+
+function closeCardMenu() {
+  document.getElementById('card-ctx-menu')?.remove();
 }
 
 
@@ -280,6 +364,9 @@ async function openMap(mapId) {
   document.getElementById('tb-pills')         .style.display = 'flex';
   document.getElementById('snap-tabs')        .style.display = 'flex';
   document.getElementById('snapin-container') .style.display = 'block';
+  // Burger: Map-Sektion einblenden
+  const bms = document.getElementById('burger-map-section');
+  if (bms) bms.style.display = 'block';
 
   // Topbar
   document.getElementById('tb-title').textContent = activeMapCfg.title;
@@ -304,8 +391,11 @@ async function openMap(mapId) {
 
   // Nodes platzieren
   for (const obj of activeMapCfg.objects ?? []) {
-    createNode(obj);
+    const el = createNode(obj);
+    if (el && obj.layer != null) el.dataset.layer = obj.layer;
   }
+  // Layer-System initialisieren
+  initLayers(activeMapCfg.objects ?? []);
 
   // WebSocket (oder Demo-Ersatz)
   if (wsClient) {
@@ -324,6 +414,10 @@ function showOverview() {
   document.getElementById('tb-pills')         .style.display = 'none';
   document.getElementById('snap-tabs')        .style.display = 'none';
   document.getElementById('snapin-container') .style.display = 'none';
+  // Burger: Map-Sektion ausblenden
+  const bms = document.getElementById('burger-map-section');
+  if (bms) bms.style.display = 'none';
+  closeBurgerMenu();
 
   document.getElementById('tb-title').textContent = 'NagVis 2';
   document.getElementById('tb-sub')  .textContent = 'Wähle eine Map';
@@ -509,8 +603,10 @@ function createNode(obj) {
 
 /** Monitoring-Knoten (host / service / hostgroup / servicegroup / map) */
 function _renderMonitoringNode(obj) {
-  const { type: iconType, src: iconSrcVal } = iconSrc(obj.iconset ?? 'std_small', null);
-  const size = obj.size ?? 32;
+  const { src: statusSrc } = iconSrc(obj.iconset ?? 'std_small', null);
+  const size    = obj.size ?? 32;
+  const iconset = obj.iconset ?? 'std_small';
+  const shapeSvg = ICONSET_SHAPE[iconset] ?? ICONSET_SHAPE.std_small;
 
   const el = document.createElement('div');
   el.id               = `nv2-${obj.object_id}`;
@@ -519,7 +615,7 @@ function _renderMonitoringNode(obj) {
   el.dataset.name     = obj.type === 'service'
     ? `${obj.host_name}::${obj.name}` : obj.name;
   el.dataset.type     = obj.type;
-  el.dataset.iconset  = obj.iconset ?? 'std_small';
+  el.dataset.iconset  = iconset;
   el.style.left       = `${obj.x}%`;
   el.style.top        = `${obj.y}%`;
   el.style.setProperty('--node-size', `${size}px`);
@@ -528,14 +624,11 @@ function _renderMonitoringNode(obj) {
   const typePill  = typeBadge[obj.type]
     ? `<span class="nv2-type-pill">${typeBadge[obj.type]}</span>` : '';
 
-  const iconHtml = iconType === 'img'
-    ? `<img class="nv2-icon" src="${esc(iconSrcVal)}" alt="" width="${size}" height="${size}">`
-    : `<span class="nv2-icon-emoji" aria-hidden="true">${iconSrcVal}</span>`;
-
   el.innerHTML = `
     ${typePill}
-    <div class="nv2-ring" style="width:${size}px;height:${size}px">
-      ${iconHtml}
+    <div class="nv2-ring" style="width:${size}px;height:${size}px;position:relative">
+      <img class="nv2-icon" src="${statusSrc}" alt="" width="${size}" height="${size}" style="position:absolute;inset:0">
+      <img class="nv2-icon-shape" src="${svgToDataUri(shapeSvg)}" alt="" width="${size}" height="${size}" style="position:absolute;inset:0;pointer-events:none">
       <span class="nv2-badge" aria-label="UNKNOWN">?</span>
     </div>
     <div class="nv2-label" title="${esc(obj.label || obj.name)}">${esc(obj.label || obj.name)}</div>`;
@@ -606,14 +699,345 @@ function _renderLine(obj) {
   line.setAttribute('y2', `${obj.y2 ?? obj.y}%`);
   line.setAttribute('stroke',       obj.color       || 'var(--border-hi)');
   line.setAttribute('stroke-width', obj.line_width  ?? 1);
+  // Breiten Hit-Target damit Klick/Rechtsklick leichter trifft
+  line.setAttribute('stroke-width', Math.max(obj.line_width ?? 1, 8));
+  line.setAttribute('stroke-opacity', '0');
+  line.style.cursor = 'pointer';
 
+  // Sichtbare Linie dahinter
+  const lineVis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  lineVis.setAttribute('x1', `${obj.x}%`);
+  lineVis.setAttribute('y1', `${obj.y}%`);
+  lineVis.setAttribute('x2', `${obj.x2 ?? obj.x + 20}%`);
+  lineVis.setAttribute('y2', `${obj.y2 ?? obj.y}%`);
+  lineVis.setAttribute('stroke',       obj.color      || 'var(--border-hi)');
+  lineVis.setAttribute('stroke-width', obj.line_width ?? 1);
   const dashMap = { dashed: '8,4', dotted: '2,4' };
   const dash    = dashMap[obj.line_style];
-  if (dash) line.setAttribute('stroke-dasharray', dash);
+  if (dash) lineVis.setAttribute('stroke-dasharray', dash);
+  lineVis.style.pointerEvents = 'none';
+  svg.appendChild(lineVis);
 
-  line.addEventListener('contextmenu', e => { e.preventDefault(); if (editActive) showNodeContextMenu(e, line, obj); });
+  // Kontextmenü via Rechtsklick auf transparenten Hit-Target
+  line.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (editActive) showLineContextMenu(e, lineVis, obj);
+  });
+
+  // Edit-Mode: Endpunkte verschiebbar (Drag auf Hit-Target)
+  line.addEventListener('mousedown', e => {
+    if (!editActive || e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    _startLineDrag(e, lineVis, line, obj, svg);
+  });
+
   svg.appendChild(line);
+
+  // Drag-Handles (sichtbare Kreise an beiden Endpunkten im Edit-Mode)
+  const handles = _createLineHandles(lineVis, line, obj, svg);
+  obj._handles = handles;
+
   return line;
+}
+
+/**
+ * Erstellt sichtbare Drag-Handles (Kreise) an beiden Linienendpunkten.
+ * Werden nur im Edit-Mode sichtbar (CSS: .nv2-edit-mode .line-handle { opacity:1 })
+ */
+function _createLineHandles(lineVis, hitLine, obj, svg) {
+  const makeHandle = (cx, cy, isStart) => {
+    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.classList.add('line-handle');
+    c.setAttribute('cx', cx);
+    c.setAttribute('cy', cy);
+    c.setAttribute('r', '5');
+    c.style.fill   = 'var(--acc, #29b6d4)';
+    c.style.stroke = 'var(--bg-panel, #2b2b2b)';
+    c.style.strokeWidth = '2';
+    c.style.cursor = 'crosshair';
+    c.style.opacity = '0';   // CSS schaltet auf 1 im edit-mode
+
+    c.addEventListener('mousedown', e => {
+      if (!editActive || e.button !== 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      _dragHandle(e, lineVis, hitLine, c, isStart, obj, svg);
+    });
+
+    svg.appendChild(c);
+    return c;
+  };
+
+  const h1 = makeHandle(`${obj.x}%`,              `${obj.y}%`,              true);
+  const h2 = makeHandle(`${obj.x2 ?? obj.x+20}%`, `${obj.y2 ?? obj.y}%`,   false);
+  return [h1, h2];
+}
+
+/**
+ * Zieht einen einzelnen Handle (Endpunkt) der Linie.
+ */
+function _dragHandle(e, lineVis, hitLine, handle, isStart, obj, svg) {
+  const canvas = document.getElementById('nv2-canvas');
+  const rect   = canvas.getBoundingClientRect();
+  lineVis.style.opacity = '0.6';
+
+  const onMove = ev => {
+    const nx = ((ev.clientX - rect.left) / rect.width  * 100).toFixed(2);
+    const ny = ((ev.clientY - rect.top)  / rect.height * 100).toFixed(2);
+    const attr = isStart ? ['x1','y1'] : ['x2','y2'];
+    lineVis.setAttribute(attr[0], `${nx}%`);
+    lineVis.setAttribute(attr[1], `${ny}%`);
+    hitLine.setAttribute(attr[0], `${nx}%`);
+    hitLine.setAttribute(attr[1], `${ny}%`);
+    handle.setAttribute('cx', `${nx}%`);
+    handle.setAttribute('cy', `${ny}%`);
+    // Winkel im Dialog aktualisieren falls offen
+    _updateAngleDisplay(lineVis);
+  };
+
+  const onUp = async () => {
+    lineVis.style.opacity = '';
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup',   onUp);
+    const newX  = parseFloat(lineVis.getAttribute('x1'));
+    const newY  = parseFloat(lineVis.getAttribute('y1'));
+    const newX2 = parseFloat(lineVis.getAttribute('x2'));
+    const newY2 = parseFloat(lineVis.getAttribute('y2'));
+    await api(`/api/maps/${activeMapId}/objects/${obj.object_id}/pos`, 'PATCH',
+      { x: newX, y: newY, x2: newX2, y2: newY2 });
+    obj.x = newX; obj.y = newY; obj.x2 = newX2; obj.y2 = newY2;
+  };
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup',   onUp);
+}
+
+/** Berechnet Winkel einer Linie in Grad (0–360). */
+function _lineAngle(lineVis) {
+  const x1 = parseFloat(lineVis.getAttribute('x1'));
+  const y1 = parseFloat(lineVis.getAttribute('y1'));
+  const x2 = parseFloat(lineVis.getAttribute('x2'));
+  const y2 = parseFloat(lineVis.getAttribute('y2'));
+  return ((Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI) + 360) % 360;
+}
+
+/** Aktualisiert Winkelanzeige im Linienstil-Dialog (falls geöffnet). */
+function _updateAngleDisplay(lineVis) {
+  const el = document.getElementById('ln-angle');
+  const lbl = document.getElementById('ln-angle-val');
+  if (!el || !lbl) return;
+  const deg = Math.round(_lineAngle(lineVis));
+  el.value = deg;
+  lbl.textContent = deg + '°';
+}
+
+/**
+ * Kontextmenü speziell für Linien.
+ */
+function showLineContextMenu(e, lineVis, obj) {
+  closeContextMenu();
+  const menu = document.createElement('div');
+  menu.id = 'nv2-ctx-menu';
+  menu.className = 'ctx-menu';
+  menu.style.left = `${e.clientX}px`;
+  menu.style.top  = `${e.clientY}px`;
+
+  const items = [
+    { label: '↔ Linienstil',    action: () => openLineStyleDialog(lineVis, obj) },
+    { label: '◫ Layer zuweisen', action: () => openLayerDialog(lineVis, obj) },
+    { label: '🗑 Entfernen',     action: () => {
+        lineVis.remove();
+        document.getElementById(`nv2-${obj.object_id}`)?.remove();
+        api(`/api/maps/${activeMapId}/objects/${obj.object_id}`, 'DELETE');
+      }, cls: 'ctx-danger' },
+  ];
+
+  items.forEach(item => {
+    const btn = document.createElement('button');
+    btn.className = 'ctx-item' + (item.cls ? ' ' + item.cls : '');
+    btn.textContent = item.label;
+    btn.onclick = () => { closeContextMenu(); item.action(); };
+    menu.appendChild(btn);
+  });
+
+  menu.addEventListener('click', e => e.stopPropagation());
+  document.body.appendChild(menu);
+  _ctxMenu = menu;
+  setTimeout(() => document.addEventListener('click', closeContextMenu, { once: true }), 0);
+}
+
+/**
+ * Drag-Handling für Linien: zieht den nächstgelegenen Endpunkt.
+ * Synchronisiert auch die Handle-Kreise.
+ */
+function _startLineDrag(e, lineVis, hitLine, obj, svg) {
+  const canvas  = document.getElementById('nv2-canvas');
+  const rect    = canvas.getBoundingClientRect();
+
+  const x1 = parseFloat(lineVis.getAttribute('x1'));
+  const y1 = parseFloat(lineVis.getAttribute('y1'));
+  const x2 = parseFloat(lineVis.getAttribute('x2'));
+  const y2 = parseFloat(lineVis.getAttribute('y2'));
+
+  const mx = (e.clientX - rect.left) / rect.width  * 100;
+  const my = (e.clientY - rect.top)  / rect.height * 100;
+
+  const d1 = Math.hypot(mx - x1, my - y1);
+  const d2 = Math.hypot(mx - x2, my - y2);
+  const moveStart = d1 < d2;
+
+  lineVis.style.opacity = '0.6';
+
+  const onMove = ev => {
+    const nx = ((ev.clientX - rect.left) / rect.width  * 100).toFixed(2);
+    const ny = ((ev.clientY - rect.top)  / rect.height * 100).toFixed(2);
+    if (moveStart) {
+      lineVis.setAttribute('x1', `${nx}%`);
+      lineVis.setAttribute('y1', `${ny}%`);
+      hitLine.setAttribute('x1', `${nx}%`);
+      hitLine.setAttribute('y1', `${ny}%`);
+      obj._handles?.[0]?.setAttribute('cx', `${nx}%`);
+      obj._handles?.[0]?.setAttribute('cy', `${ny}%`);
+    } else {
+      lineVis.setAttribute('x2', `${nx}%`);
+      lineVis.setAttribute('y2', `${ny}%`);
+      hitLine.setAttribute('x2', `${nx}%`);
+      hitLine.setAttribute('y2', `${ny}%`);
+      obj._handles?.[1]?.setAttribute('cx', `${nx}%`);
+      obj._handles?.[1]?.setAttribute('cy', `${ny}%`);
+    }
+    _updateAngleDisplay(lineVis);
+  };
+
+  const onUp = async () => {
+    lineVis.style.opacity = '';
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup',   onUp);
+
+    const newX  = parseFloat(lineVis.getAttribute('x1'));
+    const newY  = parseFloat(lineVis.getAttribute('y1'));
+    const newX2 = parseFloat(lineVis.getAttribute('x2'));
+    const newY2 = parseFloat(lineVis.getAttribute('y2'));
+
+    await api(`/api/maps/${activeMapId}/objects/${obj.object_id}/pos`, 'PATCH',
+      { x: newX, y: newY, x2: newX2, y2: newY2 });
+    obj.x = newX; obj.y = newY; obj.x2 = newX2; obj.y2 = newY2;
+  };
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup',   onUp);
+}
+
+/**
+ * Linienstil-Dialog: Farbe, Stil, Breite.
+ */
+function openLineStyleDialog(lineVis, obj) {
+  closeResizeDialog();
+  const panel = document.createElement('div');
+  panel.id = 'nv2-resize-panel';
+  panel.className = 'resize-panel';
+
+  const cvRect = document.getElementById('nv2-canvas').getBoundingClientRect();
+  panel.style.left = `${cvRect.width / 2 - 120}px`;
+  panel.style.top  = '60px';
+
+  panel.innerHTML = `
+    <div class="rp-head">
+      <span>Linienstil</span>
+      <button class="rp-close" id="rp-close-btn">✕</button>
+    </div>
+    <div class="rp-body" style="display:flex;flex-direction:column;gap:8px;padding:8px">
+      <label style="font-size:11px">Farbe
+        <input type="color" id="ln-color" value="${obj.color || '#475569'}" style="margin-left:6px">
+      </label>
+      <label style="font-size:11px">Stil
+        <select id="ln-style" style="margin-left:6px">
+          <option value="solid"  ${obj.line_style==='solid'  ?'selected':''}>Durchgezogen</option>
+          <option value="dashed" ${obj.line_style==='dashed' ?'selected':''}>Gestrichelt</option>
+          <option value="dotted" ${obj.line_style==='dotted' ?'selected':''}>Gepunktet</option>
+        </select>
+      </label>
+      <label style="font-size:11px">Breite
+        <input type="range" id="ln-width" min="1" max="10" value="${obj.line_width ?? 1}" style="vertical-align:middle">
+        <span id="ln-width-val">${obj.line_width ?? 1}px</span>
+      </label>
+      <label style="font-size:11px">Winkel
+        <input type="range" id="ln-angle" min="0" max="359" step="1"
+               value="${Math.round(_lineAngle(lineVis))}" style="vertical-align:middle">
+        <span id="ln-angle-val">${Math.round(_lineAngle(lineVis))}°</span>
+      </label>
+    </div>
+    <div class="rp-foot">
+      <button class="btn-cancel rp-cancel" id="rp-cancel-btn">Abbrechen</button>
+      <button class="btn-ok rp-ok" id="rp-ok-btn">Übernehmen</button>
+    </div>`;
+
+  document.getElementById('nv2-canvas').appendChild(panel);
+  panel.addEventListener('click', e => e.stopPropagation());
+
+  const colorIn = panel.querySelector('#ln-color');
+  const styleIn = panel.querySelector('#ln-style');
+  const widthIn = panel.querySelector('#ln-width');
+  const widthLbl = panel.querySelector('#ln-width-val');
+
+  // Live-Preview
+  const dashMap = { dashed: '8,4', dotted: '2,4' };
+
+  // Winkel → Endpunkt berechnen (Länge beibehalten, Startpunkt fest)
+  const applyAngle = deg => {
+    const rad = deg * Math.PI / 180;
+    const x1  = parseFloat(lineVis.getAttribute('x1'));
+    const y1  = parseFloat(lineVis.getAttribute('y1'));
+    const x2o = parseFloat(lineVis.getAttribute('x2'));
+    const y2o = parseFloat(lineVis.getAttribute('y2'));
+    const len = Math.hypot(x2o - x1, y2o - y1);
+    const nx2 = (x1 + Math.cos(rad) * len).toFixed(2);
+    const ny2 = (y1 + Math.sin(rad) * len).toFixed(2);
+    lineVis.setAttribute('x2', `${nx2}%`);
+    lineVis.setAttribute('y2', `${ny2}%`);
+    // Handle sync
+    obj._handles?.[1]?.setAttribute('cx', `${nx2}%`);
+    obj._handles?.[1]?.setAttribute('cy', `${ny2}%`);
+    return { nx2: parseFloat(nx2), ny2: parseFloat(ny2) };
+  };
+
+  const preview = () => {
+    lineVis.setAttribute('stroke', colorIn.value);
+    lineVis.setAttribute('stroke-width', widthIn.value);
+    const dash = dashMap[styleIn.value];
+    dash ? lineVis.setAttribute('stroke-dasharray', dash)
+         : lineVis.removeAttribute('stroke-dasharray');
+    widthLbl.textContent = widthIn.value + 'px';
+  };
+  colorIn.addEventListener('input', preview);
+  styleIn.addEventListener('change', preview);
+  widthIn.addEventListener('input', preview);
+
+  const angleIn  = panel.querySelector('#ln-angle');
+  const angleLbl = panel.querySelector('#ln-angle-val');
+  angleIn.addEventListener('input', () => {
+    applyAngle(parseInt(angleIn.value));
+    angleLbl.textContent = angleIn.value + '°';
+  });
+
+  panel.querySelector('#rp-close-btn').onclick  =
+  panel.querySelector('#rp-cancel-btn').onclick = closeResizeDialog;
+
+  panel.querySelector('#rp-ok-btn').onclick = async () => {
+    closeResizeDialog();
+    obj.color      = colorIn.value;
+    obj.line_style = styleIn.value;
+    obj.line_width = parseInt(widthIn.value);
+    const { nx2, ny2 } = applyAngle(parseInt(angleIn.value));
+    obj.x2 = nx2; obj.y2 = ny2;
+    await api(`/api/maps/${activeMapId}/objects/${obj.object_id}/props`, 'PATCH', {
+      color: obj.color, line_style: obj.line_style, line_width: obj.line_width,
+    });
+    await api(`/api/maps/${activeMapId}/objects/${obj.object_id}/pos`, 'PATCH',
+      { x: obj.x, y: obj.y, x2: obj.x2, y2: obj.y2 });
+  };
 }
 
 /** Container / Bild */
@@ -696,6 +1120,188 @@ function applyNodeStatus(el, label, ack, downtime) {
   if (el.dataset.iconset) updateNodeIcon(el, label);
 }
 
+
+
+
+// ═══════════════════════════════════════════════════════════════════════
+//  LAYER SYSTEM
+// ═══════════════════════════════════════════════════════════════════════
+
+/**
+ * Layer-State: { id → { name, visible, zIndex } }
+ * Wird aus Map-Config befüllt und in localStorage gecacht.
+ */
+let _layers = {};
+
+/** Initialisiert Layer aus den Map-Objekten. */
+function initLayers(objects) {
+  const used = new Set(objects.map(o => o.layer ?? 0));
+  _layers = {};
+  [...used].sort((a,b)=>a-b).forEach(id => {
+    _layers[id] = {
+      id,
+      name:    id === 0 ? 'Standard' : `Layer ${id}`,
+      visible: true,
+      zIndex:  10 + id * 10,
+    };
+  });
+  renderLayerPanel();
+  applyAllLayerVisibility();
+}
+
+/** Rendert das Layer-Panel in der Sidebar. */
+function renderLayerPanel() {
+  const el = document.getElementById('sidebar-layers');
+  if (!el) return;
+
+  if (!Object.keys(_layers).length) {
+    el.innerHTML = '<div style="padding:5px 10px 5px 20px;font-size:11px;color:var(--text-dim)">Keine Layer</div>';
+    return;
+  }
+
+  el.innerHTML = Object.values(_layers).map(l => `
+    <div class="layer-row" data-layer-id="${l.id}">
+      <label class="layer-toggle" title="${l.visible ? 'Ausblenden' : 'Einblenden'}">
+        <input type="checkbox" class="layer-cb" data-layer="${l.id}" ${l.visible ? 'checked' : ''}>
+        <span class="layer-eye">${l.visible ? '👁' : '🚫'}</span>
+      </label>
+      <span class="layer-name" data-layer="${l.id}">${esc(l.name)}</span>
+      <span class="layer-z" title="Z-Index">${l.zIndex}</span>
+    </div>`).join('');
+
+  el.querySelectorAll('.layer-cb').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const id = parseInt(cb.dataset.layer);
+      _layers[id].visible = cb.checked;
+      const eye = cb.closest('.layer-row').querySelector('.layer-eye');
+      if (eye) eye.textContent = cb.checked ? '👁' : '🚫';
+      applyLayerVisibility(id);
+    });
+  });
+
+  // Doppelklick auf Name → umbenennen
+  el.querySelectorAll('.layer-name').forEach(span => {
+    span.addEventListener('dblclick', () => {
+      const id  = parseInt(span.dataset.layer);
+      const inp = document.createElement('input');
+      inp.type  = 'text';
+      inp.value = _layers[id].name;
+      inp.className = 'layer-name-input';
+      span.replaceWith(inp);
+      inp.focus();
+      inp.select();
+      const done = () => {
+        _layers[id].name = inp.value.trim() || _layers[id].name;
+        inp.replaceWith(Object.assign(document.createElement('span'), {
+          className: 'layer-name', dataset: { layer: id }, textContent: _layers[id].name,
+        }));
+        renderLayerPanel();
+      };
+      inp.addEventListener('blur',  done);
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
+    });
+  });
+}
+
+/** Blendet alle Objekte eines Layers ein oder aus. */
+function applyLayerVisibility(layerId) {
+  const vis = _layers[layerId]?.visible ?? true;
+  const zi  = _layers[layerId]?.zIndex  ?? 10;
+  document.querySelectorAll(`[data-layer="${layerId}"]`).forEach(el => {
+    el.style.display  = vis ? '' : 'none';
+    el.style.zIndex   = zi;
+  });
+  // SVG-Linien
+  document.querySelectorAll(`line[data-layer="${layerId}"], circle[data-layer="${layerId}"]`).forEach(el => {
+    el.style.display = vis ? '' : 'none';
+  });
+}
+
+/** Wendet Sichtbarkeit aller Layer an. */
+function applyAllLayerVisibility() {
+  Object.keys(_layers).forEach(id => applyLayerVisibility(parseInt(id)));
+}
+
+/**
+ * Weist einem Objekt-Element einen Layer zu.
+ * Setzt data-layer + z-index.
+ */
+function assignLayer(el, layerId) {
+  const id = parseInt(layerId ?? 0);
+  el.dataset.layer = id;
+  if (!_layers[id]) {
+    _layers[id] = { id, name: `Layer ${id}`, visible: true, zIndex: 10 + id * 10 };
+    renderLayerPanel();
+  }
+  el.style.zIndex = _layers[id].zIndex;
+  if (!_layers[id].visible) el.style.display = 'none';
+}
+
+/**
+ * Dialog: Layer-Auswahl für ein Objekt (im Kontextmenü).
+ */
+function openLayerDialog(el, obj) {
+  closeResizeDialog();
+  const panel = document.createElement('div');
+  panel.id = 'nv2-resize-panel';
+  panel.className = 'resize-panel';
+
+  const cvRect = document.getElementById('nv2-canvas').getBoundingClientRect();
+  panel.style.left = `${cvRect.width / 2 - 120}px`;
+  panel.style.top  = '80px';
+
+  const curLayer = parseInt(el.dataset.layer ?? 0);
+  const layerOpts = Object.values(_layers).map(l =>
+    `<option value="${l.id}" ${l.id === curLayer ? 'selected' : ''}>${esc(l.name)} (z:${l.zIndex})</option>`
+  ).join('');
+
+  panel.innerHTML = `
+    <div class="rp-head">
+      <span>Layer zuweisen</span>
+      <button class="rp-close" id="rp-close-btn">✕</button>
+    </div>
+    <div class="rp-body" style="display:flex;flex-direction:column;gap:8px;padding:8px">
+      <label style="font-size:11px">Layer
+        <select id="layer-select" style="margin-left:6px">${layerOpts}</select>
+      </label>
+      <label style="font-size:11px">Neuer Layer
+        <input type="number" id="layer-new" min="0" max="99" placeholder="ID" style="width:48px;margin-left:6px">
+        <input type="text" id="layer-new-name" placeholder="Name" style="width:80px;margin-left:4px">
+      </label>
+    </div>
+    <div class="rp-foot">
+      <button class="btn-cancel rp-cancel" id="rp-cancel-btn">Abbrechen</button>
+      <button class="btn-ok rp-ok" id="rp-ok-btn">Übernehmen</button>
+    </div>`;
+
+  document.getElementById('nv2-canvas').appendChild(panel);
+  panel.addEventListener('click', e => e.stopPropagation());
+
+  panel.querySelector('#rp-close-btn').onclick  =
+  panel.querySelector('#rp-cancel-btn').onclick = closeResizeDialog;
+
+  panel.querySelector('#rp-ok-btn').onclick = async () => {
+    const newIdInput = panel.querySelector('#layer-new').value.trim();
+    let targetId = newIdInput !== ''
+      ? parseInt(newIdInput)
+      : parseInt(panel.querySelector('#layer-select').value);
+
+    if (isNaN(targetId)) targetId = 0;
+
+    if (newIdInput !== '') {
+      const name = panel.querySelector('#layer-new-name').value.trim() || `Layer ${targetId}`;
+      if (!_layers[targetId]) {
+        _layers[targetId] = { id: targetId, name, visible: true, zIndex: 10 + targetId * 10 };
+        renderLayerPanel();
+      }
+    }
+
+    closeResizeDialog();
+    assignLayer(el, targetId);
+    obj.layer = targetId;
+    await api(`/api/maps/${activeMapId}/objects/${obj.object_id}/props`, 'PATCH', { layer: targetId });
+  };
+}
 
 // ═══════════════════════════════════════════════════════════════════════
 //  TOOLTIP
@@ -876,8 +1482,13 @@ function toggleEdit() {
   const banner = document.getElementById('nv2-edit-banner');
   const canvas = document.getElementById('nv2-canvas');
 
-  btn.textContent = editActive ? '✓ Fertig' : '✏ Bearbeiten';
-  btn.classList.toggle('on', editActive);
+  // Label im Burger-Menü + btn selbst
+  const lbl = document.getElementById('burger-edit-label');
+  if (lbl) lbl.textContent = editActive ? 'Fertig' : 'Bearbeiten';
+  if (btn) {
+    btn.classList.toggle('on', editActive);
+    btn.title = editActive ? 'Edit-Mode beenden (Ctrl+E)' : 'Edit-Mode starten (Ctrl+E)';
+  }
   addBtn.style.display = editActive ? 'flex' : 'none';
   banner.classList.toggle('show', editActive);
   canvas.classList.toggle('nv2-edit-mode', editActive);
@@ -952,10 +1563,11 @@ function showNodeContextMenu(e, el, obj) {
   menu.style.top  = `${e.clientY}px`;
 
   const items = [
-    { label: '⤢ Größe ändern', action: () => openResizeDialog(el, obj) },
+    { label: '⤢ Größe ändern',   action: () => openResizeDialog(el, obj) },
     { label: '🖼 Iconset wechseln', action: () => openIconsetDialog(el, obj),
       hide: !['host','service','hostgroup','servicegroup','map'].includes(obj.type) },
-    { label: '🗑 Entfernen', action: () => removeNode(el, obj), cls: 'ctx-danger' },
+    { label: '◫ Layer zuweisen',  action: () => openLayerDialog(el, obj) },
+    { label: '🗑 Entfernen',       action: () => removeNode(el, obj), cls: 'ctx-danger' },
   ];
 
   items.forEach(item => {
@@ -1324,21 +1936,312 @@ async function confirmNewMap() {
   if (created) openMap(created.id);
 }
 
-/** Map löschen */
+/** Map löschen – aktive Map (aus geöffneter Map heraus) */
 async function confirmDeleteMap() {
   if (!activeMapId) return;
-  if (!confirm(`Map "${activeMapCfg?.title ?? activeMapId}" wirklich löschen?`)) return;
+  if (!confirm(`Map „${activeMapCfg?.title ?? activeMapId}" wirklich löschen?`)) return;
   await api(`/api/maps/${activeMapId}`, 'DELETE');
   showOverview();
 }
 
+/** Map löschen – aus Übersicht (per Karten-Kontextmenü) */
+let _deleteMapId    = null;
+let _deleteMapTitle = null;
+async function confirmDeleteMapById() {
+  if (!_deleteMapId) return;
+  if (!confirm(`Map „${_deleteMapTitle ?? _deleteMapId}" wirklich löschen?`)) return;
+  await api(`/api/maps/${_deleteMapId}`, 'DELETE');
+  _deleteMapId = _deleteMapTitle = null;
+  await loadMaps();
+}
+
 function dlgNewMap() { openDlg('dlg-new-map'); }
 
+
 // ═══════════════════════════════════════════════════════════════════════
-//  MIGRATION – NagVis 1 .cfg Import
+//  MAP MANAGEMENT – Umbenennen, Parent, Alle Maps verwalten
 // ═══════════════════════════════════════════════════════════════════════
 
-let _migFile = null;
+let _renameMapId  = null;
+let _parentMapId  = null;
+
+/** Map umbenennen – aus geöffneter Map oder Übersicht */
+function openRenameMapDlg() {
+  _renameMapId = activeMapId;
+  const title  = activeMapCfg?.title ?? '';
+  document.getElementById('rename-map-title').value = title;
+  openDlg('dlg-rename-map');
+}
+
+async function confirmRenameMap() {
+  const newTitle = document.getElementById('rename-map-title').value.trim();
+  if (!newTitle || !_renameMapId) return;
+  closeDlg('dlg-rename-map');
+  const ok = await api(`/api/maps/${_renameMapId}/title`, 'PUT', { title: newTitle });
+  if (ok) {
+    // Topbar + Config aktualisieren wenn aktive Map
+    if (_renameMapId === activeMapId) {
+      activeMapCfg.title = newTitle;
+      document.getElementById('tb-title').textContent = newTitle;
+    }
+    await loadMaps();
+  }
+  _renameMapId = null;
+}
+
+/** Parent-Map setzen */
+async function openParentMapDlg(mapId) {
+  _parentMapId = mapId ?? activeMapId;
+  if (!_parentMapId) return;
+  // Alle Maps laden → Select befüllen
+  const maps   = await api('/api/maps') ?? [];
+  const sel    = document.getElementById('parent-map-select');
+  sel.innerHTML = '<option value="">(keine – Top-Level)</option>' +
+    maps
+      .filter(m => m.id !== _parentMapId)   // sich selbst ausschließen
+      .map(m => `<option value="${esc(m.id)}">${esc(m.title)}</option>`)
+      .join('');
+  // Aktuellen Wert vorwählen
+  const currentParent = maps.find(m => m.id === _parentMapId)?.parent_map ?? '';
+  sel.value = currentParent;
+  openDlg('dlg-parent-map');
+}
+
+async function confirmSetParentMap() {
+  if (!_parentMapId) return;
+  const parentId = document.getElementById('parent-map-select').value;
+  closeDlg('dlg-parent-map');
+  await api(`/api/maps/${_parentMapId}/parent`, 'PUT', { parent_map: parentId || null });
+  await loadMaps();
+  _parentMapId = null;
+}
+
+/** "Alle Maps verwalten" Overlay öffnen */
+async function openManageMapsOverlay() {
+  const maps = await api('/api/maps') ?? [];
+  const list  = document.getElementById('manage-maps-list');
+  if (!maps.length) {
+    list.innerHTML = '<div class="empty-hint">Keine Maps vorhanden.</div>';
+  } else {
+    list.innerHTML = maps.map(m => `
+      <div class="manage-row" data-id="${esc(m.id)}">
+        <span class="manage-pip"></span>
+        <div class="manage-info">
+          <span class="manage-title">${esc(m.title)}</span>
+          <span class="manage-meta">${esc(m.id)}${m.parent_map ? ' · ↳ ' + esc(m.parent_map) : ''}</span>
+        </div>
+        <div class="manage-actions">
+          <button class="manage-btn" title="Öffnen"
+                  onclick="closeDlg('dlg-manage-maps'); openMap('${esc(m.id)}')">▶</button>
+          <button class="manage-btn" title="Umbenennen"
+                  onclick="_renameMapId='${esc(m.id)}';
+                           document.getElementById('rename-map-title').value='${esc(m.title)}';
+                           closeDlg('dlg-manage-maps'); openDlg('dlg-rename-map')">✎</button>
+          <button class="manage-btn" title="Parent-Map"
+                  onclick="closeDlg('dlg-manage-maps'); openParentMapDlg('${esc(m.id)}')">🗺</button>
+          <button class="manage-btn manage-btn-danger" title="Löschen"
+                  onclick="_deleteMapId='${esc(m.id)}'; _deleteMapTitle='${esc(m.title)}';
+                           confirmDeleteMapById(); closeDlg('dlg-manage-maps')">🗑</button>
+        </div>
+      </div>`).join('');
+  }
+  openDlg('dlg-manage-maps');
+}
+
+window.openRenameMapDlg      = openRenameMapDlg;
+window.confirmRenameMap      = confirmRenameMap;
+window.openParentMapDlg      = openParentMapDlg;
+window.confirmSetParentMap   = confirmSetParentMap;
+window.openManageMapsOverlay = openManageMapsOverlay;
+window.openCardMenu          = openCardMenu;
+window.closeCardMenu         = closeCardMenu;
+window.confirmDeleteMapById  = confirmDeleteMapById;
+
+
+// ═══════════════════════════════════════════════════════════════════════
+//  KIOSK-MODUS
+// ═══════════════════════════════════════════════════════════════════════
+
+let _kioskActive      = false;
+let _kioskRefreshTimer = null;
+
+function toggleKiosk() {
+  _kioskActive ? exitKiosk() : enterKiosk();
+}
+
+function enterKiosk() {
+  if (!activeMapId) return;
+  _kioskActive = true;
+
+  const settings = loadUserSettings();
+  const overlay  = document.getElementById('kiosk-overlay');
+  const wrap     = document.getElementById('kiosk-canvas-wrap');
+  const canvas   = document.getElementById('nv2-canvas');
+  const svg      = document.getElementById('nv2-lines-svg');
+  const banner   = document.getElementById('nv2-edit-banner');
+  const snapCont = document.getElementById('snapin-container');
+  const snapTabs = document.getElementById('snap-tabs');
+
+  // Canvas in Kiosk-Wrap verschieben
+  wrap.appendChild(canvas);
+  if (svg)      wrap.appendChild(svg);
+  if (banner)   wrap.appendChild(banner);
+  if (snapCont) wrap.appendChild(snapCont);
+  if (snapTabs) wrap.appendChild(snapTabs);
+
+  overlay.style.display = 'flex';
+
+  // Optionale UI-Elemente ausblenden
+  if (settings.kioskHideSidebar) document.getElementById('sidebar').style.display = 'none';
+  if (settings.kioskHideTopbar)  document.getElementById('topbar').style.display  = 'none';
+
+  // Kiosk-Label im Burger
+  const lbl = document.getElementById('burger-kiosk-label');
+  if (lbl) lbl.textContent = 'Kiosk beenden';
+  const btn = document.getElementById('btn-kiosk');
+  if (btn) btn.classList.add('on');
+
+  // Status-Ticker
+  _updateKioskStatus();
+
+  // Auto-Refresh
+  if (settings.kioskAutoRefresh) {
+    _kioskRefreshTimer = setInterval(() => {
+      wsClient?.forceRefresh();
+      _updateKioskStatus();
+    }, settings.kioskInterval * 1000);
+  }
+
+  // Fullscreen API
+  document.documentElement.requestFullscreen?.().catch(() => {});
+
+  // Kiosk-Exit-Button: erscheint bei Mausbewegung kurz
+  _setupKioskMouseHide();
+}
+
+function exitKiosk() {
+  _kioskActive = false;
+  clearInterval(_kioskRefreshTimer);
+  _kioskRefreshTimer = null;
+
+  const overlay  = document.getElementById('kiosk-overlay');
+  const mapArea  = document.getElementById('map-area');
+  const canvas   = document.getElementById('nv2-canvas');
+  const svg      = document.getElementById('nv2-lines-svg');
+  const banner   = document.getElementById('nv2-edit-banner');
+  const snapCont = document.getElementById('snapin-container');
+  const snapTabs = document.getElementById('snap-tabs');
+
+  // Canvas zurück in map-area
+  mapArea.appendChild(canvas);
+  if (svg)      mapArea.appendChild(svg);
+  if (banner)   mapArea.appendChild(banner);
+  if (snapCont) mapArea.appendChild(snapCont);
+  if (snapTabs) mapArea.appendChild(snapTabs);
+
+  overlay.style.display = 'none';
+
+  // Sidebar/Topbar wiederherstellen
+  document.getElementById('sidebar').style.display = '';
+  document.getElementById('topbar').style.display  = '';
+
+  // Burger-Button zurücksetzen
+  const lbl = document.getElementById('burger-kiosk-label');
+  if (lbl) lbl.textContent = 'Kiosk-Modus';
+  const btn = document.getElementById('btn-kiosk');
+  if (btn) btn.classList.remove('on');
+
+  // Fullscreen verlassen
+  if (document.fullscreenElement) document.exitFullscreen?.();
+}
+
+function _updateKioskStatus() {
+  const bar = document.getElementById('kiosk-status-bar');
+  if (!bar) return;
+  const now = new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  bar.textContent = `${activeMapCfg?.title ?? ''} · ${now}`;
+}
+
+let _kioskMouseTimer = null;
+function _setupKioskMouseHide() {
+  const overlay = document.getElementById('kiosk-overlay');
+  const exitBtn = document.getElementById('kiosk-exit-btn');
+  const showUI  = () => {
+    exitBtn.classList.add('visible');
+    clearTimeout(_kioskMouseTimer);
+    _kioskMouseTimer = setTimeout(() => exitBtn.classList.remove('visible'), 2500);
+  };
+  overlay.addEventListener('mousemove', showUI);
+  overlay.addEventListener('touchstart', showUI);
+}
+
+window.toggleKiosk = toggleKiosk;
+window.exitKiosk   = exitKiosk;
+
+
+// ═══════════════════════════════════════════════════════════════════════
+//  BENUTZEREINSTELLUNGEN
+// ═══════════════════════════════════════════════════════════════════════
+
+const USER_SETTINGS_KEY = 'nv2-user-settings';
+
+function defaultUserSettings() {
+  return {
+    theme:              'dark',
+    sidebarDefault:     'expanded',
+    kioskHideSidebar:   false,
+    kioskHideTopbar:    false,
+    kioskAutoRefresh:   true,
+    kioskInterval:      60,
+  };
+}
+
+function loadUserSettings() {
+  try {
+    return { ...defaultUserSettings(), ...JSON.parse(localStorage.getItem(USER_SETTINGS_KEY) ?? '{}') };
+  } catch { return defaultUserSettings(); }
+}
+
+function saveUserSettings() {
+  const s = {
+    theme:            currentTheme,
+    sidebarDefault:   document.getElementById('us-sidebar-default')?.value ?? 'expanded',
+    kioskHideSidebar: document.getElementById('us-kiosk-hide-sidebar')?.checked ?? false,
+    kioskHideTopbar:  document.getElementById('us-kiosk-hide-topbar')?.checked  ?? false,
+    kioskAutoRefresh: document.getElementById('us-kiosk-auto-refresh')?.checked ?? true,
+    kioskInterval:    parseInt(document.getElementById('us-kiosk-interval')?.value ?? '60'),
+  };
+  localStorage.setItem(USER_SETTINGS_KEY, JSON.stringify(s));
+  closeDlg('dlg-user-settings');
+}
+
+function openUserSettingsDlg() {
+  const s = loadUserSettings();
+  // Theme-Chips
+  updateThemeChips();
+  // Sidebar-Default
+  const sd = document.getElementById('us-sidebar-default');
+  if (sd) sd.value = s.sidebarDefault;
+  // Kiosk-Optionen
+  const khs = document.getElementById('us-kiosk-hide-sidebar');
+  const kht = document.getElementById('us-kiosk-hide-topbar');
+  const kar = document.getElementById('us-kiosk-auto-refresh');
+  const ki  = document.getElementById('us-kiosk-interval');
+  if (khs) khs.checked = s.kioskHideSidebar;
+  if (kht) kht.checked = s.kioskHideTopbar;
+  if (kar) kar.checked = s.kioskAutoRefresh;
+  if (ki)  ki.value    = String(s.kioskInterval);
+  openDlg('dlg-user-settings');
+}
+
+function updateThemeChips() {
+  document.getElementById('theme-chip-dark') ?.classList.toggle('active', currentTheme === 'dark');
+  document.getElementById('theme-chip-light')?.classList.toggle('active', currentTheme === 'light');
+}
+
+window.openUserSettingsDlg = openUserSettingsDlg;
+window.saveUserSettings    = saveUserSettings;
+window.updateThemeChips    = updateThemeChips;
 
 function dlgMigrate() {
   _migFile = null;
@@ -1570,12 +2473,20 @@ function onKeyDown(e) {
   }
 
   if (e.key === 'Escape') {
+    if (_kioskActive) { exitKiosk(); return; }
+    closeBurgerMenu();
     window.closeDlg('dlg-add-object');
     window.closeDlg('dlg-new-map');
+    window.closeDlg('dlg-user-settings');
     closeResizeDialog();
     closeContextMenu();
     if (editActive) toggleEdit();
     closeSnapin(activeSnapin);
+  }
+
+  if (e.key === 'F11' && activeMapId) {
+    e.preventDefault();
+    toggleKiosk();
   }
 
   if ((e.metaKey || e.ctrlKey) && e.key === 'e' && activeMapId) {

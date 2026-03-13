@@ -28,29 +28,18 @@
       <div class="nav-section">Maps</div>
       <div id="sidebar-maps" class="map-list"></div>
 
-      <div class="nav-section">System</div>
-
-      <button class="nav-btn" onclick="window.open('api-doc.html','_blank')" data-label="API Docs">
-        <span class="nav-ico">⊞</span>
-        API Docs
-      </button>
-
-      <button class="nav-btn" id="nav-btn-health" data-label="Health">
-        <span class="nav-ico">⊙</span>
-        Health
-        <span class="nav-chip ok" id="health-chip">OK</span>
-      </button>
+      <!-- ── LAYER PANEL ── -->
+      <div class="nav-section" id="layer-section" style="display:none">Layer</div>
+      <div id="sidebar-layers" class="layer-list" style="display:none"></div>
 
     </div><!-- /nav -->
 
-    <!-- Footer: Livestatus-Status + Theme-Toggle -->
+    <!-- Footer: Livestatus-Status + Sidebar-Toggle -->
     <div class="sidebar-foot">
       <div class="foot-dot" id="foot-dot"></div>
       <span id="sidebar-status">Verbinde…</span>
-      <button class="theme-toggle" id="btn-theme" title="Theme wechseln">☀</button>
-
       <!-- Sidebar-Toggle mit CMK-SVG-Icon -->
-      <button class="theme-toggle" id="btn-sidebar-toggle-foot" onclick="toggleSidebar()" title="Sidebar ein-/ausklappen (B)">
+      <button class="theme-toggle" id="btn-sidebar-toggle-foot" title="Sidebar ein-/ausklappen (B)">
         <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" width="14" height="14">
           <path fill="currentColor" fill-rule="evenodd" d="
             M15,16H1C0.4,16,0,15.6,0,15V1C0,0.4,0.4,0,1,0h14c0.6,0,1,0.4,1,1v14C16,15.6,15.6,16,15,16z
@@ -111,69 +100,126 @@
       <!-- Live-Statuszeile -->
       <span id="nv2-status-bar"></span>
 
-      <!-- Map-Toolbar (nur wenn Map geöffnet) -->
+      <!-- Map-Toolbar: nur +Objekt, Kiosk und Refresh in der Topbar -->
       <div id="map-toolbar" style="display:none; align-items:center; gap:6px;">
         <div class="tb-sep"></div>
-
-        <button class="tb-btn" id="btn-bg-upload" title="Hintergrundbild hochladen">
-          <span class="tb-icon">🖼</span> Hintergrund
-        </button>
-
-        <button class="tb-btn" id="btn-edit">
-          <span class="tb-icon">✏</span> Bearbeiten
-        </button>
-
-        <button class="tb-btn" id="btn-add-host" style="display:none;" title="Objekt platzieren">
+        <button class="tb-btn" id="btn-add-host" style="display:none;" title="Objekt platzieren (Edit-Mode)">
           <span class="tb-icon">＋</span> Objekt
         </button>
-
-        <button class="tb-btn danger" id="btn-delete-map" title="Map löschen">
-          <span class="tb-icon">🗑</span>
+        <button class="tb-btn" id="btn-kiosk" title="Kiosk-Modus (Vollbild)" onclick="toggleKiosk()">
+          <span class="tb-icon">⛶</span>
         </button>
-
-        <div class="tb-sep"></div>
-
-        <button class="tb-btn" id="btn-refresh" title="Refresh erzwingen (r)">
+        <button class="tb-btn" id="btn-refresh" title="Refresh erzwingen (R)">
           <span class="tb-icon">↻</span>
         </button>
       </div><!-- /map-toolbar -->
 
       <div class="tb-gap"></div>
 
-      <!-- Burger-Menü ganz rechts (Login, Einstellungen, etc. – später) -->
-      <button class="tb-btn tb-btn-icon" id="btn-menu" title="Menü">
-        <svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
-          <rect fill="currentColor" x="1" y="3"  width="16" height="1.8" rx="0.9"/>
-          <rect fill="currentColor" x="1" y="8.1" width="16" height="1.8" rx="0.9"/>
-          <rect fill="currentColor" x="1" y="13.2" width="16" height="1.8" rx="0.9"/>
-        </svg>
-      </button>
+      <!-- Burger-Menü ganz rechts -->
+      <div id="burger-wrap" style="position:relative; flex-shrink:0;">
+
+        <button class="tb-btn tb-btn-icon" id="btn-menu" title="Menü" onclick="toggleBurgerMenu()">
+          <svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+            <rect fill="currentColor" x="1" y="3"    width="16" height="1.8" rx="0.9"/>
+            <rect fill="currentColor" x="1" y="8.1"  width="16" height="1.8" rx="0.9"/>
+            <rect fill="currentColor" x="1" y="13.2" width="16" height="1.8" rx="0.9"/>
+          </svg>
+        </button>
+
+        <!-- Dropdown -->
+        <div id="burger-dropdown" class="burger-dropdown" style="display:none;">
+
+          <!-- ── Aktive Map (nur wenn Map geöffnet) ── -->
+          <div id="burger-map-section" style="display:none;">
+            <div class="burger-head">Aktive Map</div>
+            <button class="burger-item" id="btn-edit" onclick="toggleEdit(); closeBurgerMenu()">
+              <span class="burger-ico">✏</span>
+              <span id="burger-edit-label">Bearbeiten</span>
+              <kbd class="burger-kbd">Ctrl+E</kbd>
+            </button>
+            <button class="burger-item" id="btn-bg-upload"
+                    onclick="document.getElementById('bg-file-input').click(); closeBurgerMenu()">
+              <span class="burger-ico">🖼</span> Hintergrund hochladen
+            </button>
+            <button class="burger-item" id="burger-btn-rename"
+                    onclick="openRenameMapDlg(); closeBurgerMenu()">
+              <span class="burger-ico">✎</span> Umbenennen
+            </button>
+            <button class="burger-item" id="burger-btn-parentmap"
+                    onclick="openParentMapDlg(); closeBurgerMenu()">
+              <span class="burger-ico">🗺</span> Parent-Map setzen
+            </button>
+            <button class="burger-item" id="burger-btn-kiosk"
+                    onclick="toggleKiosk(); closeBurgerMenu()">
+              <span class="burger-ico">⛶</span>
+              <span id="burger-kiosk-label">Kiosk-Modus</span>
+              <kbd class="burger-kbd">F11</kbd>
+            </button>
+            <button class="burger-item burger-item-danger" id="btn-delete-map"
+                    onclick="confirmDeleteMap(); closeBurgerMenu()">
+              <span class="burger-ico">🗑</span> Map löschen
+            </button>
+            <div class="burger-divider"></div>
+          </div>
+
+          <!-- ── Maps verwalten (immer sichtbar) ── -->
+          <div class="burger-head">Maps verwalten</div>
+          <button class="burger-item" onclick="dlgNewMap(); closeBurgerMenu()">
+            <span class="burger-ico">＋</span> Neue Map erstellen
+          </button>
+          <button class="burger-item" onclick="openManageMapsOverlay(); closeBurgerMenu()">
+            <span class="burger-ico">⊟</span> Alle Maps verwalten
+          </button>
+          <button class="burger-item" onclick="dlgMigrate(); closeBurgerMenu()">
+            <span class="burger-ico">↑</span> NagVis&#x202F;1 importieren
+          </button>
+          <div class="burger-divider"></div>
+
+          <!-- ── Benutzereinstellungen ── -->
+          <div class="burger-head">Benutzereinstellungen</div>
+          <button class="burger-item"
+                  onclick="setTheme(currentTheme==='dark'?'light':'dark'); closeBurgerMenu()">
+            <span class="burger-ico" id="burger-theme-ico">☀</span>
+            <span id="burger-theme-label">Light-Theme</span>
+          </button>
+          <button class="burger-item" onclick="openUserSettingsDlg(); closeBurgerMenu()">
+            <span class="burger-ico">⚙</span> Einstellungen…
+          </button>
+          <div class="burger-divider"></div>
+
+          <!-- ── System ── -->
+          <div class="burger-head">System</div>
+          <button class="burger-item burger-item-noaction">
+            <span class="burger-ico">⊙</span> Health
+            <span class="nav-chip ok" id="health-chip" style="margin-left:auto">OK</span>
+          </button>
+          <button class="burger-item" onclick="window.open('api-doc.html','_blank'); closeBurgerMenu()">
+            <span class="burger-ico">⊞</span> API Docs
+          </button>
+
+        </div><!-- /burger-dropdown -->
+      </div><!-- /burger-wrap -->
 
   </div><!-- /topbar -->
 
 
   <!-- ═══════════════════════════════════════════════════════════
-       MAIN  (Sidebar-Content: Overview + Map-Canvas)
+       MAIN
   ═══════════════════════════════════════════════════════════ -->
   <div id="main">
 
-    <!-- ═══════════════════════════════════════════════════════
-         OVERVIEW
-    ══════════════════════════════════════════════════════= -->
+    <!-- OVERVIEW -->
     <div id="overview">
       <div class="ov-head">
         <h2>Übersicht</h2>
         <p>Wähle eine Map oder erstelle eine neue</p>
       </div>
-      <div class="ov-grid" id="ov-grid">
-        <!-- Karten werden per JS eingefügt -->
-      </div>
+      <div class="ov-grid" id="ov-grid"></div>
     </div>
 
 
-    <!-- ═══════════════════════════════════════════════════════
-         DIALOG – NagVis-1 Migration
-    ══════════════════════════════════════════════════════= -->
+    <!-- DIALOG – NagVis-1 Migration -->
     <div class="dlg-overlay" id="dlg-migrate">
       <div class="dlg-box" style="width:440px">
         <h3>NagVis&#x202F;1 Map importieren</h3>
@@ -218,25 +264,20 @@
       </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════
-         MAP CANVAS
-    ══════════════════════════════════════════════════════= -->
+
+    <!-- MAP CANVAS -->
     <div id="map-area">
+      <div id="nv2-canvas" data-map-id=""></div>
 
-
-      <!-- Node-Canvas -->
-      <div id="nv2-canvas" id="nv2-map-root" data-map-id=""></div>
-
-      <!-- Edit-Mode Banner -->
       <div id="nv2-edit-banner">
         <span style="color:var(--acc);font-weight:600">✏ EDIT</span>
         <span class="banner-key">Klick</span> Host platzieren
         <span class="banner-key">Drag</span> verschieben
-        <span class="banner-key">Rechtsklick</span> entfernen
+        <span class="banner-key">Rechtsklick</span> Optionen
         <span class="banner-key">Esc</span> beenden
       </div>
 
-      <!-- Snap-In Tabs (rechts am Rand) -->
+      <!-- Snap-In Tabs -->
       <div id="snap-tabs">
         <div class="snap-tab" id="tab-hosts"  onclick="toggleSnapin('hosts')">Hosts</div>
         <div class="snap-tab" id="tab-events" onclick="toggleSnapin('events')">Events</div>
@@ -244,8 +285,6 @@
 
       <!-- Snap-In Panels -->
       <div id="snapin-container">
-
-        <!-- Hosts -->
         <div class="snapin" id="snapin-hosts">
           <div class="snapin-head">
             <span class="snapin-ico">⬦</span>
@@ -257,7 +296,6 @@
           </div>
         </div>
 
-        <!-- Events -->
         <div class="snapin" id="snapin-events">
           <div class="snapin-head">
             <span class="snapin-ico">◎</span>
@@ -268,8 +306,7 @@
             <div class="empty-hint">Warte auf Events…</div>
           </div>
         </div>
-
-      </div><!-- /snapin-container -->
+      </div>
 
     </div><!-- /map-area -->
 
@@ -278,18 +315,14 @@
 </div><!-- /app -->
 
 
-<!-- Verstecktes File-Input für Hintergrundbilder -->
 <input type="file" id="bg-file-input" accept="image/*,.svg">
 
 
-<!-- ═══════════════════════════════════════════════════════════
-     DIALOG – Objekt hinzufügen
-═══════════════════════════════════════════════════════════ -->
+<!-- DIALOG – Objekt hinzufügen -->
 <div class="dlg-overlay" id="dlg-add-object">
   <div class="dlg dlg-wide">
     <h3>Objekt auf Map platzieren</h3>
 
-    <!-- Typ-Auswahl (immer sichtbar) -->
     <div class="f-row">
       <label class="f-label">Typ</label>
       <div class="dlg-type-grid" id="dlg-type-grid">
@@ -304,7 +337,6 @@
       </div>
     </div>
 
-    <!-- Felder: Monitoring-Objekte (host / hostgroup / servicegroup / map) -->
     <div id="dlg-fields-monitoring" class="dlg-fields">
       <div class="f-row">
         <label class="f-label" for="dlg-obj-name" id="dlg-name-label">Name</label>
@@ -312,7 +344,7 @@
                placeholder="z.B. srv-web-01" autocomplete="off" list="known-hosts">
         <datalist id="known-hosts"></datalist>
       </div>
-      <div class="f-row" id="dlg-row-iconset">
+      <div class="f-row">
         <label class="f-label" for="dlg-iconset">Iconset</label>
         <select class="f-select" id="dlg-iconset">
           <option value="std_small">◉ std_small (Standard)</option>
@@ -326,7 +358,7 @@
           <option value="ap">📡 ap</option>
         </select>
       </div>
-      <div class="f-row" id="dlg-row-iconsize">
+      <div class="f-row">
         <label class="f-label" for="dlg-iconsize">Größe</label>
         <div style="display:flex;align-items:center;gap:8px;flex:1">
           <input type="range" id="dlg-iconsize" min="16" max="96" step="4" value="32"
@@ -336,13 +368,12 @@
                 color:var(--text-mid);min-width:36px">32px</span>
         </div>
       </div>
-      <div class="f-row" id="dlg-row-label">
+      <div class="f-row">
         <label class="f-label" for="dlg-obj-label">Label <span class="f-opt">(optional)</span></label>
         <input class="f-input" id="dlg-obj-label" type="text" placeholder="Anzeigename">
       </div>
     </div>
 
-    <!-- Felder: Service (zusätzlich host_name) -->
     <div id="dlg-fields-service" class="dlg-fields" style="display:none">
       <div class="f-row">
         <label class="f-label" for="dlg-svc-host">Hostname</label>
@@ -352,8 +383,7 @@
       </div>
       <div class="f-row">
         <label class="f-label" for="dlg-svc-name">Service</label>
-        <input class="f-input" id="dlg-svc-name" type="text"
-               placeholder="z.B. CPU Load" autocomplete="off">
+        <input class="f-input" id="dlg-svc-name" type="text" placeholder="z.B. CPU Load">
       </div>
       <div class="f-row">
         <label class="f-label" for="dlg-svc-label">Label <span class="f-opt">(optional)</span></label>
@@ -361,7 +391,6 @@
       </div>
     </div>
 
-    <!-- Felder: Textbox -->
     <div id="dlg-fields-textbox" class="dlg-fields" style="display:none">
       <div class="f-row">
         <label class="f-label" for="dlg-tb-text">Text</label>
@@ -373,7 +402,7 @@
           <input class="f-input f-input-sm" id="dlg-tb-size" type="number" value="13" min="8" max="48">
         </div>
         <div>
-          <label class="f-label" for="dlg-tb-bold">Fett</label>
+          <label class="f-label">Fett</label>
           <input type="checkbox" id="dlg-tb-bold" style="margin-top:6px">
         </div>
         <div>
@@ -387,7 +416,6 @@
       </div>
     </div>
 
-    <!-- Felder: Linie -->
     <div id="dlg-fields-line" class="dlg-fields" style="display:none">
       <div class="f-row f-row-inline">
         <div>
@@ -407,10 +435,9 @@
           <input class="f-input-color" id="dlg-ln-color" type="color" value="#555555">
         </div>
       </div>
-      <p class="f-hint">Endpunkt: wird durch zweiten Klick auf Canvas gesetzt, oder 200px rechts.</p>
+      <p class="f-hint">Endpunkt: wird durch zweiten Klick auf Canvas gesetzt, oder 20% rechts.</p>
     </div>
 
-    <!-- Felder: Container -->
     <div id="dlg-fields-container" class="dlg-fields" style="display:none">
       <div class="f-row">
         <label class="f-label" for="dlg-ct-url">Bild-URL</label>
@@ -426,25 +453,18 @@
 </div>
 
 
-<!-- ═══════════════════════════════════════════════════════════
-     DIALOG – Neue Map
-═══════════════════════════════════════════════════════════ -->
+<!-- DIALOG – Neue Map -->
 <div class="dlg-overlay" id="dlg-new-map">
   <div class="dlg">
     <h3>Neue Map erstellen</h3>
-
     <div class="f-row">
       <label class="f-label" for="nm-title">Titel</label>
-      <input  class="f-input" id="nm-title" type="text"
-              placeholder="z.B. Datacenter Hamburg">
+      <input class="f-input" id="nm-title" type="text" placeholder="z.B. Datacenter Hamburg">
     </div>
-
     <div class="f-row">
       <label class="f-label" for="nm-id">ID <span style="color:var(--text-dim);font-weight:400">(optional)</span></label>
-      <input  class="f-input" id="nm-id" type="text"
-              placeholder="datacenter-hh (wird sonst auto-generiert)">
+      <input class="f-input" id="nm-id" type="text" placeholder="datacenter-hh">
     </div>
-
     <div class="dlg-foot">
       <button class="btn-cancel" onclick="closeDlg('dlg-new-map')">Abbrechen</button>
       <button class="btn-ok"     onclick="confirmNewMap()">Erstellen</button>
@@ -453,18 +473,138 @@
 </div>
 
 
-<!-- Theme sofort anwenden bevor CSS geladen ist – verhindert Flash -->
+<!-- DIALOG – Benutzereinstellungen -->
+<div class="dlg-overlay" id="dlg-user-settings">
+  <div class="dlg-box" style="width:380px">
+    <h3>Benutzereinstellungen</h3>
+
+    <div class="f-row">
+      <label class="f-label">Erscheinungsbild</label>
+      <div style="display:flex; gap:8px;">
+        <button class="type-chip" id="theme-chip-dark"  onclick="setTheme('dark');  updateThemeChips()"
+                style="flex:1">🌙 Dark</button>
+        <button class="type-chip" id="theme-chip-light" onclick="setTheme('light'); updateThemeChips()"
+                style="flex:1">☀ Light</button>
+      </div>
+    </div>
+
+    <div class="f-row" style="margin-top:12px">
+      <label class="f-label">Sidebar beim Start</label>
+      <select class="f-select" id="us-sidebar-default">
+        <option value="expanded">Ausgeklappt</option>
+        <option value="collapsed">Eingeklappt</option>
+      </select>
+    </div>
+
+    <div class="f-row" style="margin-top:12px">
+      <label class="f-label">Kiosk-Modus Optionen</label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--text-mid)">
+        <input type="checkbox" id="us-kiosk-hide-sidebar"> Sidebar im Kiosk-Modus ausblenden
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--text-mid);margin-top:6px">
+        <input type="checkbox" id="us-kiosk-hide-topbar"> Topbar im Kiosk-Modus ausblenden
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--text-mid);margin-top:6px">
+        <input type="checkbox" id="us-kiosk-auto-refresh" checked> Auto-Refresh im Kiosk-Modus
+      </label>
+      <div class="f-row" style="margin-top:8px; display:flex; align-items:center; gap:8px;">
+        <label class="f-label" style="margin:0; white-space:nowrap">Refresh-Intervall</label>
+        <select class="f-select" id="us-kiosk-interval" style="max-width:140px">
+          <option value="30">30 Sekunden</option>
+          <option value="60" selected>1 Minute</option>
+          <option value="120">2 Minuten</option>
+          <option value="300">5 Minuten</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="dlg-actions" style="margin-top:16px">
+      <button class="btn-cancel" onclick="closeDlg('dlg-user-settings')">Abbrechen</button>
+      <button class="btn-ok"     onclick="saveUserSettings()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- KIOSK-MODUS – Vollbild-Overlay -->
+<div id="kiosk-overlay" class="kiosk-overlay" style="display:none;">
+  <div id="kiosk-canvas-wrap">
+    <!-- Map-Canvas wird per JS hierher verschoben -->
+  </div>
+  <!-- Exit-Button: erscheint kurz bei Mausbewegung -->
+  <button id="kiosk-exit-btn" class="kiosk-exit-btn" onclick="toggleKiosk()" title="Kiosk-Modus beenden (Esc / F11)">
+    <svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" width="14" height="14">
+      <path fill="currentColor" d="M2,2 L7,2 L7,4 L4,4 L4,7 L2,7 Z
+                                   M11,2 L16,2 L16,7 L14,7 L14,4 L11,4 Z
+                                   M2,11 L4,11 L4,14 L7,14 L7,16 L2,16 Z
+                                   M14,11 L16,11 L16,16 L11,16 L11,14 L14,14 Z"/>
+    </svg>
+    Beenden
+  </button>
+  <!-- Status-Ticker unten -->
+  <div id="kiosk-status-bar" class="kiosk-status-bar"></div>
+</div>
+
+
+<!-- DIALOG – Map umbenennen -->
+<div class="dlg-overlay" id="dlg-rename-map">
+  <div class="dlg">
+    <h3>Map umbenennen</h3>
+    <div class="f-row">
+      <label class="f-label" for="rename-map-title">Neuer Titel</label>
+      <input class="f-input" id="rename-map-title" type="text" placeholder="Neuer Name">
+    </div>
+    <div class="dlg-foot">
+      <button class="btn-cancel" onclick="closeDlg('dlg-rename-map')">Abbrechen</button>
+      <button class="btn-ok"     onclick="confirmRenameMap()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- DIALOG – Parent-Map setzen -->
+<div class="dlg-overlay" id="dlg-parent-map">
+  <div class="dlg">
+    <h3>Parent-Map setzen</h3>
+    <div class="f-row">
+      <label class="f-label" for="parent-map-select">Parent-Map</label>
+      <select class="f-select" id="parent-map-select">
+        <option value="">(keine – Top-Level)</option>
+      </select>
+    </div>
+    <p class="f-hint" style="margin-top:6px">
+      Diese Map wird als Untermap der gewählten Parent-Map angezeigt.
+    </p>
+    <div class="dlg-foot">
+      <button class="btn-cancel" onclick="closeDlg('dlg-parent-map')">Abbrechen</button>
+      <button class="btn-ok"     onclick="confirmSetParentMap()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- OVERLAY – Alle Maps verwalten -->
+<div class="dlg-overlay" id="dlg-manage-maps">
+  <div class="dlg-box" style="width:520px; max-height:80vh; display:flex; flex-direction:column;">
+    <h3 style="flex-shrink:0">Maps verwalten</h3>
+    <div id="manage-maps-list"
+         style="flex:1; overflow-y:auto; margin-bottom:14px; border:1px solid var(--border);
+                border-radius:var(--r); min-height:120px;">
+    </div>
+    <div class="dlg-actions" style="flex-shrink:0">
+      <button class="btn-cancel" onclick="closeDlg('dlg-manage-maps')">Schließen</button>
+      <button class="btn-ok"     onclick="dlgNewMap(); closeDlg('dlg-manage-maps')">＋ Neue Map</button>
+    </div>
+  </div>
+</div>
+
+
 <script>
   (function() {
     const t = localStorage.getItem('nv2-theme') ?? 'dark';
     document.documentElement.setAttribute('data-theme', t);
   })();
 </script>
-
-<!-- === GADGET RENDERER (Linear, Sparkline, Weather Line) === -->
 <script src="js/gadget-renderer.js"></script>
-
-<!-- Application Script -->
 <script src="js/app.js"></script>
 
 </body>
