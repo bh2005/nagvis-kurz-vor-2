@@ -39,17 +39,65 @@ const STATE_CHIP = {
 };
 
 /** Emoji-Icons je Iconset */
-const ICONS = {
-  server:   '🖥',
-  router:   '🌐',
-  switch:   '🔀',
-  firewall: '🔥',
-  storage:  '💾',
-  database: '🗄',
-  ups:      '⚡',
-  ap:       '📡',
-  default:  '⬡',
+/** Emoji-Fallback wenn kein Iconset-Bild vorhanden */
+const ICONS_FALLBACK = {
+  server:'🖥', router:'🌐', switch:'🔀', firewall:'🔥',
+  storage:'💾', database:'🗄', ups:'⚡', ap:'📡', map:'🗺', default:'⬡',
 };
+
+/** Bekannte Iconsets (Verzeichnisse unter assets/icons/) */
+const KNOWN_ICONSETS = ['std_small','server','router','switch','firewall','database','storage','ups','ap'];
+
+/** Upload-Cache für benutzerdefinierte Iconsets */
+let customIconsets = JSON.parse(localStorage.getItem('nv2-custom-iconsets') || '[]');
+
+/**
+ * Liefert die Icon-URL für ein Iconset + State.
+ * Fällt auf Emoji zurück wenn kein Bild bekannt.
+ * @returns {{ type: 'img'|'emoji', src: string }}
+ */
+function iconSrc(iconset, stateLabel) {
+  const all = [...KNOWN_ICONSETS, ...customIconsets];
+  const set = all.includes(iconset) ? iconset : null;
+  if (!set) return { type: 'emoji', src: ICONS_FALLBACK[iconset] ?? ICONS_FALLBACK.default };
+  const state = stateLabel
+    ? (stateLabel === 'UP' || stateLabel === 'OK' ? 'ok'
+      : stateLabel === 'WARNING'   ? 'warning'
+      : stateLabel === 'CRITICAL' || stateLabel === 'DOWN' ? 'critical'
+      : stateLabel === 'UNKNOWN'   ? 'unknown'
+      : stateLabel === 'PENDING'   ? 'pending'
+      : 'unknown')
+    : 'unknown';
+  return { type: 'img', src: `assets/icons/${set}/${state}.svg` };
+}
+
+/**
+ * Aktualisiert das Icon-Bild eines Node-Elements nach Statuswechsel.
+ */
+function updateNodeIcon(el, stateLabel) {
+  const iconset = el.dataset.iconset;
+  if (!iconset) return;
+  const ring = el.querySelector('.nv2-ring');
+  if (!ring) return;
+  const { type, src } = iconSrc(iconset, stateLabel);
+  const existing = ring.querySelector('img.nv2-icon, span.nv2-icon-emoji');
+  if (type === 'img') {
+    if (existing?.tagName === 'IMG') {
+      existing.src = src;
+    } else {
+      const img = document.createElement('img');
+      img.className = 'nv2-icon';
+      img.src = src;
+      img.alt = '';
+      existing?.remove();
+      ring.insertBefore(img, ring.firstChild);
+    }
+  } else {
+    if (existing?.tagName !== 'IMG') {
+      existing.textContent = src;
+    }
+  }
+}
 
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -103,6 +151,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Keyboard-Shortcuts
   document.addEventListener('keydown', onKeyDown);
+
+  // Demo-Modus erkennen (kein Backend → statische Daten)
+  await detectDemoMode();
 
   // Erste Map-Liste laden → Overview aufbauen
   await loadMaps();
@@ -249,20 +300,19 @@ async function openMap(mapId) {
     setBg(`/${activeMapCfg.background}`);
   } else {
     canvas.style.backgroundImage = '';
-    document.getElementById('upload-prompt').classList.remove('hidden');
   }
 
   // Nodes platzieren
   for (const obj of activeMapCfg.objects ?? []) {
-    createNode(obj);          // ← nur diese eine Zeile!
+    createNode(obj);
   }
 
-  // WebSocket
+  // WebSocket (oder Demo-Ersatz)
   if (wsClient) {
     wsClient._dead = true;
     wsClient.ws?.close();
   }
-  wsClient = makeWsClient(mapId);
+  wsClient = _demoMode ? makeDemoWsClient(mapId) : makeWsClient(mapId);
   wsClient.connect();
 }
 
@@ -405,11 +455,12 @@ function onWsMsg(ev) {
       document.getElementById(`nv2-${ev.object_id}`)?.remove();
       break;
 
-    case 'gadget_update':
+    case 'gadget_update': {
       const gadget = document.getElementById(`nv2-${ev.object_id}`);
       if (gadget) updateGadget(gadget, ev);
       break;
-    
+    }
+
     case '_connected':
       setConnDot('connected');
       break;
@@ -442,19 +493,14 @@ function createNode(obj) {
     case 'servicegroup':
     case 'map':
       return _renderMonitoringNode(obj);
-
     case 'textbox':
       return _renderTextbox(obj);
-
     case 'line':
       return _renderLine(obj);
-
     case 'container':
       return _renderContainer(obj);
-
-    case 'gadget':                    // ← NEU
-      return createGadget(obj);       // ← hier wird das Gadget gerendert
-
+    case 'gadget':
+      return createGadget(obj);
     default:
       console.warn('[NV2] createNode: unbekannter Typ', obj.type);
       return null;
@@ -463,42 +509,49 @@ function createNode(obj) {
 
 /** Monitoring-Knoten (host / service / hostgroup / servicegroup / map) */
 function _renderMonitoringNode(obj) {
-  const icon = ICONS[obj.iconset] ?? ICONS.default;
-  const el   = document.createElement('div');
+  const { type: iconType, src: iconSrcVal } = iconSrc(obj.iconset ?? 'std_small', null);
+  const size = obj.size ?? 32;
+
+  const el = document.createElement('div');
   el.id               = `nv2-${obj.object_id}`;
   el.className        = 'nv2-node nv2-unknown';
   el.dataset.objectId = obj.object_id;
   el.dataset.name     = obj.type === 'service'
-    ? `${obj.host_name}::${obj.name}`
-    : obj.name;
+    ? `${obj.host_name}::${obj.name}` : obj.name;
   el.dataset.type     = obj.type;
+  el.dataset.iconset  = obj.iconset ?? 'std_small';
   el.style.left       = `${obj.x}%`;
   el.style.top        = `${obj.y}%`;
+  el.style.setProperty('--node-size', `${size}px`);
 
-  // Typ-Badge oben links
   const typeBadge = { service:'svc', hostgroup:'hg', servicegroup:'sg', map:'map' };
   const typePill  = typeBadge[obj.type]
-    ? `<span class="nv2-type-pill">${typeBadge[obj.type]}</span>`
-    : '';
+    ? `<span class="nv2-type-pill">${typeBadge[obj.type]}</span>` : '';
+
+  const iconHtml = iconType === 'img'
+    ? `<img class="nv2-icon" src="${esc(iconSrcVal)}" alt="" width="${size}" height="${size}">`
+    : `<span class="nv2-icon-emoji" aria-hidden="true">${iconSrcVal}</span>`;
 
   el.innerHTML = `
     ${typePill}
-    <div class="nv2-ring">
-      <span aria-hidden="true">${icon}</span>
+    <div class="nv2-ring" style="width:${size}px;height:${size}px">
+      ${iconHtml}
       <span class="nv2-badge" aria-label="UNKNOWN">?</span>
     </div>
     <div class="nv2-label" title="${esc(obj.label || obj.name)}">${esc(obj.label || obj.name)}</div>`;
 
   el.addEventListener('mouseenter', () => showTooltip(el, obj));
   el.addEventListener('mouseleave', hideTooltip);
-  el.addEventListener('contextmenu', e => { e.preventDefault(); if (editActive) removeNode(el, obj); });
+  el.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    if (editActive) showNodeContextMenu(e, el, obj);
+  });
 
   document.getElementById('nv2-canvas').appendChild(el);
 
   // Sofort Status aus Cache
   const cacheKey = obj.type === 'service'
-    ? `${obj.host_name}::${obj.name}`
-    : obj.name;
+    ? `${obj.host_name}::${obj.name}` : obj.name;
   const cached = hostCache[cacheKey];
   if (cached) applyNodeStatus(el, cached.state_label, cached.acknowledged, cached.in_downtime);
 
@@ -514,6 +567,8 @@ function _renderTextbox(obj) {
   el.dataset.type     = 'textbox';
   el.style.left       = `${obj.x}%`;
   el.style.top        = `${obj.y}%`;
+  const scale = (obj.size ?? 100) / 100;
+  el.style.transform  = scale !== 1 ? `scale(${scale})` : '';
   el.style.fontSize   = `${obj.font_size ?? 13}px`;
   el.style.fontWeight = obj.bold ? '700' : '400';
   el.style.color      = obj.color      || 'var(--text)';
@@ -522,7 +577,7 @@ function _renderTextbox(obj) {
   if (obj.w) el.style.width  = `${obj.w}%`;
   el.textContent = obj.text ?? '';
 
-  el.addEventListener('contextmenu', e => { e.preventDefault(); if (editActive) removeNode(el, obj); });
+  el.addEventListener('contextmenu', e => { e.preventDefault(); if (editActive) showNodeContextMenu(e, el, obj); });
   document.getElementById('nv2-canvas').appendChild(el);
   return el;
 }
@@ -556,7 +611,7 @@ function _renderLine(obj) {
   const dash    = dashMap[obj.line_style];
   if (dash) line.setAttribute('stroke-dasharray', dash);
 
-  line.addEventListener('contextmenu', e => { e.preventDefault(); if (editActive) { line.remove(); _patchRemove(obj); } });
+  line.addEventListener('contextmenu', e => { e.preventDefault(); if (editActive) showNodeContextMenu(e, line, obj); });
   svg.appendChild(line);
   return line;
 }
@@ -588,7 +643,7 @@ function _renderContainer(obj) {
     }
   }
 
-  el.addEventListener('contextmenu', e => { e.preventDefault(); if (editActive) removeNode(el, obj); });
+  el.addEventListener('contextmenu', e => { e.preventDefault(); if (editActive) showNodeContextMenu(e, el, obj); });
   document.getElementById('nv2-canvas').appendChild(el);
   return el;
 }
@@ -637,6 +692,8 @@ function applyNodeStatus(el, label, ack, downtime) {
     el.classList.add('nv2-status-changed');
     setTimeout(() => el.classList.remove('nv2-status-changed'), 500);
   }
+  // Icon-Bild nach Statuswechsel aktualisieren
+  if (el.dataset.iconset) updateNodeIcon(el, label);
 }
 
 
@@ -825,6 +882,9 @@ function toggleEdit() {
   banner.classList.toggle('show', editActive);
   canvas.classList.toggle('nv2-edit-mode', editActive);
 
+  // Upload-Prompt: liegt nicht auf dem Canvas – Upload läuft über Toolbar-Button
+  // (kein classList-Toggle nötig)
+
   if (editActive) {
     document.querySelectorAll('.nv2-node').forEach(makeDraggable);
   }
@@ -877,9 +937,229 @@ function makeDraggable(el) {
 }
 
 async function removeNode(el, obj) {
-  if (!confirm(`"${obj.name}" von der Map entfernen?`)) return;
+  if (!confirm(`"${obj.name ?? obj.object_id}" von der Map entfernen?`)) return;
   await api(`/api/maps/${activeMapId}/objects/${obj.object_id}`, 'DELETE');
   el.remove();
+}
+
+/**
+ * Kontextmenü für Edit-Mode – Rechtsklick auf beliebiges Objekt.
+ */
+let _ctxMenu = null;
+function showNodeContextMenu(e, el, obj) {
+  closeContextMenu();
+  const menu = document.createElement('div');
+  menu.id = 'nv2-ctx-menu';
+  menu.className = 'ctx-menu';
+  menu.style.left = `${e.clientX}px`;
+  menu.style.top  = `${e.clientY}px`;
+
+  const items = [
+    { label: '⤢ Größe ändern', action: () => openResizeDialog(el, obj) },
+    { label: '🖼 Iconset wechseln', action: () => openIconsetDialog(el, obj),
+      hide: !['host','service','hostgroup','servicegroup','map'].includes(obj.type) },
+    { label: '🗑 Entfernen', action: () => removeNode(el, obj), cls: 'ctx-danger' },
+  ];
+
+  items.forEach(item => {
+    if (item.hide) return;
+    const btn = document.createElement('button');
+    btn.className = 'ctx-item' + (item.cls ? ' ' + item.cls : '');
+    btn.textContent = item.label;
+    btn.onclick = () => { closeContextMenu(); item.action(); };
+    menu.appendChild(btn);
+  });
+
+  document.body.appendChild(menu);
+  _ctxMenu = menu;
+  setTimeout(() => document.addEventListener('click', closeContextMenu, { once: true }), 0);
+}
+
+function closeContextMenu() {
+  _ctxMenu?.remove();
+  _ctxMenu = null;
+}
+
+/**
+ * Größe-Dialog: Slider von 16–128px (Nodes) oder 50–200% (alles andere).
+ */
+function openResizeDialog(el, obj) {
+  closeResizeDialog();
+  const isNode    = ['host','service','hostgroup','servicegroup','map'].includes(obj.type);
+  const isGadget  = obj.type === 'gadget';
+  const isLine    = obj.type === 'line';
+
+  const cur = isNode
+    ? parseInt(el.style.getPropertyValue('--node-size') || '32')
+    : isGadget
+    ? parseInt(el.style.getPropertyValue('--gadget-size') || '100')
+    : parseInt(el.style.transform?.match(/scale\(([\d.]+)\)/)?.[1] * 100 || '100');
+
+  const panel = document.createElement('div');
+  panel.id = 'nv2-resize-panel';
+  panel.className = 'resize-panel';
+
+  const rect = el.getBoundingClientRect();
+  const cvRect = document.getElementById('nv2-canvas').getBoundingClientRect();
+  panel.style.left = `${rect.left - cvRect.left + rect.width + 8}px`;
+  panel.style.top  = `${rect.top  - cvRect.top}px`;
+
+  const unit   = isNode ? 'px' : '%';
+  const min    = isNode ? 16  : 40;
+  const max    = isNode ? 128 : 300;
+  const step   = isNode ? 4   : 10;
+
+  panel.innerHTML = `
+    <div class="rp-head">
+      <span>Größe</span>
+      <button class="rp-close" id="rp-close-btn">✕</button>
+    </div>
+    <div class="rp-body">
+      <input type="range" id="rp-slider" min="${min}" max="${max}" step="${step}" value="${cur}">
+      <span class="rp-val" id="rp-val">${cur}${unit}</span>
+    </div>
+    <div class="rp-foot">
+      <button class="btn-cancel rp-cancel" id="rp-cancel-btn">Abbrechen</button>
+      <button class="btn-ok rp-ok" id="rp-ok-btn">Übernehmen</button>
+    </div>`;
+
+  document.getElementById('nv2-canvas').appendChild(panel);
+
+  const slider = panel.querySelector('#rp-slider');
+  const valLbl = panel.querySelector('#rp-val');
+
+  // Live-Preview
+  slider.addEventListener('input', () => {
+    const v = parseInt(slider.value);
+    valLbl.textContent = v + unit;
+    applySize(el, obj, v, isNode, isGadget);
+  });
+
+  panel.querySelector('#rp-close-btn').onclick  =
+  panel.querySelector('#rp-cancel-btn').onclick = () => {
+    applySize(el, obj, cur, isNode, isGadget); // revert
+    closeResizeDialog();
+  };
+
+  panel.querySelector('#rp-ok-btn').onclick = async () => {
+    const v = parseInt(slider.value);
+    closeResizeDialog();
+    await api(`/api/maps/${activeMapId}/objects/${obj.object_id}/props`, 'PATCH',
+      { size: v });
+    obj.size = v;
+  };
+}
+
+function applySize(el, obj, v, isNode, isGadget) {
+  if (isNode) {
+    el.style.setProperty('--node-size', `${v}px`);
+    const ring = el.querySelector('.nv2-ring');
+    if (ring) { ring.style.width = `${v}px`; ring.style.height = `${v}px`; }
+    const img = el.querySelector('img.nv2-icon');
+    if (img)  { img.width = v; img.height = v; }
+    const emoji = el.querySelector('.nv2-icon-emoji');
+    if (emoji) emoji.style.fontSize = `${Math.round(v * 0.65)}px`;
+  } else if (isGadget) {
+    el.style.setProperty('--gadget-size', `${v}%`);
+    el.style.transform = `scale(${v / 100})`;
+    el.style.transformOrigin = 'top left';
+  } else {
+    const s = v / 100;
+    el.style.transform = `scale(${s})`;
+    el.style.transformOrigin = 'top left';
+  }
+}
+
+function closeResizeDialog() {
+  document.getElementById('nv2-resize-panel')?.remove();
+}
+
+/**
+ * Iconset-Dialog: bekannte Sets auswählen oder eigenes hochladen.
+ */
+function openIconsetDialog(el, obj) {
+  const all = [...['std_small','server','router','switch','firewall','database','storage','ups','ap'],
+               ...customIconsets];
+
+  const cur = el.dataset.iconset || 'std_small';
+  const dlg = document.createElement('div');
+  dlg.id = 'nv2-iconset-dlg';
+  dlg.className = 'dlg-overlay show';
+  dlg.innerHTML = `
+    <div class="dlg" style="width:360px">
+      <h3>Iconset wählen – ${esc(obj.label || obj.name)}</h3>
+      <div class="iconset-grid" id="iconset-grid">
+        ${all.map(s => `
+          <div class="iconset-card ${s === cur ? 'active' : ''}" data-set="${esc(s)}">
+            <img src="assets/icons/${esc(s)}/ok.svg" width="32" height="32" alt="">
+            <img src="assets/icons/${esc(s)}/warning.svg" width="24" height="24" alt="" style="opacity:.7">
+            <img src="assets/icons/${esc(s)}/critical.svg" width="24" height="24" alt="" style="opacity:.7">
+            <div class="iconset-name">${esc(s)}</div>
+          </div>`).join('')}
+        <div class="iconset-card iconset-upload" id="iconset-upload-card" title="Eigenes Iconset hochladen">
+          <div style="font-size:22px">📂</div>
+          <div class="iconset-name">Upload…</div>
+          <input type="file" id="iconset-zip-input" accept=".zip" style="display:none">
+        </div>
+      </div>
+      <p class="f-hint" style="margin-top:8px">
+        Upload: ZIP mit ok.svg, warning.svg, critical.svg, unknown.svg, down.svg
+      </p>
+      <div class="dlg-foot">
+        <button class="btn-cancel" id="iconset-cancel">Abbrechen</button>
+        <button class="btn-ok" id="iconset-ok">Übernehmen</button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(dlg);
+
+  let selected = cur;
+
+  dlg.querySelectorAll('.iconset-card[data-set]').forEach(card => {
+    card.addEventListener('click', () => {
+      dlg.querySelectorAll('.iconset-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      selected = card.dataset.set;
+    });
+  });
+
+  // Upload-Button
+  const uploadCard = dlg.querySelector('#iconset-upload-card');
+  const zipInput   = dlg.querySelector('#iconset-zip-input');
+  uploadCard.addEventListener('click', () => zipInput.click());
+  zipInput.addEventListener('change', async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const setName = file.name.replace(/\.zip$/i, '').toLowerCase().replace(/[^a-z0-9-]/g, '-');
+    // In Demo-Mode: nur registrieren (keine echte Serverübertragung)
+    if (!customIconsets.includes(setName)) {
+      customIconsets.push(setName);
+      localStorage.setItem('nv2-custom-iconsets', JSON.stringify(customIconsets));
+    }
+    // Karte hinzufügen
+    const card = document.createElement('div');
+    card.className = 'iconset-card';
+    card.dataset.set = setName;
+    card.innerHTML = `<div style="font-size:22px">📦</div><div class="iconset-name">${esc(setName)}</div>`;
+    card.addEventListener('click', () => {
+      dlg.querySelectorAll('.iconset-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      selected = setName;
+    });
+    uploadCard.before(card);
+    card.click();
+  });
+
+  dlg.querySelector('#iconset-cancel').onclick = () => dlg.remove();
+  dlg.querySelector('#iconset-ok').onclick = async () => {
+    dlg.remove();
+    if (selected === cur) return;
+    el.dataset.iconset = selected;
+    obj.iconset = selected;
+    updateNodeIcon(el, hostCache[obj.name]?.state_label ?? null);
+    await api(`/api/maps/${activeMapId}/objects/${obj.object_id}/props`, 'PATCH',
+      { iconset: selected });
+  };
 }
 
 
@@ -964,6 +1244,7 @@ async function confirmAddObject() {
     Object.assign(payload, {
       name,
       iconset: document.getElementById('dlg-iconset').value,
+      size:    parseInt(document.getElementById('dlg-iconsize')?.value ?? '32'),
       label:   document.getElementById('dlg-obj-label').value.trim() || name,
     });
 
@@ -1166,18 +1447,16 @@ function setBg(url) {
   canvas.style.backgroundSize     = 'contain';
   canvas.style.backgroundRepeat   = 'no-repeat';
   canvas.style.backgroundPosition = 'center';
-  document.getElementById('upload-prompt').classList.add('hidden');
 }
 
 function setupDragDrop() {
   const area = document.getElementById('map-area');
-  const box  = document.getElementById('upload-box');
-  area.addEventListener('dragenter', e  => { e.preventDefault(); box?.classList.add('drag-over'); });
-  area.addEventListener('dragover',  e  => { e.preventDefault(); });
-  area.addEventListener('dragleave', () => box?.classList.remove('drag-over'));
+  area.addEventListener('dragenter', e => { e.preventDefault(); area.classList.add('drag-over'); });
+  area.addEventListener('dragover',  e => { e.preventDefault(); });
+  area.addEventListener('dragleave', () => area.classList.remove('drag-over'));
   area.addEventListener('drop', e => {
     e.preventDefault();
-    box?.classList.remove('drag-over');
+    area.classList.remove('drag-over');
     if (e.dataTransfer.files[0] && activeMapId) uploadBg(e.dataTransfer.files[0]);
   });
 }
@@ -1288,18 +1567,193 @@ function onKeyDown(e) {
 
 
 // ═══════════════════════════════════════════════════════════════════════
+//  DEMO MODE – statische Daten wenn kein Backend erreichbar
+//  (VS Code Live Server, file://, GitHub Pages, etc.)
+// ═══════════════════════════════════════════════════════════════════════
+
+const DEMO_MAP = {
+  "id": "demo-features",
+  "title": "NagVis 2 – Feature Demo",
+  "background": null,
+  "objects": [
+    { "object_id": "host::srv-web-01::abc123", "type": "host", "name": "srv-web-01",
+      "x": 15, "y": 20, "iconset": "server", "label": "Webserver 01 (OK)" },
+    { "object_id": "host::srv-db-01::def456", "type": "host", "name": "srv-db-01",
+      "x": 35, "y": 20, "iconset": "database", "label": "Datenbank (ACK + DT)" },
+    { "object_id": "service::srv-web-01::HTTP Response Time", "type": "service",
+      "host_name": "srv-web-01", "name": "HTTP Response Time",
+      "x": 15, "y": 35, "iconset": "default", "label": "HTTP (CRITICAL)" },
+    { "object_id": "hostgroup::webservers", "type": "hostgroup", "name": "webservers",
+      "x": 55, "y": 20, "iconset": "default", "label": "Alle Webserver" },
+    { "object_id": "textbox::zone-a", "type": "textbox",
+      "text": "Zone A – Produktion", "x": 8, "y": 8, "w": 18, "h": 5,
+      "font_size": 16, "bold": true, "color": "#0ea5e9", "bg_color": "rgba(14,165,233,0.08)" },
+    { "object_id": "line::connection-1", "type": "line",
+      "x": 30, "y": 30, "x2": 70, "y2": 70,
+      "line_style": "dashed", "line_width": 2, "color": "#475569" },
+    { "object_id": "container::network-plan", "type": "container",
+      "x": 75, "y": 10, "w": 20, "h": 15,
+      "url": "https://placehold.co/400x200/1e293b/0ea5e9/png?text=Netzwerk+Plan" },
+    { "object_id": "map::datacenter-b", "type": "map", "name": "datacenter-b",
+      "x": 75, "y": 35, "iconset": "map", "label": "Datacenter B (nested)" },
+    { "object_id": "gadget::cpu-01", "type": "gadget", "x": 25, "y": 50,
+      "gadget_config": { "type": "radial", "metric": "cpu_usage", "value": 42,
+        "unit": "%", "min": 0, "max": 100, "warning": 70, "critical": 90 },
+      "label": "CPU Load" },
+    { "object_id": "gadget::memory-01", "type": "gadget", "x": 45, "y": 50,
+      "gadget_config": { "type": "linear", "metric": "memory_used", "value": 82,
+        "unit": "%", "min": 0, "max": 100, "warning": 75, "critical": 90 },
+      "label": "RAM" },
+    { "object_id": "gadget::traffic-spark", "type": "gadget", "x": 25, "y": 65,
+      "gadget_config": { "type": "sparkline", "metric": "ifOutOctets", "value": 68,
+        "history": [45,52,61,58,72,68,80,75,62,68,55,70,65,78,82,60,68,74,71,69] },
+      "label": "Outbound Traffic" },
+    { "object_id": "gadget::backbone-flow", "type": "gadget", "x": 50, "y": 65,
+      "gadget_config": { "type": "weather", "metric": "traffic_1g", "value": 920, "unit": "Mbps" },
+      "label": "Backbone 1 Gbit/s" }
+  ]
+};
+
+const DEMO_STATUS = [
+  { name: "srv-web-01",  state: 0, state_label: "UP",       acknowledged: false, in_downtime: false,
+    output: "PING OK - 1.4ms", services_ok: 8, services_warn: 0, services_crit: 1, services_unkn: 0 },
+  { name: "srv-db-01",   state: 0, state_label: "UP",       acknowledged: true,  in_downtime: true,
+    output: "PING OK - 0.8ms", services_ok: 5, services_warn: 1, services_crit: 0, services_unkn: 0 },
+  { name: "srv-backup",  state: 1, state_label: "DOWN",     acknowledged: false, in_downtime: false,
+    output: "Connection refused", services_ok: 0, services_warn: 0, services_crit: 3, services_unkn: 0 },
+  { name: "srv-monitor", state: 0, state_label: "UP",       acknowledged: false, in_downtime: false,
+    output: "PING OK - 2.1ms", services_ok: 12, services_warn: 2, services_crit: 0, services_unkn: 0 },
+];
+
+/** true wenn wir im statischen Modus laufen (kein FastAPI erreichbar) */
+let _demoMode = false;
+let _demoMaps = [
+  { id: "demo-features", title: "NagVis 2 – Feature Demo", background: null, object_count: DEMO_MAP.objects.length }
+];
+
+/**
+ * Prüft beim Start ob das Backend erreichbar ist.
+ * Wenn nicht → Demo-Modus aktivieren.
+ */
+async function detectDemoMode() {
+  try {
+    const r = await fetch('/api/health', { signal: AbortSignal.timeout(1500) });
+    if (r.ok) { _demoMode = false; return; }
+  } catch { /* kein Backend */ }
+  _demoMode = true;
+  console.info('[NV2] Kein Backend gefunden – Demo-Modus aktiv');
+  setSidebarLive(true, 'Demo-Modus · kein Backend');
+  setStatusBar('Demo-Modus · statische Daten');
+  document.getElementById('nv2-conn-dot').className = 'conn-dot connected';
+}
+
+/** Demo-WebSocket-Ersatz: simuliert Snapshots + periodische Status-Updates */
+function makeDemoWsClient(mapId) {
+  let _interval = null;
+  let _dead = false;
+
+  return {
+    mapId, ws: null, _dead: false,
+
+    connect() {
+      if (this._dead) return;
+      // Sofortiger Snapshot
+      setTimeout(() => {
+        if (this._dead) return;
+        onWsMsg({ event: 'snapshot', ts: Date.now() / 1000,
+          hosts: DEMO_STATUS, services: [] });
+        onWsOpen();
+      }, 200);
+
+      // Alle 8s simulierter Status-Update mit zufälliger Änderung
+      _interval = setInterval(() => {
+        if (this._dead) { clearInterval(_interval); return; }
+        const changed = DEMO_STATUS[Math.floor(Math.random() * DEMO_STATUS.length)];
+        const states  = ['UP', 'UP', 'UP', 'DOWN', 'WARNING'];
+        const newState = states[Math.floor(Math.random() * states.length)];
+        const fake = { ...changed, state_label: newState,
+          output: newState === 'UP' ? 'PING OK' : 'Check failed',
+          change_type: 'state_change' };
+        onWsMsg({ event: 'status_update', ts: Date.now() / 1000,
+          elapsed: Math.floor(Math.random() * 30) + 5,
+          hosts: [fake], services: [] });
+      }, 8000);
+    },
+
+    forceRefresh() {
+      onWsMsg({ event: 'snapshot', ts: Date.now() / 1000,
+        hosts: DEMO_STATUS, services: [] });
+    },
+
+    disconnect() {
+      this._dead = true;
+      clearInterval(_interval);
+    },
+  };
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════
 //  API WRAPPER
 // ═══════════════════════════════════════════════════════════════════════
 
 /**
- * Einfacher fetch-Wrapper mit JSON-Handling.
- * Gibt null zurück bei Fehlern (kein throw nach oben).
- * @param {string}  path
- * @param {string}  [method='GET']
- * @param {object}  [body=null]
- * @returns {Promise<any|null>}
+ * Im Demo-Modus werden API-Calls gegen die lokalen DEMO_*-Objekte
+ * aufgelöst. Im normalen Betrieb wird fetch() verwendet.
  */
 async function api(path, method = 'GET', body = null) {
+
+  // ── DEMO-MODUS ──────────────────────────────────────────────
+  if (_demoMode) {
+    // GET /api/maps
+    if (path === '/api/maps' && method === 'GET')
+      return [..._demoMaps];
+
+    // GET /api/maps/:id
+    const mGet = path.match(/^\/api\/maps\/([\w-]+)$/);
+    if (mGet && method === 'GET') {
+      if (mGet[1] === 'demo-features') return JSON.parse(JSON.stringify(DEMO_MAP));
+      return null;
+    }
+
+    // POST /api/maps
+    if (path === '/api/maps' && method === 'POST') {
+      const id  = body.map_id || body.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      const map = { id, title: body.title, background: null, objects: [] };
+      _demoMaps.push({ ...map, object_count: 0 });
+      return { ...map };
+    }
+
+    // DELETE /api/maps/:id
+    const mDel = path.match(/^\/api\/maps\/([\w-]+)$/);
+    if (mDel && method === 'DELETE') {
+      _demoMaps = _demoMaps.filter(m => m.id !== mDel[1]);
+      return true;
+    }
+
+    // POST /api/maps/:id/objects
+    const mObj = path.match(/^\/api\/maps\/([\w-]+)\/objects$/);
+    if (mObj && method === 'POST') {
+      const obj = { ...body,
+        object_id: `${body.type}::${body.name || ''}::${Math.random().toString(36).slice(2, 8)}` };
+      const map = _demoMaps.find(m => m.id === mObj[1]);
+      if (map) map.object_count = (map.object_count || 0) + 1;
+      return obj;
+    }
+
+    // PATCH pos/size/props + DELETE object → still response
+    if (method === 'PATCH' || (method === 'DELETE' && path.includes('/objects/')))
+      return method === 'DELETE' ? true : body;
+
+    // GET /api/health
+    if (path === '/api/health')
+      return { status: 'ok', demo_mode: true };
+
+    console.warn('[NV2] Demo: unhandled API call', method, path);
+    return null;
+  }
+
+  // ── NORMALER MODUS ───────────────────────────────────────────
   try {
     const opts = { method, headers: {} };
     if (body) {

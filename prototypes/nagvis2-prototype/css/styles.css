@@ -808,6 +808,12 @@ body,
 .upload-title { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
 .upload-hint  { font-family: var(--mono); font-size: 10px; color: var(--text-dim); }
 
+/* Drag-Over auf dem Canvas selbst (kein Upload-Prompt mehr) */
+#map-area.drag-over {
+  outline: 2px dashed var(--acc);
+  outline-offset: -4px;
+}
+
 /* ── Canvas (node container) ── */
 #nv2-canvas {
   position: absolute;
@@ -1295,6 +1301,110 @@ body,
 }
 .dlg-overlay.show { display: flex; }
 
+/* ── dlg-box (breitere Dialog-Variante) ── */
+.dlg-box {
+  background: var(--dlg-bg);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--r-lg);
+  padding: 20px;
+  box-shadow: 0 12px 36px var(--dlg-shadow);
+  animation: dlgIn 0.15s ease;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.dlg-box h3 {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 14px;
+  color: var(--text);
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── dlg-actions (Buttons am Ende von dlg-box) ── */
+.dlg-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+/* ── Gadget-Nodes ── */
+.nv2-node.gadget {
+  background: var(--node-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 6px 8px;
+  box-shadow: 0 2px 6px var(--node-shadow);
+  min-width: 60px;
+  text-align: center;
+}
+
+/* Radial Gauge SVG */
+.radial-gauge svg {
+  width: 56px;
+  height: 56px;
+  display: block;
+  margin: 0 auto;
+}
+.radial-gauge .bg {
+  fill: none;
+  stroke: var(--border-hi);
+  stroke-width: 3.5;
+}
+.radial-gauge .fg {
+  fill: none;
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.4s ease, stroke 0.4s ease;
+}
+.radial-gauge .value {
+  font-family: var(--mono);
+  font-size: 8px;
+  fill: var(--text);
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+/* Linear Gauge */
+.linear-gauge {
+  position: relative;
+  width: 100px;
+  height: 10px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: visible;
+  margin: 4px auto;
+}
+.linear-gauge .bar {
+  height: 100%;
+  background: var(--ok);
+  border-radius: 2px;
+  transition: width 0.4s ease, background 0.4s ease;
+}
+.linear-gauge .label {
+  position: absolute;
+  right: 0;
+  top: -16px;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-mid);
+}
+.linear-gauge .threshold {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--warn);
+  opacity: 0.7;
+}
+.linear-gauge .threshold.critical { background: var(--crit); }
+
+/* Sparkline */
+.sparkline { width: 100px; height: 40px; display: block; margin: 0 auto; }
+
+/* Weather Line */
+.weather-line { display: block; margin: 0 auto; }
+
 /* ── Statische Objekte auf Canvas ── */
 
 /* Textbox */
@@ -1473,11 +1583,206 @@ body,
   color: var(--text-dim);
 }
 
-/* Gadget-spezifische Styles */
-.linear-gauge .threshold {
-  position: absolute; top: 0; bottom: 0; width: 2px; background: var(--warn);
-}
-.linear-gauge .threshold.critical { background: var(--crit); }
+/* ══════════════════════════════════════════════════════════
+   ICONSET-SYSTEM – skalierbare Node-Icons
+══════════════════════════════════════════════════════════ */
 
-.sparkline { width: 100px; height: 40px; }
-.weather-line { filter: drop-shadow(0 0 4px var(--acc-glow)); }
+/* Basis-Größe über CSS-Variable, damit applySize() funktioniert */
+.nv2-ring {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--node-size, 32px);
+  height: var(--node-size, 32px);
+  transition: width .2s, height .2s;
+}
+
+img.nv2-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  /* weiche Übergänge beim Statuswechsel */
+  transition: opacity .25s;
+}
+
+.nv2-icon-emoji {
+  font-size: calc(var(--node-size, 32px) * 0.65);
+  line-height: 1;
+  display: block;
+  text-align: center;
+  transition: font-size .2s;
+}
+
+/* Badge passt sich der Node-Größe an */
+.nv2-badge {
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  width:  calc(var(--node-size, 32px) * 0.38);
+  height: calc(var(--node-size, 32px) * 0.38);
+  min-width: 12px;
+  min-height: 12px;
+  font-size: calc(var(--node-size, 32px) * 0.25);
+  line-height: calc(var(--node-size, 32px) * 0.38);
+  border-radius: 50%;
+  text-align: center;
+  font-weight: 700;
+  color: #fff;
+  background: var(--node-unkn);
+  border: 1.5px solid var(--bg-base);
+  pointer-events: none;
+  z-index: 2;
+  transition: background .25s;
+}
+
+/* ── Kontextmenü ─────────────────────────────────────── */
+.ctx-menu {
+  position: fixed;
+  z-index: 9000;
+  background: var(--dlg-bg);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--r);
+  box-shadow: 0 8px 24px var(--dlg-shadow);
+  padding: 4px 0;
+  min-width: 160px;
+  animation: dlgIn .1s ease;
+}
+
+.ctx-item {
+  display: block;
+  width: 100%;
+  padding: 7px 14px;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: background .12s;
+}
+
+.ctx-item:hover { background: var(--bg-hover); }
+.ctx-item.ctx-danger { color: var(--crit); }
+.ctx-item.ctx-danger:hover { background: color-mix(in srgb, var(--crit) 12%, transparent); }
+
+/* ── Resize-Panel ────────────────────────────────────── */
+.resize-panel {
+  position: absolute;
+  z-index: 400;
+  background: var(--dlg-bg);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--r);
+  box-shadow: 0 6px 18px var(--dlg-shadow);
+  padding: 0;
+  width: 210px;
+  animation: dlgIn .12s ease;
+}
+
+.rp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 10px 6px;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-mid);
+}
+
+.rp-close {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0 2px;
+  line-height: 1;
+}
+.rp-close:hover { color: var(--text); }
+
+.rp-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px 8px;
+}
+
+.rp-body input[type=range] {
+  flex: 1;
+  accent-color: var(--acc);
+}
+
+.rp-val {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-mid);
+  min-width: 36px;
+  text-align: right;
+}
+
+.rp-foot {
+  display: flex;
+  gap: 6px;
+  padding: 0 10px 10px;
+  justify-content: flex-end;
+}
+
+.rp-cancel, .rp-ok {
+  font-size: 11px;
+  padding: 4px 10px;
+}
+
+/* ── Iconset-Dialog ──────────────────────────────────── */
+.iconset-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.iconset-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r);
+  cursor: pointer;
+  min-width: 72px;
+  background: var(--bg-card);
+  transition: border-color .15s, background .15s;
+}
+
+.iconset-card:hover {
+  border-color: var(--acc);
+  background: var(--acc-bg);
+}
+
+.iconset-card.active {
+  border-color: var(--acc);
+  background: color-mix(in srgb, var(--acc) 15%, transparent);
+}
+
+.iconset-card > div.iconset-icons {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+}
+
+.iconset-name {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  margin-top: 2px;
+}
+
+.iconset-upload {
+  border-style: dashed;
+  opacity: .7;
+}
+.iconset-upload:hover { opacity: 1; }

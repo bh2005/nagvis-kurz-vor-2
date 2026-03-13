@@ -8,23 +8,25 @@ window.createGadget = function(obj) {
   el.dataset.type = obj.gadget_config?.type || 'radial';
   el.dataset.metric = obj.gadget_config?.metric || '';
 
-  const cfg = obj.gadget_config || { value: 0, min: 0, max: 100, unit: '%', warning: 70, critical: 90 };
+  const cfg  = obj.gadget_config || { value: 0, min: 0, max: 100, unit: '%', warning: 70, critical: 90 };
+  const size = obj.size ?? 100; // % scale
 
   switch (cfg.type) {
-    case 'linear':
-      el.innerHTML = createLinearBar(cfg);
-      break;
-    case 'sparkline':
-      el.innerHTML = createSparkline(cfg);
-      break;
-    case 'weather':
-      el.innerHTML = createWeatherLine(cfg, obj);
-      break;
-    default:
-      el.innerHTML = createRadialGauge(cfg);
+    case 'linear':  el.innerHTML = createLinearBar(cfg);       break;
+    case 'sparkline': el.innerHTML = createSparkline(cfg);     break;
+    case 'weather': el.innerHTML = createWeatherLine(cfg, obj); break;
+    default:        el.innerHTML = createRadialGauge(cfg);
+  }
+
+  el.style.left = `${obj.x}%`;
+  el.style.top  = `${obj.y}%`;
+  if (size !== 100) {
+    el.style.transform = `scale(${size / 100})`;
+    el.style.transformOrigin = 'top left';
   }
 
   el.addEventListener('mouseenter', () => showTooltip(el, obj));
+  document.getElementById('nv2-canvas').appendChild(el);
   return el;
 };
 
@@ -73,12 +75,16 @@ function createSparkline(cfg) {
 
 // ── Weather-Line (Datenfluss mit Pfeil & variabler Dicke) ─────
 function createWeatherLine(cfg, obj) {
-  const thickness = Math.min(8, Math.max(1.5, cfg.value / 15));
-  const color = getGaugeColor(cfg.value);
+  const max = cfg.max || 1000;
+  const pct = Math.min(100, (cfg.value / max) * 100);
+  const thickness = Math.min(8, Math.max(1.5, pct / 12));
+  const color = getGaugeColor(pct);
   return `
     <svg class="weather-line" viewBox="0 0 120 80" style="width:130px;height:70px">
       <line x1="15" y1="40" x2="95" y2="40" stroke="${color}" stroke-width="${thickness}" stroke-linecap="round"/>
       <polygon points="98,33 110,40 98,47" fill="${color}"/>
+      <text x="62" y="30" text-anchor="middle" font-size="9"
+            font-family="monospace" fill="${color}">${cfg.value}${cfg.unit || ''}</text>
     </svg>
     <div class="nv2-label">${esc(cfg.metric || 'Datenfluss')}</div>`;
 }
@@ -109,11 +115,12 @@ function updateSparkline(el, newValue) {
   svg.querySelector('polyline').setAttribute('points', points);
 }
 
-function updateWeatherLine(el, newValue) {
-  const line = el.querySelector('line');
+function updateWeatherLine(el, newValue, max) {
+  const line  = el.querySelector('line');
   const arrow = el.querySelector('polygon');
-  const color = getGaugeColor(newValue);
-  const thickness = Math.min(8, Math.max(1.5, newValue / 15));
+  const pct   = Math.min(100, (newValue / (max || 1000)) * 100);
+  const color = getGaugeColor(pct);
+  const thickness = Math.min(8, Math.max(1.5, pct / 12));
   line.setAttribute('stroke', color);
   line.setAttribute('stroke-width', thickness);
   arrow.setAttribute('fill', color);
