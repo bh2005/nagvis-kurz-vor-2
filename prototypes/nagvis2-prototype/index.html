@@ -10,35 +10,31 @@
 <body>
 <div id="app">
 
-  <!-- ═══════════════════════════════════════════════════════════
+  <!-- ═══════════════════════════════════════════════════════════════════════
        SIDEBAR
-  ═══════════════════════════════════════════════════════════ -->
+  ═══════════════════════════════════════════════════════════════════════ -->
   <nav id="sidebar">
 
-    <!-- Navigation -->
     <div class="nav">
 
       <div class="nav-section">Navigation</div>
 
       <button class="nav-btn active" id="nav-btn-overview" onclick="showOverview()" data-label="Übersicht">
         <span class="nav-ico">◈</span>
-        Übersicht
+        <span class="nav-text">Übersicht</span>
       </button>
 
       <div class="nav-section">Maps</div>
       <div id="sidebar-maps" class="map-list"></div>
 
-      <!-- ── LAYER PANEL ── -->
       <div class="nav-section" id="layer-section" style="display:none">Layer</div>
       <div id="sidebar-layers" class="layer-list" style="display:none"></div>
 
-    </div><!-- /nav -->
+    </div>
 
-    <!-- Footer: Livestatus-Status + Sidebar-Toggle -->
     <div class="sidebar-foot">
-      <div class="foot-dot" id="foot-dot"></div>
-      <span id="sidebar-status">Verbinde…</span>
-      <!-- Sidebar-Toggle mit CMK-SVG-Icon -->
+      <div class="foot-dot" id="foot-dot" title="Livestatus"></div>
+      <span id="sidebar-status" id="sidebar-status">Verbinde…</span>
       <button class="theme-toggle" id="btn-sidebar-toggle-foot" title="Sidebar ein-/ausklappen (B)">
         <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" width="14" height="14">
           <path fill="currentColor" fill-rule="evenodd" d="
@@ -49,181 +45,182 @@
       </button>
     </div>
 
-  </nav><!-- /sidebar -->
+  </nav>
 
 
-  <!-- ═══════════════════════════════════════════════════════════
-       TOPBAR  (direkt in #app – volle Breite via Grid)
-  ═══════════════════════════════════════════════════════════ -->
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       TOPBAR
+  ═══════════════════════════════════════════════════════════════════════ -->
   <div id="topbar">
 
-      <!-- Logo (in der Topbar) -->
-      <div class="tb-logo" id="tb-logo" onclick="showOverview()" title="Übersicht">
-        <svg class="tb-logo-svg" viewBox="0 0 34 38" xmlns="http://www.w3.org/2000/svg" aria-label="NagVis Logo">
-          <polygon points="17,2  31,10  31,28  17,36  3,28  3,10"
-            fill="none" stroke="var(--text)" stroke-width="2" stroke-linejoin="round"/>
-          <circle cx="17" cy="19" r="9" fill="none" stroke="#29b6d4" stroke-width="1.4"/>
-          <line x1="8"  y1="19" x2="26" y2="19" stroke="#29b6d4" stroke-width="1.1"/>
-          <line x1="17" y1="10" x2="17" y2="28" stroke="#29b6d4" stroke-width="1.1"/>
-          <path d="M 10.5,14.5 A 7,3.5 0 0,1 23.5,14.5" fill="none" stroke="#29b6d4" stroke-width="1.1"/>
-          <path d="M 10.5,23.5 A 7,3.5 0 0,0 23.5,23.5" fill="none" stroke="#29b6d4" stroke-width="1.1"/>
-          <path d="M 17,10 A 5,9 0 0,0 17,28"          fill="none" stroke="#29b6d4" stroke-width="1.1"/>
-          <path d="M 17,10 A 5,9 0 0,1 17,28"          fill="none" stroke="#29b6d4" stroke-width="1.1"/>
-        </svg>
-        <div class="tb-logo-text">
-          <div class="tb-logo-name"><span class="logo-nag">Nag</span><span class="logo-vis">Vis</span></div>
-          <div class="tb-logo-ver">v2 · FastAPI + WebSocket</div>
-        </div>
+    <div class="tb-logo" id="tb-logo" onclick="showOverview()" title="Übersicht">
+      <svg class="tb-logo-svg" viewBox="0 0 34 38" xmlns="http://www.w3.org/2000/svg" aria-label="NagVis Logo">
+        <polygon points="17,2  31,10  31,28  17,36  3,28  3,10"
+          fill="none" stroke="var(--text)" stroke-width="2" stroke-linejoin="round"/>
+        <circle cx="17" cy="19" r="9" fill="none" stroke="#29b6d4" stroke-width="1.4"/>
+        <line x1="8"  y1="19" x2="26" y2="19" stroke="#29b6d4" stroke-width="1.1"/>
+        <line x1="17" y1="10" x2="17" y2="28" stroke="#29b6d4" stroke-width="1.1"/>
+        <path d="M 10.5,14.5 A 7,3.5 0 0,1 23.5,14.5" fill="none" stroke="#29b6d4" stroke-width="1.1"/>
+        <path d="M 10.5,23.5 A 7,3.5 0 0,0 23.5,23.5" fill="none" stroke="#29b6d4" stroke-width="1.1"/>
+        <path d="M 17,10 A 5,9 0 0,0 17,28"          fill="none" stroke="#29b6d4" stroke-width="1.1"/>
+        <path d="M 17,10 A 5,9 0 0,1 17,28"          fill="none" stroke="#29b6d4" stroke-width="1.1"/>
+      </svg>
+      <div class="tb-logo-text">
+        <div class="tb-logo-name"><span class="logo-nag">Nag</span><span class="logo-vis">Vis</span></div>
+        <div class="tb-logo-ver">v2 · FastAPI + WebSocket</div>
       </div>
+    </div>
 
+    <div class="tb-sep"></div>
+
+    <div id="nv2-conn-dot" class="conn-dot connecting"></div>
+
+    <div class="tb-ident">
+      <div class="tb-title" id="tb-title">NagVis 2</div>
+      <div class="tb-sub"   id="tb-sub">Wähle eine Map</div>
+    </div>
+
+    <div id="tb-pills" style="display:none; align-items:center; gap:5px;">
       <div class="tb-sep"></div>
+      <span class="pill ok"   id="pill-ok">  ● –</span>
+      <span class="pill warn" id="pill-warn">● –</span>
+      <span class="pill crit" id="pill-crit">● –</span>
+    </div>
 
-      <!-- Verbindungs-Dot -->
-      <div id="nv2-conn-dot" class="conn-dot connecting"></div>
+    <div class="tb-gap"></div>
 
-      <!-- Map-Titel -->
-      <div class="tb-ident">
-        <div class="tb-title" id="tb-title">NagVis 2</div>
-        <div class="tb-sub"   id="tb-sub">Wähle eine Map</div>
-      </div>
+    <span id="nv2-status-bar"></span>
 
-      <!-- Status-Pills (nur wenn Map geöffnet) -->
-      <div id="tb-pills" style="display:none; align-items:center; gap:5px;">
-        <div class="tb-sep"></div>
-        <span class="pill ok"   id="pill-ok">  ● –</span>
-        <span class="pill warn" id="pill-warn">● –</span>
-        <span class="pill crit" id="pill-crit">● –</span>
-      </div>
+    <div id="map-toolbar" style="display:none; align-items:center; gap:6px;">
+      <div class="tb-sep"></div>
+      <button class="tb-btn" id="btn-add-host" style="display:none;" title="Objekt platzieren (Edit-Mode)">
+        <span class="tb-icon">＋</span> Objekt
+      </button>
+      <button class="tb-btn" id="btn-kiosk" title="Kiosk-Modus (Vollbild)" onclick="toggleKiosk()">
+        <span class="tb-icon">⛶</span>
+      </button>
+      <button class="tb-btn" id="btn-refresh" title="Refresh erzwingen (R)">
+        <span class="tb-icon">↻</span>
+      </button>
+    </div>
 
-      <div class="tb-gap"></div>
+    <!-- Zoom-Controls -->
+    <div id="nv2-zoom-controls" style="display:none; align-items:center; gap:4px; margin-right:4px;">
+      <div class="tb-sep"></div>
+      <button class="tb-btn" id="btn-zoom-out" title="Verkleinern (−)">−</button>
+      <span id="nv2-zoom-level"
+            style="font:12px var(--mono); color:var(--text-dim);
+                   min-width:40px; text-align:center; user-select:none;">100%</span>
+      <button class="tb-btn" id="btn-zoom-in"    title="Vergrößern (+)">＋</button>
+      <button class="tb-btn" id="btn-zoom-reset" title="Zoom zurücksetzen (0)" disabled>⊙</button>
+    </div>
 
-      <!-- Live-Statuszeile -->
-      <span id="nv2-status-bar"></span>
+    <div class="tb-gap"></div>
 
-      <!-- Map-Toolbar: nur +Objekt, Kiosk und Refresh in der Topbar -->
-      <div id="map-toolbar" style="display:none; align-items:center; gap:6px;">
-        <div class="tb-sep"></div>
-        <button class="tb-btn" id="btn-add-host" style="display:none;" title="Objekt platzieren (Edit-Mode)">
-          <span class="tb-icon">＋</span> Objekt
-        </button>
-        <button class="tb-btn" id="btn-kiosk" title="Kiosk-Modus (Vollbild)" onclick="toggleKiosk()">
-          <span class="tb-icon">⛶</span>
-        </button>
-        <button class="tb-btn" id="btn-refresh" title="Refresh erzwingen (R)">
-          <span class="tb-icon">↻</span>
-        </button>
-      </div><!-- /map-toolbar -->
+    <!-- Burger -->
+    <div id="burger-wrap" style="position:relative; flex-shrink:0;">
 
-      <!-- ── NEU: Zoom-Controls (nur wenn Map geöffnet) ── -->
-      <div id="nv2-zoom-controls" style="display:none; align-items:center; gap:4px; margin-right:4px;">
-        <div class="tb-sep"></div>
-        <button class="tb-btn" id="btn-zoom-out"   title="Verkleinern (−)">−</button>
-        <span   id="nv2-zoom-level"
-                style="font:12px var(--mono); color:var(--text-dim);
-                       min-width:40px; text-align:center; user-select:none;">100%</span>
-        <button class="tb-btn" id="btn-zoom-in"    title="Vergrößern (+)">＋</button>
-        <button class="tb-btn" id="btn-zoom-reset" title="Zoom zurücksetzen (0)" disabled>⊙</button>
-      </div>
+      <button class="tb-btn tb-btn-icon" id="btn-menu" title="Menü" onclick="toggleBurgerMenu()">
+        <svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+          <rect fill="currentColor" x="1" y="3"    width="16" height="1.8" rx="0.9"/>
+          <rect fill="currentColor" x="1" y="8.1"  width="16" height="1.8" rx="0.9"/>
+          <rect fill="currentColor" x="1" y="13.2" width="16" height="1.8" rx="0.9"/>
+        </svg>
+      </button>
 
-      <div class="tb-gap"></div>
+      <div id="burger-dropdown" class="burger-dropdown" style="display:none;">
 
-      <!-- Burger-Menü ganz rechts -->
-      <div id="burger-wrap" style="position:relative; flex-shrink:0;">
-
-        <button class="tb-btn tb-btn-icon" id="btn-menu" title="Menü" onclick="toggleBurgerMenu()">
-          <svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
-            <rect fill="currentColor" x="1" y="3"    width="16" height="1.8" rx="0.9"/>
-            <rect fill="currentColor" x="1" y="8.1"  width="16" height="1.8" rx="0.9"/>
-            <rect fill="currentColor" x="1" y="13.2" width="16" height="1.8" rx="0.9"/>
-          </svg>
-        </button>
-
-        <!-- Dropdown -->
-        <div id="burger-dropdown" class="burger-dropdown" style="display:none;">
-
-          <!-- ── Aktive Map (nur wenn Map geöffnet) ── -->
-          <div id="burger-map-section" style="display:none;">
-            <div class="burger-head">Aktive Map</div>
-            <button class="burger-item" id="btn-edit" onclick="toggleEdit(); closeBurgerMenu()">
-              <span class="burger-ico">✏</span>
-              <span id="burger-edit-label">Bearbeiten</span>
-              <kbd class="burger-kbd">Ctrl+E</kbd>
-            </button>
-            <button class="burger-item" id="btn-bg-upload"
-                    onclick="document.getElementById('bg-file-input').click(); closeBurgerMenu()">
-              <span class="burger-ico">🖼</span> Hintergrund hochladen
-            </button>
-            <button class="burger-item" id="burger-btn-rename"
-                    onclick="openRenameMapDlg(); closeBurgerMenu()">
-              <span class="burger-ico">✎</span> Umbenennen
-            </button>
-            <button class="burger-item" id="burger-btn-parentmap"
-                    onclick="openParentMapDlg(); closeBurgerMenu()">
-              <span class="burger-ico">🗺</span> Parent-Map setzen
-            </button>
-            <button class="burger-item" id="burger-btn-kiosk"
-                    onclick="toggleKiosk(); closeBurgerMenu()">
-              <span class="burger-ico">⛶</span>
-              <span id="burger-kiosk-label">Kiosk-Modus</span>
-              <kbd class="burger-kbd">F11</kbd>
-            </button>
-            <button class="burger-item burger-item-danger" id="btn-delete-map"
-                    onclick="confirmDeleteMap(); closeBurgerMenu()">
-              <span class="burger-ico">🗑</span> Map löschen
-            </button>
-            <button class="burger-item" onclick="exportActiveMap(); closeBurgerMenu()">
-              <span class="burger-ico">📤</span> Map exportieren (.zip)
-            </button>
-            <div class="burger-divider"></div>
-          </div>
-
-          <!-- ── Maps verwalten (immer sichtbar) ── -->
-          <div class="burger-head">Maps verwalten</div>
-          <button class="burger-item" onclick="dlgNewMap(); closeBurgerMenu()">
-            <span class="burger-ico">＋</span> Neue Map erstellen
+        <div id="burger-map-section" style="display:none;">
+          <div class="burger-head">Aktive Map</div>
+          <button class="burger-item" id="btn-edit" onclick="toggleEdit(); closeBurgerMenu()">
+            <span class="burger-ico">✏</span>
+            <span id="burger-edit-label">Bearbeiten</span>
+            <kbd class="burger-kbd">Ctrl+E</kbd>
           </button>
-          <button class="burger-item" onclick="openManageMapsOverlay(); closeBurgerMenu()">
-            <span class="burger-ico">⊟</span> Alle Maps verwalten
+          <button class="burger-item" id="btn-bg-upload"
+                  onclick="document.getElementById('bg-file-input').click(); closeBurgerMenu()">
+            <span class="burger-ico">🖼</span> Hintergrund hochladen
           </button>
-          <button class="burger-item" onclick="dlgMigrate(); closeBurgerMenu()">
-            <span class="burger-ico">↑</span> NagVis&#x202F;1 importieren
+          <button class="burger-item" id="burger-btn-rename"
+                  onclick="openRenameMapDlg(); closeBurgerMenu()">
+            <span class="burger-ico">✎</span> Umbenennen
           </button>
-          <button class="burger-item" onclick="dlgImportZip(); closeBurgerMenu()">
-            <span class="burger-ico">📥</span> Map importieren (.zip)
+          <button class="burger-item" id="burger-btn-parentmap"
+                  onclick="openParentMapDlg(); closeBurgerMenu()">
+            <span class="burger-ico">🗺</span> Parent-Map setzen
+          </button>
+          <button class="burger-item" id="burger-btn-kiosk"
+                  onclick="toggleKiosk(); closeBurgerMenu()">
+            <span class="burger-ico">⛶</span>
+            <span id="burger-kiosk-label">Kiosk-Modus</span>
+            <kbd class="burger-kbd">F11</kbd>
+          </button>
+          <button class="burger-item burger-item-danger" id="btn-delete-map"
+                  onclick="confirmDeleteMap(); closeBurgerMenu()">
+            <span class="burger-ico">🗑</span> Map löschen
+          </button>
+          <button class="burger-item" onclick="openCanvasModeDialog(activeMapId, activeMapCfg?.title, activeMapCfg?.canvas); closeBurgerMenu()">
+            <span class="burger-ico">⊡</span> Canvas-Format ändern
+          </button>
+          <button class="burger-item" onclick="exportActiveMap(); closeBurgerMenu()">
+            <span class="burger-ico">📤</span> Map exportieren (.zip)
           </button>
           <div class="burger-divider"></div>
+        </div>
 
-          <!-- ── Benutzereinstellungen ── -->
-          <div class="burger-head">Benutzereinstellungen</div>
-          <button class="burger-item"
-                  onclick="setTheme(currentTheme==='dark'?'light':'dark'); closeBurgerMenu()">
-            <span class="burger-ico" id="burger-theme-ico">☀</span>
-            <span id="burger-theme-label">Light-Theme</span>
-          </button>
-          <button class="burger-item" onclick="openUserSettingsDlg(); closeBurgerMenu()">
-            <span class="burger-ico">⚙</span> Einstellungen…
-          </button>
-          <div class="burger-divider"></div>
+        <div class="burger-head">Maps verwalten</div>
+        <button class="burger-item" onclick="dlgNewMap(); closeBurgerMenu()">
+          <span class="burger-ico">＋</span> Neue Map erstellen
+        </button>
+        <button class="burger-item" onclick="openManageMapsOverlay(); closeBurgerMenu()">
+          <span class="burger-ico">⊟</span> Alle Maps verwalten
+        </button>
+        <button class="burger-item" onclick="dlgMigrate(); closeBurgerMenu()">
+          <span class="burger-ico">↑</span> NagVis&#x202F;1 importieren
+        </button>
+        <button class="burger-item" onclick="dlgImportZip(); closeBurgerMenu()">
+          <span class="burger-ico">📥</span> Map importieren (.zip)
+        </button>
+        <div class="burger-divider"></div>
 
-          <!-- ── System ── -->
-          <div class="burger-head">System</div>
-          <button class="burger-item burger-item-noaction">
-            <span class="burger-ico">⊙</span> Health
-            <span class="nav-chip ok" id="health-chip" style="margin-left:auto">OK</span>
-          </button>
-          <button class="burger-item" onclick="window.open('api-doc.html','_blank'); closeBurgerMenu()">
-            <span class="burger-ico">⊞</span> API Docs
-          </button>
+        <div class="burger-head">Benutzereinstellungen</div>
+        <button class="burger-item"
+                onclick="setTheme(currentTheme==='dark'?'light':'dark'); closeBurgerMenu()">
+          <span class="burger-ico" id="burger-theme-ico">☀</span>
+          <span id="burger-theme-label">Light-Theme</span>
+        </button>
+        <button class="burger-item" onclick="openConnectionsDlg(); closeBurgerMenu()">
+          <span class="burger-ico">🔌</span> Verbindungen verwalten
+        </button>
+        <button class="burger-item" onclick="openKioskUsersDlg(); closeBurgerMenu()">
+          <span class="burger-ico">⬛</span> Kiosk-User verwalten
+        </button>
+        <button class="burger-item" onclick="openActionConfigDlg(); closeBurgerMenu()">
+          <span class="burger-ico">⚡</span> Aktionen konfigurieren
+        </button>
+        <button class="burger-item" onclick="openUserSettingsDlg(); closeBurgerMenu()">
+          <span class="burger-ico">⚙</span> Einstellungen…
+        </button>
+        <div class="burger-divider"></div>
 
-        </div><!-- /burger-dropdown -->
-      </div><!-- /burger-wrap -->
+        <div class="burger-head">System</div>
+        <button class="burger-item burger-item-noaction">
+          <span class="burger-ico">⊙</span> Health
+          <span class="nav-chip ok" id="health-chip" style="margin-left:auto">OK</span>
+        </button>
+        <button class="burger-item" onclick="window.open('api-doc.html','_blank'); closeBurgerMenu()">
+          <span class="burger-ico">⊞</span> API Docs
+        </button>
 
-  </div><!-- /topbar -->
+      </div>
+    </div>
+
+  </div>
 
 
-  <!-- ═══════════════════════════════════════════════════════════
+  <!-- ═══════════════════════════════════════════════════════════════════════
        MAIN
-  ═══════════════════════════════════════════════════════════ -->
+  ═══════════════════════════════════════════════════════════════════════ -->
   <div id="main">
 
     <!-- OVERVIEW -->
@@ -285,7 +282,6 @@
     <!-- MAP CANVAS -->
     <div id="map-area">
 
-      <!-- ── NEU: #map-canvas-wrapper als transform-Ziel für Zoom & Pan ── -->
       <div id="nv2-canvas" data-map-id="">
         <div id="map-canvas-wrapper"></div>
       </div>
@@ -298,14 +294,25 @@
         <span class="banner-key">Esc</span> beenden
       </div>
 
-      <!-- Snap-In Tabs -->
       <div id="snap-tabs">
+        <div class="snap-tab" id="tab-maps"   onclick="toggleSnapin('maps')">Maps</div>
         <div class="snap-tab" id="tab-hosts"  onclick="toggleSnapin('hosts')">Hosts</div>
         <div class="snap-tab" id="tab-events" onclick="toggleSnapin('events')">Events</div>
       </div>
 
-      <!-- Snap-In Panels -->
       <div id="snapin-container">
+
+        <div class="snapin" id="snapin-maps">
+          <div class="snapin-head">
+            <span class="snapin-ico">🗺</span>
+            <span class="snapin-title">Maps</span>
+            <button class="snapin-close" onclick="closeSnapin('maps')" title="Schließen">✕</button>
+          </div>
+          <div class="snapin-body" id="body-maps">
+            <div class="empty-hint">Lade…</div>
+          </div>
+        </div>
+
         <div class="snapin" id="snapin-hosts">
           <div class="snapin-head">
             <span class="snapin-ico">⬦</span>
@@ -329,9 +336,9 @@
         </div>
       </div>
 
-    </div><!-- /map-area -->
+    </div>
 
-  </div><!-- /main -->
+  </div>
 
 </div><!-- /app -->
 
@@ -456,7 +463,13 @@
           <input class="f-input-color" id="dlg-ln-color" type="color" value="#555555">
         </div>
       </div>
-      <p class="f-hint">Endpunkt: wird durch zweiten Klick auf Canvas gesetzt, oder 20% rechts.</p>
+      <div style="margin-top:8px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
+          <input type="checkbox" id="dlg-ln-weathermap">
+          <span>🌡 Weathermap (Status-Farbe nach verknüpften Nodes)</span>
+        </label>
+      </div>
+      <p class="f-hint">Endpunkt: 20% rechts vom Klickpunkt. Nach dem Platzieren per Rechtsklick → 🌡 Weathermap-Konfig. Nodes zuweisen.</p>
     </div>
 
     <div id="dlg-fields-container" class="dlg-fields" style="display:none">
@@ -474,18 +487,75 @@
 </div>
 
 
-<!-- DIALOG – Neue Map -->
+<!-- DIALOG – Neue Map (mit Canvas-Format-Auswahl) -->
 <div class="dlg-overlay" id="dlg-new-map">
-  <div class="dlg">
+  <div class="dlg" style="width:380px">
     <h3>Neue Map erstellen</h3>
+
     <div class="f-row">
       <label class="f-label" for="nm-title">Titel</label>
       <input class="f-input" id="nm-title" type="text" placeholder="z.B. Datacenter Hamburg">
     </div>
     <div class="f-row">
-      <label class="f-label" for="nm-id">ID <span style="color:var(--text-dim);font-weight:400">(optional)</span></label>
+      <label class="f-label" for="nm-id">
+        ID <span style="color:var(--text-dim);font-weight:400">(optional)</span>
+      </label>
       <input class="f-input" id="nm-id" type="text" placeholder="datacenter-hh">
     </div>
+
+    <!-- Canvas-Format -->
+    <div class="f-row" style="margin-top:12px">
+      <label class="f-label">Canvas-Format</label>
+      <div style="display:flex;flex-direction:column;gap:7px">
+
+        <!-- Frei -->
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--text)">
+          <input type="radio" name="nm-canvas-mode" value="free" checked
+                 onchange="_nmUpdateCanvasFields()">
+          <span>🔲 Frei – passt sich dem Fenster an</span>
+        </label>
+
+        <!-- Seitenverhältnis -->
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--text)">
+          <input type="radio" name="nm-canvas-mode" value="ratio"
+                 onchange="_nmUpdateCanvasFields()">
+          <span>📐 Festes Seitenverhältnis</span>
+        </label>
+        <div id="nm-fields-ratio" style="display:none;align-items:center;gap:8px;padding-left:22px">
+          <select class="f-select" id="nm-ratio" style="max-width:160px">
+            <option value="16:9" selected>16 : 9 &nbsp;(HD/FHD)</option>
+            <option value="4:3">4 : 3 &nbsp;(klassisch)</option>
+            <option value="21:9">21 : 9 &nbsp;(Ultrawide)</option>
+            <option value="3:2">3 : 2</option>
+            <option value="1:1">1 : 1 &nbsp;(quadratisch)</option>
+          </select>
+        </div>
+
+        <!-- Feste Auflösung -->
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--text)">
+          <input type="radio" name="nm-canvas-mode" value="fixed"
+                 onchange="_nmUpdateCanvasFields()">
+          <span>📏 Feste Auflösung (px)</span>
+        </label>
+        <div id="nm-fields-fixed" style="display:none;grid-template-columns:1fr auto 1fr;align-items:center;gap:6px;padding-left:22px">
+          <input class="f-input" id="nm-fixed-w" type="number" value="1920" min="400" max="9999" placeholder="Breite">
+          <span style="color:var(--text-dim);font-size:12px">×</span>
+          <input class="f-input" id="nm-fixed-h" type="number" value="1080" min="300" max="9999" placeholder="Höhe">
+        </div>
+
+        <!-- Hintergrundbild -->
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--text)">
+          <input type="radio" name="nm-canvas-mode" value="background"
+                 onchange="_nmUpdateCanvasFields()">
+          <span>🖼 Hintergrundbild bestimmt die Größe</span>
+        </label>
+        <div id="nm-fields-background" style="display:none;padding-left:22px">
+          <p class="f-hint">Canvas wird nach dem ersten Hintergrundbild-Upload automatisch angepasst.</p>
+        </div>
+
+      </div>
+    </div>
+
     <div class="dlg-foot">
       <button class="btn-cancel" onclick="closeDlg('dlg-new-map')">Abbrechen</button>
       <button class="btn-ok"     onclick="confirmNewMap()">Erstellen</button>
@@ -546,12 +616,10 @@
   </div>
 </div>
 
-<!-- KIOSK-MODUS – Vollbild-Overlay -->
+
+<!-- KIOSK-MODUS -->
 <div id="kiosk-overlay" class="kiosk-overlay" style="display:none;">
-  <div id="kiosk-canvas-wrap">
-    <!-- Map-Canvas wird per JS hierher verschoben -->
-  </div>
-  <!-- Exit-Button: erscheint kurz bei Mausbewegung -->
+  <div id="kiosk-canvas-wrap"></div>
   <button id="kiosk-exit-btn" class="kiosk-exit-btn" onclick="toggleKiosk()" title="Kiosk-Modus beenden (Esc / F11)">
     <svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" width="14" height="14">
       <path fill="currentColor" d="M2,2 L7,2 L7,4 L4,4 L4,7 L2,7 Z
@@ -561,7 +629,6 @@
     </svg>
     Beenden
   </button>
-  <!-- Status-Ticker unten -->
   <div id="kiosk-status-bar" class="kiosk-status-bar"></div>
 </div>
 
@@ -665,7 +732,15 @@
   })();
 </script>
 <script src="js/gadget-renderer.js"></script>
-<script src="js/zoom_pan.js"></script>
+<script>
+  // NV2_ZOOM Stub – falls zoom_pan.js fehlt oder noch nicht geladen
+  window.NV2_ZOOM = window.NV2_ZOOM || {
+    init(){}, reset(){}, destroy(){},
+    getState(){ return { zoom:1, panX:0, panY:0 }; },
+    setState(){}, zoomIn(){}, zoomOut(){},
+  };
+</script>
+<script src="js/zoom_pan.js" onerror="console.warn('[NV2] zoom_pan.js fehlt – Stub aktiv')"></script>
 <script src="js/app.js"></script>
 
 </body>
