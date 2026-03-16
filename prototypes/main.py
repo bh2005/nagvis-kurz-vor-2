@@ -66,6 +66,10 @@ from backend.core.poller       import StatusPoller
 from backend.core.ws_manager   import WebSocketManager
 from backend.core.map_store    import MapStore
 
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi.responses import Response
+from backend.core.map_export import export_map_zip, import_map_zip
+
 # ── Logging ──────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
@@ -702,3 +706,69 @@ async def serve_frontend():
     if index.exists():
         return FileResponse(str(index))
     return JSONResponse({"message": "NagVis 2 API running. Frontend not found."})
+
+# ── Export ──────────────────────────────────────────────────────────────
+ 
+@app.get(
+    "/api/maps/{map_id}/export",
+    summary="Map als ZIP exportieren",
+    tags=["maps"],
+)
+async def export_map(
+    map_id: str,
+    # current_user = Depends(require_role("viewer")),   # Auth aktivieren wenn ready
+):
+    """
+    Gibt eine ZIP-Datei zurück die enthält:
+    - manifest.json  – Metadaten
+    - map.json       – vollständige Map-Konfiguration
+    - background.*   – Hintergrundbild (wenn vorhanden)
+    """
+    try:
+        zip_bytes, filename = export_map_zip(map_id)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Map '{map_id}' nicht gefunden")
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+ 
+    return Response(
+        content     = zip_bytes,
+        media_type  = "application/zip",
+        headers     = {"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+ 
+ 
+# ── Import ───────────────────────────────────────────────────────────────
+ 
+@app.post(
+    "/api/maps/import",
+    summary="Map aus ZIP importieren",
+    tags=["maps"],
+)
+async def import_map(
+    file:        UploadFile = File(...),
+    map_id:      str | None = Query(None,  description="Map-ID überschreiben"),
+    dry_run:     bool       = Query(False, description="Nur validieren, nicht speichern"),
+    # current_user = Depends(require_role("editor")),   # Auth aktivieren wenn ready
+):
+    """
+    Importiert eine Map aus einem NagVis-2-ZIP-Archiv.
+ 
+    - Akzeptiert `.zip`-Dateien die mit `GET /api/maps/{id}/export` erzeugt wurden.
+    - `dry_run=true` → validiert das Archiv ohne etwas zu schreiben.
+    - `map_id` → überschreibt die ID aus dem Archiv.
+    """
+    if not file.filename or not file.filename.lower().endswith(".zip"):
+        raise HTTPException(status_code=400, detail="Nur .zip-Dateien erlaubt")
+ 
+    max_bytes = 50 * 1024 * 1024  # 50 MB
+    data = await file.read()
+    if len(data) > max_bytes:
+        raise HTTPException(status_code=413, detail="Datei zu groß (max. 50 MB)")
+ 
+    result = import_map_zip(data, override_id=map_id, dry_run=dry_run)
+ 
+    if not result.ok:
+        raise HTTPException(status_code=422, detail={"errors": result.errors})
+ 
+    return result.to_dict()
