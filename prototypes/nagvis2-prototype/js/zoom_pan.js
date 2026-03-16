@@ -72,14 +72,43 @@ window.NV2_ZOOM = (() => {
     _zoomTo(_zoom + delta * _zoom, cx, cy);
   }
 
-  // ── Mittlere Maustaste / Space+Drag → Pan ────────────────────────────
+  // ── Linke Maustaste auf freiem Canvas / mittlere Maustaste / Space → Pan ──
+  let _spaceDown = false;
+
+  function _handleKeyDown(e) {
+    if (e.code === 'Space' && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) {
+      _spaceDown = true;
+      if (_wrapper) _wrapper.style.cursor = 'grab';
+      e.preventDefault();
+    }
+  }
+  function _handleKeyUp(e) {
+    if (e.code === 'Space') {
+      _spaceDown = false;
+      if (_wrapper && !_panning) _wrapper.style.cursor = '';
+    }
+  }
+
   function _handleMouseDown(e) {
-    // Mittlere Maustaste oder Space gedrückt
-    if (e.button !== 1) return;
+    const onNode = e.target.closest(
+      '.nv2-node, .nv2-textbox, .nv2-container, .nv2-line-el, ' +
+      '#nv2-resize-panel, .ctx-menu, .dlg-overlay, #snap-tabs, #snapin-container'
+    );
+
+    // Mittlere Maustaste: immer pan
+    // Linke Maustaste: nur pan wenn Space gedrückt ODER kein Node getroffen und kein Edit-Mode
+    const isMiddle = e.button === 1;
+    const isLeft   = e.button === 0;
+    const editMode = document.getElementById('nv2-canvas')?.classList.contains('nv2-edit-mode');
+
+    if (!isMiddle && !isLeft) return;
+    if (isLeft && onNode) return;
+    if (isLeft && !_spaceDown && editMode) return;  // Edit-Mode: linke Maustaste gehört Drag
+
     e.preventDefault();
-    _panning  = true;
-    _startX   = e.clientX;
-    _startY   = e.clientY;
+    _panning   = true;
+    _startX    = e.clientX;
+    _startY    = e.clientY;
     _startPanX = _panX;
     _startPanY = _panY;
     _wrapper.style.cursor = 'grabbing';
@@ -95,13 +124,13 @@ window.NV2_ZOOM = (() => {
   function _handleMouseUp(e) {
     if (!_panning) return;
     _panning = false;
-    _wrapper.style.cursor = '';
+    _wrapper.style.cursor = _spaceDown ? 'grab' : '';
   }
 
   // ── Doppelklick → Zoom-In zum Punkt ──────────────────────────────────
   function _handleDblClick(e) {
-    // Nur wenn kein Objekt getroffen
-    if (e.target.closest('.nv2-node, .nv2-textbox, .nv2-container')) return;
+    // Textbox im Edit-Mode → Inline-Editor, kein Zoom
+    if (e.target.closest('.nv2-textbox, .nv2-node, .nv2-container')) return;
     const rect = _wrapper.getBoundingClientRect();
     const cx   = e.clientX - rect.left;
     const cy   = e.clientY - rect.top;
@@ -178,6 +207,10 @@ window.NV2_ZOOM = (() => {
       window  .addEventListener('mouseup',    _onMouseUp);
       _wrapper.addEventListener('dblclick',   _onDblClick);
 
+      // Space-Pan
+      window.addEventListener('keydown', _handleKeyDown);
+      window.addEventListener('keyup',   _handleKeyUp);
+
       // Touch
       _wrapper.addEventListener('touchstart', _handleTouchStart, { passive: false });
       _wrapper.addEventListener('touchmove',  _handleTouchMove,  { passive: false });
@@ -195,6 +228,8 @@ window.NV2_ZOOM = (() => {
       window  .removeEventListener('mousemove',  _onMouseMove);
       window  .removeEventListener('mouseup',    _onMouseUp);
       _wrapper.removeEventListener('dblclick',   _onDblClick);
+      window  .removeEventListener('keydown',    _handleKeyDown);
+      window  .removeEventListener('keyup',      _handleKeyUp);
       _wrapper.removeEventListener('touchstart', _handleTouchStart);
       _wrapper.removeEventListener('touchmove',  _handleTouchMove);
       _wrapper.removeEventListener('touchend',   _handleTouchEnd);

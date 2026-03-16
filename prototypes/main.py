@@ -29,6 +29,13 @@ Endpunkte:
     GET    /api/status/hosts/{name}  Einzelner Host
     GET    /api/health               Health + Poller-Stats
 
+  REST – Kiosk-User
+    GET    /api/kiosk-users              Alle Kiosk-User
+    POST   /api/kiosk-users              Neuen Kiosk-User anlegen
+    PUT    /api/kiosk-users/{uid}        Kiosk-User aktualisieren
+    DELETE /api/kiosk-users/{uid}        Kiosk-User löschen
+    GET    /api/kiosk-users/resolve      Token → User auflösen (?token=...)
+
   Static
     GET    /                         Frontend SPA
     GET    /backgrounds/{filename}   Hintergrundbilder
@@ -39,7 +46,9 @@ Startup/Shutdown:
 """
 
 import asyncio
+import json
 import logging
+import secrets
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -78,21 +87,12 @@ logging.basicConfig(
 log = logging.getLogger("nagvis.app")
 
 # ── Backend-Konfiguration ─────────────────────────────────────
-# Mehrere CMK-Sites als eigene Einträge möglich.
-# In Produktion: aus nagvis.ini.php oder Umgebungsvariablen lesen.
 BACKENDS: list[LivestatusConfig] = [
     LivestatusConfig(
         backend_id  = "default",
         socket_path = "/omd/sites/cmk/tmp/run/live",
         timeout     = 8.0,
     ),
-    # Weiteres Backend (TCP, remote Site) – Beispiel auskommentiert:
-    # LivestatusConfig(
-    #     backend_id = "site-berlin",
-    #     use_tcp    = True,
-    #     host       = "mon-berlin.example.com",
-    #     port       = 6557,
-    # ),
 ]
 POLL_INTERVAL = 30.0   # Sekunden
 
@@ -102,13 +102,12 @@ poller           = StatusPoller(BACKENDS[0], interval=POLL_INTERVAL)
 ws_manager       = WebSocketManager()
 map_store        = MapStore()
 auth_manager     = AuthManager()
-set_auth_manager(auth_manager)   # Dependency-Injection vorbereiten
+set_auth_manager(auth_manager)
 
 # ── Demo-Daten für Dev ohne echtes Livestatus ─────────────────
-DEMO_MODE = True   # auf False setzen wenn echtes Livestatus vorhanden
+DEMO_MODE = True
 
 if DEMO_MODE:
-    # Fake-Cache damit get_full_snapshot() sofort etwas liefert
     _demo_hosts = [
         {"type":"host","name":"core-router-01","alias":"Core Router","state":0,"state_label":"UP","output":"PING OK - 1.2ms","last_check":1710000000,"acknowledged":False,"in_downtime":False,"services_ok":12,"services_warn":0,"services_crit":0,"services_unkn":0},
         {"type":"host","name":"srv-web-01","alias":"Web Server 01","state":0,"state_label":"UP","output":"HTTP OK: 200 in 43ms","last_check":1710000010,"acknowledged":False,"in_downtime":False,"services_ok":8,"services_warn":0,"services_crit":0,"services_unkn":0},
@@ -120,7 +119,6 @@ if DEMO_MODE:
     for h in _demo_hosts:
         poller._host_cache[h["name"]] = h
 
-    # Demo-Map anlegen wenn noch keine existiert
     if not map_store.list_maps():
         demo_map = map_store.create_map("Datacenter Rack A", "datacenter-a")
         positions = [
@@ -138,17 +136,30 @@ if DEMO_MODE:
             })
 
 
+# ── Kiosk-User Storage ────────────────────────────────────────
+KIOSK_FILE = Path("data/kiosk_users.json")
+
+def _load_kiosk_users() -> list:
+    """Lädt Kiosk-User aus JSON-Datei."""
+    if KIOSK_FILE.exists():
+        try:
+            return json.loads(KIOSK_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            return []
+    return []
+
+def _save_kiosk_users(users: list) -> None:
+    """Speichert Kiosk-User in JSON-Datei."""
+    KIOSK_FILE.parent.mkdir(parents=True, exist_ok=True)
+    KIOSK_FILE.write_text(json.dumps(users, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
 # ── Application Lifespan ──────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # ── Startup ──
     log.info("Starting NagVis 2 backend...")
-
-    # Poller starten (Background-Task)
     if not DEMO_MODE:
         await poller.start()
-
-    # WebSocket Fan-out Loop starten
     fanout_task = asyncio.create_task(
         ws_manager.fanout_loop(
             queue        = poller.queue,
@@ -156,10 +167,7 @@ async def lifespan(app: FastAPI):
         ),
         name="ws-fanout"
     )
-
-    yield   # ← App läuft
-
-    # ── Shutdown ──
+    yield
     log.info("Shutting down...")
     fanout_task.cancel()
     if not DEMO_MODE:
@@ -176,27 +184,23 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins     = ["*"],   # In Produktion einschränken
+    allow_origins     = ["*"],
     allow_credentials = True,
     allow_methods     = ["*"],
     allow_headers     = ["*"],
 )
 
 # ── Auth-Middleware ───────────────────────────────────────────
-# Schützt alle /api/*-Routen. Statische Dateien und / bleiben offen.
-AUTH_SKIP_PATHS = {"/", "/api/auth/login", "/api/health"}
+AUTH_SKIP_PATHS = {"/", "/api/auth/login", "/api/health", "/api/kiosk-users/resolve"}
 AUTH_SKIP_PREFIXES = ("/static/", "/backgrounds/", "/docs", "/openapi")
 
 @app.middleware("http")
 async def auth_middleware(request, call_next):
     path = request.url.path
-    # Freigegebene Pfade durchlassen
     if path in AUTH_SKIP_PATHS or path.startswith(AUTH_SKIP_PREFIXES):
         return await call_next(request)
-    # Nur /api/* und /ws/* absichern
     if not (path.startswith("/api/") or path.startswith("/ws/")):
         return await call_next(request)
-    # Token aus Header lesen (WebSocket: Query-Param wird in Handler geprüft)
     if path.startswith("/ws/"):
         return await call_next(request)
     auth_header = request.headers.get("Authorization", "")
@@ -227,32 +231,20 @@ app.mount("/static",      StaticFiles(directory="frontend"),         name="front
 
 @app.websocket("/ws/map/{map_id}")
 async def ws_map(websocket: WebSocket, map_id: str):
-    """
-    WebSocket für eine bestimmte Map.
-    Browser erhält sofort einen Snapshot, dann nur noch Diffs.
-    Token wird als Query-Parameter erwartet: ?token=<jwt>
-    """
-    user = auth_manager.verify_ws_token(websocket)   # 4001 bei Fehler
+    user = auth_manager.verify_ws_token(websocket)
     client_id = f"{map_id}::{uuid.uuid4().hex[:8]}"
-
     conn = await ws_manager.connect(websocket, client_id, map_id=map_id)
-
-    # Sofort den aktuellen Snapshot senden
     await ws_manager.send_snapshot(client_id)
-
     try:
-        # Verbindung offenhalten – Client sendet Pings / Befehle
         while True:
             data = await websocket.receive_text()
             await _handle_ws_message(client_id, map_id, data)
-
     except WebSocketDisconnect:
         await ws_manager.disconnect(client_id)
 
 
 @app.websocket("/ws/global")
 async def ws_global(websocket: WebSocket):
-    """Admin-/Debug-Stream: alle Events, alle Maps. Nur admin-Tokens."""
     user = auth_manager.verify_ws_token(websocket)
     if ROLE_RANK.get(user.role, 0) < ROLE_RANK["admin"]:
         from fastapi import WebSocketException
@@ -260,7 +252,6 @@ async def ws_global(websocket: WebSocket):
     client_id = f"global::{uuid.uuid4().hex[:8]}"
     await ws_manager.connect(websocket, client_id)
     await ws_manager.send_snapshot(client_id)
-
     try:
         while True:
             await websocket.receive_text()
@@ -269,20 +260,13 @@ async def ws_global(websocket: WebSocket):
 
 
 async def _handle_ws_message(client_id: str, map_id: str, raw: str):
-    """
-    Verarbeitet Nachrichten vom Browser über den WS-Kanal.
-    Z.B. "force_refresh" um sofort einen neuen Poll zu triggern.
-    """
     import json as _json
     try:
         msg = _json.loads(raw)
         cmd = msg.get("cmd")
         if cmd == "force_refresh":
             if not DEMO_MODE:
-                # trigger_refresh() setzt asyncio.Event → unterbricht sleep()
-                # und löst sofortigen Poll aus, ohne den Task neu zu starten.
                 poller.trigger_refresh()
-            # In DEMO_MODE: Snapshot direkt zurückschicken
             await ws_manager.send(client_id, poller.get_full_snapshot())
         elif cmd == "ping":
             await ws_manager.send(client_id, {"event": "pong"})
@@ -334,30 +318,19 @@ async def rename_map(map_id: str, req: RenameTitleRequest, user: AuthUser = Depe
     return {"map_id": map_id, "title": req.title}
 
 
-# ── Hintergrundbild ───────────────────────────────────────────
-
 @app.post("/api/maps/{map_id}/background", tags=["maps"])
 async def upload_background(map_id: str, file: UploadFile = File(...), user: AuthUser = Depends(require_editor)):
-    """
-    Nimmt ein Bild entgegen (PNG/JPG/SVG/WebP),
-    speichert es unter data/backgrounds/ und verknüpft es mit der Map.
-    """
     allowed = {".png", ".jpg", ".jpeg", ".svg", ".webp", ".gif"}
     ext = Path(file.filename).suffix.lower()
     if ext not in allowed:
         raise HTTPException(400, f"Dateityp {ext} nicht erlaubt. Erlaubt: {allowed}")
-
-    # Eindeutiger Dateiname
     filename = f"{map_id}{ext}"
     dest = Path("data/backgrounds") / filename
-
     content = await file.read()
-    if len(content) > 20 * 1024 * 1024:   # 20 MB Limit
+    if len(content) > 20 * 1024 * 1024:
         raise HTTPException(413, "Datei zu groß (max. 20 MB)")
-
     dest.write_bytes(content)
     map_store.set_background(map_id, filename)
-
     log.info("Background uploaded for map '%s': %s (%d bytes)", map_id, filename, len(content))
     return {
         "map_id":   map_id,
@@ -370,27 +343,13 @@ async def upload_background(map_id: str, file: UploadFile = File(...), user: Aut
 # ── Objekte ───────────────────────────────────────────────────
 
 class AddObjectRequest(BaseModel):
-    """
-    Flexibles Schema für alle Objekttypen.
-
-    Monitoring (host | service | hostgroup | servicegroup | map):
-      type, name, x, y, iconset?, label?, host_name? (nur service)
-
-    Statuslos:
-      textbox:   type, x, y, text?, w?, h?, font_size?, bold?,
-                 color?, bg_color?, border_color?
-      line:      type, x, y, x2?, y2?, line_style?, line_width?, color?
-      container: type, x, y, url?, w?, h?
-    """
     type:         str
     x:            float
     y:            float
-    # Monitoring
     name:         str | None = None
     iconset:      str        = "default"
     label:        str        = ""
-    host_name:    str | None = None   # für type=service
-    # Textbox
+    host_name:    str | None = None
     text:         str | None = None
     w:            float | None = None
     h:            float | None = None
@@ -399,12 +358,10 @@ class AddObjectRequest(BaseModel):
     color:        str | None = None
     bg_color:     str | None = None
     border_color: str | None = None
-    # Line
     x2:           float | None = None
     y2:           float | None = None
-    line_style:   str | None = None   # solid | dashed | dotted
+    line_style:   str | None = None
     line_width:   int  | None = None
-    # Container
     url:          str | None = None
 
 class UpdatePositionRequest(BaseModel):
@@ -416,20 +373,17 @@ class UpdateSizeRequest(BaseModel):
     h: float
 
 class UpdatePropsRequest(BaseModel):
-    props: dict   # beliebige Felder (type + object_id sind geschützt)
+    props: dict
 
 
 @app.post("/api/maps/{map_id}/objects", tags=["objects"], status_code=201)
 async def add_object(map_id: str, req: AddObjectRequest, user: AuthUser = Depends(require_editor)):
     from backend.core.map_store import ALL_TYPES
     if req.type not in ALL_TYPES:
-        raise HTTPException(400, f"Unbekannter Typ '{req.type}'. "
-                            f"Erlaubt: {sorted(ALL_TYPES)}")
-
+        raise HTTPException(400, f"Unbekannter Typ '{req.type}'. Erlaubt: {sorted(ALL_TYPES)}")
     obj = map_store.add_object(map_id, req.model_dump(exclude_none=True))
     if obj is None:
         raise HTTPException(404, f"Map '{map_id}' not found")
-
     await ws_manager.broadcast(
         {"event": "object_added", "map_id": map_id, "object": obj},
         map_id=map_id,
@@ -470,7 +424,6 @@ async def remove_object(map_id: str, object_id: str, user: AuthUser = Depends(re
     ok = map_store.remove_object(map_id, object_id)
     if not ok:
         raise HTTPException(404, "Object not found")
-
     await ws_manager.broadcast(
         {"event": "object_removed", "map_id": map_id, "object_id": object_id},
         map_id=map_id,
@@ -484,40 +437,124 @@ async def remove_object(map_id: str, object_id: str, user: AuthUser = Depends(re
 
 class CreateTokenRequest(BaseModel):
     username:   str
-    role:       str        = "viewer"   # viewer | editor | admin
-    expires_in: int | None = None       # Sekunden; None = unbegrenzt
+    role:       str        = "viewer"
+    expires_in: int | None = None
 
 @app.post("/api/auth/tokens", tags=["auth"], status_code=201)
-async def create_token(
-    req:  CreateTokenRequest,
-    user: AuthUser = Depends(require_admin),
-):
-    """Neues API-Token erzeugen (nur admin)."""
+async def create_token(req: CreateTokenRequest, user: AuthUser = Depends(require_admin)):
     token = auth_manager.create_token(req.username, req.role, req.expires_in)
     return {"token": token, "username": req.username, "role": req.role}
 
 
 @app.get("/api/auth/tokens", tags=["auth"])
 async def list_tokens_route(user: AuthUser = Depends(require_admin)):
-    """Alle bekannten Tokens auflisten (nur admin, JWT nicht enthalten)."""
     return {"tokens": auth_manager.list_tokens()}
 
 
 @app.delete("/api/auth/tokens/{jti}", tags=["auth"])
 async def revoke_token(jti: str, user: AuthUser = Depends(require_admin)):
-    """Token per jti widerrufen (nur admin)."""
     auth_manager.revoke(jti)
     return {"revoked": jti}
 
 
 @app.get("/api/auth/me", tags=["auth"])
 async def whoami(user: AuthUser = Depends(require_viewer)):
-    """Gibt den aktuell eingeloggten User zurück."""
     return {
         "username":   user.username,
         "role":       user.role,
         "expires_at": user.expires_at or None,
     }
+
+
+# ════════════════════════════════════════════════════════════════
+#  REST – Kiosk-User-Verwaltung
+# ════════════════════════════════════════════════════════════════
+
+class KioskUserCreateRequest(BaseModel):
+    label:    str
+    maps:     list[str] = []   # Whitelist der Map-IDs
+    order:    list[str] = []   # Rotations-Reihenfolge (leer = maps-Reihenfolge)
+    interval: int       = 30   # Sekunden pro Map
+
+
+class KioskUserUpdateRequest(BaseModel):
+    label:    str | None = None
+    maps:     list[str] | None = None
+    order:    list[str] | None = None
+    interval: int        | None = None
+
+
+@app.get("/api/kiosk-users", tags=["kiosk"])
+async def list_kiosk_users(user: AuthUser = Depends(require_admin)):
+    """Alle Kiosk-User auflisten (nur admin)."""
+    return _load_kiosk_users()
+
+
+@app.post("/api/kiosk-users", tags=["kiosk"], status_code=201)
+async def create_kiosk_user(
+    req:  KioskUserCreateRequest,
+    user: AuthUser = Depends(require_admin),
+):
+    """Neuen Kiosk-User anlegen. Gibt Token zurück (nur einmalig sichtbar)."""
+    users = _load_kiosk_users()
+    new_user = {
+        "id":       secrets.token_hex(8),
+        "token":    secrets.token_urlsafe(24),
+        "label":    req.label,
+        "maps":     req.maps,
+        "order":    req.order if req.order else req.maps,
+        "interval": max(5, req.interval),
+    }
+    users.append(new_user)
+    _save_kiosk_users(users)
+    log.info("Kiosk-User angelegt: %s (%s)", new_user["label"], new_user["id"])
+    return new_user
+
+
+@app.put("/api/kiosk-users/{uid}", tags=["kiosk"])
+async def update_kiosk_user(
+    uid:  str,
+    req:  KioskUserUpdateRequest,
+    user: AuthUser = Depends(require_admin),
+):
+    """Kiosk-User aktualisieren."""
+    users = _load_kiosk_users()
+    for u in users:
+        if u["id"] == uid:
+            if req.label    is not None: u["label"]    = req.label
+            if req.maps     is not None: u["maps"]     = req.maps
+            if req.order    is not None: u["order"]    = req.order
+            if req.interval is not None: u["interval"] = max(5, req.interval)
+            _save_kiosk_users(users)
+            return u
+    raise HTTPException(404, f"Kiosk-User '{uid}' nicht gefunden")
+
+
+@app.delete("/api/kiosk-users/{uid}", tags=["kiosk"])
+async def delete_kiosk_user(uid: str, user: AuthUser = Depends(require_admin)):
+    """Kiosk-User löschen."""
+    users = _load_kiosk_users()
+    before = len(users)
+    users = [u for u in users if u["id"] != uid]
+    if len(users) == before:
+        raise HTTPException(404, f"Kiosk-User '{uid}' nicht gefunden")
+    _save_kiosk_users(users)
+    log.info("Kiosk-User gelöscht: %s", uid)
+    return {"deleted": uid}
+
+
+@app.get("/api/kiosk-users/resolve", tags=["kiosk"])
+async def resolve_kiosk_token(token: str = Query(..., description="Kiosk-Token aus URL-Parameter")):
+    """
+    Token → Kiosk-User auflösen.
+    Dieser Endpunkt ist OHNE Auth-Token zugänglich (für den Browser beim Kiosk-Login).
+    Der Kiosk-Token selbst ist das Authentifizierungsmittel.
+    """
+    for u in _load_kiosk_users():
+        if u.get("token") == token:
+            # Token nicht zurückgeben (Sicherheit: Token bleibt serverseitig)
+            return {k: v for k, v in u.items() if k != "token"}
+    raise HTTPException(403, "Ungültiger oder abgelaufener Kiosk-Token")
 
 
 # ════════════════════════════════════════════════════════════════
@@ -549,7 +586,6 @@ async def get_host(host_name: str):
 
 @app.get("/api/backends", tags=["system"])
 async def list_backends(user: AuthUser = Depends(require_admin)):
-    """Alle konfigurierten Livestatus-Backends mit Live-Health-Status."""
     if DEMO_MODE:
         return {
             "backends": [{"backend_id": "default", "type": "unix",
@@ -583,11 +619,9 @@ async def health():
             "poller":     poller.stats,
             "websockets": ws_manager.stats,
         }
-
     health_list   = await backend_registry.health()
     all_reachable = all(h.reachable for h in health_list)
     any_reachable = any(h.reachable for h in health_list)
-
     return {
         "status":     "ok" if all_reachable else ("degraded" if any_reachable else "down"),
         "demo_mode":  False,
@@ -614,32 +648,11 @@ async def migrate_nagvis1_cfg(
     dry_run:  bool       = Query(False,  description="Nur Preview, nichts speichern"),
     user:     AuthUser   = Depends(require_admin),
 ):
-    """
-    Migriert eine NagVis-1-.cfg-Datei nach NagVis 2.
-
-    - Parst alle Objekttypen (host, service, hostgroup, servicegroup,
-      map, textbox, line, container)
-    - Rechnet Pixel-Koordinaten in %-Koordinaten um
-    - Legt die Map direkt im MapStore an (außer dry_run=true)
-    - Gibt Warnungen und übersprungene Objekte zurück
-
-    dry_run=true: liefert nur die Vorschau ohne zu speichern.
-    """
     if not file.filename.endswith(".cfg"):
         raise HTTPException(400, "Nur .cfg-Dateien werden akzeptiert")
-
     content = (await file.read()).decode("utf-8", errors="replace")
-
-    # map_id aus Dateiname ableiten wenn nicht angegeben
     derived_id = map_id or file.filename.removesuffix(".cfg")
-
-    result = migrate_cfg(
-        content   = content,
-        map_id    = derived_id,
-        canvas_w  = canvas_w,
-        canvas_h  = canvas_h,
-    )
-
+    result = migrate_cfg(content=content, map_id=derived_id, canvas_w=canvas_w, canvas_h=canvas_h)
     if dry_run:
         return {
             "dry_run":    True,
@@ -648,53 +661,28 @@ async def migrate_nagvis1_cfg(
             "background": result.background,
             "object_count": len(result.objects),
             "objects":    result.objects,
-            "warnings":   [
-                {"type": w.object_type, "field": w.field, "message": w.message}
-                for w in result.warnings
-            ],
+            "warnings":   [{"type": w.object_type, "field": w.field, "message": w.message} for w in result.warnings],
             "skipped":    result.skipped,
         }
-
-    # Map anlegen und Objekte einfügen
     existing = map_store.get_map(result.map_id)
     if existing:
-        raise HTTPException(
-            409,
-            f"Map '{result.map_id}' existiert bereits. "
-            "Andere map_id wählen oder Map zuerst löschen."
-        )
-
+        raise HTTPException(409, f"Map '{result.map_id}' existiert bereits.")
     map_store.create_map(result.title, result.map_id)
-
-    inserted = []
-    failed   = []
+    inserted, failed = [], []
     for obj in result.objects:
         created = map_store.add_object(result.map_id, obj)
-        if created:
-            inserted.append(created)
-        else:
-            failed.append(obj)
-
-    log.info(
-        "Migration abgeschlossen: map=%s, %d eingefügt, %d fehlgeschlagen",
-        result.map_id, len(inserted), len(failed),
-    )
-
+        if created: inserted.append(created)
+        else:       failed.append(obj)
+    log.info("Migration: map=%s, %d eingefügt, %d fehlgeschlagen", result.map_id, len(inserted), len(failed))
     return {
         "dry_run":      False,
         "map_id":       result.map_id,
         "title":        result.title,
         "background":   result.background,
         "object_count": len(inserted),
-        "warnings": [
-            {"type": w.object_type, "field": w.field, "message": w.message}
-            for w in result.warnings
-        ],
+        "warnings":     [{"type": w.object_type, "field": w.field, "message": w.message} for w in result.warnings],
         "skipped":      result.skipped + len(failed),
-        "note": (
-            f"Hintergrundbild '{result.background}' muss manuell hochgeladen werden."
-            if result.background else ""
-        ),
+        "note": (f"Hintergrundbild '{result.background}' muss manuell hochgeladen werden." if result.background else ""),
     }
 
 
@@ -707,68 +695,37 @@ async def serve_frontend():
         return FileResponse(str(index))
     return JSONResponse({"message": "NagVis 2 API running. Frontend not found."})
 
-# ── Export ──────────────────────────────────────────────────────────────
- 
-@app.get(
-    "/api/maps/{map_id}/export",
-    summary="Map als ZIP exportieren",
-    tags=["maps"],
-)
-async def export_map(
-    map_id: str,
-    # current_user = Depends(require_role("viewer")),   # Auth aktivieren wenn ready
-):
-    """
-    Gibt eine ZIP-Datei zurück die enthält:
-    - manifest.json  – Metadaten
-    - map.json       – vollständige Map-Konfiguration
-    - background.*   – Hintergrundbild (wenn vorhanden)
-    """
+
+# ── Export / Import ──────────────────────────────────────────
+
+@app.get("/api/maps/{map_id}/export", summary="Map als ZIP exportieren", tags=["maps"])
+async def export_map(map_id: str):
     try:
         zip_bytes, filename = export_map_zip(map_id)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"Map '{map_id}' nicht gefunden")
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
- 
     return Response(
         content     = zip_bytes,
         media_type  = "application/zip",
         headers     = {"Content-Disposition": f'attachment; filename="{filename}"'},
     )
- 
- 
-# ── Import ───────────────────────────────────────────────────────────────
- 
-@app.post(
-    "/api/maps/import",
-    summary="Map aus ZIP importieren",
-    tags=["maps"],
-)
+
+
+@app.post("/api/maps/import", summary="Map aus ZIP importieren", tags=["maps"])
 async def import_map(
-    file:        UploadFile = File(...),
-    map_id:      str | None = Query(None,  description="Map-ID überschreiben"),
-    dry_run:     bool       = Query(False, description="Nur validieren, nicht speichern"),
-    # current_user = Depends(require_role("editor")),   # Auth aktivieren wenn ready
+    file:    UploadFile = File(...),
+    map_id:  str | None = Query(None,  description="Map-ID überschreiben"),
+    dry_run: bool       = Query(False, description="Nur validieren, nicht speichern"),
 ):
-    """
-    Importiert eine Map aus einem NagVis-2-ZIP-Archiv.
- 
-    - Akzeptiert `.zip`-Dateien die mit `GET /api/maps/{id}/export` erzeugt wurden.
-    - `dry_run=true` → validiert das Archiv ohne etwas zu schreiben.
-    - `map_id` → überschreibt die ID aus dem Archiv.
-    """
     if not file.filename or not file.filename.lower().endswith(".zip"):
         raise HTTPException(status_code=400, detail="Nur .zip-Dateien erlaubt")
- 
-    max_bytes = 50 * 1024 * 1024  # 50 MB
+    max_bytes = 50 * 1024 * 1024
     data = await file.read()
     if len(data) > max_bytes:
         raise HTTPException(status_code=413, detail="Datei zu groß (max. 50 MB)")
- 
     result = import_map_zip(data, override_id=map_id, dry_run=dry_run)
- 
     if not result.ok:
         raise HTTPException(status_code=422, detail={"errors": result.errors})
- 
     return result.to_dict()
