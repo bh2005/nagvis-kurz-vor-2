@@ -6,6 +6,13 @@
  *
  * Keine externe Abhängigkeit, kein Build-Step.
  * Kommuniziert mit dem FastAPI-Backend via REST + WebSocket.
+ *
+ * FIXES (März 2026):
+ *   - Doppelte openMap()-Definition entfernt (Zoom-Stub überschrieb Original)
+ *   - Doppelte showOverview()-Definition entfernt
+ *   - Zoom-Button-IDs korrigiert: nv2-zoom-in/out → btn-zoom-in/out
+ *   - NV2_ZOOM.init() in openMap() integriert
+ *   - NV2_ZOOM.destroy() in showOverview() integriert
  */
 
 'use strict';
@@ -14,48 +21,30 @@
 //  KONSTANTEN
 // ═══════════════════════════════════════════════════════════════════════
 
-/** CSS-Klassen je Livestatus-Zustand */
 const STATE_CLS = {
-  UP:          'nv2-ok',
-  OK:          'nv2-ok',
-  WARNING:     'nv2-warning',
-  CRITICAL:    'nv2-critical',
-  UNKNOWN:     'nv2-unknown',
-  DOWN:        'nv2-critical',
-  UNREACHABLE: 'nv2-critical',
-  PENDING:     'nv2-unknown',
+  UP:'nv2-ok', OK:'nv2-ok', WARNING:'nv2-warning', CRITICAL:'nv2-critical',
+  UNKNOWN:'nv2-unknown', DOWN:'nv2-critical', UNREACHABLE:'nv2-critical', PENDING:'nv2-unknown',
 };
 
-/** Badge-Zeichen */
 const STATE_BADGE = {
   UP:'✓', OK:'✓', WARNING:'!', CRITICAL:'✕',
   UNKNOWN:'?', DOWN:'↓', UNREACHABLE:'↕', PENDING:'…',
 };
 
-/** CSS-Klasse für Status-Pip / Tag */
 const STATE_CHIP = {
   UP:'ok', OK:'ok', WARNING:'warn', CRITICAL:'crit',
   DOWN:'crit', UNREACHABLE:'crit', UNKNOWN:'unkn', PENDING:'unkn',
 };
 
-/** Emoji-Icons je Iconset */
-/** Emoji-Fallback wenn kein Iconset-Bild vorhanden */
 const ICONS_FALLBACK = {
   server:'🖥', router:'🌐', switch:'🔀', firewall:'🔥',
   storage:'💾', database:'🗄', ups:'⚡', ap:'📡', map:'🗺', default:'⬡',
 };
 
-/** Bekannte Iconsets (Verzeichnisse unter assets/icons/) */
 const KNOWN_ICONSETS = ['std_small','server','router','switch','firewall','database','storage','ups','ap'];
 
-/** Upload-Cache für benutzerdefinierte Iconsets */
 let customIconsets = JSON.parse(localStorage.getItem('nv2-custom-iconsets') || '[]');
 
-/**
- * Inline-SVG Data-URIs je Status – kein Dateisystem nötig.
- * Farben via CSS-Variablen funktionieren in Data-URIs nicht →
- * daher feste Hex-Werte passend zum Design-System.
- */
 const ICON_SVG = {
   ok:       `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><circle cx="18" cy="18" r="16" fill="#13d38e"/><path d="M11 18l5 5 9-9" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   warning:  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><circle cx="18" cy="18" r="16" fill="#ffa726"/><text x="18" y="24" text-anchor="middle" font-size="20" font-weight="bold" fill="#fff">!</text></svg>`,
@@ -65,7 +54,6 @@ const ICON_SVG = {
   down:     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><circle cx="18" cy="18" r="16" fill="#f44336"/><text x="18" y="24" text-anchor="middle" font-size="18" font-weight="bold" fill="#fff">↓</text></svg>`,
 };
 
-/** Iconset-spezifische Shapes als SVG-Overlay (wird über Status-Kreis gelegt) */
 const ICONSET_SHAPE = {
   server:   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><rect x="6" y="8" width="24" height="7" rx="2" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/><rect x="6" y="18" width="24" height="7" rx="2" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/><circle cx="10" cy="11.5" r="1.2" fill="rgba(255,255,255,0.85)"/><circle cx="10" cy="21.5" r="1.2" fill="rgba(255,255,255,0.85)"/></svg>`,
   router:   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><circle cx="18" cy="18" r="8" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/><line x1="18" y1="6" x2="18" y2="30" stroke="rgba(255,255,255,0.85)" stroke-width="1"/><line x1="6" y1="18" x2="30" y2="18" stroke="rgba(255,255,255,0.85)" stroke-width="1"/></svg>`,
@@ -80,15 +68,10 @@ const ICONSET_SHAPE = {
   std_small:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><rect x="9" y="9" width="18" height="18" rx="3" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/></svg>`,
 };
 
-/** Konvertiert SVG-String zu Data-URI */
 function svgToDataUri(svg) {
   return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 }
 
-/**
- * Liefert Status-Icon als Data-URI (kein Dateisystem nötig).
- * @returns {{ type: 'img', src: string }}
- */
 function iconSrc(iconset, stateLabel) {
   const stateKey = !stateLabel ? 'unknown'
     : stateLabel === 'UP' || stateLabel === 'OK'              ? 'ok'
@@ -100,9 +83,6 @@ function iconSrc(iconset, stateLabel) {
   return { type: 'img', src: svgToDataUri(ICON_SVG[stateKey] ?? ICON_SVG.unknown) };
 }
 
-/**
- * Aktualisiert Status-Icon eines Node-Elements nach Statuswechsel.
- */
 function updateNodeIcon(el, stateLabel) {
   const ring = el.querySelector('.nv2-ring');
   if (!ring) return;
@@ -116,15 +96,15 @@ function updateNodeIcon(el, stateLabel) {
 //  STATE
 // ═══════════════════════════════════════════════════════════════════════
 
-let activeMapId  = null;   // aktuell geöffnete Map-ID
-let activeMapCfg = null;   // Map-Config-Objekt vom Server
-let wsClient     = null;   // WebSocket-Verbindung
-let editActive   = false;  // Edit-Mode an/aus
-let pendingPos   = null;   // { x, y } für nächsten Host-Place via Canvas-Klick
-let hostCache    = {};     // name → hostData (letzter Snapshot/Update)
-let eventLog     = [];     // Array der letzten 60 Events für den Event-Stream
-let activeSnapin = null;   // 'hosts' | 'events' | null
-let currentTheme = 'dark'; // 'dark' | 'light'
+let activeMapId  = null;
+let activeMapCfg = null;
+let wsClient     = null;
+let editActive   = false;
+let pendingPos   = null;
+let hostCache    = {};
+let eventLog     = [];
+let activeSnapin = null;
+let currentTheme = 'dark';
 
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -133,15 +113,11 @@ let currentTheme = 'dark'; // 'dark' | 'light'
 
 document.addEventListener('DOMContentLoaded', async () => {
 
-  // Theme aus localStorage wiederherstellen
   const savedTheme = localStorage.getItem('nv2-theme') ?? 'dark';
   setTheme(savedTheme, false);
 
-  // Sidebar-State wiederherstellen
   restoreSidebar();
 
-  // Button-Verdrahtung
-  // btn-edit, btn-bg-upload, btn-delete-map → im Burger-Dropdown via onclick
   document.getElementById('btn-refresh')   .addEventListener('click', () => wsClient?.forceRefresh());
   document.getElementById('btn-add-host')  .addEventListener('click', () => openDlg('dlg-add-object'));
   document.getElementById('btn-kiosk')     .addEventListener('click', toggleKiosk);
@@ -150,30 +126,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     e.target.value = '';
   });
 
-  // Sidebar-Toggle
   document.getElementById('btn-sidebar-toggle-foot').addEventListener('click', toggleSidebar);
 
-  // Burger-Menü: Außenklick schließt
   document.addEventListener('click', e => {
     if (_burgerOpen && !e.target.closest('#burger-wrap')) closeBurgerMenu();
   });
 
-  // Canvas-Klick → Host platzieren
   document.getElementById('nv2-canvas').addEventListener('click', onCanvasClick);
 
-  // Drag & Drop für Hintergrundbilder
   setupDragDrop();
-
-  // Keyboard-Shortcuts
   document.addEventListener('keydown', onKeyDown);
 
-  // Demo-Modus erkennen (kein Backend → statische Daten)
-  await detectDemoMode();
+  // ── FIX: Zoom-Buttons korrekt verdrahten (btn-zoom-*, nicht nv2-zoom-*) ──
+  document.getElementById('btn-zoom-in') ?.addEventListener('click', () => NV2_ZOOM.zoomIn());
+  document.getElementById('btn-zoom-out')?.addEventListener('click', () => NV2_ZOOM.zoomOut());
 
-  // Erste Map-Liste laden → Overview aufbauen
+  await detectDemoMode();
   await loadMaps();
 
-  // Health-Polling alle 30s
   pollHealth();
   setInterval(pollHealth, 30_000);
 });
@@ -187,8 +157,7 @@ let sidebarCollapsed = false;
 
 function toggleSidebar() {
   sidebarCollapsed = !sidebarCollapsed;
-  const sidebar = document.getElementById('sidebar');
-  sidebar.classList.toggle('collapsed', sidebarCollapsed);
+  document.getElementById('sidebar').classList.toggle('collapsed', sidebarCollapsed);
   localStorage.setItem('nv2-sidebar', sidebarCollapsed ? '1' : '0');
 }
 
@@ -214,10 +183,8 @@ function openBurgerMenu() {
   _burgerOpen = true;
   const dd = document.getElementById('burger-dropdown');
   dd.style.display = 'block';
-  // Map-Sektion nur anzeigen wenn Map geöffnet
   const mapSec = document.getElementById('burger-map-section');
   if (mapSec) mapSec.style.display = activeMapId ? 'block' : 'none';
-  // Theme-Label aktualisieren
   const ico   = document.getElementById('burger-theme-ico');
   const label = document.getElementById('burger-theme-label');
   if (ico)   ico.textContent   = currentTheme === 'dark' ? '☀' : '☽';
@@ -232,20 +199,12 @@ function closeBurgerMenu() {
   document.getElementById('btn-menu')?.classList.remove('on');
 }
 
-// Globale Exports für onclick-Attribute
 window.toggleBurgerMenu = toggleBurgerMenu;
 window.closeBurgerMenu  = closeBurgerMenu;
 
-
-/**
- * Schaltet Light/Dark-Theme und persistiert die Auswahl.
- * @param {'light'|'dark'} theme
- * @param {boolean} [save=true]
- */
 function setTheme(theme, save = true) {
   currentTheme = theme;
   document.documentElement.setAttribute('data-theme', theme);
-  // Burger-Dropdown-Label
   const ico   = document.getElementById('burger-theme-ico');
   const label = document.getElementById('burger-theme-label');
   if (ico)   ico.textContent   = theme === 'dark' ? '☀' : '☽';
@@ -265,7 +224,6 @@ async function loadMaps() {
   renderOverview(maps);
 }
 
-/** Maps in der Sidebar-Liste darstellen */
 function renderSidebarMaps(maps) {
   const el = document.getElementById('sidebar-maps');
   if (!maps.length) {
@@ -278,13 +236,11 @@ function renderSidebarMaps(maps) {
       ${esc(m.title)}
     </div>`).join('');
 
-  // Click-Handler
   el.querySelectorAll('.map-entry').forEach(entry => {
     entry.addEventListener('click', () => openMap(entry.dataset.mapId));
   });
 }
 
-/** Overview-Karten-Raster befüllen */
 function renderOverview(maps) {
   const grid = document.getElementById('ov-grid');
 
@@ -309,14 +265,12 @@ function renderOverview(maps) {
       <span style="font-size:18px;line-height:1">＋</span> Neue Map
     </div>`;
 
-  // Click-Handler: Karte öffnet Map
   grid.querySelectorAll('.ov-card').forEach(card => {
     card.addEventListener('click', () => openMap(card.dataset.mapId));
   });
   document.getElementById('btn-new-map')?.addEventListener('click', dlgNewMap);
 }
 
-/** Kleines Kontextmenü für eine Karte in der Übersicht */
 function openCardMenu(e, mapId, mapTitle) {
   closeCardMenu();
   const menu = document.createElement('div');
@@ -324,21 +278,17 @@ function openCardMenu(e, mapId, mapTitle) {
   menu.className = 'ctx-menu';
   menu.style.cssText = `position:fixed;top:${e.clientY + 4}px;left:${e.clientX - 140}px`;
   menu.innerHTML = `
-    <button class="ctx-item" onclick="closeCardMenu(); openMap('${esc(mapId)}')">
-      ▶ Öffnen
-    </button>
+    <button class="ctx-item" onclick="closeCardMenu(); openMap('${esc(mapId)}')">▶ Öffnen</button>
     <button class="ctx-item" onclick="closeCardMenu(); _renameMapId='${esc(mapId)}';
       document.getElementById('rename-map-title').value='${esc(mapTitle)}';
-      openDlg('dlg-rename-map')">
-      ✎ Umbenennen
-    </button>
+      openDlg('dlg-rename-map')">✎ Umbenennen</button>
     <button class="ctx-item" onclick="closeCardMenu(); _parentMapId='${esc(mapId)}'; openParentMapDlg()">
-      🗺 Parent-Map setzen
-    </button>
+      🗺 Parent-Map setzen</button>
+    <button class="ctx-item" onclick="closeCardMenu(); exportMapById('${esc(mapId)}')">
+      📤 Exportieren (.zip)</button>
     <button class="ctx-item ctx-danger"
       onclick="closeCardMenu(); _deleteMapId='${esc(mapId)}'; _deleteMapTitle='${esc(mapTitle)}'; confirmDeleteMapById()">
-      🗑 Löschen
-    </button>`;
+      🗑 Löschen</button>`;
   document.body.appendChild(menu);
   setTimeout(() => document.addEventListener('click', closeCardMenu, { once: true }), 0);
 }
@@ -364,7 +314,6 @@ async function openMap(mapId) {
   document.getElementById('tb-pills')         .style.display = 'flex';
   document.getElementById('snap-tabs')        .style.display = 'flex';
   document.getElementById('snapin-container') .style.display = 'block';
-  // Burger: Map-Sektion einblenden
   const bms = document.getElementById('burger-map-section');
   if (bms) bms.style.display = 'block';
 
@@ -383,6 +332,11 @@ async function openMap(mapId) {
   canvas.innerHTML = '';
   canvas.dataset.mapId = mapId;
 
+  // ── FIX: map-canvas-wrapper nach canvas-clear neu anlegen ──
+  const wrapper = document.createElement('div');
+  wrapper.id = 'map-canvas-wrapper';
+  canvas.appendChild(wrapper);
+
   if (activeMapCfg.background) {
     setBg(`/${activeMapCfg.background}`);
   } else {
@@ -394,19 +348,25 @@ async function openMap(mapId) {
     const el = createNode(obj);
     if (el && obj.layer != null) el.dataset.layer = obj.layer;
   }
-  // Layer-System initialisieren
   initLayers(activeMapCfg.objects ?? []);
 
-  // WebSocket (oder Demo-Ersatz)
+  // WebSocket
   if (wsClient) {
     wsClient._dead = true;
     wsClient.ws?.close();
   }
   wsClient = _demoMode ? makeDemoWsClient(mapId) : makeWsClient(mapId);
   wsClient.connect();
+
+  // ── FIX: Zoom-Controls einblenden + NV2_ZOOM initialisieren ──
+  const zoomControls = document.getElementById('nv2-zoom-controls');
+  if (zoomControls) zoomControls.style.display = 'flex';
+  if (window.NV2_ZOOM) {
+    NV2_ZOOM.reset();
+    NV2_ZOOM.init(canvas, wrapper);
+  }
 }
 
-/** Zurück zur Übersicht */
 function showOverview() {
   document.getElementById('overview')         .style.display = 'block';
   document.getElementById('map-area')         .style.display = 'none';
@@ -414,7 +374,6 @@ function showOverview() {
   document.getElementById('tb-pills')         .style.display = 'none';
   document.getElementById('snap-tabs')        .style.display = 'none';
   document.getElementById('snapin-container') .style.display = 'none';
-  // Burger: Map-Sektion ausblenden
   const bms = document.getElementById('burger-map-section');
   if (bms) bms.style.display = 'none';
   closeBurgerMenu();
@@ -430,10 +389,14 @@ function showOverview() {
   activeMapId = null;
   if (editActive) toggleEdit();
 
+  // ── FIX: Zoom-Controls ausblenden + NV2_ZOOM aufräumen ──
+  const zoomControls = document.getElementById('nv2-zoom-controls');
+  if (zoomControls) zoomControls.style.display = 'none';
+  if (window.NV2_ZOOM) NV2_ZOOM.destroy();
+
   loadMaps();
 }
 
-// Globale Exports für onclick-Attribute im HTML
 window.showOverview = showOverview;
 
 
@@ -441,69 +404,41 @@ window.showOverview = showOverview;
 //  WEBSOCKET CLIENT
 // ═══════════════════════════════════════════════════════════════════════
 
-/**
- * Erstellt einen minimalen WebSocket-Client mit Auto-Reconnect.
- * @param {string} mapId
- * @returns {{ connect, send, forceRefresh, disconnect, _dead, ws }}
- */
 function makeWsClient(mapId) {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   const url   = `${proto}://${location.host}/ws/map/${mapId}`;
 
   const client = {
-    mapId,
-    ws:     null,
-    _dead:  false,
-    _delay: 2000,
+    mapId, ws: null, _dead: false, _delay: 2000,
 
     connect() {
       if (this._dead) return;
       this.ws = new WebSocket(url);
-
-      this.ws.onopen = () => {
-        this._delay = 2000;
-        onWsOpen();
-      };
-      this.ws.onmessage = e => {
-        try { onWsMsg(JSON.parse(e.data)); }
-        catch { /* malformed JSON */ }
-      };
-      this.ws.onclose = () => {
+      this.ws.onopen    = () => { this._delay = 2000; onWsOpen(); };
+      this.ws.onmessage = e => { try { onWsMsg(JSON.parse(e.data)); } catch { } };
+      this.ws.onclose   = () => {
         if (this._dead) return;
         onWsClose();
         setTimeout(() => this.connect(), this._delay);
         this._delay = Math.min(this._delay * 1.5, 30_000);
       };
-      this.ws.onerror = () => { /* onclose folgt */ };
+      this.ws.onerror = () => { };
     },
 
     send(data) {
-      if (this.ws?.readyState === WebSocket.OPEN) {
-        this.ws.send(JSON.stringify(data));
-      }
+      if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(data));
     },
 
     forceRefresh() { this.send({ cmd: 'force_refresh' }); },
 
-    disconnect() {
-      this._dead = true;
-      this.ws?.close();
-    },
+    disconnect() { this._dead = true; this.ws?.close(); },
   };
 
   return client;
 }
 
-function onWsOpen() {
-  setConnDot('connected');
-  setSidebarLive(true, 'Livestatus · verbunden');
-}
-
-function onWsClose() {
-  setConnDot('disconnected');
-  setSidebarLive(false, 'Getrennt – verbinde…');
-  setStatusBar('Verbindung unterbrochen…');
-}
+function onWsOpen()  { setConnDot('connected');    setSidebarLive(true,  'Livestatus · verbunden'); }
+function onWsClose() { setConnDot('disconnected'); setSidebarLive(false, 'Getrennt – verbinde…');   setStatusBar('Verbindung unterbrochen…'); }
 
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -526,7 +461,6 @@ function onWsMsg(ev) {
       updateTopbarPills(Object.values(hostCache));
       renderHostsPanel(Object.values(hostCache));
       appendEvents(ev.hosts ?? [], ev.services ?? [], ev.ts);
-      // Downtime-Transitions → kurzer Hinweis-Banner
       if (ev.downtime_started?.length) showDowntimeBanner(ev.downtime_started, true);
       if (ev.downtime_ended?.length)   showDowntimeBanner(ev.downtime_ended,   false);
       const n = (ev.hosts?.length ?? 0) + (ev.services?.length ?? 0);
@@ -555,65 +489,43 @@ function onWsMsg(ev) {
       break;
     }
 
-    case '_connected':
-      setConnDot('connected');
-      break;
-
-    case '_disconnected':
-      setConnDot('disconnected');
-      break;
-
-    case 'backend_error':
-      setStatusBar(`⚠ ${ev.message}`);
-      break;
+    case '_connected':    setConnDot('connected');    break;
+    case '_disconnected': setConnDot('disconnected'); break;
+    case 'backend_error': setStatusBar(`⚠ ${ev.message}`); break;
   }
 }
 
 
 // ═══════════════════════════════════════════════════════════════════════
-//  NODE RENDERING  – alle Objekttypen
+//  NODE RENDERING
 // ═══════════════════════════════════════════════════════════════════════
 
-/**
- * Erzeugt das passende DOM-Element je Objekttyp.
- */
 function createNode(obj) {
   if (document.getElementById(`nv2-${obj.object_id}`)) return null;
-
   switch (obj.type) {
-    case 'host':
-    case 'service':
-    case 'hostgroup':
-    case 'servicegroup':
-    case 'map':
+    case 'host': case 'service': case 'hostgroup': case 'servicegroup': case 'map':
       return _renderMonitoringNode(obj);
-    case 'textbox':
-      return _renderTextbox(obj);
-    case 'line':
-      return _renderLine(obj);
-    case 'container':
-      return _renderContainer(obj);
-    case 'gadget':
-      return createGadget(obj);
+    case 'textbox':   return _renderTextbox(obj);
+    case 'line':      return _renderLine(obj);
+    case 'container': return _renderContainer(obj);
+    case 'gadget':    return createGadget?.(obj) ?? null;
     default:
       console.warn('[NV2] createNode: unbekannter Typ', obj.type);
       return null;
   }
 }
 
-/** Monitoring-Knoten (host / service / hostgroup / servicegroup / map) */
 function _renderMonitoringNode(obj) {
   const { src: statusSrc } = iconSrc(obj.iconset ?? 'std_small', null);
-  const size    = obj.size ?? 32;
-  const iconset = obj.iconset ?? 'std_small';
+  const size     = obj.size ?? 32;
+  const iconset  = obj.iconset ?? 'std_small';
   const shapeSvg = ICONSET_SHAPE[iconset] ?? ICONSET_SHAPE.std_small;
 
   const el = document.createElement('div');
   el.id               = `nv2-${obj.object_id}`;
   el.className        = 'nv2-node nv2-unknown';
   el.dataset.objectId = obj.object_id;
-  el.dataset.name     = obj.type === 'service'
-    ? `${obj.host_name}::${obj.name}` : obj.name;
+  el.dataset.name     = obj.type === 'service' ? `${obj.host_name}::${obj.name}` : obj.name;
   el.dataset.type     = obj.type;
   el.dataset.iconset  = iconset;
   el.style.left       = `${obj.x}%`;
@@ -642,16 +554,13 @@ function _renderMonitoringNode(obj) {
 
   document.getElementById('nv2-canvas').appendChild(el);
 
-  // Sofort Status aus Cache
-  const cacheKey = obj.type === 'service'
-    ? `${obj.host_name}::${obj.name}` : obj.name;
-  const cached = hostCache[cacheKey];
+  const cacheKey = obj.type === 'service' ? `${obj.host_name}::${obj.name}` : obj.name;
+  const cached   = hostCache[cacheKey];
   if (cached) applyNodeStatus(el, cached.state_label, cached.acknowledged, cached.in_downtime);
 
   return el;
 }
 
-/** Textbox */
 function _renderTextbox(obj) {
   const el = document.createElement('div');
   el.id               = `nv2-${obj.object_id}`;
@@ -667,44 +576,22 @@ function _renderTextbox(obj) {
   el.style.color      = obj.color      || 'var(--text)';
   el.style.background = obj.bg_color   || '';
   el.style.border     = obj.border_color ? `1px solid ${obj.border_color}` : '';
-  if (obj.w) el.style.width  = `${obj.w}%`;
+  if (obj.w) el.style.width = `${obj.w}%`;
   el.textContent = obj.text ?? '';
-
   el.addEventListener('contextmenu', e => { e.preventDefault(); if (editActive) showNodeContextMenu(e, el, obj); });
   document.getElementById('nv2-canvas').appendChild(el);
   return el;
 }
 
-/** Linie – gezeichnet als SVG-Overlay */
 function _renderLine(obj) {
-  // Einen einzigen SVG-Overlay pro Canvas anlegen und wiederverwenden
   let svg = document.getElementById('nv2-lines-svg');
   if (!svg) {
     svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.id        = 'nv2-lines-svg';
+    svg.id = 'nv2-lines-svg';
     svg.classList.add('nv2-line-svg');
     document.getElementById('nv2-canvas').appendChild(svg);
   }
 
-  const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-  line.id = `nv2-${obj.object_id}`;
-  line.classList.add('nv2-line-el');
-  line.dataset.objectId = obj.object_id;
-  line.dataset.type     = 'line';
-
-  // Koordinaten in % → SVG-Attribute
-  line.setAttribute('x1', `${obj.x}%`);
-  line.setAttribute('y1', `${obj.y}%`);
-  line.setAttribute('x2', `${obj.x2 ?? obj.x + 20}%`);
-  line.setAttribute('y2', `${obj.y2 ?? obj.y}%`);
-  line.setAttribute('stroke',       obj.color       || 'var(--border-hi)');
-  line.setAttribute('stroke-width', obj.line_width  ?? 1);
-  // Breiten Hit-Target damit Klick/Rechtsklick leichter trifft
-  line.setAttribute('stroke-width', Math.max(obj.line_width ?? 1, 8));
-  line.setAttribute('stroke-opacity', '0');
-  line.style.cursor = 'pointer';
-
-  // Sichtbare Linie dahinter
   const lineVis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
   lineVis.setAttribute('x1', `${obj.x}%`);
   lineVis.setAttribute('y1', `${obj.y}%`);
@@ -712,40 +599,42 @@ function _renderLine(obj) {
   lineVis.setAttribute('y2', `${obj.y2 ?? obj.y}%`);
   lineVis.setAttribute('stroke',       obj.color      || 'var(--border-hi)');
   lineVis.setAttribute('stroke-width', obj.line_width ?? 1);
-  const dashMap = { dashed: '8,4', dotted: '2,4' };
-  const dash    = dashMap[obj.line_style];
+  const dashMap = { dashed:'8,4', dotted:'2,4' };
+  const dash = dashMap[obj.line_style];
   if (dash) lineVis.setAttribute('stroke-dasharray', dash);
   lineVis.style.pointerEvents = 'none';
   svg.appendChild(lineVis);
 
-  // Kontextmenü via Rechtsklick auf transparenten Hit-Target
+  // Hit-Target
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  line.id = `nv2-${obj.object_id}`;
+  line.classList.add('nv2-line-el');
+  line.dataset.objectId = obj.object_id;
+  line.dataset.type     = 'line';
+  line.setAttribute('x1', `${obj.x}%`);
+  line.setAttribute('y1', `${obj.y}%`);
+  line.setAttribute('x2', `${obj.x2 ?? obj.x + 20}%`);
+  line.setAttribute('y2', `${obj.y2 ?? obj.y}%`);
+  line.setAttribute('stroke-width',   Math.max(obj.line_width ?? 1, 8));
+  line.setAttribute('stroke-opacity', '0');
+  line.style.cursor = 'pointer';
+
   line.addEventListener('contextmenu', e => {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault(); e.stopPropagation();
     if (editActive) showLineContextMenu(e, lineVis, obj);
   });
-
-  // Edit-Mode: Endpunkte verschiebbar (Drag auf Hit-Target)
   line.addEventListener('mousedown', e => {
     if (!editActive || e.button !== 0) return;
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault(); e.stopPropagation();
     _startLineDrag(e, lineVis, line, obj, svg);
   });
-
   svg.appendChild(line);
 
-  // Drag-Handles (sichtbare Kreise an beiden Endpunkten im Edit-Mode)
   const handles = _createLineHandles(lineVis, line, obj, svg);
   obj._handles = handles;
-
   return line;
 }
 
-/**
- * Erstellt sichtbare Drag-Handles (Kreise) an beiden Linienendpunkten.
- * Werden nur im Edit-Mode sichtbar (CSS: .nv2-edit-mode .line-handle { opacity:1 })
- */
 function _createLineHandles(lineVis, hitLine, obj, svg) {
   const makeHandle = (cx, cy, isStart) => {
     const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -753,31 +642,24 @@ function _createLineHandles(lineVis, hitLine, obj, svg) {
     c.setAttribute('cx', cx);
     c.setAttribute('cy', cy);
     c.setAttribute('r', '5');
-    c.style.fill   = 'var(--acc, #29b6d4)';
-    c.style.stroke = 'var(--bg-panel, #2b2b2b)';
+    c.style.fill        = 'var(--acc, #29b6d4)';
+    c.style.stroke      = 'var(--bg-panel, #2b2b2b)';
     c.style.strokeWidth = '2';
-    c.style.cursor = 'crosshair';
-    c.style.opacity = '0';   // CSS schaltet auf 1 im edit-mode
-
+    c.style.cursor      = 'crosshair';
+    c.style.opacity     = '0';
     c.addEventListener('mousedown', e => {
       if (!editActive || e.button !== 0) return;
-      e.preventDefault();
-      e.stopPropagation();
+      e.preventDefault(); e.stopPropagation();
       _dragHandle(e, lineVis, hitLine, c, isStart, obj, svg);
     });
-
     svg.appendChild(c);
     return c;
   };
-
-  const h1 = makeHandle(`${obj.x}%`,              `${obj.y}%`,              true);
-  const h2 = makeHandle(`${obj.x2 ?? obj.x+20}%`, `${obj.y2 ?? obj.y}%`,   false);
+  const h1 = makeHandle(`${obj.x}%`,              `${obj.y}%`,            true);
+  const h2 = makeHandle(`${obj.x2 ?? obj.x+20}%`, `${obj.y2 ?? obj.y}%`, false);
   return [h1, h2];
 }
 
-/**
- * Zieht einen einzelnen Handle (Endpunkt) der Linie.
- */
 function _dragHandle(e, lineVis, hitLine, handle, isStart, obj, svg) {
   const canvas = document.getElementById('nv2-canvas');
   const rect   = canvas.getBoundingClientRect();
@@ -793,7 +675,6 @@ function _dragHandle(e, lineVis, hitLine, handle, isStart, obj, svg) {
     hitLine.setAttribute(attr[1], `${ny}%`);
     handle.setAttribute('cx', `${nx}%`);
     handle.setAttribute('cy', `${ny}%`);
-    // Winkel im Dialog aktualisieren falls offen
     _updateAngleDisplay(lineVis);
   };
 
@@ -814,7 +695,6 @@ function _dragHandle(e, lineVis, hitLine, handle, isStart, obj, svg) {
   document.addEventListener('mouseup',   onUp);
 }
 
-/** Berechnet Winkel einer Linie in Grad (0–360). */
 function _lineAngle(lineVis) {
   const x1 = parseFloat(lineVis.getAttribute('x1'));
   const y1 = parseFloat(lineVis.getAttribute('y1'));
@@ -823,9 +703,8 @@ function _lineAngle(lineVis) {
   return ((Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI) + 360) % 360;
 }
 
-/** Aktualisiert Winkelanzeige im Linienstil-Dialog (falls geöffnet). */
 function _updateAngleDisplay(lineVis) {
-  const el = document.getElementById('ln-angle');
+  const el  = document.getElementById('ln-angle');
   const lbl = document.getElementById('ln-angle-val');
   if (!el || !lbl) return;
   const deg = Math.round(_lineAngle(lineVis));
@@ -833,9 +712,6 @@ function _updateAngleDisplay(lineVis) {
   lbl.textContent = deg + '°';
 }
 
-/**
- * Kontextmenü speziell für Linien.
- */
 function showLineContextMenu(e, lineVis, obj) {
   closeContextMenu();
   const menu = document.createElement('div');
@@ -843,17 +719,15 @@ function showLineContextMenu(e, lineVis, obj) {
   menu.className = 'ctx-menu';
   menu.style.left = `${e.clientX}px`;
   menu.style.top  = `${e.clientY}px`;
-
   const items = [
     { label: '↔ Linienstil',    action: () => openLineStyleDialog(lineVis, obj) },
     { label: '◫ Layer zuweisen', action: () => openLayerDialog(lineVis, obj) },
-    { label: '🗑 Entfernen',     action: () => {
+    { label: '🗑 Entfernen', action: () => {
         lineVis.remove();
         document.getElementById(`nv2-${obj.object_id}`)?.remove();
         api(`/api/maps/${activeMapId}/objects/${obj.object_id}`, 'DELETE');
       }, cls: 'ctx-danger' },
   ];
-
   items.forEach(item => {
     const btn = document.createElement('button');
     btn.className = 'ctx-item' + (item.cls ? ' ' + item.cls : '');
@@ -861,50 +735,35 @@ function showLineContextMenu(e, lineVis, obj) {
     btn.onclick = () => { closeContextMenu(); item.action(); };
     menu.appendChild(btn);
   });
-
   menu.addEventListener('click', e => e.stopPropagation());
   document.body.appendChild(menu);
   _ctxMenu = menu;
   setTimeout(() => document.addEventListener('click', closeContextMenu, { once: true }), 0);
 }
 
-/**
- * Drag-Handling für Linien: zieht den nächstgelegenen Endpunkt.
- * Synchronisiert auch die Handle-Kreise.
- */
 function _startLineDrag(e, lineVis, hitLine, obj, svg) {
-  const canvas  = document.getElementById('nv2-canvas');
-  const rect    = canvas.getBoundingClientRect();
-
+  const canvas = document.getElementById('nv2-canvas');
+  const rect   = canvas.getBoundingClientRect();
   const x1 = parseFloat(lineVis.getAttribute('x1'));
   const y1 = parseFloat(lineVis.getAttribute('y1'));
   const x2 = parseFloat(lineVis.getAttribute('x2'));
   const y2 = parseFloat(lineVis.getAttribute('y2'));
-
   const mx = (e.clientX - rect.left) / rect.width  * 100;
   const my = (e.clientY - rect.top)  / rect.height * 100;
-
-  const d1 = Math.hypot(mx - x1, my - y1);
-  const d2 = Math.hypot(mx - x2, my - y2);
-  const moveStart = d1 < d2;
-
+  const moveStart = Math.hypot(mx - x1, my - y1) < Math.hypot(mx - x2, my - y2);
   lineVis.style.opacity = '0.6';
 
   const onMove = ev => {
     const nx = ((ev.clientX - rect.left) / rect.width  * 100).toFixed(2);
     const ny = ((ev.clientY - rect.top)  / rect.height * 100).toFixed(2);
     if (moveStart) {
-      lineVis.setAttribute('x1', `${nx}%`);
-      lineVis.setAttribute('y1', `${ny}%`);
-      hitLine.setAttribute('x1', `${nx}%`);
-      hitLine.setAttribute('y1', `${ny}%`);
+      lineVis.setAttribute('x1', `${nx}%`); lineVis.setAttribute('y1', `${ny}%`);
+      hitLine.setAttribute('x1', `${nx}%`); hitLine.setAttribute('y1', `${ny}%`);
       obj._handles?.[0]?.setAttribute('cx', `${nx}%`);
       obj._handles?.[0]?.setAttribute('cy', `${ny}%`);
     } else {
-      lineVis.setAttribute('x2', `${nx}%`);
-      lineVis.setAttribute('y2', `${ny}%`);
-      hitLine.setAttribute('x2', `${nx}%`);
-      hitLine.setAttribute('y2', `${ny}%`);
+      lineVis.setAttribute('x2', `${nx}%`); lineVis.setAttribute('y2', `${ny}%`);
+      hitLine.setAttribute('x2', `${nx}%`); hitLine.setAttribute('y2', `${ny}%`);
       obj._handles?.[1]?.setAttribute('cx', `${nx}%`);
       obj._handles?.[1]?.setAttribute('cy', `${ny}%`);
     }
@@ -915,12 +774,10 @@ function _startLineDrag(e, lineVis, hitLine, obj, svg) {
     lineVis.style.opacity = '';
     document.removeEventListener('mousemove', onMove);
     document.removeEventListener('mouseup',   onUp);
-
     const newX  = parseFloat(lineVis.getAttribute('x1'));
     const newY  = parseFloat(lineVis.getAttribute('y1'));
     const newX2 = parseFloat(lineVis.getAttribute('x2'));
     const newY2 = parseFloat(lineVis.getAttribute('y2'));
-
     await api(`/api/maps/${activeMapId}/objects/${obj.object_id}/pos`, 'PATCH',
       { x: newX, y: newY, x2: newX2, y2: newY2 });
     obj.x = newX; obj.y = newY; obj.x2 = newX2; obj.y2 = newY2;
@@ -930,24 +787,17 @@ function _startLineDrag(e, lineVis, hitLine, obj, svg) {
   document.addEventListener('mouseup',   onUp);
 }
 
-/**
- * Linienstil-Dialog: Farbe, Stil, Breite.
- */
 function openLineStyleDialog(lineVis, obj) {
   closeResizeDialog();
   const panel = document.createElement('div');
   panel.id = 'nv2-resize-panel';
   panel.className = 'resize-panel';
-
   const cvRect = document.getElementById('nv2-canvas').getBoundingClientRect();
   panel.style.left = `${cvRect.width / 2 - 120}px`;
   panel.style.top  = '60px';
 
   panel.innerHTML = `
-    <div class="rp-head">
-      <span>Linienstil</span>
-      <button class="rp-close" id="rp-close-btn">✕</button>
-    </div>
+    <div class="rp-head"><span>Linienstil</span><button class="rp-close" id="rp-close-btn">✕</button></div>
     <div class="rp-body" style="display:flex;flex-direction:column;gap:8px;padding:8px">
       <label style="font-size:11px">Farbe
         <input type="color" id="ln-color" value="${obj.color || '#475569'}" style="margin-left:6px">
@@ -977,15 +827,14 @@ function openLineStyleDialog(lineVis, obj) {
   document.getElementById('nv2-canvas').appendChild(panel);
   panel.addEventListener('click', e => e.stopPropagation());
 
-  const colorIn = panel.querySelector('#ln-color');
-  const styleIn = panel.querySelector('#ln-style');
-  const widthIn = panel.querySelector('#ln-width');
+  const colorIn  = panel.querySelector('#ln-color');
+  const styleIn  = panel.querySelector('#ln-style');
+  const widthIn  = panel.querySelector('#ln-width');
   const widthLbl = panel.querySelector('#ln-width-val');
+  const angleIn  = panel.querySelector('#ln-angle');
+  const angleLbl = panel.querySelector('#ln-angle-val');
+  const dashMap  = { dashed:'8,4', dotted:'2,4' };
 
-  // Live-Preview
-  const dashMap = { dashed: '8,4', dotted: '2,4' };
-
-  // Winkel → Endpunkt berechnen (Länge beibehalten, Startpunkt fest)
   const applyAngle = deg => {
     const rad = deg * Math.PI / 180;
     const x1  = parseFloat(lineVis.getAttribute('x1'));
@@ -997,7 +846,6 @@ function openLineStyleDialog(lineVis, obj) {
     const ny2 = (y1 + Math.sin(rad) * len).toFixed(2);
     lineVis.setAttribute('x2', `${nx2}%`);
     lineVis.setAttribute('y2', `${ny2}%`);
-    // Handle sync
     obj._handles?.[1]?.setAttribute('cx', `${nx2}%`);
     obj._handles?.[1]?.setAttribute('cy', `${ny2}%`);
     return { nx2: parseFloat(nx2), ny2: parseFloat(ny2) };
@@ -1007,42 +855,31 @@ function openLineStyleDialog(lineVis, obj) {
     lineVis.setAttribute('stroke', colorIn.value);
     lineVis.setAttribute('stroke-width', widthIn.value);
     const dash = dashMap[styleIn.value];
-    dash ? lineVis.setAttribute('stroke-dasharray', dash)
-         : lineVis.removeAttribute('stroke-dasharray');
+    dash ? lineVis.setAttribute('stroke-dasharray', dash) : lineVis.removeAttribute('stroke-dasharray');
     widthLbl.textContent = widthIn.value + 'px';
   };
-  colorIn.addEventListener('input', preview);
+  colorIn.addEventListener('input',  preview);
   styleIn.addEventListener('change', preview);
-  widthIn.addEventListener('input', preview);
-
-  const angleIn  = panel.querySelector('#ln-angle');
-  const angleLbl = panel.querySelector('#ln-angle-val');
-  angleIn.addEventListener('input', () => {
-    applyAngle(parseInt(angleIn.value));
-    angleLbl.textContent = angleIn.value + '°';
-  });
+  widthIn.addEventListener('input',  preview);
+  angleIn.addEventListener('input',  () => { applyAngle(parseInt(angleIn.value)); angleLbl.textContent = angleIn.value + '°'; });
 
   panel.querySelector('#rp-close-btn').onclick  =
   panel.querySelector('#rp-cancel-btn').onclick = closeResizeDialog;
 
   panel.querySelector('#rp-ok-btn').onclick = async () => {
     closeResizeDialog();
-    obj.color      = colorIn.value;
-    obj.line_style = styleIn.value;
-    obj.line_width = parseInt(widthIn.value);
+    obj.color = colorIn.value; obj.line_style = styleIn.value; obj.line_width = parseInt(widthIn.value);
     const { nx2, ny2 } = applyAngle(parseInt(angleIn.value));
     obj.x2 = nx2; obj.y2 = ny2;
-    await api(`/api/maps/${activeMapId}/objects/${obj.object_id}/props`, 'PATCH', {
-      color: obj.color, line_style: obj.line_style, line_width: obj.line_width,
-    });
+    await api(`/api/maps/${activeMapId}/objects/${obj.object_id}/props`, 'PATCH',
+      { color: obj.color, line_style: obj.line_style, line_width: obj.line_width });
     await api(`/api/maps/${activeMapId}/objects/${obj.object_id}/pos`, 'PATCH',
       { x: obj.x, y: obj.y, x2: obj.x2, y2: obj.y2 });
   };
 }
 
-/** Container / Bild */
 function _renderContainer(obj) {
-  const el  = document.createElement('div');
+  const el = document.createElement('div');
   el.id               = `nv2-${obj.object_id}`;
   el.className        = 'nv2-container';
   el.dataset.objectId = obj.object_id;
@@ -1051,114 +888,71 @@ function _renderContainer(obj) {
   el.style.top        = `${obj.y}%`;
   if (obj.w) el.style.width  = `${obj.w}%`;
   if (obj.h) el.style.height = `${obj.h}vmin`;
-
   if (obj.url) {
-    const isSvg = obj.url.toLowerCase().endsWith('.svg');
-    if (isSvg) {
-      const o  = document.createElement('object');
-      o.type   = 'image/svg+xml';
-      o.data   = obj.url;
-      el.appendChild(o);
+    if (obj.url.toLowerCase().endsWith('.svg')) {
+      const o = document.createElement('object'); o.type = 'image/svg+xml'; o.data = obj.url; el.appendChild(o);
     } else {
-      const img = document.createElement('img');
-      img.src   = obj.url;
-      img.alt   = '';
-      el.appendChild(img);
+      const img = document.createElement('img'); img.src = obj.url; img.alt = ''; el.appendChild(img);
     }
   }
-
   el.addEventListener('contextmenu', e => { e.preventDefault(); if (editActive) showNodeContextMenu(e, el, obj); });
   document.getElementById('nv2-canvas').appendChild(el);
   return el;
 }
 
-async function _patchRemove(obj) {
-  await api(`/api/maps/${activeMapId}/objects/${obj.object_id}`, 'DELETE');
-}
-
-/**
- * Wendet Statusfarbe + Badge auf alle Nodes einer Host/Service-Gruppe an.
- */
 function applyStatuses(hosts, services) {
   for (const h of hosts) {
     hostCache[h.name] = h;
     document.querySelectorAll(`[data-name="${esc(h.name)}"]`).forEach(el =>
-      applyNodeStatus(el, h.state_label, h.acknowledged, h.in_downtime)
-    );
+      applyNodeStatus(el, h.state_label, h.acknowledged, h.in_downtime));
   }
   for (const s of services) {
     const key = `${s.host_name}::${s.description}`;
     document.querySelectorAll(`[data-name="${esc(key)}"]`).forEach(el =>
-      applyNodeStatus(el, s.state_label, s.acknowledged, s.in_downtime)
-    );
+      applyNodeStatus(el, s.state_label, s.acknowledged, s.in_downtime));
   }
 }
 
-/**
- * Setzt CSS-Klassen und Badge eines einzelnen Node-Elements.
- */
 function applyNodeStatus(el, label, ack, downtime) {
   let cls = 'nv2-node ' + (STATE_CLS[label] ?? 'nv2-unknown');
   if (ack)      cls += ' nv2-ack';
   if (downtime) cls += ' nv2-downtime';
   if (el.className === cls) return;
-
   const wasUnknown = el.className.includes('nv2-unknown');
   el.className = cls;
-
   const badge = el.querySelector('.nv2-badge');
-  if (badge) {
-    badge.textContent = STATE_BADGE[label] ?? '?';
-    badge.setAttribute('aria-label', label);
-  }
-
+  if (badge) { badge.textContent = STATE_BADGE[label] ?? '?'; badge.setAttribute('aria-label', label); }
   if (!wasUnknown) {
     el.classList.add('nv2-status-changed');
     setTimeout(() => el.classList.remove('nv2-status-changed'), 500);
   }
-  // Icon-Bild nach Statuswechsel aktualisieren
   if (el.dataset.iconset) updateNodeIcon(el, label);
 }
-
-
 
 
 // ═══════════════════════════════════════════════════════════════════════
 //  LAYER SYSTEM
 // ═══════════════════════════════════════════════════════════════════════
 
-/**
- * Layer-State: { id → { name, visible, zIndex } }
- * Wird aus Map-Config befüllt und in localStorage gecacht.
- */
 let _layers = {};
 
-/** Initialisiert Layer aus den Map-Objekten. */
 function initLayers(objects) {
   const used = new Set(objects.map(o => o.layer ?? 0));
   _layers = {};
   [...used].sort((a,b)=>a-b).forEach(id => {
-    _layers[id] = {
-      id,
-      name:    id === 0 ? 'Standard' : `Layer ${id}`,
-      visible: true,
-      zIndex:  10 + id * 10,
-    };
+    _layers[id] = { id, name: id === 0 ? 'Standard' : `Layer ${id}`, visible: true, zIndex: 10 + id * 10 };
   });
   renderLayerPanel();
   applyAllLayerVisibility();
 }
 
-/** Rendert das Layer-Panel in der Sidebar. */
 function renderLayerPanel() {
   const el = document.getElementById('sidebar-layers');
   if (!el) return;
-
   if (!Object.keys(_layers).length) {
     el.innerHTML = '<div style="padding:5px 10px 5px 20px;font-size:11px;color:var(--text-dim)">Keine Layer</div>';
     return;
   }
-
   el.innerHTML = Object.values(_layers).map(l => `
     <div class="layer-row" data-layer-id="${l.id}">
       <label class="layer-toggle" title="${l.visible ? 'Ausblenden' : 'Einblenden'}">
@@ -1179,17 +973,12 @@ function renderLayerPanel() {
     });
   });
 
-  // Doppelklick auf Name → umbenennen
   el.querySelectorAll('.layer-name').forEach(span => {
     span.addEventListener('dblclick', () => {
       const id  = parseInt(span.dataset.layer);
       const inp = document.createElement('input');
-      inp.type  = 'text';
-      inp.value = _layers[id].name;
-      inp.className = 'layer-name-input';
-      span.replaceWith(inp);
-      inp.focus();
-      inp.select();
+      inp.type = 'text'; inp.value = _layers[id].name; inp.className = 'layer-name-input';
+      span.replaceWith(inp); inp.focus(); inp.select();
       const done = () => {
         _layers[id].name = inp.value.trim() || _layers[id].name;
         inp.replaceWith(Object.assign(document.createElement('span'), {
@@ -1197,35 +986,28 @@ function renderLayerPanel() {
         }));
         renderLayerPanel();
       };
-      inp.addEventListener('blur',  done);
+      inp.addEventListener('blur', done);
       inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
     });
   });
 }
 
-/** Blendet alle Objekte eines Layers ein oder aus. */
 function applyLayerVisibility(layerId) {
   const vis = _layers[layerId]?.visible ?? true;
   const zi  = _layers[layerId]?.zIndex  ?? 10;
   document.querySelectorAll(`[data-layer="${layerId}"]`).forEach(el => {
-    el.style.display  = vis ? '' : 'none';
-    el.style.zIndex   = zi;
+    el.style.display = vis ? '' : 'none';
+    el.style.zIndex  = zi;
   });
-  // SVG-Linien
   document.querySelectorAll(`line[data-layer="${layerId}"], circle[data-layer="${layerId}"]`).forEach(el => {
     el.style.display = vis ? '' : 'none';
   });
 }
 
-/** Wendet Sichtbarkeit aller Layer an. */
 function applyAllLayerVisibility() {
   Object.keys(_layers).forEach(id => applyLayerVisibility(parseInt(id)));
 }
 
-/**
- * Weist einem Objekt-Element einen Layer zu.
- * Setzt data-layer + z-index.
- */
 function assignLayer(el, layerId) {
   const id = parseInt(layerId ?? 0);
   el.dataset.layer = id;
@@ -1237,15 +1019,11 @@ function assignLayer(el, layerId) {
   if (!_layers[id].visible) el.style.display = 'none';
 }
 
-/**
- * Dialog: Layer-Auswahl für ein Objekt (im Kontextmenü).
- */
 function openLayerDialog(el, obj) {
   closeResizeDialog();
   const panel = document.createElement('div');
   panel.id = 'nv2-resize-panel';
   panel.className = 'resize-panel';
-
   const cvRect = document.getElementById('nv2-canvas').getBoundingClientRect();
   panel.style.left = `${cvRect.width / 2 - 120}px`;
   panel.style.top  = '80px';
@@ -1256,10 +1034,7 @@ function openLayerDialog(el, obj) {
   ).join('');
 
   panel.innerHTML = `
-    <div class="rp-head">
-      <span>Layer zuweisen</span>
-      <button class="rp-close" id="rp-close-btn">✕</button>
-    </div>
+    <div class="rp-head"><span>Layer zuweisen</span><button class="rp-close" id="rp-close-btn">✕</button></div>
     <div class="rp-body" style="display:flex;flex-direction:column;gap:8px;padding:8px">
       <label style="font-size:11px">Layer
         <select id="layer-select" style="margin-left:6px">${layerOpts}</select>
@@ -1276,18 +1051,13 @@ function openLayerDialog(el, obj) {
 
   document.getElementById('nv2-canvas').appendChild(panel);
   panel.addEventListener('click', e => e.stopPropagation());
-
   panel.querySelector('#rp-close-btn').onclick  =
   panel.querySelector('#rp-cancel-btn').onclick = closeResizeDialog;
 
   panel.querySelector('#rp-ok-btn').onclick = async () => {
     const newIdInput = panel.querySelector('#layer-new').value.trim();
-    let targetId = newIdInput !== ''
-      ? parseInt(newIdInput)
-      : parseInt(panel.querySelector('#layer-select').value);
-
+    let targetId = newIdInput !== '' ? parseInt(newIdInput) : parseInt(panel.querySelector('#layer-select').value);
     if (isNaN(targetId)) targetId = 0;
-
     if (newIdInput !== '') {
       const name = panel.querySelector('#layer-new-name').value.trim() || `Layer ${targetId}`;
       if (!_layers[targetId]) {
@@ -1295,13 +1065,13 @@ function openLayerDialog(el, obj) {
         renderLayerPanel();
       }
     }
-
     closeResizeDialog();
     assignLayer(el, targetId);
     obj.layer = targetId;
     await api(`/api/maps/${activeMapId}/objects/${obj.object_id}/props`, 'PATCH', { layer: targetId });
   };
 }
+
 
 // ═══════════════════════════════════════════════════════════════════════
 //  TOOLTIP
@@ -1314,8 +1084,7 @@ function showTooltip(el, obj) {
   const h     = hostCache[obj.name];
   const label = h?.state_label ?? 'UNKNOWN';
   const tc    = STATE_CHIP[label] ?? 'unkn';
-
-  const tt = document.createElement('div');
+  const tt    = document.createElement('div');
   tt.className = 'nv2-tooltip';
   tt.innerHTML = `
     <div class="tt-name">${esc(obj.name)}</div>
@@ -1324,8 +1093,7 @@ function showTooltip(el, obj) {
     ${h ? `<div class="tt-row"><span>Services</span><b>
       <span class="tt-ok">${h.services_ok ?? 0}ok</span>
       <span class="tt-warn"> ${h.services_warn ?? 0}w</span>
-      <span class="tt-crit"> ${h.services_crit ?? 0}c</span>
-    </b></div>` : ''}
+      <span class="tt-crit"> ${h.services_crit ?? 0}c</span></b></div>` : ''}
     <div class="tt-row"><span>Typ</span><b>${esc(obj.type)}</b></div>
     <div class="tt-row"><span>Pos</span><b>${parseFloat(obj.x).toFixed(1)}% / ${parseFloat(obj.y).toFixed(1)}%</b></div>`;
 
@@ -1333,7 +1101,6 @@ function showTooltip(el, obj) {
   const elRect = el.getBoundingClientRect();
   tt.style.left = `${elRect.left - cvRect.left + elRect.width / 2}px`;
   tt.style.top  = `${elRect.top  - cvRect.top}px`;
-
   document.getElementById('nv2-canvas').appendChild(tt);
   _activeTooltip = tt;
 }
@@ -1345,7 +1112,7 @@ function hideTooltip() {
 
 
 // ═══════════════════════════════════════════════════════════════════════
-//  STATUS PILLS (Topbar)
+//  STATUS PILLS
 // ═══════════════════════════════════════════════════════════════════════
 
 function updateTopbarPills(hosts) {
@@ -1359,8 +1126,6 @@ function updateTopbarPills(hosts) {
   document.getElementById('pill-ok')  .textContent = `● ${ok}`;
   document.getElementById('pill-warn').textContent = `● ${warn}`;
   document.getElementById('pill-crit').textContent = `● ${crit}`;
-
-  // Map-Pip in der Sidebar
   if (activeMapId) {
     const pip = document.getElementById(`mpip-${activeMapId}`);
     if (pip) pip.className = 'map-pip ' + (crit > 0 ? 'crit' : warn > 0 ? 'warn' : ok > 0 ? 'ok' : 'unkn');
@@ -1374,10 +1139,7 @@ function updateTopbarPills(hosts) {
 
 function renderHostsPanel(hosts) {
   const body = document.getElementById('body-hosts');
-  if (!hosts.length) {
-    body.innerHTML = '<div class="empty-hint">Keine Hosts</div>';
-    return;
-  }
+  if (!hosts.length) { body.innerHTML = '<div class="empty-hint">Keine Hosts</div>'; return; }
   const sorted = [...hosts].sort((a, b) => b.state - a.state);
   body.innerHTML = sorted.map(h => {
     const c = STATE_CHIP[h.state_label] ?? 'unkn';
@@ -1390,7 +1152,6 @@ function renderHostsPanel(hosts) {
       <div class="hr-tag ${c}">${h.state_label}</div>
     </div>`;
   }).join('');
-
   body.querySelectorAll('.host-row').forEach(row => {
     row.addEventListener('click', () => focusHost(row.dataset.host));
   });
@@ -1399,7 +1160,7 @@ function renderHostsPanel(hosts) {
 function focusHost(name) {
   const el = document.querySelector(`[data-name="${esc(name)}"]`);
   if (!el) return;
-  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  el.scrollIntoView({ behavior:'smooth', block:'center' });
   el.classList.add('nv2-status-changed');
   setTimeout(() => el.classList.remove('nv2-status-changed'), 800);
 }
@@ -1412,25 +1173,15 @@ function focusHost(name) {
 function appendEvents(hosts, services, ts) {
   const items = [
     ...hosts.map(h => ({
-      bar:  STATE_CHIP[h.state_label] === 'crit' ? 'crit'
-           :STATE_CHIP[h.state_label] === 'warn' ? 'warn'
-           :STATE_CHIP[h.state_label] === 'ok'   ? 'ok' : 'info',
-      host: h.name,
-      msg:  `${h.state_label}: ${(h.output ?? '').substring(0, 60)}`,
-      ts,
+      bar:  STATE_CHIP[h.state_label] === 'crit' ? 'crit' : STATE_CHIP[h.state_label] === 'warn' ? 'warn' : STATE_CHIP[h.state_label] === 'ok' ? 'ok' : 'info',
+      host: h.name, msg: `${h.state_label}: ${(h.output ?? '').substring(0, 60)}`, ts,
     })),
     ...services.map(s => ({
-      bar:  STATE_CHIP[s.state_label] === 'crit' ? 'crit'
-           :STATE_CHIP[s.state_label] === 'warn' ? 'warn'
-           :STATE_CHIP[s.state_label] === 'ok'   ? 'ok' : 'info',
-      host: `${s.host_name} · ${s.description}`,
-      msg:  `${s.state_label}: ${(s.output ?? '').substring(0, 50)}`,
-      ts,
+      bar:  STATE_CHIP[s.state_label] === 'crit' ? 'crit' : STATE_CHIP[s.state_label] === 'warn' ? 'warn' : STATE_CHIP[s.state_label] === 'ok' ? 'ok' : 'info',
+      host: `${s.host_name} · ${s.description}`, msg: `${s.state_label}: ${(s.output ?? '').substring(0, 50)}`, ts,
     })),
   ];
-
   eventLog = [...items, ...eventLog].slice(0, 60);
-
   const body = document.getElementById('body-events');
   body.innerHTML = eventLog.map(e => `
     <div class="ev-row">
@@ -1465,7 +1216,6 @@ function closeSnapin(name) {
   activeSnapin = null;
 }
 
-// Globale Exports
 window.toggleSnapin = toggleSnapin;
 window.closeSnapin  = closeSnapin;
 
@@ -1476,69 +1226,45 @@ window.closeSnapin  = closeSnapin;
 
 function toggleEdit() {
   editActive = !editActive;
-
   const btn    = document.getElementById('btn-edit');
   const addBtn = document.getElementById('btn-add-host');
   const banner = document.getElementById('nv2-edit-banner');
   const canvas = document.getElementById('nv2-canvas');
-
-  // Label im Burger-Menü + btn selbst
-  const lbl = document.getElementById('burger-edit-label');
+  const lbl    = document.getElementById('burger-edit-label');
   if (lbl) lbl.textContent = editActive ? 'Fertig' : 'Bearbeiten';
-  if (btn) {
-    btn.classList.toggle('on', editActive);
-    btn.title = editActive ? 'Edit-Mode beenden (Ctrl+E)' : 'Edit-Mode starten (Ctrl+E)';
-  }
+  if (btn) { btn.classList.toggle('on', editActive); btn.title = editActive ? 'Edit-Mode beenden (Ctrl+E)' : 'Edit-Mode starten (Ctrl+E)'; }
   addBtn.style.display = editActive ? 'flex' : 'none';
   banner.classList.toggle('show', editActive);
   canvas.classList.toggle('nv2-edit-mode', editActive);
-
-  if (editActive) {
-    document.querySelectorAll('.nv2-node').forEach(makeDraggable);
-  }
+  if (editActive) document.querySelectorAll('.nv2-node').forEach(makeDraggable);
 }
 
-/**
- * Macht einen Node per Maus verschiebbar.
- * Speichert neue Position via PATCH an den Server.
- */
 function makeDraggable(el) {
   if (el._nv2drag) return;
   el._nv2drag = true;
-
   el.addEventListener('mousedown', e => {
     if (!editActive || e.button !== 0) return;
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault(); e.stopPropagation();
     hideTooltip();
-
     const canvas = document.getElementById('nv2-canvas');
     const rect   = canvas.getBoundingClientRect();
-    const x0     = parseFloat(el.style.left);
-    const y0     = parseFloat(el.style.top);
+    const x0 = parseFloat(el.style.left);
+    const y0 = parseFloat(el.style.top);
     const sx = e.clientX, sy = e.clientY;
-
     el.classList.add('nv2-dragging');
     el.style.zIndex = '40';
-
     const onMove = ev => {
       el.style.left = `${Math.max(0, Math.min(100, x0 + (ev.clientX - sx) / rect.width  * 100)).toFixed(2)}%`;
       el.style.top  = `${Math.max(0, Math.min(97,  y0 + (ev.clientY - sy) / rect.height * 100)).toFixed(2)}%`;
     };
-
     const onUp = async () => {
       el.classList.remove('nv2-dragging');
       el.style.zIndex = '';
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup',   onUp);
-
-      await api(
-        `/api/maps/${activeMapId}/objects/${el.dataset.objectId}/pos`,
-        'PATCH',
-        { x: parseFloat(el.style.left), y: parseFloat(el.style.top) }
-      );
+      await api(`/api/maps/${activeMapId}/objects/${el.dataset.objectId}/pos`, 'PATCH',
+        { x: parseFloat(el.style.left), y: parseFloat(el.style.top) });
     };
-
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup',   onUp);
   });
@@ -1550,9 +1276,6 @@ async function removeNode(el, obj) {
   el.remove();
 }
 
-/**
- * Kontextmenü für Edit-Mode – Rechtsklick auf beliebiges Objekt.
- */
 let _ctxMenu = null;
 function showNodeContextMenu(e, el, obj) {
   closeContextMenu();
@@ -1561,15 +1284,13 @@ function showNodeContextMenu(e, el, obj) {
   menu.className = 'ctx-menu';
   menu.style.left = `${e.clientX}px`;
   menu.style.top  = `${e.clientY}px`;
-
   const items = [
-    { label: '⤢ Größe ändern',   action: () => openResizeDialog(el, obj) },
+    { label: '⤢ Größe ändern',     action: () => openResizeDialog(el, obj) },
     { label: '🖼 Iconset wechseln', action: () => openIconsetDialog(el, obj),
       hide: !['host','service','hostgroup','servicegroup','map'].includes(obj.type) },
-    { label: '◫ Layer zuweisen',  action: () => openLayerDialog(el, obj) },
-    { label: '🗑 Entfernen',       action: () => removeNode(el, obj), cls: 'ctx-danger' },
+    { label: '◫ Layer zuweisen',   action: () => openLayerDialog(el, obj) },
+    { label: '🗑 Entfernen',        action: () => removeNode(el, obj), cls: 'ctx-danger' },
   ];
-
   items.forEach(item => {
     if (item.hide) return;
     const btn = document.createElement('button');
@@ -1578,10 +1299,7 @@ function showNodeContextMenu(e, el, obj) {
     btn.onclick = () => { closeContextMenu(); item.action(); };
     menu.appendChild(btn);
   });
-
-  // FIX 3: Klicks innerhalb des Kontextmenüs nicht zum Canvas durchreichen
   menu.addEventListener('click', e => e.stopPropagation());
-
   document.body.appendChild(menu);
   _ctxMenu = menu;
   setTimeout(() => document.addEventListener('click', closeContextMenu, { once: true }), 0);
@@ -1592,14 +1310,10 @@ function closeContextMenu() {
   _ctxMenu = null;
 }
 
-/**
- * Größe-Dialog: Slider von 16–128px (Nodes) oder 50–200% (alles andere).
- */
 function openResizeDialog(el, obj) {
   closeResizeDialog();
-  const isNode    = ['host','service','hostgroup','servicegroup','map'].includes(obj.type);
-  const isGadget  = obj.type === 'gadget';
-
+  const isNode   = ['host','service','hostgroup','servicegroup','map'].includes(obj.type);
+  const isGadget = obj.type === 'gadget';
   const cur = isNode
     ? parseInt(el.style.getPropertyValue('--node-size') || '32')
     : isGadget
@@ -1609,22 +1323,18 @@ function openResizeDialog(el, obj) {
   const panel = document.createElement('div');
   panel.id = 'nv2-resize-panel';
   panel.className = 'resize-panel';
-
-  const rect = el.getBoundingClientRect();
+  const rect   = el.getBoundingClientRect();
   const cvRect = document.getElementById('nv2-canvas').getBoundingClientRect();
   panel.style.left = `${rect.left - cvRect.left + rect.width + 8}px`;
   panel.style.top  = `${rect.top  - cvRect.top}px`;
 
-  const unit   = isNode ? 'px' : '%';
-  const min    = isNode ? 16  : 40;
-  const max    = isNode ? 128 : 300;
-  const step   = isNode ? 4   : 10;
+  const unit = isNode ? 'px' : '%';
+  const min  = isNode ? 16  : 40;
+  const max  = isNode ? 128 : 300;
+  const step = isNode ? 4   : 10;
 
   panel.innerHTML = `
-    <div class="rp-head">
-      <span>Größe</span>
-      <button class="rp-close" id="rp-close-btn">✕</button>
-    </div>
+    <div class="rp-head"><span>Größe</span><button class="rp-close" id="rp-close-btn">✕</button></div>
     <div class="rp-body">
       <input type="range" id="rp-slider" min="${min}" max="${max}" step="${step}" value="${cur}">
       <span class="rp-val" id="rp-val">${cur}${unit}</span>
@@ -1635,32 +1345,16 @@ function openResizeDialog(el, obj) {
     </div>`;
 
   document.getElementById('nv2-canvas').appendChild(panel);
-
   const slider = panel.querySelector('#rp-slider');
   const valLbl = panel.querySelector('#rp-val');
-
-  // Live-Preview
-  slider.addEventListener('input', () => {
-    const v = parseInt(slider.value);
-    valLbl.textContent = v + unit;
-    applySize(el, obj, v, isNode, isGadget);
-  });
-
-  // FIX 1: Alle Klicks innerhalb des Resize-Panels (Slider, Buttons)
-  //         nicht zum Canvas durchreichen → kein versehentlicher Objekt-Dialog
+  slider.addEventListener('input', () => { valLbl.textContent = slider.value + unit; applySize(el, obj, parseInt(slider.value), isNode, isGadget); });
   panel.addEventListener('click', e => e.stopPropagation());
-
   panel.querySelector('#rp-close-btn').onclick  =
-  panel.querySelector('#rp-cancel-btn').onclick = () => {
-    applySize(el, obj, cur, isNode, isGadget); // revert
-    closeResizeDialog();
-  };
-
+  panel.querySelector('#rp-cancel-btn').onclick = () => { applySize(el, obj, cur, isNode, isGadget); closeResizeDialog(); };
   panel.querySelector('#rp-ok-btn').onclick = async () => {
     const v = parseInt(slider.value);
     closeResizeDialog();
-    await api(`/api/maps/${activeMapId}/objects/${obj.object_id}/props`, 'PATCH',
-      { size: v });
+    await api(`/api/maps/${activeMapId}/objects/${obj.object_id}/props`, 'PATCH', { size: v });
     obj.size = v;
   };
 }
@@ -1671,16 +1365,13 @@ function applySize(el, obj, v, isNode, isGadget) {
     const ring = el.querySelector('.nv2-ring');
     if (ring) { ring.style.width = `${v}px`; ring.style.height = `${v}px`; }
     const img = el.querySelector('img.nv2-icon');
-    if (img)  { img.width = v; img.height = v; }
-    const emoji = el.querySelector('.nv2-icon-emoji');
-    if (emoji) emoji.style.fontSize = `${Math.round(v * 0.65)}px`;
+    if (img) { img.width = v; img.height = v; }
   } else if (isGadget) {
     el.style.setProperty('--gadget-size', `${v}%`);
     el.style.transform = `scale(${v / 100})`;
     el.style.transformOrigin = 'top left';
   } else {
-    const s = v / 100;
-    el.style.transform = `scale(${s})`;
+    el.style.transform = `scale(${v / 100})`;
     el.style.transformOrigin = 'top left';
   }
 }
@@ -1689,13 +1380,8 @@ function closeResizeDialog() {
   document.getElementById('nv2-resize-panel')?.remove();
 }
 
-/**
- * Iconset-Dialog: bekannte Sets auswählen oder eigenes hochladen.
- */
 function openIconsetDialog(el, obj) {
-  const all = [...['std_small','server','router','switch','firewall','database','storage','ups','ap'],
-               ...customIconsets];
-
+  const all = [...KNOWN_ICONSETS, ...customIconsets];
   const cur = el.dataset.iconset || 'std_small';
   const dlg = document.createElement('div');
   dlg.id = 'nv2-iconset-dlg';
@@ -1707,71 +1393,34 @@ function openIconsetDialog(el, obj) {
         ${all.map(s => `
           <div class="iconset-card ${s === cur ? 'active' : ''}" data-set="${esc(s)}">
             <img src="assets/icons/${esc(s)}/ok.svg" width="32" height="32" alt="">
-            <img src="assets/icons/${esc(s)}/warning.svg" width="24" height="24" alt="" style="opacity:.7">
-            <img src="assets/icons/${esc(s)}/critical.svg" width="24" height="24" alt="" style="opacity:.7">
             <div class="iconset-name">${esc(s)}</div>
           </div>`).join('')}
-        <div class="iconset-card iconset-upload" id="iconset-upload-card" title="Eigenes Iconset hochladen">
+        <div class="iconset-card iconset-upload" id="iconset-upload-card" title="Eigenes Iconset">
           <div style="font-size:22px">📂</div>
           <div class="iconset-name">Upload…</div>
           <input type="file" id="iconset-zip-input" accept=".zip" style="display:none">
         </div>
       </div>
-      <p class="f-hint" style="margin-top:8px">
-        Upload: ZIP mit ok.svg, warning.svg, critical.svg, unknown.svg, down.svg
-      </p>
       <div class="dlg-foot">
         <button class="btn-cancel" id="iconset-cancel">Abbrechen</button>
         <button class="btn-ok" id="iconset-ok">Übernehmen</button>
       </div>
     </div>`;
-
   document.body.appendChild(dlg);
-
   let selected = cur;
-
   dlg.querySelectorAll('.iconset-card[data-set]').forEach(card => {
     card.addEventListener('click', () => {
       dlg.querySelectorAll('.iconset-card').forEach(c => c.classList.remove('active'));
-      card.classList.add('active');
-      selected = card.dataset.set;
+      card.classList.add('active'); selected = card.dataset.set;
     });
   });
-
-  // Upload-Button
-  const uploadCard = dlg.querySelector('#iconset-upload-card');
-  const zipInput   = dlg.querySelector('#iconset-zip-input');
-  uploadCard.addEventListener('click', () => zipInput.click());
-  zipInput.addEventListener('change', async e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const setName = file.name.replace(/\.zip$/i, '').toLowerCase().replace(/[^a-z0-9-]/g, '-');
-    if (!customIconsets.includes(setName)) {
-      customIconsets.push(setName);
-      localStorage.setItem('nv2-custom-iconsets', JSON.stringify(customIconsets));
-    }
-    const card = document.createElement('div');
-    card.className = 'iconset-card';
-    card.dataset.set = setName;
-    card.innerHTML = `<div style="font-size:22px">📦</div><div class="iconset-name">${esc(setName)}</div>`;
-    card.addEventListener('click', () => {
-      dlg.querySelectorAll('.iconset-card').forEach(c => c.classList.remove('active'));
-      card.classList.add('active');
-      selected = setName;
-    });
-    uploadCard.before(card);
-    card.click();
-  });
-
   dlg.querySelector('#iconset-cancel').onclick = () => dlg.remove();
   dlg.querySelector('#iconset-ok').onclick = async () => {
     dlg.remove();
     if (selected === cur) return;
-    el.dataset.iconset = selected;
-    obj.iconset = selected;
+    el.dataset.iconset = selected; obj.iconset = selected;
     updateNodeIcon(el, hostCache[obj.name]?.state_label ?? null);
-    await api(`/api/maps/${activeMapId}/objects/${obj.object_id}/props`, 'PATCH',
-      { iconset: selected });
+    await api(`/api/maps/${activeMapId}/objects/${obj.object_id}/props`, 'PATCH', { iconset: selected });
   };
 }
 
@@ -1780,37 +1429,12 @@ function openIconsetDialog(el, obj) {
 //  CANVAS-KLICK → OBJEKT PLATZIEREN
 // ═══════════════════════════════════════════════════════════════════════
 
-/**
- * FIX 2: Canvas-Klick öffnet den Objekt-Dialog nur wenn:
- *   - Edit-Mode aktiv
- *   - kein Klick auf einen bestehenden Node / Textbox / Container
- *   - kein Resize-Panel offen
- *   - kein Kontextmenü offen
- *   - kein Iconset-Dialog offen
- *   - kein Klick auf das SVG-Linien-Overlay
- */
 function onCanvasClick(e) {
   if (!editActive) return;
-
-  // Bereits auf ein Objekt geklickt → ignorieren
   if (e.target.closest('.nv2-node, .nv2-textbox, .nv2-container')) return;
-
-  // SVG-Overlay (Linien) → ignorieren
   if (e.target.closest('#nv2-lines-svg')) return;
-
-  // Resize-Panel offen → nur schließen, kein Dialog
-  if (document.getElementById('nv2-resize-panel')) {
-    closeResizeDialog();
-    return;
-  }
-
-  // Kontextmenü offen → nur schließen, kein Dialog
-  if (_ctxMenu) {
-    closeContextMenu();
-    return;
-  }
-
-  // Iconset-Dialog offen → ignorieren
+  if (document.getElementById('nv2-resize-panel')) { closeResizeDialog(); return; }
+  if (_ctxMenu) { closeContextMenu(); return; }
   if (document.getElementById('nv2-iconset-dlg')) return;
 
   const rect = document.getElementById('nv2-canvas').getBoundingClientRect();
@@ -1828,105 +1452,48 @@ function onCanvasClick(e) {
 
 let _activeObjType = 'host';
 
-/** Typ-Chip anklicken → richtige Felder anzeigen */
 function selectObjType(type) {
   _activeObjType = type;
-
-  // Chips
-  document.querySelectorAll('.type-chip').forEach(c =>
-    c.classList.toggle('active', c.dataset.type === type)
-  );
-
-  // Felder-Sektionen
+  document.querySelectorAll('.type-chip').forEach(c => c.classList.toggle('active', c.dataset.type === type));
   const monTypes = ['host','hostgroup','servicegroup','map'];
-  document.getElementById('dlg-fields-monitoring').style.display =
-    monTypes.includes(type) ? 'block' : 'none';
-  document.getElementById('dlg-fields-service').style.display =
-    type === 'service' ? 'block' : 'none';
-  document.getElementById('dlg-fields-textbox').style.display =
-    type === 'textbox' ? 'block' : 'none';
-  document.getElementById('dlg-fields-line').style.display =
-    type === 'line' ? 'block' : 'none';
-  document.getElementById('dlg-fields-container').style.display =
-    type === 'container' ? 'block' : 'none';
-
-  // Label-Hinweis je Typ
+  document.getElementById('dlg-fields-monitoring').style.display = monTypes.includes(type) ? 'block' : 'none';
+  document.getElementById('dlg-fields-service')  .style.display = type === 'service'   ? 'block' : 'none';
+  document.getElementById('dlg-fields-textbox')  .style.display = type === 'textbox'   ? 'block' : 'none';
+  document.getElementById('dlg-fields-line')     .style.display = type === 'line'      ? 'block' : 'none';
+  document.getElementById('dlg-fields-container').style.display = type === 'container' ? 'block' : 'none';
   const lbl = { host:'Hostname', hostgroup:'Gruppenname', servicegroup:'Gruppenname', map:'Map-ID' };
   const nameLabel = document.getElementById('dlg-name-label');
   if (nameLabel) nameLabel.textContent = lbl[type] ?? 'Name';
 }
 
-/** Objekt hinzufügen bestätigen */
 async function confirmAddObject() {
   const type = _activeObjType;
-  const pos  = pendingPos ?? {
-    x: (15 + Math.random() * 70).toFixed(1),
-    y: (15 + Math.random() * 70).toFixed(1),
-  };
-
+  const pos  = pendingPos ?? { x: (15 + Math.random() * 70).toFixed(1), y: (15 + Math.random() * 70).toFixed(1) };
   let payload = { type, x: parseFloat(pos.x), y: parseFloat(pos.y) };
 
   if (type === 'service') {
     const hostName = document.getElementById('dlg-svc-host').value.trim();
     const svcName  = document.getElementById('dlg-svc-name').value.trim();
-    if (!hostName || !svcName) {
-      document.getElementById(!hostName ? 'dlg-svc-host' : 'dlg-svc-name').focus();
-      return;
-    }
-    Object.assign(payload, {
-      name:      svcName,
-      host_name: hostName,
-      iconset:   'default',
-      label:     document.getElementById('dlg-svc-label').value.trim() || svcName,
-    });
-
+    if (!hostName || !svcName) { document.getElementById(!hostName ? 'dlg-svc-host' : 'dlg-svc-name').focus(); return; }
+    Object.assign(payload, { name: svcName, host_name: hostName, iconset: 'default', label: document.getElementById('dlg-svc-label').value.trim() || svcName });
   } else if (['host','hostgroup','servicegroup','map'].includes(type)) {
     const name = document.getElementById('dlg-obj-name').value.trim();
     if (!name) { document.getElementById('dlg-obj-name').focus(); return; }
-    Object.assign(payload, {
-      name,
-      iconset: document.getElementById('dlg-iconset').value,
-      size:    parseInt(document.getElementById('dlg-iconsize')?.value ?? '32'),
-      label:   document.getElementById('dlg-obj-label').value.trim() || name,
-    });
-
+    Object.assign(payload, { name, iconset: document.getElementById('dlg-iconset').value, size: parseInt(document.getElementById('dlg-iconsize')?.value ?? '32'), label: document.getElementById('dlg-obj-label').value.trim() || name });
   } else if (type === 'textbox') {
-    const text = document.getElementById('dlg-tb-text').value.trim() || 'Text';
-    Object.assign(payload, {
-      text,
-      font_size:    parseInt(document.getElementById('dlg-tb-size').value) || 13,
-      bold:         document.getElementById('dlg-tb-bold').checked,
-      color:        document.getElementById('dlg-tb-color').value,
-      bg_color:     document.getElementById('dlg-tb-bg').value,
-      border_color: '',
-      w: 14, h: 4,
-    });
-
+    Object.assign(payload, { text: document.getElementById('dlg-tb-text').value.trim() || 'Text', font_size: parseInt(document.getElementById('dlg-tb-size').value) || 13, bold: document.getElementById('dlg-tb-bold').checked, color: document.getElementById('dlg-tb-color').value, bg_color: document.getElementById('dlg-tb-bg').value, border_color: '', w: 14, h: 4 });
   } else if (type === 'line') {
-    Object.assign(payload, {
-      x2:         parseFloat(pos.x) + 20,
-      y2:         parseFloat(pos.y),
-      line_style: document.getElementById('dlg-ln-style').value,
-      line_width: parseInt(document.getElementById('dlg-ln-width').value) || 1,
-      color:      document.getElementById('dlg-ln-color').value,
-    });
-
+    Object.assign(payload, { x2: parseFloat(pos.x) + 20, y2: parseFloat(pos.y), line_style: document.getElementById('dlg-ln-style').value, line_width: parseInt(document.getElementById('dlg-ln-width').value) || 1, color: document.getElementById('dlg-ln-color').value });
   } else if (type === 'container') {
-    const url = document.getElementById('dlg-ct-url').value.trim();
-    Object.assign(payload, { url, w: 12, h: 8 });
+    Object.assign(payload, { url: document.getElementById('dlg-ct-url').value.trim(), w: 12, h: 8 });
   }
 
   const obj = await api(`/api/maps/${activeMapId}/objects`, 'POST', payload);
-  if (obj) {
-    const el = createNode(obj);
-    if (el && editActive) makeDraggable(el);
-  }
-
+  if (obj) { const el = createNode(obj); if (el && editActive) makeDraggable(el); }
   closeDlg('dlg-add-object');
   pendingPos = null;
 }
 
-/** Neue Map anlegen bestätigen */
 async function confirmNewMap() {
   const title = document.getElementById('nm-title').value.trim();
   const mapId = document.getElementById('nm-id')   .value.trim();
@@ -1936,7 +1503,6 @@ async function confirmNewMap() {
   if (created) openMap(created.id);
 }
 
-/** Map löschen – aktive Map (aus geöffneter Map heraus) */
 async function confirmDeleteMap() {
   if (!activeMapId) return;
   if (!confirm(`Map „${activeMapCfg?.title ?? activeMapId}" wirklich löschen?`)) return;
@@ -1944,9 +1510,7 @@ async function confirmDeleteMap() {
   showOverview();
 }
 
-/** Map löschen – aus Übersicht (per Karten-Kontextmenü) */
-let _deleteMapId    = null;
-let _deleteMapTitle = null;
+let _deleteMapId = null, _deleteMapTitle = null;
 async function confirmDeleteMapById() {
   if (!_deleteMapId) return;
   if (!confirm(`Map „${_deleteMapTitle ?? _deleteMapId}" wirklich löschen?`)) return;
@@ -1959,17 +1523,14 @@ function dlgNewMap() { openDlg('dlg-new-map'); }
 
 
 // ═══════════════════════════════════════════════════════════════════════
-//  MAP MANAGEMENT – Umbenennen, Parent, Alle Maps verwalten
+//  MAP MANAGEMENT
 // ═══════════════════════════════════════════════════════════════════════
 
-let _renameMapId  = null;
-let _parentMapId  = null;
+let _renameMapId = null, _parentMapId = null;
 
-/** Map umbenennen – aus geöffneter Map oder Übersicht */
 function openRenameMapDlg() {
   _renameMapId = activeMapId;
-  const title  = activeMapCfg?.title ?? '';
-  document.getElementById('rename-map-title').value = title;
+  document.getElementById('rename-map-title').value = activeMapCfg?.title ?? '';
   openDlg('dlg-rename-map');
 }
 
@@ -1979,29 +1540,19 @@ async function confirmRenameMap() {
   closeDlg('dlg-rename-map');
   const ok = await api(`/api/maps/${_renameMapId}/title`, 'PUT', { title: newTitle });
   if (ok) {
-    // Topbar + Config aktualisieren wenn aktive Map
-    if (_renameMapId === activeMapId) {
-      activeMapCfg.title = newTitle;
-      document.getElementById('tb-title').textContent = newTitle;
-    }
+    if (_renameMapId === activeMapId) { activeMapCfg.title = newTitle; document.getElementById('tb-title').textContent = newTitle; }
     await loadMaps();
   }
   _renameMapId = null;
 }
 
-/** Parent-Map setzen */
 async function openParentMapDlg(mapId) {
   _parentMapId = mapId ?? activeMapId;
   if (!_parentMapId) return;
-  // Alle Maps laden → Select befüllen
-  const maps   = await api('/api/maps') ?? [];
-  const sel    = document.getElementById('parent-map-select');
+  const maps = await api('/api/maps') ?? [];
+  const sel  = document.getElementById('parent-map-select');
   sel.innerHTML = '<option value="">(keine – Top-Level)</option>' +
-    maps
-      .filter(m => m.id !== _parentMapId)   // sich selbst ausschließen
-      .map(m => `<option value="${esc(m.id)}">${esc(m.title)}</option>`)
-      .join('');
-  // Aktuellen Wert vorwählen
+    maps.filter(m => m.id !== _parentMapId).map(m => `<option value="${esc(m.id)}">${esc(m.title)}</option>`).join('');
   const currentParent = maps.find(m => m.id === _parentMapId)?.parent_map ?? '';
   sel.value = currentParent;
   openDlg('dlg-parent-map');
@@ -2016,7 +1567,6 @@ async function confirmSetParentMap() {
   _parentMapId = null;
 }
 
-/** "Alle Maps verwalten" Overlay öffnen */
 async function openManageMapsOverlay() {
   const maps = await api('/api/maps') ?? [];
   const list  = document.getElementById('manage-maps-list');
@@ -2031,17 +1581,11 @@ async function openManageMapsOverlay() {
           <span class="manage-meta">${esc(m.id)}${m.parent_map ? ' · ↳ ' + esc(m.parent_map) : ''}</span>
         </div>
         <div class="manage-actions">
-          <button class="manage-btn" title="Öffnen"
-                  onclick="closeDlg('dlg-manage-maps'); openMap('${esc(m.id)}')">▶</button>
-          <button class="manage-btn" title="Umbenennen"
-                  onclick="_renameMapId='${esc(m.id)}';
-                           document.getElementById('rename-map-title').value='${esc(m.title)}';
-                           closeDlg('dlg-manage-maps'); openDlg('dlg-rename-map')">✎</button>
-          <button class="manage-btn" title="Parent-Map"
-                  onclick="closeDlg('dlg-manage-maps'); openParentMapDlg('${esc(m.id)}')">🗺</button>
-          <button class="manage-btn manage-btn-danger" title="Löschen"
-                  onclick="_deleteMapId='${esc(m.id)}'; _deleteMapTitle='${esc(m.title)}';
-                           confirmDeleteMapById(); closeDlg('dlg-manage-maps')">🗑</button>
+          <button class="manage-btn" onclick="closeDlg('dlg-manage-maps'); openMap('${esc(m.id)}')">▶</button>
+          <button class="manage-btn" onclick="_renameMapId='${esc(m.id)}'; document.getElementById('rename-map-title').value='${esc(m.title)}'; closeDlg('dlg-manage-maps'); openDlg('dlg-rename-map')">✎</button>
+          <button class="manage-btn" onclick="closeDlg('dlg-manage-maps'); openParentMapDlg('${esc(m.id)}')">🗺</button>
+          <button class="manage-btn" onclick="exportMapById('${esc(m.id)}')">📤</button>
+          <button class="manage-btn manage-btn-danger" onclick="_deleteMapId='${esc(m.id)}'; _deleteMapTitle='${esc(m.title)}'; confirmDeleteMapById(); closeDlg('dlg-manage-maps')">🗑</button>
         </div>
       </div>`).join('');
   }
@@ -2062,17 +1606,13 @@ window.confirmDeleteMapById  = confirmDeleteMapById;
 //  KIOSK-MODUS
 // ═══════════════════════════════════════════════════════════════════════
 
-let _kioskActive      = false;
-let _kioskRefreshTimer = null;
+let _kioskActive = false, _kioskRefreshTimer = null;
 
-function toggleKiosk() {
-  _kioskActive ? exitKiosk() : enterKiosk();
-}
+function toggleKiosk() { _kioskActive ? exitKiosk() : enterKiosk(); }
 
 function enterKiosk() {
   if (!activeMapId) return;
   _kioskActive = true;
-
   const settings = loadUserSettings();
   const overlay  = document.getElementById('kiosk-overlay');
   const wrap     = document.getElementById('kiosk-canvas-wrap');
@@ -2081,41 +1621,22 @@ function enterKiosk() {
   const banner   = document.getElementById('nv2-edit-banner');
   const snapCont = document.getElementById('snapin-container');
   const snapTabs = document.getElementById('snap-tabs');
-
-  // Canvas in Kiosk-Wrap verschieben
   wrap.appendChild(canvas);
   if (svg)      wrap.appendChild(svg);
   if (banner)   wrap.appendChild(banner);
   if (snapCont) wrap.appendChild(snapCont);
   if (snapTabs) wrap.appendChild(snapTabs);
-
   overlay.style.display = 'flex';
-
-  // Optionale UI-Elemente ausblenden
   if (settings.kioskHideSidebar) document.getElementById('sidebar').style.display = 'none';
   if (settings.kioskHideTopbar)  document.getElementById('topbar').style.display  = 'none';
-
-  // Kiosk-Label im Burger
   const lbl = document.getElementById('burger-kiosk-label');
   if (lbl) lbl.textContent = 'Kiosk beenden';
-  const btn = document.getElementById('btn-kiosk');
-  if (btn) btn.classList.add('on');
-
-  // Status-Ticker
+  document.getElementById('btn-kiosk')?.classList.add('on');
   _updateKioskStatus();
-
-  // Auto-Refresh
   if (settings.kioskAutoRefresh) {
-    _kioskRefreshTimer = setInterval(() => {
-      wsClient?.forceRefresh();
-      _updateKioskStatus();
-    }, settings.kioskInterval * 1000);
+    _kioskRefreshTimer = setInterval(() => { wsClient?.forceRefresh(); _updateKioskStatus(); }, settings.kioskInterval * 1000);
   }
-
-  // Fullscreen API
   document.documentElement.requestFullscreen?.().catch(() => {});
-
-  // Kiosk-Exit-Button: erscheint bei Mausbewegung kurz
   _setupKioskMouseHide();
 }
 
@@ -2123,7 +1644,6 @@ function exitKiosk() {
   _kioskActive = false;
   clearInterval(_kioskRefreshTimer);
   _kioskRefreshTimer = null;
-
   const overlay  = document.getElementById('kiosk-overlay');
   const mapArea  = document.getElementById('map-area');
   const canvas   = document.getElementById('nv2-canvas');
@@ -2131,34 +1651,24 @@ function exitKiosk() {
   const banner   = document.getElementById('nv2-edit-banner');
   const snapCont = document.getElementById('snapin-container');
   const snapTabs = document.getElementById('snap-tabs');
-
-  // Canvas zurück in map-area
   mapArea.appendChild(canvas);
   if (svg)      mapArea.appendChild(svg);
   if (banner)   mapArea.appendChild(banner);
   if (snapCont) mapArea.appendChild(snapCont);
   if (snapTabs) mapArea.appendChild(snapTabs);
-
   overlay.style.display = 'none';
-
-  // Sidebar/Topbar wiederherstellen
   document.getElementById('sidebar').style.display = '';
   document.getElementById('topbar').style.display  = '';
-
-  // Burger-Button zurücksetzen
   const lbl = document.getElementById('burger-kiosk-label');
   if (lbl) lbl.textContent = 'Kiosk-Modus';
-  const btn = document.getElementById('btn-kiosk');
-  if (btn) btn.classList.remove('on');
-
-  // Fullscreen verlassen
+  document.getElementById('btn-kiosk')?.classList.remove('on');
   if (document.fullscreenElement) document.exitFullscreen?.();
 }
 
 function _updateKioskStatus() {
   const bar = document.getElementById('kiosk-status-bar');
   if (!bar) return;
-  const now = new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const now = new Date().toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
   bar.textContent = `${activeMapCfg?.title ?? ''} · ${now}`;
 }
 
@@ -2186,26 +1696,18 @@ window.exitKiosk   = exitKiosk;
 const USER_SETTINGS_KEY = 'nv2-user-settings';
 
 function defaultUserSettings() {
-  return {
-    theme:              'dark',
-    sidebarDefault:     'expanded',
-    kioskHideSidebar:   false,
-    kioskHideTopbar:    false,
-    kioskAutoRefresh:   true,
-    kioskInterval:      60,
-  };
+  return { theme:'dark', sidebarDefault:'expanded', kioskHideSidebar:false, kioskHideTopbar:false, kioskAutoRefresh:true, kioskInterval:60 };
 }
 
 function loadUserSettings() {
-  try {
-    return { ...defaultUserSettings(), ...JSON.parse(localStorage.getItem(USER_SETTINGS_KEY) ?? '{}') };
-  } catch { return defaultUserSettings(); }
+  try { return { ...defaultUserSettings(), ...JSON.parse(localStorage.getItem(USER_SETTINGS_KEY) ?? '{}') }; }
+  catch { return defaultUserSettings(); }
 }
 
 function saveUserSettings() {
   const s = {
     theme:            currentTheme,
-    sidebarDefault:   document.getElementById('us-sidebar-default')?.value ?? 'expanded',
+    sidebarDefault:   document.getElementById('us-sidebar-default')?.value    ?? 'expanded',
     kioskHideSidebar: document.getElementById('us-kiosk-hide-sidebar')?.checked ?? false,
     kioskHideTopbar:  document.getElementById('us-kiosk-hide-topbar')?.checked  ?? false,
     kioskAutoRefresh: document.getElementById('us-kiosk-auto-refresh')?.checked ?? true,
@@ -2217,20 +1719,12 @@ function saveUserSettings() {
 
 function openUserSettingsDlg() {
   const s = loadUserSettings();
-  // Theme-Chips
   updateThemeChips();
-  // Sidebar-Default
-  const sd = document.getElementById('us-sidebar-default');
-  if (sd) sd.value = s.sidebarDefault;
-  // Kiosk-Optionen
-  const khs = document.getElementById('us-kiosk-hide-sidebar');
-  const kht = document.getElementById('us-kiosk-hide-topbar');
-  const kar = document.getElementById('us-kiosk-auto-refresh');
-  const ki  = document.getElementById('us-kiosk-interval');
-  if (khs) khs.checked = s.kioskHideSidebar;
-  if (kht) kht.checked = s.kioskHideTopbar;
-  if (kar) kar.checked = s.kioskAutoRefresh;
-  if (ki)  ki.value    = String(s.kioskInterval);
+  const sd = document.getElementById('us-sidebar-default');   if (sd)  sd.value    = s.sidebarDefault;
+  const khs = document.getElementById('us-kiosk-hide-sidebar'); if (khs) khs.checked = s.kioskHideSidebar;
+  const kht = document.getElementById('us-kiosk-hide-topbar');  if (kht) kht.checked = s.kioskHideTopbar;
+  const kar = document.getElementById('us-kiosk-auto-refresh'); if (kar) kar.checked = s.kioskAutoRefresh;
+  const ki  = document.getElementById('us-kiosk-interval');     if (ki)  ki.value    = String(s.kioskInterval);
   openDlg('dlg-user-settings');
 }
 
@@ -2243,6 +1737,13 @@ window.openUserSettingsDlg = openUserSettingsDlg;
 window.saveUserSettings    = saveUserSettings;
 window.updateThemeChips    = updateThemeChips;
 
+
+// ═══════════════════════════════════════════════════════════════════════
+//  NAGVIS-1 MIGRATION
+// ═══════════════════════════════════════════════════════════════════════
+
+let _migFile = null;
+
 function dlgMigrate() {
   _migFile = null;
   document.getElementById('cfg-drop-label').textContent = '📄 Datei wählen oder hier ablegen';
@@ -2251,83 +1752,51 @@ function dlgMigrate() {
   document.getElementById('mig-result').textContent = '';
   document.getElementById('mig-dryrun').checked = false;
   openDlg('dlg-migrate');
-
   const inp = document.getElementById('cfg-file-input');
   inp.value = '';
   inp.onchange = e => _migHandleFile(e.target.files[0]);
-
   const zone = document.getElementById('cfg-drop-zone');
-  zone.ondragover = e => { e.preventDefault(); zone.classList.add('drag-over'); };
+  zone.ondragover  = e => { e.preventDefault(); zone.classList.add('drag-over'); };
   zone.ondragleave = () => zone.classList.remove('drag-over');
-  zone.ondrop = e => {
-    e.preventDefault();
-    zone.classList.remove('drag-over');
-    const f = e.dataTransfer.files[0];
-    if (f) _migHandleFile(f);
-  };
+  zone.ondrop = e => { e.preventDefault(); zone.classList.remove('drag-over'); const f = e.dataTransfer.files[0]; if (f) _migHandleFile(f); };
 }
 
 function _migHandleFile(file) {
   if (!file || !file.name.endsWith('.cfg')) {
-    document.getElementById('cfg-drop-label').textContent = '⚠ Nur .cfg-Dateien erlaubt';
-    return;
+    document.getElementById('cfg-drop-label').textContent = '⚠ Nur .cfg-Dateien erlaubt'; return;
   }
   _migFile = file;
   document.getElementById('cfg-drop-label').textContent = `✓ ${file.name}`;
   document.getElementById('mig-btn-ok').disabled = false;
-  const suggestedId = file.name.replace(/\.cfg$/i, '').toLowerCase().replace(/[^a-z0-9-]/g, '-');
   const idField = document.getElementById('mig-id');
-  if (!idField.value) idField.value = suggestedId;
+  if (!idField.value) idField.value = file.name.replace(/\.cfg$/i, '').toLowerCase().replace(/[^a-z0-9-]/g, '-');
 }
 
 async function confirmMigrate() {
   if (!_migFile) return;
-
   const mapId   = document.getElementById('mig-id').value.trim();
   const canvasW = document.getElementById('mig-w').value || 1200;
   const canvasH = document.getElementById('mig-h').value || 800;
   const dryRun  = document.getElementById('mig-dryrun').checked;
-
   const resultBox = document.getElementById('mig-result');
   resultBox.style.display = 'block';
   resultBox.textContent   = '⏳ Migriere…';
-
-  const form = new FormData();
+  const form   = new FormData();
   form.append('file', _migFile);
-
-  const params = new URLSearchParams({
-    map_id:   mapId,
-    canvas_w: canvasW,
-    canvas_h: canvasH,
-    dry_run:  dryRun,
-  });
-
+  const params = new URLSearchParams({ map_id: mapId, canvas_w: canvasW, canvas_h: canvasH, dry_run: dryRun });
   try {
-    const res  = await fetch(`/api/migrate?${params}`, { method: 'POST', body: form });
+    const res  = await fetch(`/api/migrate?${params}`, { method:'POST', body:form });
     const data = await res.json();
-
-    if (!res.ok) {
-      resultBox.textContent = `❌ ${data.detail || 'Fehler beim Import'}`;
-      return;
-    }
-
+    if (!res.ok) { resultBox.textContent = `❌ ${data.detail || 'Fehler beim Import'}`; return; }
     const lines = [
       dryRun ? '📋 VORSCHAU (nicht gespeichert)' : '✅ Import erfolgreich',
-      `Map-ID: ${data.map_id}`,
-      `Titel:  ${data.title}`,
-      `Objekte: ${data.object_count}`,
-      data.skipped  ? `⚠ Übersprungen: ${data.skipped}` : null,
+      `Map-ID: ${data.map_id}`, `Titel:  ${data.title}`, `Objekte: ${data.object_count}`,
+      data.skipped ? `⚠ Übersprungen: ${data.skipped}` : null,
       ...(data.warnings ?? []).map(w => `⚠ ${w.type}.${w.field}: ${w.message}`),
       data.note ? `ℹ ${data.note}` : null,
     ].filter(Boolean);
     resultBox.textContent = lines.join('\n');
-
-    if (!dryRun) {
-      setTimeout(() => {
-        closeDlg('dlg-migrate');
-        showOverview();
-      }, 1800);
-    }
+    if (!dryRun) setTimeout(() => { closeDlg('dlg-migrate'); showOverview(); }, 1800);
   } catch (err) {
     resultBox.textContent = `❌ Netzwerkfehler: ${err.message}`;
   }
@@ -2335,14 +1804,17 @@ async function confirmMigrate() {
 
 function fillHostDatalist(hosts) {
   const opts = hosts.map(h => `<option value="${esc(h.name)}">`).join('');
-  document.getElementById('known-hosts').innerHTML     = opts;
+  document.getElementById('known-hosts')    .innerHTML = opts;
   document.getElementById('known-hosts-svc').innerHTML = opts;
 }
 
-// Globale Exports
 window.confirmAddObject = confirmAddObject;
 window.selectObjType    = selectObjType;
 window.confirmNewMap    = confirmNewMap;
+window.exportActiveMap  = exportActiveMap;
+window.exportMapById    = exportMapById;
+window.dlgImportZip     = dlgImportZip;
+window.confirmImportZip = confirmImportZip;
 window.dlgNewMap        = dlgNewMap;
 window.dlgMigrate       = dlgMigrate;
 window.confirmMigrate   = confirmMigrate;
@@ -2354,6 +1826,118 @@ window.closeDlg = id => {
 
 
 // ═══════════════════════════════════════════════════════════════════════
+//  MAP EXPORT / ZIP IMPORT
+// ═══════════════════════════════════════════════════════════════════════
+
+let _zipFile = null;
+
+async function exportActiveMap() {
+  if (!activeMapId) return;
+  try {
+    const res = await fetch(`/api/maps/${activeMapId}/export`);
+    if (!res.ok) { const err = await res.json().catch(() => ({})); alert(`Export fehlgeschlagen: ${err.detail || res.statusText}`); return; }
+    const cd       = res.headers.get('Content-Disposition') ?? '';
+    const match    = cd.match(/filename="([^"]+)"/);
+    const filename = match ? match[1] : `nagvis2-${activeMapId}.zip`;
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+  } catch (err) { alert(`Export fehlgeschlagen: ${err.message}`); }
+}
+
+async function exportMapById(mapId) {
+  if (!mapId) return;
+  try {
+    const res = await fetch(`/api/maps/${mapId}/export`);
+    if (!res.ok) { const err = await res.json().catch(() => ({})); alert(`Export fehlgeschlagen: ${err.detail || res.statusText}`); return; }
+    const cd       = res.headers.get('Content-Disposition') ?? '';
+    const match    = cd.match(/filename="([^"]+)"/);
+    const filename = match ? match[1] : `nagvis2-${mapId}.zip`;
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+  } catch (err) { alert(`Export fehlgeschlagen: ${err.message}`); }
+}
+
+function dlgImportZip() {
+  _zipFile = null;
+  document.getElementById('zip-drop-label').textContent = '📦 .zip-Datei wählen oder hier ablegen';
+  document.getElementById('zip-drop-label').style.color = '';
+  document.getElementById('zip-btn-ok').disabled = true;
+  document.getElementById('zip-result').style.display = 'none';
+  document.getElementById('zip-result').textContent = '';
+  document.getElementById('zip-map-id').value = '';
+  document.getElementById('zip-dryrun').checked = false;
+  openDlg('dlg-zip-import');
+  const inp = document.getElementById('zip-file-input');
+  inp.value = '';
+  inp.onchange = e => _zipHandleFile(e.target.files[0]);
+  const zone = document.getElementById('zip-drop-zone');
+  zone.ondragover  = e => { e.preventDefault(); zone.classList.add('drag-over'); };
+  zone.ondragleave = () => zone.classList.remove('drag-over');
+  zone.ondrop = e => { e.preventDefault(); zone.classList.remove('drag-over'); const f = e.dataTransfer.files[0]; if (f) _zipHandleFile(f); };
+}
+
+function _zipHandleFile(file) {
+  const lbl = document.getElementById('zip-drop-label');
+  if (!file || !file.name.toLowerCase().endsWith('.zip')) {
+    lbl.textContent = '⚠ Nur .zip-Dateien erlaubt'; lbl.style.color = 'var(--crit)';
+    _zipFile = null; document.getElementById('zip-btn-ok').disabled = true; return;
+  }
+  _zipFile = file;
+  lbl.textContent = `✓ ${file.name}  (${(file.size / 1024).toFixed(0)} KB)`;
+  lbl.style.color = 'var(--ok)';
+  document.getElementById('zip-btn-ok').disabled = false;
+  const idField = document.getElementById('zip-map-id');
+  if (!idField.value) {
+    idField.value = file.name.replace(/\.zip$/i, '').replace(/^nagvis2-/i, '').toLowerCase().replace(/[^a-z0-9-_]/g, '-');
+  }
+}
+
+async function confirmImportZip() {
+  if (!_zipFile) return;
+  const mapId     = document.getElementById('zip-map-id').value.trim() || undefined;
+  const dryRun    = document.getElementById('zip-dryrun').checked;
+  const resultBox = document.getElementById('zip-result');
+  resultBox.style.display = 'block'; resultBox.style.color = ''; resultBox.textContent = '⏳ Importiere…';
+  document.getElementById('zip-btn-ok').disabled = true;
+  try {
+    const form   = new FormData();
+    form.append('file', _zipFile);
+    const params = new URLSearchParams({ dry_run: dryRun });
+    if (mapId) params.set('map_id', mapId);
+    const res  = await fetch(`/api/maps/import?${params}`, { method:'POST', body:form });
+    const data = await res.json();
+    if (!res.ok) {
+      const errs = data.detail?.errors ?? [data.detail ?? 'Unbekannter Fehler'];
+      resultBox.style.color = 'var(--crit)'; resultBox.textContent = '❌ ' + errs.join('\n❌ ');
+      document.getElementById('zip-btn-ok').disabled = false; return;
+    }
+    const lines = [
+      dryRun ? '📋 VORSCHAU (nicht gespeichert)' : '✅ Import erfolgreich',
+      `Map-ID: ${data.map_id}`, `Titel:  ${data.title}`,
+      data.bg_saved ? '🖼 Hintergrundbild gespeichert' : '',
+      ...(data.warnings ?? []).map(w => `⚠ ${w}`),
+    ].filter(Boolean);
+    resultBox.style.color = dryRun ? '' : 'var(--ok)'; resultBox.textContent = lines.join('\n');
+    if (!dryRun) {
+      await loadMaps();
+      setTimeout(() => { closeDlg('dlg-zip-import'); openMap(data.map_id); }, 1500);
+    } else { document.getElementById('zip-btn-ok').disabled = false; }
+  } catch (err) {
+    resultBox.style.color = 'var(--crit)'; resultBox.textContent = `❌ Netzwerkfehler: ${err.message}`;
+    document.getElementById('zip-btn-ok').disabled = false;
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════
 //  HINTERGRUNDBILD
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -2361,13 +1945,11 @@ async function uploadBg(file) {
   const form = new FormData();
   form.append('file', file);
   try {
-    const res = await fetch(`/api/maps/${activeMapId}/background`, { method: 'POST', body: form });
+    const res  = await fetch(`/api/maps/${activeMapId}/background`, { method:'POST', body:form });
     if (!res.ok) throw new Error(await res.text());
     const data = await res.json();
     setBg(data.url);
-  } catch (err) {
-    alert(`Upload fehlgeschlagen: ${err.message}`);
-  }
+  } catch (err) { alert(`Upload fehlgeschlagen: ${err.message}`); }
 }
 
 function setBg(url) {
@@ -2384,8 +1966,7 @@ function setupDragDrop() {
   area.addEventListener('dragover',  e => { e.preventDefault(); });
   area.addEventListener('dragleave', () => area.classList.remove('drag-over'));
   area.addEventListener('drop', e => {
-    e.preventDefault();
-    area.classList.remove('drag-over');
+    e.preventDefault(); area.classList.remove('drag-over');
     if (e.dataTransfer.files[0] && activeMapId) uploadBg(e.dataTransfer.files[0]);
   });
 }
@@ -2400,10 +1981,7 @@ async function pollHealth() {
   if (!h) return;
   const ok   = h.status === 'ok';
   const chip = document.getElementById('health-chip');
-  if (chip) {
-    chip.textContent = ok ? 'OK' : '!';
-    chip.className   = 'nav-chip ' + (ok ? 'ok' : 'crit');
-  }
+  if (chip) { chip.textContent = ok ? 'OK' : '!'; chip.className = 'nav-chip ' + (ok ? 'ok' : 'crit'); }
   setSidebarLive(ok, `${h.demo_mode ? 'Demo' : 'Livestatus'} · ${h.status}`);
 }
 
@@ -2412,18 +1990,13 @@ async function pollHealth() {
 //  UI-HELFER
 // ═══════════════════════════════════════════════════════════════════════
 
-function setStatusBar(msg) {
-  document.getElementById('nv2-status-bar').textContent = msg;
-}
-
-function setConnDot(state) {
-  document.getElementById('nv2-conn-dot').className = `conn-dot ${state}`;
-}
+function setStatusBar(msg) { document.getElementById('nv2-status-bar').textContent = msg; }
+function setConnDot(state) { document.getElementById('nv2-conn-dot').className = `conn-dot ${state}`; }
 
 function setSidebarLive(ok, txt) {
-  const dot = document.getElementById('foot-dot');
-  if (dot) dot.className = `foot-dot${ok ? '' : ' off'}`;
+  const dot    = document.getElementById('foot-dot');
   const status = document.getElementById('sidebar-status');
+  if (dot)    dot.className    = `foot-dot${ok ? '' : ' off'}`;
   if (status) status.textContent = txt ?? (ok ? 'verbunden' : 'getrennt');
 }
 
@@ -2432,32 +2005,22 @@ function showDowntimeBanner(hostNames, started) {
   let banner = document.getElementById('nv2-dt-banner');
   if (!banner) {
     banner = document.createElement('div');
-    banner.id = 'nv2-dt-banner';
-    banner.className = 'nv2-dt-banner';
+    banner.id = 'nv2-dt-banner'; banner.className = 'nv2-dt-banner';
     document.getElementById('nv2-canvas')?.appendChild(banner);
   }
   const verb  = started ? 'Downtime gestartet' : 'Downtime beendet';
-  const names = hostNames.slice(0, 3).map(esc).join(', ')
-                + (hostNames.length > 3 ? ` +${hostNames.length - 3}` : '');
+  const names = hostNames.slice(0, 3).map(esc).join(', ') + (hostNames.length > 3 ? ` +${hostNames.length - 3}` : '');
   banner.textContent = `🔧 ${verb}: ${names}`;
   banner.classList.add('show');
-
   clearTimeout(_dtBannerTimer);
   _dtBannerTimer = setTimeout(() => banner.classList.remove('show'), 4000);
 }
 
-/** Unix-Timestamp → HH:MM:SS */
-function fmt(ts) {
-  return ts ? new Date(ts * 1000).toLocaleTimeString('de-DE') : '';
-}
+function fmt(ts) { return ts ? new Date(ts * 1000).toLocaleTimeString('de-DE') : ''; }
 
-/** HTML-Sonderzeichen escapen */
 function esc(s) {
   return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 
@@ -2466,37 +2029,19 @@ function esc(s) {
 // ═══════════════════════════════════════════════════════════════════════
 
 function onKeyDown(e) {
-  const inInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
-
-  if (e.key === 'b' && !inInput && !e.ctrlKey && !e.metaKey) {
-    toggleSidebar();
-  }
-
+  const inInput = ['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName);
+  if (e.key === 'b' && !inInput && !e.ctrlKey && !e.metaKey) toggleSidebar();
   if (e.key === 'Escape') {
     if (_kioskActive) { exitKiosk(); return; }
     closeBurgerMenu();
-    window.closeDlg('dlg-add-object');
-    window.closeDlg('dlg-new-map');
-    window.closeDlg('dlg-user-settings');
-    closeResizeDialog();
-    closeContextMenu();
+    window.closeDlg('dlg-add-object'); window.closeDlg('dlg-new-map'); window.closeDlg('dlg-user-settings');
+    closeResizeDialog(); closeContextMenu();
     if (editActive) toggleEdit();
     closeSnapin(activeSnapin);
   }
-
-  if (e.key === 'F11' && activeMapId) {
-    e.preventDefault();
-    toggleKiosk();
-  }
-
-  if ((e.metaKey || e.ctrlKey) && e.key === 'e' && activeMapId) {
-    e.preventDefault();
-    toggleEdit();
-  }
-
-  if (e.key === 'r' && activeMapId && !e.ctrlKey && !e.metaKey && !inInput) {
-    wsClient?.forceRefresh();
-  }
+  if (e.key === 'F11' && activeMapId) { e.preventDefault(); toggleKiosk(); }
+  if ((e.metaKey || e.ctrlKey) && e.key === 'e' && activeMapId) { e.preventDefault(); toggleEdit(); }
+  if (e.key === 'r' && activeMapId && !e.ctrlKey && !e.metaKey && !inInput) wsClient?.forceRefresh();
 }
 
 
@@ -2505,69 +2050,35 @@ function onKeyDown(e) {
 // ═══════════════════════════════════════════════════════════════════════
 
 const DEMO_MAP = {
-  "id": "demo-features",
-  "title": "NagVis 2 – Feature Demo",
-  "background": null,
-  "objects": [
-    { "object_id": "host::srv-web-01::abc123", "type": "host", "name": "srv-web-01",
-      "x": 15, "y": 20, "iconset": "server", "label": "Webserver 01 (OK)" },
-    { "object_id": "host::srv-db-01::def456", "type": "host", "name": "srv-db-01",
-      "x": 35, "y": 20, "iconset": "database", "label": "Datenbank (ACK + DT)" },
-    { "object_id": "service::srv-web-01::HTTP Response Time", "type": "service",
-      "host_name": "srv-web-01", "name": "HTTP Response Time",
-      "x": 15, "y": 35, "iconset": "default", "label": "HTTP (CRITICAL)" },
-    { "object_id": "hostgroup::webservers", "type": "hostgroup", "name": "webservers",
-      "x": 55, "y": 20, "iconset": "default", "label": "Alle Webserver" },
-    { "object_id": "textbox::zone-a", "type": "textbox",
-      "text": "Zone A – Produktion", "x": 8, "y": 8, "w": 18, "h": 5,
-      "font_size": 16, "bold": true, "color": "#0ea5e9", "bg_color": "rgba(14,165,233,0.08)" },
-    { "object_id": "line::connection-1", "type": "line",
-      "x": 30, "y": 30, "x2": 70, "y2": 70,
-      "line_style": "dashed", "line_width": 2, "color": "#475569" },
-    { "object_id": "container::network-plan", "type": "container",
-      "x": 75, "y": 10, "w": 20, "h": 15,
-      "url": "https://placehold.co/400x200/1e293b/0ea5e9/png?text=Netzwerk+Plan" },
-    { "object_id": "map::datacenter-b", "type": "map", "name": "datacenter-b",
-      "x": 75, "y": 35, "iconset": "map", "label": "Datacenter B (nested)" },
-    { "object_id": "gadget::cpu-01", "type": "gadget", "x": 25, "y": 50,
-      "gadget_config": { "type": "radial", "metric": "cpu_usage", "value": 42,
-        "unit": "%", "min": 0, "max": 100, "warning": 70, "critical": 90 },
-      "label": "CPU Load" },
-    { "object_id": "gadget::memory-01", "type": "gadget", "x": 45, "y": 50,
-      "gadget_config": { "type": "linear", "metric": "memory_used", "value": 82,
-        "unit": "%", "min": 0, "max": 100, "warning": 75, "critical": 90 },
-      "label": "RAM" },
-    { "object_id": "gadget::traffic-spark", "type": "gadget", "x": 25, "y": 65,
-      "gadget_config": { "type": "sparkline", "metric": "ifOutOctets", "value": 68,
-        "history": [45,52,61,58,72,68,80,75,62,68,55,70,65,78,82,60,68,74,71,69] },
-      "label": "Outbound Traffic" },
-    { "object_id": "gadget::backbone-flow", "type": "gadget", "x": 50, "y": 65,
-      "gadget_config": { "type": "weather", "metric": "traffic_1g", "value": 920, "unit": "Mbps" },
-      "label": "Backbone 1 Gbit/s" }
+  id: "demo-features", title: "NagVis 2 – Feature Demo", background: null,
+  objects: [
+    { object_id:"host::srv-web-01::abc123",  type:"host",     name:"srv-web-01",  x:15, y:20, iconset:"server",   label:"Webserver 01 (OK)" },
+    { object_id:"host::srv-db-01::def456",   type:"host",     name:"srv-db-01",   x:35, y:20, iconset:"database", label:"Datenbank (ACK + DT)" },
+    { object_id:"service::srv-web-01::HTTP", type:"service",  name:"HTTP Response Time", host_name:"srv-web-01", x:15, y:35, iconset:"default", label:"HTTP (CRITICAL)" },
+    { object_id:"hostgroup::webservers",     type:"hostgroup",name:"webservers",   x:55, y:20, iconset:"default", label:"Alle Webserver" },
+    { object_id:"textbox::zone-a",           type:"textbox",  text:"Zone A – Produktion", x:8, y:8, w:18, h:5, font_size:16, bold:true, color:"#0ea5e9", bg_color:"rgba(14,165,233,0.08)" },
+    { object_id:"line::connection-1",        type:"line",     x:30, y:30, x2:70, y2:70, line_style:"dashed", line_width:2, color:"#475569" },
+    { object_id:"map::datacenter-b",         type:"map",      name:"datacenter-b", x:75, y:35, iconset:"map", label:"Datacenter B (nested)" },
   ]
 };
 
 const DEMO_STATUS = [
-  { name: "srv-web-01",  state: 0, state_label: "UP",   acknowledged: false, in_downtime: false,
-    output: "PING OK - 1.4ms", services_ok: 8, services_warn: 0, services_crit: 1, services_unkn: 0 },
-  { name: "srv-db-01",   state: 0, state_label: "UP",   acknowledged: true,  in_downtime: true,
-    output: "PING OK - 0.8ms", services_ok: 5, services_warn: 1, services_crit: 0, services_unkn: 0 },
-  { name: "srv-backup",  state: 1, state_label: "DOWN", acknowledged: false, in_downtime: false,
-    output: "Connection refused", services_ok: 0, services_warn: 0, services_crit: 3, services_unkn: 0 },
-  { name: "srv-monitor", state: 0, state_label: "UP",   acknowledged: false, in_downtime: false,
-    output: "PING OK - 2.1ms", services_ok: 12, services_warn: 2, services_crit: 0, services_unkn: 0 },
+  { name:"srv-web-01",  state:0, state_label:"UP",   acknowledged:false, in_downtime:false, output:"PING OK - 1.4ms", services_ok:8, services_warn:0, services_crit:1, services_unkn:0 },
+  { name:"srv-db-01",   state:0, state_label:"UP",   acknowledged:true,  in_downtime:true,  output:"PING OK - 0.8ms", services_ok:5, services_warn:1, services_crit:0, services_unkn:0 },
+  { name:"srv-backup",  state:1, state_label:"DOWN", acknowledged:false, in_downtime:false, output:"Connection refused", services_ok:0, services_warn:0, services_crit:3, services_unkn:0 },
+  { name:"srv-monitor", state:0, state_label:"UP",   acknowledged:false, in_downtime:false, output:"PING OK - 2.1ms", services_ok:12, services_warn:2, services_crit:0, services_unkn:0 },
 ];
 
 let _demoMode = false;
 let _demoMaps = [
-  { id: "demo-features", title: "NagVis 2 – Feature Demo", background: null, object_count: DEMO_MAP.objects.length }
+  { id:"demo-features", title:"NagVis 2 – Feature Demo", background:null, object_count:DEMO_MAP.objects.length }
 ];
 
 async function detectDemoMode() {
   try {
     const r = await fetch('/api/health', { signal: AbortSignal.timeout(1500) });
     if (r.ok) { _demoMode = false; return; }
-  } catch { /* kein Backend */ }
+  } catch { }
   _demoMode = true;
   console.info('[NV2] Kein Backend gefunden – Demo-Modus aktiv');
   setSidebarLive(true, 'Demo-Modus · kein Backend');
@@ -2577,42 +2088,26 @@ async function detectDemoMode() {
 
 function makeDemoWsClient(mapId) {
   let _interval = null;
-
   return {
     mapId, ws: null, _dead: false,
-
     connect() {
       if (this._dead) return;
       setTimeout(() => {
         if (this._dead) return;
-        onWsMsg({ event: 'snapshot', ts: Date.now() / 1000,
-          hosts: DEMO_STATUS, services: [] });
+        onWsMsg({ event:'snapshot', ts:Date.now()/1000, hosts:DEMO_STATUS, services:[] });
         onWsOpen();
       }, 200);
-
       _interval = setInterval(() => {
         if (this._dead) { clearInterval(_interval); return; }
         const changed  = DEMO_STATUS[Math.floor(Math.random() * DEMO_STATUS.length)];
-        const states   = ['UP', 'UP', 'UP', 'DOWN', 'WARNING'];
+        const states   = ['UP','UP','UP','DOWN','WARNING'];
         const newState = states[Math.floor(Math.random() * states.length)];
-        const fake = { ...changed, state_label: newState,
-          output: newState === 'UP' ? 'PING OK' : 'Check failed',
-          change_type: 'state_change' };
-        onWsMsg({ event: 'status_update', ts: Date.now() / 1000,
-          elapsed: Math.floor(Math.random() * 30) + 5,
-          hosts: [fake], services: [] });
+        const fake = { ...changed, state_label:newState, output:newState==='UP'?'PING OK':'Check failed', change_type:'state_change' };
+        onWsMsg({ event:'status_update', ts:Date.now()/1000, elapsed:Math.floor(Math.random()*30)+5, hosts:[fake], services:[] });
       }, 8000);
     },
-
-    forceRefresh() {
-      onWsMsg({ event: 'snapshot', ts: Date.now() / 1000,
-        hosts: DEMO_STATUS, services: [] });
-    },
-
-    disconnect() {
-      this._dead = true;
-      clearInterval(_interval);
-    },
+    forceRefresh() { onWsMsg({ event:'snapshot', ts:Date.now()/1000, hosts:DEMO_STATUS, services:[] }); },
+    disconnect() { this._dead = true; clearInterval(_interval); },
   };
 }
 
@@ -2622,60 +2117,40 @@ function makeDemoWsClient(mapId) {
 // ═══════════════════════════════════════════════════════════════════════
 
 async function api(path, method = 'GET', body = null) {
-
   if (_demoMode) {
-    if (path === '/api/maps' && method === 'GET')
-      return [..._demoMaps];
+    if (path === '/api/maps' && method === 'GET') return [..._demoMaps];
 
     const mGet = path.match(/^\/api\/maps\/([\w-]+)$/);
     if (mGet && method === 'GET') {
       if (mGet[1] === 'demo-features') return JSON.parse(JSON.stringify(DEMO_MAP));
       return null;
     }
-
     if (path === '/api/maps' && method === 'POST') {
-      const id  = body.map_id || body.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-      const map = { id, title: body.title, background: null, objects: [] };
-      _demoMaps.push({ ...map, object_count: 0 });
+      const id  = body.map_id || body.title.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
+      const map = { id, title:body.title, background:null, objects:[] };
+      _demoMaps.push({ ...map, object_count:0 });
       return { ...map };
     }
-
     const mDel = path.match(/^\/api\/maps\/([\w-]+)$/);
-    if (mDel && method === 'DELETE') {
-      _demoMaps = _demoMaps.filter(m => m.id !== mDel[1]);
-      return true;
-    }
-
+    if (mDel && method === 'DELETE') { _demoMaps = _demoMaps.filter(m => m.id !== mDel[1]); return true; }
     const mObj = path.match(/^\/api\/maps\/([\w-]+)\/objects$/);
     if (mObj && method === 'POST') {
-      const obj = { ...body,
-        object_id: `${body.type}::${body.name || ''}::${Math.random().toString(36).slice(2, 8)}` };
+      const obj = { ...body, object_id:`${body.type}::${body.name||''}::${Math.random().toString(36).slice(2,8)}` };
       const map = _demoMaps.find(m => m.id === mObj[1]);
       if (map) map.object_count = (map.object_count || 0) + 1;
       return obj;
     }
-
-    if (method === 'PATCH' || (method === 'DELETE' && path.includes('/objects/')))
-      return method === 'DELETE' ? true : body;
-
-    if (path === '/api/health')
-      return { status: 'ok', demo_mode: true };
-
+    if (method === 'PATCH' || (method === 'DELETE' && path.includes('/objects/'))) return method === 'DELETE' ? true : body;
+    if (path === '/api/health') return { status:'ok', demo_mode:true };
     console.warn('[NV2] Demo: unhandled API call', method, path);
     return null;
   }
 
   try {
-    const opts = { method, headers: {} };
-    if (body) {
-      opts.body = JSON.stringify(body);
-      opts.headers['Content-Type'] = 'application/json';
-    }
+    const opts = { method, headers:{} };
+    if (body) { opts.body = JSON.stringify(body); opts.headers['Content-Type'] = 'application/json'; }
     const r = await fetch(path, opts);
-    if (!r.ok) {
-      console.warn(`[NV2] API ${method} ${path} → ${r.status}`);
-      return null;
-    }
+    if (!r.ok) { console.warn(`[NV2] API ${method} ${path} → ${r.status}`); return null; }
     if (method === 'DELETE') return true;
     return r.json();
   } catch (err) {

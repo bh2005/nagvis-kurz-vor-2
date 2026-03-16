@@ -114,6 +114,17 @@
         </button>
       </div><!-- /map-toolbar -->
 
+      <!-- ── NEU: Zoom-Controls (nur wenn Map geöffnet) ── -->
+      <div id="nv2-zoom-controls" style="display:none; align-items:center; gap:4px; margin-right:4px;">
+        <div class="tb-sep"></div>
+        <button class="tb-btn" id="btn-zoom-out"   title="Verkleinern (−)">−</button>
+        <span   id="nv2-zoom-level"
+                style="font:12px var(--mono); color:var(--text-dim);
+                       min-width:40px; text-align:center; user-select:none;">100%</span>
+        <button class="tb-btn" id="btn-zoom-in"    title="Vergrößern (+)">＋</button>
+        <button class="tb-btn" id="btn-zoom-reset" title="Zoom zurücksetzen (0)" disabled>⊙</button>
+      </div>
+
       <div class="tb-gap"></div>
 
       <!-- Burger-Menü ganz rechts -->
@@ -160,6 +171,9 @@
                     onclick="confirmDeleteMap(); closeBurgerMenu()">
               <span class="burger-ico">🗑</span> Map löschen
             </button>
+            <button class="burger-item" onclick="exportActiveMap(); closeBurgerMenu()">
+              <span class="burger-ico">📤</span> Map exportieren (.zip)
+            </button>
             <div class="burger-divider"></div>
           </div>
 
@@ -173,6 +187,9 @@
           </button>
           <button class="burger-item" onclick="dlgMigrate(); closeBurgerMenu()">
             <span class="burger-ico">↑</span> NagVis&#x202F;1 importieren
+          </button>
+          <button class="burger-item" onclick="dlgImportZip(); closeBurgerMenu()">
+            <span class="burger-ico">📥</span> Map importieren (.zip)
           </button>
           <div class="burger-divider"></div>
 
@@ -267,7 +284,11 @@
 
     <!-- MAP CANVAS -->
     <div id="map-area">
-      <div id="nv2-canvas" data-map-id=""></div>
+
+      <!-- ── NEU: #map-canvas-wrapper als transform-Ziel für Zoom & Pan ── -->
+      <div id="nv2-canvas" data-map-id="">
+        <div id="map-canvas-wrapper"></div>
+      </div>
 
       <div id="nv2-edit-banner">
         <span style="color:var(--acc);font-weight:600">✏ EDIT</span>
@@ -582,6 +603,45 @@
 </div>
 
 
+<!-- DIALOG – Map ZIP Import -->
+<div class="dlg-overlay" id="dlg-zip-import">
+  <div class="dlg-box" style="width:460px">
+    <h3>Map importieren</h3>
+
+    <label class="f-label">NagVis&#x202F;2 Export-Datei (.zip)</label>
+    <div class="upload-box" id="zip-drop-zone"
+         onclick="document.getElementById('zip-file-input').click()"
+         style="padding:18px;text-align:center;cursor:pointer">
+      <div id="zip-drop-label">📦 .zip-Datei wählen oder hier ablegen</div>
+    </div>
+    <input type="file" id="zip-file-input" accept=".zip" style="display:none">
+
+    <label class="f-label" for="zip-map-id" style="margin-top:10px">
+      Map-ID überschreiben
+      <span style="color:var(--text-dim);font-weight:400">(leer = aus Archiv übernehmen)</span>
+    </label>
+    <input class="f-input" id="zip-map-id" type="text"
+           placeholder="z.B. datacenter-hh"
+           pattern="[a-z0-9\-_]+"
+           title="Nur Kleinbuchstaben, Ziffern, Bindestrich, Unterstrich">
+
+    <label class="f-label" style="margin-top:10px;display:flex;align-items:center;gap:6px;cursor:pointer">
+      <input type="checkbox" id="zip-dryrun"> Nur Vorschau (dry run)
+    </label>
+
+    <div id="zip-result" style="display:none;margin-top:12px;padding:10px;
+         background:var(--bg-base);border-radius:var(--r);font-size:11px;
+         font-family:var(--mono);max-height:160px;overflow-y:auto;
+         border:1px solid var(--border)"></div>
+
+    <div class="dlg-actions" style="margin-top:14px">
+      <button class="btn-cancel" onclick="closeDlg('dlg-zip-import')">Abbrechen</button>
+      <button class="btn-ok" id="zip-btn-ok" onclick="confirmImportZip()" disabled>Importieren</button>
+    </div>
+  </div>
+</div>
+
+
 <!-- OVERLAY – Alle Maps verwalten -->
 <div class="dlg-overlay" id="dlg-manage-maps">
   <div class="dlg-box" style="width:520px; max-height:80vh; display:flex; flex-direction:column;">
@@ -605,6 +665,7 @@
   })();
 </script>
 <script src="js/gadget-renderer.js"></script>
+<script src="js/zoom_pan.js"></script>
 <script src="js/app.js"></script>
 
 </body>

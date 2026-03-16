@@ -168,7 +168,7 @@
 | M4 | **Label-Templates** | Konfigurierbar: `{name} – {output}`, `{status} seit {duration}` |
 | M5 | **Node-Verbindungen editierbar** | Linie zwischen zwei Nodes per Klick im Edit-Mode zuordnen |
 | M6 | **Downtime planen** | Direktaufruf Checkmk-API für Downtime-Scheduling aus NagVis heraus |
-| M7 | **Map-Export/Import** | JSON-Download + Upload einer kompletten Map inkl. Hintergrundbild |
+| M7 | **Map-Export/Import** | JSON-Download + Upload einer kompletten Map inkl. Hintergrundbild | done
 
 ---
 

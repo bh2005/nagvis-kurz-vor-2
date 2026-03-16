@@ -822,8 +822,19 @@ body,
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
+  overflow: hidden;
 }
 #nv2-canvas.nv2-edit-mode { cursor: crosshair; }
+
+/* ── NEU: Zoom/Pan-Wrapper ── */
+#map-canvas-wrapper {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  transform-origin: 0 0;
+  will-change: transform;
+  /* Kein transition – verhindert Lag beim Drag */
+}
 
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -850,23 +861,23 @@ body,
 
 /* ── Ring (Kachel) ── */
 .nv2-ring {
-  width: 42px;
-  height: 42px;
-  border-radius: var(--r-sm);
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: var(--node-size, 32px);
+  height: var(--node-size, 32px);
+  border-radius: var(--r-sm);
   font-size: 18px;
-  position: relative;
   background: var(--node-bg);
   border: 1px solid var(--border);
   border-top: 3px solid var(--border);
   box-shadow: 0 2px 6px var(--node-shadow);
-  transition: border-color var(--t), box-shadow var(--t);
+  transition: border-color var(--t), box-shadow var(--t), width .2s, height .2s;
 }
 .nv2-node:hover .nv2-ring {
   border-color: var(--border-hi);
-  border-top-color: inherit; /* Status-Farbe bleibt */
+  border-top-color: inherit;
 }
 
 /* ── Status → Top-Stripe Farbe ── */
@@ -885,20 +896,26 @@ body,
   50%       { border-top-color: #ff6b6b; box-shadow: 0 2px 10px var(--crit-bg); }
 }
 
-/* ── Status-Badge (oben-rechts) ── */
+/* ── Status-Badge ── */
 .nv2-badge {
   position: absolute;
-  top: -1px;
-  right: -1px;
-  width: 13px;
-  height: 13px;
-  border-radius: 0 2px 0 2px;
-  font-family: var(--mono);
-  font-size: 7px;
+  bottom: -3px;
+  right: -3px;
+  width:  calc(var(--node-size, 32px) * 0.38);
+  height: calc(var(--node-size, 32px) * 0.38);
+  min-width: 12px;
+  min-height: 12px;
+  font-size: calc(var(--node-size, 32px) * 0.25);
+  line-height: calc(var(--node-size, 32px) * 0.38);
+  border-radius: 50%;
+  text-align: center;
   font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  color: #fff;
+  background: var(--unkn);
+  border: 1.5px solid var(--bg);
+  pointer-events: none;
+  z-index: 2;
+  transition: background .25s;
 }
 .nv2-ok       .nv2-badge { background: var(--ok);       color: #000; }
 .nv2-warning  .nv2-badge { background: var(--warn);      color: #000; }
@@ -929,7 +946,7 @@ body,
   border-color: var(--border-hi);
 }
 
-/* ── Typ-Pill (oben-links, für service/hostgroup/servicegroup/map) ── */
+/* ── Typ-Pill ── */
 .nv2-type-pill {
   position: absolute;
   top: -8px;
@@ -962,6 +979,23 @@ body,
   40%       { opacity: 0.1; }
 }
 .nv2-status-changed { animation: statusFlash 0.5s ease; }
+
+/* ── Node Icons ── */
+img.nv2-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: opacity .25s;
+}
+
+.nv2-icon-emoji {
+  font-size: calc(var(--node-size, 32px) * 0.65);
+  line-height: 1;
+  display: block;
+  text-align: center;
+  transition: font-size .2s;
+}
 
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -1107,12 +1141,11 @@ body,
   top: 50%;
   z-index: 51;
   transform: translateY(-50%);
-  display: flex;
+  display: none;
   flex-direction: column;
   gap: 1px;
   pointer-events: all;
   transition: right 0.20s cubic-bezier(0.4, 0, 0.2, 1);
-  display: none;
 }
 #snap-tabs.panel-open { right: var(--snapw); }
 
@@ -1237,7 +1270,6 @@ body,
 /* ═══════════════════════════════════════════════════════════════════════
    DIALOGS
 ═══════════════════════════════════════════════════════════════════════ */
-/* ── Dialog: breite Variante + Typ-Chips ── */
 .dlg-wide { width: 420px; }
 
 .dlg-type-grid {
@@ -1301,7 +1333,6 @@ body,
 }
 .dlg-overlay.show { display: flex; }
 
-/* ── dlg-box (breitere Dialog-Variante) ── */
 .dlg-box {
   background: var(--dlg-bg);
   border: 1px solid var(--border-hi);
@@ -1321,7 +1352,6 @@ body,
   border-bottom: 1px solid var(--border);
 }
 
-/* ── dlg-actions (Buttons am Ende von dlg-box) ── */
 .dlg-actions {
   display: flex;
   gap: 6px;
@@ -1339,7 +1369,6 @@ body,
   text-align: center;
 }
 
-/* Radial Gauge SVG */
 .radial-gauge svg {
   width: 56px;
   height: 56px;
@@ -1365,7 +1394,6 @@ body,
   dominant-baseline: central;
 }
 
-/* Linear Gauge */
 .linear-gauge {
   position: relative;
   width: 100px;
@@ -1399,15 +1427,10 @@ body,
 }
 .linear-gauge .threshold.critical { background: var(--crit); }
 
-/* Sparkline */
 .sparkline { width: 100px; height: 40px; display: block; margin: 0 auto; }
-
-/* Weather Line */
 .weather-line { display: block; margin: 0 auto; }
 
 /* ── Statische Objekte auf Canvas ── */
-
-/* Textbox */
 .nv2-textbox {
   position: absolute;
   transform: translate(-50%, -50%);
@@ -1422,7 +1445,6 @@ body,
 }
 .nv2-textbox:hover { outline: 1px dashed var(--acc); }
 
-/* Linie */
 .nv2-line-svg {
   position: absolute;
   top: 0; left: 0;
@@ -1433,7 +1455,6 @@ body,
 .nv2-line-el { cursor: default; pointer-events: stroke; }
 .nv2-line-el:hover { stroke-opacity: 0.6; }
 
-/* Container / Bild */
 .nv2-container {
   position: absolute;
   transform: translate(-50%, -50%);
@@ -1530,25 +1551,23 @@ body,
   transition: filter var(--t);
 }
 .btn-ok:hover { filter: brightness(1.12); }
+.btn-ok:disabled { opacity: 0.45; cursor: not-allowed; filter: none; }
 
 
 /* ═══════════════════════════════════════════════════════════════════════
    MISC
 ═══════════════════════════════════════════════════════════════════════ */
-/* ── Import-Button Variante ── */
 .ov-import {
   border-style: dashed;
   opacity: 0.8;
 }
 .ov-import:hover { opacity: 1; }
 
-/* Drag-over Zustand im Migration-Dialog */
 #cfg-drop-zone.drag-over {
   border-color: var(--acc);
   background: color-mix(in srgb, var(--acc) 8%, transparent);
 }
 
-/* ── Downtime-Banner ── */
 .nv2-dt-banner {
   position: absolute;
   top: 12px;
@@ -1583,61 +1602,10 @@ body,
   color: var(--text-dim);
 }
 
-/* ══════════════════════════════════════════════════════════
-   ICONSET-SYSTEM – skalierbare Node-Icons
-══════════════════════════════════════════════════════════ */
 
-/* Basis-Größe über CSS-Variable, damit applySize() funktioniert */
-.nv2-ring {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--node-size, 32px);
-  height: var(--node-size, 32px);
-  transition: width .2s, height .2s;
-}
-
-img.nv2-icon {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  /* weiche Übergänge beim Statuswechsel */
-  transition: opacity .25s;
-}
-
-.nv2-icon-emoji {
-  font-size: calc(var(--node-size, 32px) * 0.65);
-  line-height: 1;
-  display: block;
-  text-align: center;
-  transition: font-size .2s;
-}
-
-/* Badge passt sich der Node-Größe an */
-.nv2-badge {
-  position: absolute;
-  bottom: -3px;
-  right: -3px;
-  width:  calc(var(--node-size, 32px) * 0.38);
-  height: calc(var(--node-size, 32px) * 0.38);
-  min-width: 12px;
-  min-height: 12px;
-  font-size: calc(var(--node-size, 32px) * 0.25);
-  line-height: calc(var(--node-size, 32px) * 0.38);
-  border-radius: 50%;
-  text-align: center;
-  font-weight: 700;
-  color: #fff;
-  background: var(--node-unkn);
-  border: 1.5px solid var(--bg-base);
-  pointer-events: none;
-  z-index: 2;
-  transition: background .25s;
-}
-
-/* ── Kontextmenü ─────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════
+   KONTEXTMENÜ
+═══════════════════════════════════════════════════════════════════════ */
 .ctx-menu {
   position: fixed;
   z-index: 9000;
@@ -1662,12 +1630,14 @@ img.nv2-icon {
   cursor: pointer;
   transition: background .12s;
 }
-
 .ctx-item:hover { background: var(--bg-hover); }
 .ctx-item.ctx-danger { color: var(--crit); }
 .ctx-item.ctx-danger:hover { background: color-mix(in srgb, var(--crit) 12%, transparent); }
 
-/* ── Resize-Panel ────────────────────────────────────── */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   RESIZE-PANEL
+═══════════════════════════════════════════════════════════════════════ */
 .resize-panel {
   position: absolute;
   z-index: 400;
@@ -1708,11 +1678,7 @@ img.nv2-icon {
   gap: 8px;
   padding: 10px 12px 8px;
 }
-
-.rp-body input[type=range] {
-  flex: 1;
-  accent-color: var(--acc);
-}
+.rp-body input[type=range] { flex: 1; accent-color: var(--acc); }
 
 .rp-val {
   font-family: var(--mono);
@@ -1728,13 +1694,12 @@ img.nv2-icon {
   padding: 0 10px 10px;
   justify-content: flex-end;
 }
+.rp-cancel, .rp-ok { font-size: 11px; padding: 4px 10px; }
 
-.rp-cancel, .rp-ok {
-  font-size: 11px;
-  padding: 4px 10px;
-}
 
-/* ── Iconset-Dialog ──────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════
+   ICONSET-DIALOG
+═══════════════════════════════════════════════════════════════════════ */
 .iconset-grid {
   display: flex;
   flex-wrap: wrap;
@@ -1757,38 +1722,16 @@ img.nv2-icon {
   background: var(--bg-card);
   transition: border-color .15s, background .15s;
 }
-
-.iconset-card:hover {
-  border-color: var(--acc);
-  background: var(--acc-bg);
-}
-
-.iconset-card.active {
-  border-color: var(--acc);
-  background: color-mix(in srgb, var(--acc) 15%, transparent);
-}
-
-.iconset-card > div.iconset-icons {
-  display: flex;
-  gap: 2px;
-  align-items: center;
-}
-
-.iconset-name {
-  font-size: 10px;
-  color: var(--text-dim);
-  font-family: var(--mono);
-  margin-top: 2px;
-}
-
-.iconset-upload {
-  border-style: dashed;
-  opacity: .7;
-}
+.iconset-card:hover { border-color: var(--acc); background: var(--acc-bg); }
+.iconset-card.active { border-color: var(--acc); background: color-mix(in srgb, var(--acc) 15%, transparent); }
+.iconset-card > div.iconset-icons { display: flex; gap: 2px; align-items: center; }
+.iconset-name { font-size: 10px; color: var(--text-dim); font-family: var(--mono); margin-top: 2px; }
+.iconset-upload { border-style: dashed; opacity: .7; }
 .iconset-upload:hover { opacity: 1; }
 
+
 /* ═══════════════════════════════════════════════════════════════════════
-   LAYER PANEL – in styles.css ans Ende anhängen
+   LAYER PANEL
 ═══════════════════════════════════════════════════════════════════════ */
 .layer-list { padding: 0; }
 
@@ -1847,14 +1790,12 @@ img.nv2-icon {
   flex-shrink: 0;
 }
 
-/* Collapsed: Layer-Panel ausblenden */
 #sidebar.collapsed #layer-section,
 #sidebar.collapsed .layer-list { display: none !important; }
 
 
 /* ═══════════════════════════════════════════════════════════════════════
    LINE DRAG HANDLES
-   Erscheinen nur wenn Edit-Mode aktiv (.nv2-edit-mode auf #nv2-canvas)
 ═══════════════════════════════════════════════════════════════════════ */
 .line-handle {
   opacity: 0;
@@ -1867,111 +1808,11 @@ img.nv2-icon {
   pointer-events: all;
   cursor: crosshair;
 }
+.line-handle:hover { filter: drop-shadow(0 0 5px var(--acc)); }
 
-.line-handle:hover {
-  filter: drop-shadow(0 0 5px var(--acc));
-}
-
-/* SVG-Overlay: im Edit-Mode pointer-events aktivieren */
 #nv2-lines-svg { pointer-events: none; }
 #nv2-canvas.nv2-edit-mode #nv2-lines-svg { pointer-events: all; }
 
-/* Hit-Target-Linien im Edit-Mode leicht andeuten */
-#nv2-canvas.nv2-edit-mode .nv2-line-el {
-  stroke: var(--acc);
-  stroke-opacity: 0.07;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   LAYER PANEL – in styles.css ans Ende anhängen
-═══════════════════════════════════════════════════════════════════════ */
-.layer-list { padding: 0; }
-
-.layer-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 10px 5px 14px;
-  font-size: 12px;
-  color: var(--text-mid);
-  border-bottom: 1px solid var(--border);
-  transition: background var(--t);
-}
-.layer-row:hover { background: var(--bg-hover); }
-
-.layer-toggle {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-.layer-toggle input[type=checkbox] { display: none; }
-
-.layer-eye {
-  font-size: 13px;
-  opacity: 0.6;
-  transition: opacity var(--t);
-}
-.layer-toggle:hover .layer-eye { opacity: 1; }
-
-.layer-name {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  cursor: text;
-  color: var(--text);
-  font-size: 11.5px;
-}
-
-.layer-name-input {
-  flex: 1;
-  background: var(--input-bg);
-  border: 1px solid var(--acc);
-  border-radius: var(--r-sm);
-  padding: 2px 5px;
-  font-size: 11px;
-  color: var(--text);
-  outline: none;
-}
-
-.layer-z {
-  font-family: var(--mono);
-  font-size: 9px;
-  color: var(--text-dim);
-  flex-shrink: 0;
-}
-
-/* Collapsed: Layer-Panel ausblenden */
-#sidebar.collapsed #layer-section,
-#sidebar.collapsed .layer-list { display: none !important; }
-
-
-/* ═══════════════════════════════════════════════════════════════════════
-   LINE DRAG HANDLES
-   Erscheinen nur wenn Edit-Mode aktiv (.nv2-edit-mode auf #nv2-canvas)
-═══════════════════════════════════════════════════════════════════════ */
-.line-handle {
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s ease;
-}
-
-#nv2-canvas.nv2-edit-mode .line-handle {
-  opacity: 1;
-  pointer-events: all;
-  cursor: crosshair;
-}
-
-.line-handle:hover {
-  filter: drop-shadow(0 0 5px var(--acc));
-}
-
-/* SVG-Overlay: im Edit-Mode pointer-events aktivieren */
-#nv2-lines-svg { pointer-events: none; }
-#nv2-canvas.nv2-edit-mode #nv2-lines-svg { pointer-events: all; }
-
-/* Hit-Target-Linien im Edit-Mode leicht andeuten */
 #nv2-canvas.nv2-edit-mode .nv2-line-el {
   stroke: var(--acc);
   stroke-opacity: 0.07;
@@ -2022,12 +1863,7 @@ img.nv2-icon {
   transition: background var(--t);
 }
 .burger-item:hover { background: var(--bg-hover); }
-
-.burger-item.on {
-  color: var(--acc);
-  background: var(--bg-active);
-}
-
+.burger-item.on { color: var(--acc); background: var(--bg-active); }
 .burger-item-danger { color: var(--crit); }
 .burger-item-danger:hover { background: var(--crit-bg); }
 
@@ -2056,179 +1892,8 @@ img.nv2-icon {
   margin: 4px 0;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════
-   LAYER PANEL – in styles.css ans Ende anhängen
-═══════════════════════════════════════════════════════════════════════ */
-.layer-list { padding: 0; }
-
-.layer-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 10px 5px 14px;
-  font-size: 12px;
-  color: var(--text-mid);
-  border-bottom: 1px solid var(--border);
-  transition: background var(--t);
-}
-.layer-row:hover { background: var(--bg-hover); }
-
-.layer-toggle {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-.layer-toggle input[type=checkbox] { display: none; }
-
-.layer-eye {
-  font-size: 13px;
-  opacity: 0.6;
-  transition: opacity var(--t);
-}
-.layer-toggle:hover .layer-eye { opacity: 1; }
-
-.layer-name {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  cursor: text;
-  color: var(--text);
-  font-size: 11.5px;
-}
-
-.layer-name-input {
-  flex: 1;
-  background: var(--input-bg);
-  border: 1px solid var(--acc);
-  border-radius: var(--r-sm);
-  padding: 2px 5px;
-  font-size: 11px;
-  color: var(--text);
-  outline: none;
-}
-
-.layer-z {
-  font-family: var(--mono);
-  font-size: 9px;
-  color: var(--text-dim);
-  flex-shrink: 0;
-}
-
-/* Collapsed: Layer-Panel ausblenden */
-#sidebar.collapsed #layer-section,
-#sidebar.collapsed .layer-list { display: none !important; }
-
-
-/* ═══════════════════════════════════════════════════════════════════════
-   LINE DRAG HANDLES
-   Erscheinen nur wenn Edit-Mode aktiv (.nv2-edit-mode auf #nv2-canvas)
-═══════════════════════════════════════════════════════════════════════ */
-.line-handle {
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s ease;
-}
-
-#nv2-canvas.nv2-edit-mode .line-handle {
-  opacity: 1;
-  pointer-events: all;
-  cursor: crosshair;
-}
-
-.line-handle:hover {
-  filter: drop-shadow(0 0 5px var(--acc));
-}
-
-/* SVG-Overlay: im Edit-Mode pointer-events aktivieren */
-#nv2-lines-svg { pointer-events: none; }
-#nv2-canvas.nv2-edit-mode #nv2-lines-svg { pointer-events: all; }
-
-/* Hit-Target-Linien im Edit-Mode leicht andeuten */
-#nv2-canvas.nv2-edit-mode .nv2-line-el {
-  stroke: var(--acc);
-  stroke-opacity: 0.07;
-}
-
-
-/* ═══════════════════════════════════════════════════════════════════════
-   BURGER-MENÜ DROPDOWN
-═══════════════════════════════════════════════════════════════════════ */
-.burger-dropdown {
-  position: absolute;
-  top: calc(100% + 5px);
-  right: 0;
-  z-index: 500;
-  background: var(--dlg-bg);
-  border: 1px solid var(--border-hi);
-  border-radius: var(--r-lg);
-  box-shadow: 0 8px 28px var(--dlg-shadow);
-  min-width: 210px;
-  padding: 6px 0;
-  animation: dlgIn 0.12s ease;
-}
-
-.burger-head {
-  font-family: var(--mono);
-  font-size: 8.5px;
-  font-weight: 700;
-  letter-spacing: 1.3px;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  padding: 8px 14px 3px;
-  user-select: none;
-}
-
-.burger-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 7px 14px;
-  background: transparent;
-  border: none;
-  color: var(--text);
-  font-family: var(--sans);
-  font-size: 12.5px;
-  text-align: left;
-  cursor: pointer;
-  transition: background var(--t);
-}
-.burger-item:hover { background: var(--bg-hover); }
-
-.burger-item.on {
-  color: var(--acc);
-  background: var(--bg-active);
-}
-
-.burger-item-danger { color: var(--crit); }
-.burger-item-danger:hover { background: var(--crit-bg); }
-
-.burger-ico {
-  font-size: 13px;
-  width: 18px;
-  text-align: center;
-  flex-shrink: 0;
-  opacity: 0.75;
-}
-
-.burger-kbd {
-  margin-left: auto;
-  font-family: var(--mono);
-  font-size: 9px;
-  color: var(--text-dim);
-  background: var(--bg-hover);
-  border: 1px solid var(--border);
-  border-radius: 2px;
-  padding: 1px 5px;
-}
-
-.burger-divider {
-  height: 1px;
-  background: var(--border);
-  margin: 4px 0;
-}
+.burger-item-noaction { cursor: default; }
+.burger-item-noaction:hover { background: transparent; }
 
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -2260,22 +1925,9 @@ img.nv2-icon {
   transition: opacity var(--t), background var(--t), color var(--t);
 }
 .ov-card:hover .ov-card-menu-btn { opacity: 1; }
-.ov-card-menu-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text);
-}
-
-.ov-card-id {
-  font-family: var(--mono);
-  opacity: 0.7;
-}
-
-.ov-card-parent {
-  font-family: var(--mono);
-  font-size: 9px;
-  color: var(--text-dim);
-  margin-bottom: 5px;
-}
+.ov-card-menu-btn:hover { background: var(--bg-hover); color: var(--text); }
+.ov-card-id { font-family: var(--mono); opacity: 0.7; }
+.ov-card-parent { font-family: var(--mono); font-size: 9px; color: var(--text-dim); margin-bottom: 5px; }
 
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -2315,17 +1967,9 @@ img.nv2-icon {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.manage-meta {
-  font-family: var(--mono);
-  font-size: 9.5px;
-  color: var(--text-dim);
-}
+.manage-meta { font-family: var(--mono); font-size: 9.5px; color: var(--text-dim); }
 
-.manage-actions {
-  display: flex;
-  gap: 3px;
-  flex-shrink: 0;
-}
+.manage-actions { display: flex; gap: 3px; flex-shrink: 0; }
 .manage-btn {
   width: 26px;
   height: 26px;
@@ -2340,13 +1984,9 @@ img.nv2-icon {
   cursor: pointer;
   transition: background var(--t), color var(--t), border-color var(--t);
 }
-.manage-btn:hover       { background: var(--bg-hover); color: var(--text); border-color: var(--border-hi); }
-.manage-btn-danger      { color: var(--crit); }
+.manage-btn:hover        { background: var(--bg-hover); color: var(--text); border-color: var(--border-hi); }
+.manage-btn-danger       { color: var(--crit); }
 .manage-btn-danger:hover { background: var(--crit-bg); border-color: var(--crit-border); }
-
-/* burger-item-noaction: kein Hover-Effekt (Health-Anzeige) */
-.burger-item-noaction { cursor: default; }
-.burger-item-noaction:hover { background: transparent; }
 
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -2368,7 +2008,6 @@ img.nv2-icon {
   overflow: hidden;
 }
 
-/* Canvas füllt den Kiosk-Wrap vollständig */
 #kiosk-canvas-wrap #nv2-canvas {
   position: absolute;
   inset: 0;
@@ -2379,7 +2018,6 @@ img.nv2-icon {
   background-position: center;
 }
 
-/* Exit-Button – oben rechts, versteckt bis Mausbewegung */
 .kiosk-exit-btn {
   position: absolute;
   top: 14px;
@@ -2400,17 +2038,13 @@ img.nv2-icon {
   transition: opacity 0.25s ease, background 0.15s;
   backdrop-filter: blur(4px);
 }
-.kiosk-exit-btn.visible {
-  opacity: 1;
-  pointer-events: all;
-}
+.kiosk-exit-btn.visible { opacity: 1; pointer-events: all; }
 .kiosk-exit-btn:hover {
   background: rgba(244,67,54,0.75);
   border-color: rgba(244,67,54,0.5);
   color: #fff;
 }
 
-/* Status-Ticker unten */
 .kiosk-status-bar {
   position: absolute;
   bottom: 0;
@@ -2430,10 +2064,50 @@ img.nv2-icon {
 
 
 /* ═══════════════════════════════════════════════════════════════════════
-   BENUTZEREINSTELLUNGEN – Theme-Chips im Dialog
+   BENUTZEREINSTELLUNGEN – Theme-Chips
 ═══════════════════════════════════════════════════════════════════════ */
 #theme-chip-dark,
 #theme-chip-light {
   padding: 8px 12px;
   font-size: 12px;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ZOOM & PAN  (F1)
+═══════════════════════════════════════════════════════════════════════ */
+
+/* Wrapper: GPU-Layer, kein transition (Drag-Lag vermeiden) */
+#map-canvas-wrapper {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+/* Zoom-Controls in der Topbar */
+#nv2-zoom-controls {
+  align-items: center;
+  gap: 4px;
+  margin-right: 4px;
+}
+
+#nv2-zoom-level {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-dim);
+  min-width: 40px;
+  text-align: center;
+  user-select: none;
+}
+
+/* Disabled-Zustand des Reset-Buttons */
+#btn-zoom-reset:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Grab-Cursor wenn Space gedrückt */
+body.nv2-space-pan #nv2-canvas { cursor: grab !important; }
+body.nv2-space-pan.nv2-panning #nv2-canvas { cursor: grabbing !important; }
