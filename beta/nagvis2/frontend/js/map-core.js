@@ -215,7 +215,7 @@ window.showOverview = showOverview;
 //  DIALOGE
 // ═══════════════════════════════════════════════════════════════════════
 
-let _activeObjType = 'host';
+window._activeObjType = 'host';
 
 function selectObjType(type) {
   _activeObjType = type;
@@ -282,7 +282,7 @@ async function confirmDeleteMap() {
   showOverview();
 }
 
-let _deleteMapId = null, _deleteMapTitle = null;
+window._deleteMapId = null, _deleteMapTitle = null;
 async function confirmDeleteMapById() {
   if (!_deleteMapId) return;
   if (!confirm(`Map „${_deleteMapTitle ?? _deleteMapId}" wirklich löschen?`)) return;
@@ -313,7 +313,7 @@ window._nmUpdateCanvasFields = _nmUpdateCanvasFields;
 //  MAP MANAGEMENT
 // ═══════════════════════════════════════════════════════════════════════
 
-let _renameMapId = null, _parentMapId = null;
+window._renameMapId = null, _parentMapId = null;
 
 function openRenameMapDlg() {
   _renameMapId = activeMapId;
@@ -677,7 +677,7 @@ window.confirmDeleteMapById  = confirmDeleteMapById;
 //  NAGVIS-1 MIGRATION
 // ═══════════════════════════════════════════════════════════════════════
 
-let _migFile = null;
+window._migFile = null;
 
 function dlgMigrate() {
   _migFile = null;
@@ -764,7 +764,7 @@ window.closeDlg = id => {
 //  MAP EXPORT / ZIP IMPORT
 // ═══════════════════════════════════════════════════════════════════════
 
-let _zipFile = null;
+window._zipFile = null;
 
 async function exportActiveMap() {
   if (!activeMapId) return;

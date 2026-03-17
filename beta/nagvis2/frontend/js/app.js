@@ -3,30 +3,6 @@
 // Wird zuletzt geladen – setzt alle anderen Module voraus.
 'use strict';
 
-/**
- * NagVis 2 – app.js
- * =================
- * Vollständige Applikationslogik: WebSocket, DOM-Rendering,
- * Edit-Mode, Theme-Switch, Dialoge, Snap-In Panels.
- *
- * Keine externe Abhängigkeit, kein Build-Step.
- * Kommuniziert mit dem FastAPI-Backend via REST + WebSocket.
- *
- * FIXES (März 2026):
- *   - Doppelte openMap()-Definition entfernt (Zoom-Stub überschrieb Original)
- *   - Doppelte showOverview()-Definition entfernt
- *   - Zoom-Button-IDs korrigiert: nv2-zoom-in/out → btn-zoom-in/out
- *   - NV2_ZOOM.init() in openMap() integriert
- *   - NV2_ZOOM.destroy() in showOverview() integriert
- *
- * NEU (Kiosk-Rotation):
- *   - Token-Login via ?kiosk=<token>
- *   - _initKioskSession(), _startKioskRotation()
- *   - openKioskUsersDlg() für Admin-Verwaltung
- */
-
-'use strict';
-
 
 // ═══════════════════════════════════════════════════════════════════════
 //  INIT
@@ -75,6 +51,3 @@ document.addEventListener('DOMContentLoaded', async () => {
   pollHealth();
   setInterval(pollHealth, 30_000);
 });
-
-
-// ═══════════════════════════════════════════════════════════════════════

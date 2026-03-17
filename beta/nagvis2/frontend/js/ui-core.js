@@ -6,7 +6,7 @@
 //  SIDEBAR TOGGLE
 // ═══════════════════════════════════════════════════════════════════════
 
-let sidebarCollapsed = false;
+window.sidebarCollapsed = false;
 
 function toggleSidebar() {
   sidebarCollapsed = !sidebarCollapsed;
@@ -41,7 +41,7 @@ function restoreSidebar() {
 //  BURGER MENÜ
 // ═══════════════════════════════════════════════════════════════════════
 
-let _burgerOpen = false;
+window._burgerOpen = false;
 
 function toggleBurgerMenu() {
   _burgerOpen ? closeBurgerMenu() : openBurgerMenu();
@@ -196,7 +196,7 @@ window.closeSnapin  = closeSnapin;
 //  BENUTZEREINSTELLUNGEN
 // ═══════════════════════════════════════════════════════════════════════
 
-const USER_SETTINGS_KEY = 'nv2-user-settings';
+window.USER_SETTINGS_KEY = 'nv2-user-settings';
 
 function defaultUserSettings() {
   return { theme:'dark', sidebarDefault:'expanded', kioskHideSidebar:false, kioskHideTopbar:false, kioskAutoRefresh:true, kioskInterval:60 };

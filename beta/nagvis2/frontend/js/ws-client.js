@@ -140,12 +140,12 @@ const DEMO_STATUS = [
   { name:"srv-monitor", state:0, state_label:"UP",   acknowledged:false, in_downtime:false, output:"PING OK - 2.1ms", services_ok:12, services_warn:2, services_crit:0, services_unkn:0 },
 ];
 
-let _demoMode = false;
-let _demoMaps = [
+window._demoMode = false;
+window._demoMaps = [
   { id:"demo-features", title:"NagVis 2 – Feature Demo", background:null, canvas: { mode:"ratio", ratio:"16:9" }, object_count:DEMO_MAP.objects.length }
 ];
 
-let _connections = JSON.parse(localStorage.getItem('nv2-connections') || '[]');
+window._connections = JSON.parse(localStorage.getItem('nv2-connections') || '[]');
 if (!_connections.length) {
   _connections = [{ id:'local', name:'Lokal (Demo)', type:'demo', host:'', port:'', site:'', active:true }];
 }
@@ -155,14 +155,34 @@ function _saveConnections() {
 
 async function detectDemoMode() {
   try {
-    const r = await fetch('/api/health', { signal: AbortSignal.timeout(1500) });
-    if (r.ok) { _demoMode = false; return; }
+    const r = await fetch('/api/health', { signal: AbortSignal.timeout(600) });
+    if (r.ok) {
+      const data = await r.json().catch(() => ({}));
+      // Backend meldet sich selbst als Demo (kein Livestatus konfiguriert)
+      if (data.demo_mode) {
+        _demoMode = true;
+        _activateDemoUI();
+      } else {
+        _demoMode = false;
+      }
+      return;
+    }
   } catch { }
+  // Kein Backend erreichbar → Demo-Modus
   _demoMode = true;
-  console.info('[NV2] Kein Backend gefunden – Demo-Modus aktiv');
+  _activateDemoUI();
+}
+
+function _activateDemoUI() {
+  console.info('[NV2] Demo-Modus aktiv');
   setSidebarLive(true, 'Demo-Modus · kein Backend');
   setStatusBar('Demo-Modus · statische Daten');
   document.getElementById('nv2-conn-dot').className = 'conn-dot connected';
+  // Demo-Banner einblenden
+  const banner = document.getElementById('nv2-demo-banner');
+  if (banner) banner.style.display = 'flex';
+  // Demo-Map automatisch öffnen (kleines Delay damit loadMaps()+renderOverview() zuerst laufen)
+  setTimeout(() => { if (!activeMapId) openMap('demo-features'); }, 300);
 }
 
 function makeDemoWsClient(mapId) {

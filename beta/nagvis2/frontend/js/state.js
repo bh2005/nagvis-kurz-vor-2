@@ -1,32 +1,30 @@
 // NagVis 2 – state.js
-// Globale Laufzeit-Variablen. Muss nach constants.js geladen werden.
+// Globale Laufzeit-Variablen. Alle werden auf window.* gesetzt damit sie
+// über <script>-Tag-Grenzen hinweg sichtbar sind ('use strict' + let = nur lokal).
 'use strict';
 
-//  STATE
-// ═══════════════════════════════════════════════════════════════════════
+// ── Kern-State ──────────────────────────────────────────────────────────
+window.activeMapId   = null;
+window.activeMapCfg  = null;
+window.wsClient      = null;
+window.editActive    = false;
 
-let activeMapId  = null;
-let activeMapCfg = null;
-let wsClient     = null;
-let editActive   = false;
-
-// Globale Exports für gadget-renderer.js und andere externe Scripts
+// editActive als Property mit Getter/Setter für gadget-renderer.js
 Object.defineProperty(window, 'editActive', {
-  get: () => editActive,
-  set: v  => { editActive = v; },
+  get: () => window._editActive ?? false,
+  set: v  => { window._editActive = v; },
+  configurable: true,
 });
-let pendingPos   = null;
-let hostCache    = {};
-let eventLog     = [];
-let activeSnapin = null;
-let currentTheme = 'dark';
+
+window.pendingPos    = null;
+window.hostCache     = {};
+window.eventLog      = [];
+window.activeSnapin  = null;
+window.currentTheme  = 'dark';
 
 // ── Kiosk-Rotations-System ──────────────────────────────────────────────
-let _kioskUsers    = [];    // lokal gecacht (sync mit Backend)
-let _kioskSession  = null;  // aktiver Kiosk-User bei Token-Login
-let _kioskRotTimer = null;  // setInterval-Handle für Rotation
-let _kioskRotIdx   = 0;     // aktueller Index in der Rotations-Reihenfolge
-let _kioskProgress = null;  // Fortschrittsbalken-Element (bottom bar)
-
-
-// ═══════════════════════════════════════════════════════════════════════
+window._kioskUsers    = [];
+window._kioskSession  = null;
+window._kioskRotTimer = null;
+window._kioskRotIdx   = 0;
+window._kioskProgress = null;

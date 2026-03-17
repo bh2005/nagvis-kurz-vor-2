@@ -1,36 +1,27 @@
 // NagVis 2 – constants.js
-// Zustandsklassen, Icon-SVGs, Iconset-Shapes, Helper-Funktionen.
-// Keine Abhängigkeiten.
+// Konstanten + Helper-Funktionen. Alles auf window.* für Cross-Script-Sichtbarkeit.
 'use strict';
 
-//  KONSTANTEN
-// ═══════════════════════════════════════════════════════════════════════
-
-const STATE_CLS = {
+window.STATE_CLS = {
   UP:'nv2-ok', OK:'nv2-ok', WARNING:'nv2-warning', CRITICAL:'nv2-critical',
   UNKNOWN:'nv2-unknown', DOWN:'nv2-critical', UNREACHABLE:'nv2-critical', PENDING:'nv2-unknown',
 };
-
-const STATE_BADGE = {
+window.STATE_BADGE = {
   UP:'✓', OK:'✓', WARNING:'!', CRITICAL:'✕',
   UNKNOWN:'?', DOWN:'↓', UNREACHABLE:'↕', PENDING:'…',
 };
-
-const STATE_CHIP = {
+window.STATE_CHIP = {
   UP:'ok', OK:'ok', WARNING:'warn', CRITICAL:'crit',
   DOWN:'crit', UNREACHABLE:'crit', UNKNOWN:'unkn', PENDING:'unkn',
 };
-
-const ICONS_FALLBACK = {
+window.ICONS_FALLBACK = {
   server:'🖥', router:'🌐', switch:'🔀', firewall:'🔥',
   storage:'💾', database:'🗄', ups:'⚡', ap:'📡', map:'🗺', default:'⬡',
 };
+window.KNOWN_ICONSETS = ['std_small','server','router','switch','firewall','database','storage','ups','ap'];
+window.customIconsets = JSON.parse(localStorage.getItem('nv2-custom-iconsets') || '[]');
 
-const KNOWN_ICONSETS = ['std_small','server','router','switch','firewall','database','storage','ups','ap'];
-
-let customIconsets = JSON.parse(localStorage.getItem('nv2-custom-iconsets') || '[]');
-
-const ICON_SVG = {
+window.ICON_SVG = {
   ok:       `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><circle cx="18" cy="18" r="16" fill="#13d38e"/><path d="M11 18l5 5 9-9" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   warning:  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><circle cx="18" cy="18" r="16" fill="#ffa726"/><text x="18" y="24" text-anchor="middle" font-size="20" font-weight="bold" fill="#fff">!</text></svg>`,
   critical: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><circle cx="18" cy="18" r="16" fill="#f44336"/><path d="M12 12l12 12M24 12l-12 12" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>`,
@@ -38,8 +29,7 @@ const ICON_SVG = {
   pending:  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><circle cx="18" cy="18" r="16" fill="#9e9e9e"/><text x="18" y="24" text-anchor="middle" font-size="16" fill="#fff">…</text></svg>`,
   down:     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><circle cx="18" cy="18" r="16" fill="#f44336"/><text x="18" y="24" text-anchor="middle" font-size="18" font-weight="bold" fill="#fff">↓</text></svg>`,
 };
-
-const ICONSET_SHAPE = {
+window.ICONSET_SHAPE = {
   server:   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><rect x="6" y="8" width="24" height="7" rx="2" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/><rect x="6" y="18" width="24" height="7" rx="2" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/><circle cx="10" cy="11.5" r="1.2" fill="rgba(255,255,255,0.85)"/><circle cx="10" cy="21.5" r="1.2" fill="rgba(255,255,255,0.85)"/></svg>`,
   router:   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><circle cx="18" cy="18" r="8" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/><line x1="18" y1="6" x2="18" y2="30" stroke="rgba(255,255,255,0.85)" stroke-width="1"/><line x1="6" y1="18" x2="30" y2="18" stroke="rgba(255,255,255,0.85)" stroke-width="1"/></svg>`,
   switch:   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><rect x="5" y="14" width="26" height="8" rx="2" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/><line x1="10" y1="14" x2="10" y2="10" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/><line x1="18" y1="14" x2="18" y2="10" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/><line x1="26" y1="14" x2="26" y2="10" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/><line x1="10" y1="22" x2="10" y2="26" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/><line x1="18" y1="22" x2="18" y2="26" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/><line x1="26" y1="22" x2="26" y2="26" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/></svg>`,
@@ -59,11 +49,11 @@ function svgToDataUri(svg) {
 
 function iconSrc(iconset, stateLabel) {
   const stateKey = !stateLabel ? 'unknown'
-    : stateLabel === 'UP' || stateLabel === 'OK'              ? 'ok'
-    : stateLabel === 'WARNING'                                 ? 'warning'
-    : stateLabel === 'CRITICAL' || stateLabel === 'DOWN'       ? 'critical'
-    : stateLabel === 'UNREACHABLE'                             ? 'critical'
-    : stateLabel === 'PENDING'                                 ? 'pending'
+    : stateLabel === 'UP' || stateLabel === 'OK'        ? 'ok'
+    : stateLabel === 'WARNING'                           ? 'warning'
+    : stateLabel === 'CRITICAL' || stateLabel === 'DOWN' ? 'critical'
+    : stateLabel === 'UNREACHABLE'                       ? 'critical'
+    : stateLabel === 'PENDING'                           ? 'pending'
     : 'unknown';
   return { type: 'img', src: svgToDataUri(ICON_SVG[stateKey] ?? ICON_SVG.unknown) };
 }
@@ -75,6 +65,3 @@ function updateNodeIcon(el, stateLabel) {
   const img = ring.querySelector('img.nv2-icon');
   if (img) img.src = src;
 }
-
-
-// ═══════════════════════════════════════════════════════════════════════
