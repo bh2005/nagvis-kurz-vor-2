@@ -352,40 +352,20 @@ async def api_migrate(
     canvas_h: int = Query(800),
     dry_run: bool = Query(False),
 ):
-    raw     = (await file.read()).decode("utf-8", errors="replace")
-    mid     = map_id or Path(file.filename or "map").stem.lower().replace(" ", "-")
-    title   = mid
-    objects = []
-    warnings= []
+    raw = (await file.read()).decode("utf-8", errors="replace")
+    mid = map_id or Path(file.filename or "map").stem.lower().replace(" ", "-")
 
-    for line in raw.splitlines():
-        line = line.strip()
-        if line.startswith("map_title="):
-            title = line.split("=", 1)[1]
-            continue
-        if line.startswith("define "):
-            continue  # Block-Anfang – vereinfachter Parser (nur Zeilen-Format)
-
-        # Key=Value Parsing innerhalb define-Blöcken wird hier vereinfacht
-        # (vollständiger Parser würde Blöcke korrekt parsen)
+    from core.migrate import migrate_cfg
+    result = migrate_cfg(raw, mid, canvas_w, canvas_h)
+    warnings = result.pop("warnings", [])
 
     if dry_run:
-        return {"map_id": mid, "title": title, "object_count": len(objects),
-                "warnings": warnings, "dry_run": True, "note": "Vereinfachter Parser"}
+        return {**result, "warnings": warnings, "dry_run": True}
 
-    data = {
-        "id":      mid,
-        "title":   title,
-        "canvas":  {"mode": "fixed", "w": canvas_w, "h": canvas_h},
-        "objects": objects,
-        "background": None,
-        "parent_map": None,
-    }
     from core.storage import _write_json, map_path
-    _write_json(map_path(mid), data)
+    _write_json(map_path(mid), {k: v for k, v in result.items() if k != "object_count"})
 
-    return {"map_id": mid, "title": title, "object_count": len(objects),
-            "warnings": warnings}
+    return {**result, "warnings": warnings}
 
 
 # ══════════════════════════════════════════════════════════════════════
