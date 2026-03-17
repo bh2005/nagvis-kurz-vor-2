@@ -1,27 +1,35 @@
 """
-NagVis 2 – FastAPI Backend (Haupteinstiegspunkt)
+NagVis 2 – FastAPI Backend
 """
 
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
+from fastapi.staticfiles import StaticFiles
 
 from core.config import settings
 
-# =============================================
-# Lifespan (Startup / Shutdown)
-# =============================================
+
+# ══════════════════════════════════════════════════════════════════════
+#  Lifespan
+# ══════════════════════════════════════════════════════════════════════
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print(f"🚀 NagVis 2 starting → {settings.ENVIRONMENT} | DEBUG={settings.DEBUG}")
-    settings.ensure_dirs()                    # Erstellt data/, maps/, backgrounds/
+    print(f"🚀 NagVis 2 → {settings.ENVIRONMENT} | DEBUG={settings.DEBUG} | DEMO={settings.DEMO_MODE}")
+    settings.ensure_dirs()
+    from ws.manager import start_poller
+    start_poller()
     yield
-    print("🛑 NagVis 2 shutting down...")
+    from ws.manager import stop_poller
+    stop_poller()
+    print("🛑 NagVis 2 shutting down")
 
 
-# =============================================
-# FastAPI App
-# =============================================
+# ══════════════════════════════════════════════════════════════════════
+#  App
+# ══════════════════════════════════════════════════════════════════════
+
 app = FastAPI(
     title="NagVis 2",
     version="2.0-beta",
@@ -30,9 +38,6 @@ app = FastAPI(
     redoc_url=None,
 )
 
-# =============================================
-# CORS
-# =============================================
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
@@ -41,44 +46,35 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# =============================================
-# Health-Check (wichtig für Docker!)
-# =============================================
-@app.get("/health")
-async def health():
-    return {
-        "status": "ok",
-        "environment": settings.ENVIRONMENT,
-        "demo_mode": settings.DEMO_MODE,
-        "version": "2.0-beta"
-    }
 
-# =============================================
-# Router-Imports (später erweitern)
-# =============================================
-# from api import router as api_router
-# from ws import router as ws_router
+# ══════════════════════════════════════════════════════════════════════
+#  Router
+# ══════════════════════════════════════════════════════════════════════
 
-# app.include_router(api_router, prefix="/api")
-# app.include_router(ws_router, prefix="/ws")
-
-# =============================================
-# Router einbinden
-# =============================================
 from api.router import api_router
+from ws.router  import ws_router
 
 app.include_router(api_router)
+app.include_router(ws_router)
 
-# =============================================
-# Root-Route (nur zur Info)
-# =============================================
-@app.get("/")
-async def root():
-    return {
-        "message": "NagVis 2 Backend läuft ✅",
-        "docs": "/api/docs" if settings.DEBUG else "Docs deaktiviert",
-        "health": "/health"
-    }
+
+# ══════════════════════════════════════════════════════════════════════
+#  Static Files
+#  Hintergrundbilder werden unter /backgrounds/<map_id>.<ext> ausgeliefert
+# ══════════════════════════════════════════════════════════════════════
+
+app.mount("/backgrounds", StaticFiles(directory=str(settings.BG_DIR)),    name="backgrounds")
+app.mount("/",            StaticFiles(directory=str(settings.BASE_DIR / "frontend"), html=True), name="frontend")
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  Compat: /health ohne /api Prefix (Docker-Healthcheck)
+# ══════════════════════════════════════════════════════════════════════
+
+@app.get("/health", include_in_schema=False)
+async def health_compat():
+    from api.router import health
+    return await health()
 
 
 if __name__ == "__main__":
@@ -88,5 +84,5 @@ if __name__ == "__main__":
         host=settings.HOST,
         port=settings.PORT,
         reload=settings.DEBUG,
-        workers=settings.UVICORN_WORKERS
+        workers=1 if settings.DEBUG else settings.UVICORN_WORKERS,
     )

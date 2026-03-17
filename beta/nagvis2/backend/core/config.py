@@ -1,53 +1,58 @@
-# backend/core/config.py
-from pydantic_settings import BaseSettings, SettingsConfigDict
+"""
+NagVis 2 – Konfiguration
+Alle Einstellungen via Umgebungsvariablen (oder .env Datei).
+"""
+
+import os
 from pathlib import Path
 from typing import List
 
-class Settings(BaseSettings):
-    # Allgemein
-    DEBUG: bool = True
-    ENVIRONMENT: str = "development"
 
-    # Server
-    HOST: str = "0.0.0.0"
-    PORT: int = 8000
-    UVICORN_WORKERS: int = 1
+class Settings:
+    # ── Umgebung ────────────────────────────────────────────────────────
+    ENVIRONMENT: str     = os.getenv("ENVIRONMENT", "development")
+    DEBUG: bool          = os.getenv("DEBUG", "true").lower() == "true"
+    DEMO_MODE: bool      = os.getenv("DEMO_MODE", "false").lower() == "true"
 
-    # Livestatus
-    LIVE_STATUS_HOST: str = "127.0.0.1"
-    LIVE_STATUS_PORT: int = 6557
-    CHECKMK_SITE: str = ""
+    # ── Server ──────────────────────────────────────────────────────────
+    HOST: str            = os.getenv("HOST", "0.0.0.0")
+    PORT: int            = int(os.getenv("PORT", "8000"))
+    UVICORN_WORKERS: int = int(os.getenv("UVICORN_WORKERS", "1"))
 
-    # Pfade
-    DATA_DIR: Path = Path("./data")
-    MAPS_DIR: Path = Path("./data/maps")
-    BACKGROUNDS_DIR: Path = Path("./data/backgrounds")
-    TOKENS_FILE: Path = Path("./data/tokens.json")
+    # ── CORS ────────────────────────────────────────────────────────────
+    CORS_ORIGINS: List[str] = os.getenv(
+        "CORS_ORIGINS", "http://localhost:8000,http://localhost:3000"
+    ).split(",")
 
-    # Sicherheit
-    SECRET_KEY: str = "supersecret-change-me-in-production"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    # ── Verzeichnisse ───────────────────────────────────────────────────
+    BASE_DIR: Path       = Path(__file__).parent.parent
+    DATA_DIR: Path       = BASE_DIR / "data"
+    MAPS_DIR: Path       = DATA_DIR / "maps"
+    BG_DIR: Path         = DATA_DIR / "backgrounds"
+    KIOSK_DIR: Path      = DATA_DIR / "kiosk"
 
-    # CORS
-    CORS_ORIGINS: List[str] = ["http://localhost:8080", "http://127.0.0.1:8080"]
+    # ── Livestatus ──────────────────────────────────────────────────────
+    # Typ: "auto" | "tcp" | "unix" | "disabled"
+    LIVESTATUS_TYPE: str = os.getenv("LIVESTATUS_TYPE", "auto")
+    LIVESTATUS_HOST: str = os.getenv("LIVESTATUS_HOST", "localhost")
+    LIVESTATUS_PORT: int = int(os.getenv("LIVESTATUS_PORT", "6557"))
+    LIVESTATUS_PATH: str = os.getenv("LIVESTATUS_PATH", "/var/run/nagios/live")
+    LIVESTATUS_SITE: str = os.getenv("LIVESTATUS_SITE", "")  # OMD-Site
 
-    # Demo / Kiosk
-    DEMO_MODE: bool = False
-    KIOSK_DEFAULT_INTERVAL: int = 30
-
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        case_sensitive=True,
-        extra="ignore"
-    )
+    # ── WebSocket ───────────────────────────────────────────────────────
+    WS_POLL_INTERVAL: int = int(os.getenv("WS_POLL_INTERVAL", "10"))  # Sekunden
 
     def ensure_dirs(self):
-        """Erstellt alle benötigten Ordner beim Start"""
-        self.DATA_DIR.mkdir(parents=True, exist_ok=True)
-        self.MAPS_DIR.mkdir(parents=True, exist_ok=True)
-        self.BACKGROUNDS_DIR.mkdir(parents=True, exist_ok=True)
+        for d in [self.DATA_DIR, self.MAPS_DIR, self.BG_DIR, self.KIOSK_DIR]:
+            d.mkdir(parents=True, exist_ok=True)
+
+    @property
+    def livestatus_available(self) -> bool:
+        if self.DEMO_MODE or self.LIVESTATUS_TYPE == "disabled":
+            return False
+        if self.LIVESTATUS_TYPE == "unix":
+            return Path(self.LIVESTATUS_PATH).exists()
+        return True  # tcp/auto: optimistisch, Fehler beim Connect
 
 
-# Globale Instanz
 settings = Settings()
