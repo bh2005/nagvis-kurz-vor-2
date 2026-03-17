@@ -474,7 +474,7 @@ window.openKioskUsersDlg = openKioskUsersDlg;
 //  KIOSK-MODUS (F11 / manueller Toggle)
 // ═══════════════════════════════════════════════════════════════════════
 
-let _kioskActive = false, _kioskRefreshTimer = null;
+window._kioskActive = false, _kioskRefreshTimer = null;
 
 function toggleKiosk() { _kioskActive ? exitKiosk() : enterKiosk(); }
 
@@ -540,7 +540,7 @@ function _updateKioskStatus() {
   bar.textContent = `${activeMapCfg?.title ?? ''} · ${now}`;
 }
 
-let _kioskMouseTimer = null;
+window._kioskMouseTimer = null;
 function _setupKioskMouseHide() {
   const overlay = document.getElementById('kiosk-overlay');
   const exitBtn = document.getElementById('kiosk-exit-btn');

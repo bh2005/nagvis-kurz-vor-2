@@ -756,5 +756,22 @@
 <script src="src/kiosk.js"></script>      <!-- Kiosk-Rotation, Token-Login, F11-Modus -->
 <script src="src/app.js"></script>        <!-- Einstiegspunkt: DOMContentLoaded -->
 
+
+<!-- Demo-Mode Banner – wird per JS ein-/ausgeblendet -->
+<div id="nv2-demo-banner" style="display:none;
+     position:fixed;bottom:0;left:0;right:0;z-index:9000;
+     background:linear-gradient(90deg,#1e3a5f,#1a4a3a);
+     border-top:1px solid #29b6d4;
+     padding:7px 18px;font-size:11.5px;color:#94d4e8;
+     display:none;align-items:center;gap:12px;font-family:var(--mono)">
+  <span style="color:#29b6d4;font-weight:700">⬡ DEMO-MODUS</span>
+  <span>Kein Backend verbunden · statische Beispieldaten</span>
+  <span style="color:var(--text-dim)">·</span>
+  <span>Backend-URL in <b>Verbindungen verwalten</b> eintragen um Live-Daten zu nutzen</span>
+  <button onclick="document.getElementById('nv2-demo-banner').style.display='none'"
+          style="margin-left:auto;background:none;border:none;color:#94d4e8;
+                 cursor:pointer;font-size:14px;padding:0 4px;line-height:1">✕</button>
+</div>
+
 </body>
 </html>

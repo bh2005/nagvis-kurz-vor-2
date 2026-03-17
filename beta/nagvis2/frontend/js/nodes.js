@@ -1226,7 +1226,7 @@ const DEFAULT_ACTIONS = [
   { id:'grafana',           label:'📊 Grafana öffnen',        icon:'📊', obj_type:['host','service'], url:'[grafana_url]/d/[host_name]', target:'_blank', condition:(obj,h) => !!_actionConfig.grafana_url },
 ];
 
-let _actionConfig = JSON.parse(localStorage.getItem('nv2-action-config') || '{}');
+window._actionConfig = JSON.parse(localStorage.getItem('nv2-action-config') || '{}');
 if (!_actionConfig.monitoring_url) _actionConfig.monitoring_url = '';
 if (!_actionConfig.grafana_url)    _actionConfig.grafana_url    = '';
 if (!_actionConfig.enabled)        _actionConfig.enabled = ['view_host','acknowledge','remove_ack','schedule_downtime','reschedule_check','ssh'];
@@ -1836,3 +1836,5 @@ window.openWeathermapLineDlg = openWeathermapLineDlg;
 window.applyNodeStatus       = applyNodeStatus;
 window.updateNodeIcon        = updateNodeIcon;
 window.getNodeContainer      = getNodeContainer;
+window.showTooltip           = showTooltip;
+window.hideTooltip           = hideTooltip;
