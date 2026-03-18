@@ -114,3 +114,22 @@ Dieses Projekt steht unter der **MIT License** – siehe [LICENSE](LICENSE) Date
 
 ---
 
+ WSL2 (Ubuntu) 
+bash# Einmalig: venv erstellen
+python3 -m venv venv
+
+# Aktivieren
+source venv/bin/activate
+
+# Jetzt pip install normal
+pip install -r requirements.txt
+
+# Backend starten
+python main.py
+Der Prompt wechselt dann zu (venv) bh2005@NB14656:... – das zeigt dass der venv aktiv ist.
+Für nächste Male reicht dann immer:
+bashcd backend
+source venv/bin/activate
+python main.py
+Den venv/-Ordner am besten in .gitignore eintragen falls noch nicht drin:
+bashecho "venv/" >> ../.gitignore
