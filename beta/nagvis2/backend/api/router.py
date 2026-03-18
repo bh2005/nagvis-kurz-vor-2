@@ -74,6 +74,7 @@ class ObjectPosition(BaseModel):
 
 class ObjectProps(BaseModel):
     label: Optional[str] = None
+    show_label: Optional[bool] = None
     size: Optional[int] = None
     iconset: Optional[str] = None
     layer: Optional[int] = None
