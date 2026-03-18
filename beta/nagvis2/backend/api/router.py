@@ -23,6 +23,7 @@ from core.storage import (
     kiosk_list, kiosk_create, kiosk_update, kiosk_delete, kiosk_get_by_token,
 )
 from core import livestatus
+from ws.manager import manager as ws_manager
 
 api_router = APIRouter(prefix="/api", tags=["api"])
 
@@ -183,6 +184,7 @@ async def api_set_canvas(map_id: str, body: dict = Body(...)):
     data = update_map_field(map_id, canvas=body)
     if not data:
         raise HTTPException(404, f"Map '{map_id}' nicht gefunden")
+    await ws_manager.broadcast(map_id, {"event": "map_reloaded", "map_id": map_id})
     return {"id": map_id, "canvas": data["canvas"]}
 
 
@@ -195,6 +197,11 @@ async def api_create_object(map_id: str, body: ObjectCreate):
     if not get_map(map_id):
         raise HTTPException(404, f"Map '{map_id}' nicht gefunden")
     obj = add_object(map_id, body.model_dump(exclude_none=True))
+    await ws_manager.broadcast(map_id, {
+        "event":  "object_added",
+        "map_id": map_id,
+        "object": obj,
+    })
     return obj
 
 
@@ -203,6 +210,11 @@ async def api_update_pos(map_id: str, object_id: str, pos: ObjectPosition):
     obj = update_object(map_id, object_id, **pos.model_dump(exclude_none=True))
     if not obj:
         raise HTTPException(404, "Objekt nicht gefunden")
+    await ws_manager.broadcast(map_id, {
+        "event":  "object_updated",
+        "map_id": map_id,
+        "object": obj,
+    })
     return obj
 
 
@@ -211,6 +223,11 @@ async def api_update_props(map_id: str, object_id: str, props: ObjectProps):
     obj = update_object(map_id, object_id, **props.model_dump(exclude_unset=True))
     if not obj:
         raise HTTPException(404, "Objekt nicht gefunden")
+    await ws_manager.broadcast(map_id, {
+        "event":  "object_updated",
+        "map_id": map_id,
+        "object": obj,
+    })
     return obj
 
 
@@ -218,6 +235,11 @@ async def api_update_props(map_id: str, object_id: str, props: ObjectProps):
 async def api_delete_object(map_id: str, object_id: str):
     if not delete_object(map_id, object_id):
         raise HTTPException(404, "Objekt nicht gefunden")
+    await ws_manager.broadcast(map_id, {
+        "event":     "object_removed",
+        "map_id":    map_id,
+        "object_id": object_id,
+    })
     return {"deleted": object_id}
 
 
@@ -253,6 +275,7 @@ async def api_upload_background(map_id: str, file: UploadFile = File(...)):
 
     url = f"/backgrounds/{map_id}.{ext}"
     update_map_field(map_id, background=url)
+    await ws_manager.broadcast(map_id, {"event": "map_reloaded", "map_id": map_id})
     return {"url": url}
 
 
