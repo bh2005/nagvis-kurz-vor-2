@@ -333,3 +333,31 @@ window.closeDlg = id => {
   document.getElementById(id)?.classList.remove('show');
   document.querySelectorAll(`#${id} input[type=text], #${id} textarea`).forEach(i => i.value = '');
 };
+
+
+// ═══════════════════════════════════════════════════════════════════════
+//  TOAST-BENACHRICHTIGUNGEN
+// ═══════════════════════════════════════════════════════════════════════
+
+function showToast(msg, type = 'ok', duration = 3500) {
+  let container = document.getElementById('nv2-toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'nv2-toast-container';
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement('div');
+  toast.className = `nv2-toast nv2-toast-${type}`;
+  toast.textContent = msg;
+  container.appendChild(toast);
+
+  requestAnimationFrame(() => toast.classList.add('show'));
+
+  setTimeout(() => {
+    toast.classList.remove('show');
+    toast.addEventListener('transitionend', () => toast.remove(), { once: true });
+  }, duration);
+}
+
+window.showToast = showToast;

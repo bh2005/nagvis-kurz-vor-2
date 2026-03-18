@@ -56,7 +56,8 @@ function _renderMonitoringNode(obj) {
       <img class="nv2-icon-shape" src="${svgToDataUri(shapeSvg)}" alt="" width="${size}" height="${size}" style="position:absolute;inset:0;pointer-events:none">
       <span class="nv2-badge" aria-label="UNKNOWN">?</span>
     </div>
-    <div class="nv2-label" title="${esc(obj.label || obj.name)}">${esc(obj.label || obj.name)}</div>`;
+    <div class="nv2-label" title="${esc(obj.label || obj.name)}"
+         style="${obj.show_label === false ? 'display:none' : ''}">${esc(obj.label || obj.name)}</div>`;
 
   el.addEventListener('mouseenter', () => showTooltip(el, obj));
   el.addEventListener('mouseleave', hideTooltip);
@@ -1132,8 +1133,7 @@ function showTooltip(el, obj) {
       <div class="tt-row"><span>Status</span><b class="tt-${tc}">${label}</b></div>
       ${h ? `<div class="tt-row"><span>Output</span><b>${esc((h.output ?? '–').substring(0, 48))}</b></div>` : ''}
       ${h ? `<div class="tt-row"><span>Services</span><b><span class="tt-ok">${h.services_ok ?? 0}ok</span> <span class="tt-warn">${h.services_warn ?? 0}w</span> <span class="tt-crit">${h.services_crit ?? 0}c</span></b></div>` : ''}
-      <div class="tt-row"><span>Typ</span><b>${esc(obj.type)}</b></div>
-      <div class="tt-row"><span>Pos</span><b>${parseFloat(obj.x).toFixed(1)}% / ${parseFloat(obj.y).toFixed(1)}%</b></div>`;
+      <div class="tt-row"><span>Typ</span><b>${esc(obj.type)}</b></div>`;
   }
 
   const cvRect = document.getElementById('nv2-canvas').getBoundingClientRect();
@@ -1184,9 +1184,12 @@ function makeDraggable(el) {
     el.classList.add('nv2-dragging');
     el.style.zIndex = '40';
     const onMove = ev => {
-      const zs = window.NV2_ZOOM?.getState?.() ?? { zoom: 1 };
-      el.style.left = `${Math.max(0, Math.min(100, x0 + (ev.clientX - sx) / rect.width  * 100 / zs.zoom)).toFixed(2)}%`;
-      el.style.top  = `${Math.max(0, Math.min(97,  y0 + (ev.clientY - sy) / rect.height * 100 / zs.zoom)).toFixed(2)}%`;
+      const zs      = window.NV2_ZOOM?.getState?.() ?? { zoom: 1 };
+      const clamp   = (activeMapCfg?.canvas?.overflow ?? 'clamp') !== 'free';
+      const newX    = x0 + (ev.clientX - sx) / rect.width  * 100 / zs.zoom;
+      const newY    = y0 + (ev.clientY - sy) / rect.height * 100 / zs.zoom;
+      el.style.left = `${(clamp ? Math.max(0, Math.min(100, newX)) : newX).toFixed(2)}%`;
+      el.style.top  = `${(clamp ? Math.max(0, Math.min(97,  newY)) : newY).toFixed(2)}%`;
     };
     const onUp = async () => {
       el.classList.remove('nv2-dragging');
@@ -1523,11 +1526,13 @@ function showNodeContextMenu(e, el, obj) {
   menu.id = 'nv2-ctx-menu'; menu.className = 'ctx-menu';
   menu.style.left = `${e.clientX}px`; menu.style.top = `${e.clientY}px`;
   const isTextbox = obj.type === 'textbox', isGadget = obj.type === 'gadget';
+  const isMonitoring = ['host','service','hostgroup','servicegroup','map'].includes(obj.type);
   const items = [
     { label:'✏ Text bearbeiten',      action:() => openTextboxDialog(el, obj),           hide:!isTextbox },
     { label:'⚙ Gadget konfigurieren', action:() => openGadgetConfigDialog(el, obj),       hide:!isGadget },
+    { label:'⚙ Eigenschaften',        action:() => openNodePropsDialog(el, obj),          hide:!isMonitoring },
     { label:'⤢ Größe ändern',        action:() => openResizeDialog(el, obj),             hide:isTextbox || isGadget },
-    { label:'🖼 Iconset wechseln',    action:() => openIconsetDialog(el, obj),            hide:!['host','service','hostgroup','servicegroup','map'].includes(obj.type) },
+    { label:'🖼 Iconset wechseln',    action:() => openIconsetDialog(el, obj),            hide:!isMonitoring },
     { label:'◫ Layer zuweisen',       action:() => openLayerDialog(el, obj) },
     { label:'🗑 Entfernen',           action:() => removeNode(el, obj), cls:'ctx-danger' },
   ];
@@ -1546,6 +1551,82 @@ function showNodeContextMenu(e, el, obj) {
 }
 
 function closeContextMenu() { _ctxMenu?.remove(); _ctxMenu = null; }
+
+function openNodePropsDialog(el, obj) {
+  document.getElementById('dlg-node-props')?.remove();
+  const isService = obj.type === 'service';
+  const nameLabel = { host:'Hostname', hostgroup:'Hostgruppen-Name', servicegroup:'Servicegruppen-Name', map:'Map-ID' }[obj.type] ?? 'Name';
+  const hostOptions = Object.keys(hostCache).filter(k => !k.includes('::')).map(k => `<option value="${esc(k)}">`).join('');
+
+  const dlg = document.createElement('div');
+  dlg.id = 'dlg-node-props'; dlg.className = 'dlg-overlay show';
+  dlg.innerHTML = `
+    <div class="dlg-box" style="width:360px">
+      <h3>Eigenschaften – ${esc(obj.label || obj.name)}</h3>
+      ${isService ? `
+        <label class="f-label">Hostname</label>
+        <input class="f-input" id="np-host" type="text" value="${esc(obj.host_name ?? '')}"
+               list="np-hosts-dl" autocomplete="off">
+        <datalist id="np-hosts-dl">${hostOptions}</datalist>
+        <label class="f-label" style="margin-top:8px">Service-Name</label>
+        <input class="f-input" id="np-name" type="text" value="${esc(obj.name ?? '')}" autocomplete="off">
+      ` : `
+        <label class="f-label">${nameLabel}</label>
+        <input class="f-input" id="np-name" type="text" value="${esc(obj.name ?? '')}"
+               list="np-hosts-dl" autocomplete="off">
+        <datalist id="np-hosts-dl">${hostOptions}</datalist>
+      `}
+      <label class="f-label" style="margin-top:8px">
+        Label <span style="color:var(--text-dim);font-weight:400">(Anzeigename, leer = Name)</span>
+      </label>
+      <input class="f-input" id="np-label" type="text"
+             value="${esc(obj.label ?? '')}" placeholder="${esc(obj.name ?? '')}">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--text);margin-top:8px">
+        <input type="checkbox" id="np-show-label" ${obj.show_label !== false ? 'checked' : ''}>
+        Label anzeigen
+      </label>
+      <div class="dlg-actions" style="margin-top:16px">
+        <button class="btn-cancel" id="np-cancel">Abbrechen</button>
+        <button class="btn-ok"     id="np-ok">Speichern</button>
+      </div>
+    </div>`;
+  document.body.appendChild(dlg);
+
+  const inName      = dlg.querySelector('#np-name');
+  const inHost      = isService ? dlg.querySelector('#np-host') : null;
+  const inLabel     = dlg.querySelector('#np-label');
+  const inShowLabel = dlg.querySelector('#np-show-label');
+
+  dlg.querySelector('#np-cancel').onclick = () => dlg.remove();
+  dlg.querySelector('#np-ok').onclick = async () => {
+    const newName      = inName.value.trim();
+    const newHost      = inHost?.value.trim() ?? null;
+    const newLabel     = inLabel.value.trim() || null;
+    const newShowLabel = inShowLabel.checked;
+    if (!newName) return;
+
+    const patch = { name: newName, label: newLabel, show_label: newShowLabel };
+    if (isService) patch.host_name = newHost;
+
+    obj.name       = newName;
+    obj.label      = newLabel;
+    obj.show_label = newShowLabel;
+    if (isService) obj.host_name = newHost;
+
+    el.dataset.name = isService ? `${newHost}::${newName}` : newName;
+    const labelEl = el.querySelector('.nv2-label');
+    if (labelEl) {
+      labelEl.textContent    = newLabel || newName;
+      labelEl.style.display  = newShowLabel ? '' : 'none';
+    }
+
+    dlg.remove();
+    await api(`/api/maps/${activeMapId}/objects/${obj.object_id}/props`, 'PATCH', patch);
+  };
+
+  (inHost ?? inName)?.focus();
+  (inHost ?? inName)?.select();
+}
 
 function openTextboxDialog(el, obj) {
   document.getElementById('dlg-textbox-props')?.remove();
@@ -1825,12 +1906,64 @@ function onCanvasClick(e) {
 
 
 // ═══════════════════════════════════════════════════════════════════════
+//  CANVAS RECHTSKLICK-MENÜ (Edit-Mode)
+// ═══════════════════════════════════════════════════════════════════════
 
-window.showNodeContextMenu   = showNodeContextMenu;
-window.showViewContextMenu   = showViewContextMenu;
+function showCanvasContextMenu(e) {
+  if (!editActive) return;
+  if (e.target.closest('.nv2-node, .nv2-textbox, .nv2-container')) return;
+  if (e.target.closest('.nv2-line-el, .nv2-wm-line, .line-handle')) return;
+  e.preventDefault();
+
+  const rect  = document.getElementById('nv2-canvas').getBoundingClientRect();
+  const state = window.NV2_ZOOM?.getState?.() ?? { zoom: 1, panX: 0, panY: 0 };
+  const localX = (e.clientX - rect.left - state.panX) / state.zoom;
+  const localY = (e.clientY - rect.top  - state.panY) / state.zoom;
+  const pos = {
+    x: (localX / rect.width  * 100).toFixed(2),
+    y: (localY / rect.height * 100).toFixed(2),
+  };
+
+  closeContextMenu();
+  const menu = document.createElement('div');
+  menu.id = 'nv2-ctx-menu'; menu.className = 'ctx-menu';
+  menu.style.left = `${e.clientX}px`; menu.style.top = `${e.clientY}px`;
+
+  const items = [
+    { label: '＋ Objekt hier platzieren', action: () => { window.pendingPos = pos; openDlg('dlg-add-object'); } },
+    { sep: true },
+    { label: '⊡ Canvas-Format ändern',  action: () => openCanvasModeDialog(activeMapId, activeMapCfg?.title ?? activeMapId, activeMapCfg?.canvas) },
+    { label: '🖼 Hintergrund hochladen', action: () => document.getElementById('bg-file-input').click() },
+  ];
+
+  items.forEach(item => {
+    if (item.sep) {
+      const hr = document.createElement('div');
+      hr.style.cssText = 'height:1px;background:var(--border);margin:3px 0';
+      menu.appendChild(hr);
+      return;
+    }
+    const btn = document.createElement('button');
+    btn.className = 'ctx-item';
+    btn.textContent = item.label;
+    btn.onclick = () => { closeContextMenu(); item.action(); };
+    menu.appendChild(btn);
+  });
+
+  menu.addEventListener('click', e => e.stopPropagation());
+  document.body.appendChild(menu);
+  _ctxMenu = menu;
+  setTimeout(() => document.addEventListener('click', closeContextMenu, { once: true }), 0);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+
+window.showNodeContextMenu    = showNodeContextMenu;
+window.showViewContextMenu    = showViewContextMenu;
+window.showCanvasContextMenu  = showCanvasContextMenu;
 window.openGadgetConfigDialog = openGadgetConfigDialog;
-window.openAcknowledgeDlg    = openAcknowledgeDlg;
-window.openDowntimeDlg       = openDowntimeDlg;
+window.openAcknowledgeDlg     = openAcknowledgeDlg;
+window.openDowntimeDlg        = openDowntimeDlg;
 window.openActionConfigDlg   = openActionConfigDlg;
 window.openWeathermapLineDlg = openWeathermapLineDlg;
 window.applyNodeStatus       = applyNodeStatus;

@@ -69,7 +69,7 @@ app.include_router(ws_router)
 app.mount("/backgrounds", StaticFiles(directory=str(settings.BG_DIR)), name="backgrounds")
 
 # Frontend – nur mounten wenn Ordner existiert
-_frontend_dir = settings.BASE_DIR / "frontend"
+_frontend_dir = settings.BASE_DIR.parent / "frontend"
 if _frontend_dir.exists():
     app.mount("/", StaticFiles(directory=str(_frontend_dir), html=True), name="frontend")
 else:

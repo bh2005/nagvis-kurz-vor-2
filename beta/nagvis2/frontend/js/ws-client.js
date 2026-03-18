@@ -39,8 +39,38 @@ function makeWsClient(mapId) {
   return client;
 }
 
-function onWsOpen()  { setConnDot('connected');    setSidebarLive(true,  'Livestatus · verbunden'); }
-function onWsClose() { setConnDot('disconnected'); setSidebarLive(false, 'Getrennt – verbinde…');   setStatusBar('Verbindung unterbrochen…'); }
+function onWsOpen() {
+  setConnDot('connected');
+  setSidebarLive(true, 'Livestatus · verbunden');
+  _setCanvasOffline(false);
+}
+
+function onWsClose() {
+  setConnDot('disconnected');
+  setSidebarLive(false, 'Getrennt – verbinde…');
+  setStatusBar('Verbindung unterbrochen…');
+  _setCanvasOffline(true);
+}
+
+function _setCanvasOffline(offline) {
+  const canvas = document.getElementById('nv2-canvas');
+  const area   = document.getElementById('map-area');
+  if (!canvas || !area) return;
+
+  if (offline) {
+    canvas.classList.add('nv2-canvas-offline');
+    if (!document.getElementById('nv2-offline-banner')) {
+      const b = document.createElement('div');
+      b.id = 'nv2-offline-banner';
+      b.className = 'nv2-offline-banner';
+      b.textContent = '⚠  Verbindung unterbrochen – Statusdaten können veraltet sein';
+      area.appendChild(b);
+    }
+  } else {
+    canvas.classList.remove('nv2-canvas-offline');
+    document.getElementById('nv2-offline-banner')?.remove();
+  }
+}
 
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -106,7 +136,10 @@ function onWsMsg(ev) {
 
     case '_connected':    setConnDot('connected');    break;
     case '_disconnected': setConnDot('disconnected'); break;
-    case 'backend_error': setStatusBar(`⚠ ${ev.message}`); break;
+    case 'backend_error':
+      setStatusBar(`⚠ ${ev.message}`);
+      showToast(`Backend: ${ev.message}`, 'error');
+      break;
   }
 }
 
@@ -309,11 +342,18 @@ async function api(path, method = 'GET', body = null) {
     const opts = { method, headers:{} };
     if (body) { opts.body = JSON.stringify(body); opts.headers['Content-Type'] = 'application/json'; }
     const r = await fetch(path, opts);
-    if (!r.ok) { console.warn(`[NV2] API ${method} ${path} → ${r.status}`); return null; }
+    if (!r.ok) {
+      console.warn(`[NV2] API ${method} ${path} → ${r.status}`);
+      let detail = r.statusText;
+      try { const j = await r.json(); detail = j.detail ?? j.message ?? detail; } catch {}
+      showToast(`${method} ${path.split('/').pop()}: ${detail}`, 'error');
+      return null;
+    }
     if (method === 'DELETE') return true;
     return r.json();
   } catch (err) {
     console.error('[NV2] api() error:', err);
+    showToast('Netzwerkfehler – Backend nicht erreichbar', 'error', 5000);
     return null;
   }
 }

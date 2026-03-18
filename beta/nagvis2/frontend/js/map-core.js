@@ -440,6 +440,17 @@ async function openCanvasModeDialog(mapId, mapTitle, currentCanvas) {
           <p class="f-hint">Canvas passt sich beim nächsten Hintergrundbild-Upload an.</p>
         </div>
       </div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+        <div class="f-label" style="margin-bottom:6px">Node-Verhalten an den Grenzen</div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--text)">
+          <input type="radio" name="cm-overflow" value="clamp" ${(cfg.overflow??'clamp')==='clamp'?'checked':''}>
+          <span>🔒 <b>Begrenzt</b> – Nodes bleiben innerhalb der Canvas-Fläche</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--text);margin-top:6px">
+          <input type="radio" name="cm-overflow" value="free" ${cfg.overflow==='free'?'checked':''}>
+          <span>🌐 <b>Frei</b> – Nodes können außerhalb platziert werden (z.B. für Weltkarte)</span>
+        </label>
+      </div>
       <div class="dlg-actions" style="margin-top:16px">
         <button class="btn-cancel" onclick="document.getElementById('dlg-canvas-mode').remove()">Abbrechen</button>
         <button class="btn-ok" onclick="_cmSave('${esc(mapId)}')">Übernehmen</button>
@@ -459,7 +470,8 @@ window._cmUpdate = function() {
 
 window._cmSave = async function(mapId) {
   const mode = document.querySelector('input[name="cm-mode"]:checked')?.value ?? 'free';
-  const canvas = { mode };
+  const overflow = document.querySelector('input[name="cm-overflow"]:checked')?.value ?? 'clamp';
+  const canvas = { mode, overflow };
   if (mode === 'ratio')  canvas.ratio = document.getElementById('cm-ratio').value;
   if (mode === 'fixed') {
     canvas.w = parseInt(document.getElementById('cm-fixed-w').value) || 1920;
@@ -926,6 +938,12 @@ function applyCanvasMode(canvas, cfg) {
   } else {
     canvas.style.backgroundSize = 'contain';
   }
+
+  // Overflow: frei = Nodes dürfen Canvas verlassen, Zoom/Pan zur Navigation
+  const freeOverflow = cfg?.overflow === 'free';
+  canvas.style.overflow = freeOverflow ? 'visible' : '';
+  const wrapper = document.getElementById('map-canvas-wrapper');
+  if (wrapper) wrapper.style.overflow = freeOverflow ? 'visible' : '';
 }
 
 async function uploadBg(file) {

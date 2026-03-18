@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   document.getElementById('nv2-canvas').addEventListener('click', onCanvasClick);
+  document.getElementById('nv2-canvas').addEventListener('contextmenu', showCanvasContextMenu);
 
   setupDragDrop();
   document.addEventListener('keydown', onKeyDown);
