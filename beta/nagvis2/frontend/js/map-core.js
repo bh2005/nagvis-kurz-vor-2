@@ -765,7 +765,25 @@ window.confirmImportZip = confirmImportZip;
 window.dlgNewMap        = dlgNewMap;
 window.dlgMigrate       = dlgMigrate;
 window.confirmMigrate   = confirmMigrate;
-window.openDlg  = id => document.getElementById(id)?.classList.add('show');
+window.openDlg = (id) => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.add('show');
+
+  // Automatische Hilfe-Icon Integration
+  // Wir nehmen die ID ohne "dlg-", z.B. "migrate" oder "zip-import"
+  const topic = id.replace('dlg-', '');
+  const header = el.querySelector('h3');
+  
+  if (header && !el.querySelector('.help-btn-inline')) {
+    const helpBtn = document.createElement('span');
+    helpBtn.className = 'help-btn-inline';
+    helpBtn.innerHTML = '?';
+    helpBtn.title = 'Hilfe zu diesem Thema';
+    helpBtn.onclick = (e) => { e.stopPropagation(); showHelp(topic); };
+    header.appendChild(helpBtn);
+  }
+};
 window.closeDlg = id => {
   document.getElementById(id)?.classList.remove('show');
   document.querySelectorAll(`#${id} input[type=text], #${id} textarea`).forEach(i => i.value = '');
