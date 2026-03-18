@@ -723,7 +723,7 @@
 
 <!-- ═══════════════════════════════════════════════════════════════════════
      SKRIPTE
-     Reihenfolge: constants → state → ui-core → ws-client → nodes → map-core → kiosk → app
+     Reihenfolge: js/constants → js/state → js/ui-core → js/ws-client → js/nodes → js/map-core → js/kiosk → js/app
 ═══════════════════════════════════════════════════════════════════════ -->
 <script>
   /* Theme so früh wie möglich setzen – verhindert FOUC */
@@ -747,14 +747,14 @@
 <script src="js/zoom_pan.js" onerror="console.warn('[NV2] zoom_pan.js fehlt – Stub aktiv')"></script>
 
 <!-- NagVis 2 Module – in Ladereihenfolge -->
-<script src="src/constants.js"></script>  <!-- Konstanten, SVG-Icons, Helper -->
-<script src="src/state.js"></script>      <!-- Globale Laufzeit-Variablen -->
-<script src="src/ui-core.js"></script>    <!-- Theme, Sidebar, Burger, Snapins, Keyboard -->
-<script src="src/ws-client.js"></script>  <!-- WebSocket, Demo-Mode, api() -->
-<script src="src/nodes.js"></script>      <!-- Node-Rendering, Edit-Mode, Aktionen -->
-<script src="src/map-core.js"></script>   <!-- Maps, openMap, Canvas, Dialoge, Export -->
-<script src="src/kiosk.js"></script>      <!-- Kiosk-Rotation, Token-Login, F11-Modus -->
-<script src="src/app.js"></script>        <!-- Einstiegspunkt: DOMContentLoaded -->
+<script src="js/constants.js"></script>  <!-- Konstanten, SVG-Icons, Helper -->
+<script src="js/state.js"></script>      <!-- Globale Laufzeit-Variablen -->
+<script src="js/ui-core.js"></script>    <!-- Theme, Sidebar, Burger, Snapins, Keyboard -->
+<script src="js/ws-client.js"></script>  <!-- WebSocket, Demo-Mode, api() -->
+<script src="js/nodes.js"></script>      <!-- Node-Rendering, Edit-Mode, Aktionen -->
+<script src="js/map-core.js"></script>   <!-- Maps, openMap, Canvas, Dialoge, Export -->
+<script src="js/kiosk.js"></script>      <!-- Kiosk-Rotation, Token-Login, F11-Modus -->
+<script src="js/app.js"></script>        <!-- Einstiegspunkt: DOMContentLoaded -->
 
 
 <!-- Demo-Mode Banner – wird per JS ein-/ausgeblendet -->

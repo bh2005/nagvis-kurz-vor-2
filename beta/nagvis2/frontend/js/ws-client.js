@@ -81,8 +81,21 @@ function onWsMsg(ev) {
       }
       break;
 
+    case 'object_updated':
+      if (ev.map_id === activeMapId) {
+        const old = document.getElementById(`nv2-${ev.object.object_id}`);
+        if (old) old.remove();
+        const el = createNode(ev.object);
+        if (el && editActive) makeDraggable(el);
+      }
+      break;
+
     case 'object_removed':
       document.getElementById(`nv2-${ev.object_id}`)?.remove();
+      break;
+
+    case 'map_reloaded':
+      if (ev.map_id === activeMapId) openMap(activeMapId);
       break;
 
     case 'gadget_update': {
