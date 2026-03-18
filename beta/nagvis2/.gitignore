@@ -84,4 +84,4 @@ htmlcov/
 .ruff_cache/
 
 # --- GitHub / CI ---
-.github/backup/
+.github/backup/venv/

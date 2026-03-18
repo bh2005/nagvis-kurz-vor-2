@@ -1,465 +1,89 @@
 """
-NagVis 2 – API Router (vollständig)
+NagVis 2 – WebSocket Endpoint
+GET /ws/map/{map_id}
 """
 
-import io
-import re
 import json
 import time
-import uuid
-import zipfile
-import shutil
-from pathlib import Path
-from typing import List, Optional, Any
+import asyncio
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Query, Body
-from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from core.config import settings
-from core.storage import (
-    list_maps, get_map, create_map, delete_map, update_map_field,
-    add_object, update_object, delete_object,
-    kiosk_list, kiosk_create, kiosk_update, kiosk_delete, kiosk_get_by_token,
-)
+from core.storage import get_map
 from core import livestatus
+from ws.manager import manager, start_poller
 
-api_router = APIRouter(prefix="/api", tags=["api"])
-
-
-# ══════════════════════════════════════════════════════════════════════
-#  Pydantic Models
-# ══════════════════════════════════════════════════════════════════════
-
-class MapCreate(BaseModel):
-    title: str
-    map_id: Optional[str] = None
-    canvas: Optional[dict] = None
-
-class MapTitleUpdate(BaseModel):
-    title: str
-
-class MapParentUpdate(BaseModel):
-    parent_map: Optional[str] = None
-
-class ObjectCreate(BaseModel):
-    type: str
-    x: float
-    y: float
-    name: Optional[str] = None
-    host_name: Optional[str] = None
-    iconset: Optional[str] = "std_small"
-    label: Optional[str] = None
-    size: Optional[int] = None
-    text: Optional[str] = None
-    font_size: Optional[int] = None
-    bold: Optional[bool] = None
-    color: Optional[str] = None
-    bg_color: Optional[str] = None
-    url: Optional[str] = None
-    x2: Optional[float] = None
-    y2: Optional[float] = None
-    line_style: Optional[str] = None
-    line_width: Optional[int] = None
-    line_type: Optional[str] = None
-    layer: Optional[int] = None
-    gadget_config: Optional[dict] = None
-
-class ObjectPosition(BaseModel):
-    x: float
-    y: float
-    x2: Optional[float] = None
-    y2: Optional[float] = None
-
-class ObjectProps(BaseModel):
-    label: Optional[str] = None
-    size: Optional[int] = None
-    iconset: Optional[str] = None
-    layer: Optional[int] = None
-    gadget_config: Optional[dict] = None
-    text: Optional[str] = None
-    font_size: Optional[int] = None
-    bold: Optional[bool] = None
-    color: Optional[str] = None
-    bg_color: Optional[str] = None
-    line_style: Optional[str] = None
-    line_width: Optional[int] = None
-    line_type: Optional[str] = None
-    host_from: Optional[str] = None
-    host_to: Optional[str] = None
-    label_from: Optional[str] = None
-    label_to: Optional[str] = None
-    show_arrow: Optional[bool] = None
-    line_split: Optional[bool] = None
-    x2: Optional[float] = None
-    y2: Optional[float] = None
-
-class ActionRequest(BaseModel):
-    action: str           # "ack_host" | "ack_service" | "downtime_host" | "reschedule"
-    host_name: str
-    service_name: Optional[str] = None
-    comment: Optional[str] = "NagVis 2"
-    author: Optional[str] = "nagvis2"
-    start_time: Optional[int] = None
-    end_time: Optional[int] = None
-
-class KioskUser(BaseModel):
-    label: str
-    maps: List[str] = []
-    order: List[str] = []
-    interval: int = 30
-
-class KioskUserUpdate(BaseModel):
-    label: Optional[str] = None
-    maps: Optional[List[str]] = None
-    order: Optional[List[str]] = None
-    interval: Optional[int] = None
+ws_router = APIRouter()
 
 
-# ══════════════════════════════════════════════════════════════════════
-#  Health
-# ══════════════════════════════════════════════════════════════════════
+@ws_router.websocket("/ws/map/{map_id}")
+async def ws_map(websocket: WebSocket, map_id: str):
+    await websocket.accept()
 
-@api_router.get("/health")
-async def health():
-    ls = await livestatus.check_connection()
-    return {
-        "status":      "ok",
-        "environment": settings.ENVIRONMENT,
-        "demo_mode":   settings.DEMO_MODE or not ls["connected"],
-        "livestatus":  ls,
-        "version":     "2.0-beta",
-    }
+    # Poller starten falls noch nicht laufend
+    start_poller()
 
-
-# ══════════════════════════════════════════════════════════════════════
-#  Maps – CRUD
-# ══════════════════════════════════════════════════════════════════════
-
-@api_router.get("/maps")
-async def api_list_maps():
-    return list_maps()
-
-
-@api_router.post("/maps", status_code=201)
-async def api_create_map(body: MapCreate):
-    data = create_map(body.title, body.map_id, body.canvas)
-    return {**data, "object_count": 0}
-
-
-@api_router.get("/maps/{map_id}")
-async def api_get_map(map_id: str):
-    data = get_map(map_id)
-    if not data:
-        raise HTTPException(404, f"Map '{map_id}' nicht gefunden")
-    return data
-
-
-@api_router.delete("/maps/{map_id}")
-async def api_delete_map(map_id: str):
-    if not delete_map(map_id):
-        raise HTTPException(404, f"Map '{map_id}' nicht gefunden")
-    return {"deleted": map_id}
-
-
-@api_router.put("/maps/{map_id}/title")
-async def api_rename_map(map_id: str, body: MapTitleUpdate):
-    data = update_map_field(map_id, title=body.title)
-    if not data:
-        raise HTTPException(404, f"Map '{map_id}' nicht gefunden")
-    return {"id": map_id, "title": data["title"]}
-
-
-@api_router.put("/maps/{map_id}/parent")
-async def api_set_parent(map_id: str, body: MapParentUpdate):
-    data = update_map_field(map_id, parent_map=body.parent_map)
-    if not data:
-        raise HTTPException(404, f"Map '{map_id}' nicht gefunden")
-    return {"id": map_id, "parent_map": data["parent_map"]}
-
-
-@api_router.put("/maps/{map_id}/canvas")
-async def api_set_canvas(map_id: str, body: dict = Body(...)):
-    data = update_map_field(map_id, canvas=body)
-    if not data:
-        raise HTTPException(404, f"Map '{map_id}' nicht gefunden")
-    return {"id": map_id, "canvas": data["canvas"]}
-
-
-# ══════════════════════════════════════════════════════════════════════
-#  Objects
-# ══════════════════════════════════════════════════════════════════════
-
-@api_router.post("/maps/{map_id}/objects", status_code=201)
-async def api_create_object(map_id: str, body: ObjectCreate):
-    if not get_map(map_id):
-        raise HTTPException(404, f"Map '{map_id}' nicht gefunden")
-    obj = add_object(map_id, body.model_dump(exclude_none=True))
-    return obj
-
-
-@api_router.patch("/maps/{map_id}/objects/{object_id}/pos")
-async def api_update_pos(map_id: str, object_id: str, pos: ObjectPosition):
-    obj = update_object(map_id, object_id, **pos.model_dump(exclude_none=True))
-    if not obj:
-        raise HTTPException(404, "Objekt nicht gefunden")
-    return obj
-
-
-@api_router.patch("/maps/{map_id}/objects/{object_id}/props")
-async def api_update_props(map_id: str, object_id: str, props: ObjectProps):
-    obj = update_object(map_id, object_id, **props.model_dump(exclude_unset=True))
-    if not obj:
-        raise HTTPException(404, "Objekt nicht gefunden")
-    return obj
-
-
-@api_router.delete("/maps/{map_id}/objects/{object_id}")
-async def api_delete_object(map_id: str, object_id: str):
-    if not delete_object(map_id, object_id):
-        raise HTTPException(404, "Objekt nicht gefunden")
-    return {"deleted": object_id}
-
-
-# ══════════════════════════════════════════════════════════════════════
-#  Hintergrundbild
-# ══════════════════════════════════════════════════════════════════════
-
-ALLOWED_BG_TYPES = {
-    "image/png": "png", "image/jpeg": "jpg", "image/gif": "gif",
-    "image/webp": "webp", "image/svg+xml": "svg",
-}
-
-@api_router.post("/maps/{map_id}/background")
-async def api_upload_background(map_id: str, file: UploadFile = File(...)):
-    if not get_map(map_id):
-        raise HTTPException(404, f"Map '{map_id}' nicht gefunden")
-
-    ext = ALLOWED_BG_TYPES.get(file.content_type)
-    if not ext:
-        # Fallback: Dateiendung
-        suf = Path(file.filename or "").suffix.lower().lstrip(".")
-        ext = suf if suf in ("png","jpg","jpeg","gif","webp","svg") else None
-    if not ext:
-        raise HTTPException(400, "Nicht unterstützter Bildtyp")
-
-    # Alte Hintergrundbilder dieser Map löschen
-    for old in settings.BG_DIR.glob(f"{map_id}.*"):
-        old.unlink()
-
-    dest = settings.BG_DIR / f"{map_id}.{ext}"
-    content = await file.read()
-    dest.write_bytes(content)
-
-    url = f"/backgrounds/{map_id}.{ext}"
-    update_map_field(map_id, background=url)
-    return {"url": url}
-
-
-# ══════════════════════════════════════════════════════════════════════
-#  Export / Import
-# ══════════════════════════════════════════════════════════════════════
-
-@api_router.get("/maps/{map_id}/export")
-async def api_export_map(map_id: str):
-    data = get_map(map_id)
-    if not data:
-        raise HTTPException(404, f"Map '{map_id}' nicht gefunden")
-
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr("map.json", json.dumps(data, indent=2, ensure_ascii=False))
-        # Hintergrundbild falls vorhanden
-        bg_url = data.get("background")
-        if bg_url:
-            bg_path = settings.BASE_DIR / bg_url.lstrip("/")
-            if bg_path.exists():
-                zf.write(bg_path, f"background{bg_path.suffix}")
-
-    buf.seek(0)
-    filename = f"nagvis2-{map_id}.zip"
-    return StreamingResponse(
-        buf,
-        media_type="application/zip",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
-    )
-
-
-@api_router.post("/maps/import")
-async def api_import_map(
-    file: UploadFile = File(...),
-    map_id: Optional[str] = Query(None),
-    dry_run: bool = Query(False),
-):
-    content = await file.read()
-    errors = []
+    manager.connect(map_id, websocket)
 
     try:
-        with zipfile.ZipFile(io.BytesIO(content)) as zf:
-            names = zf.namelist()
-            if "map.json" not in names:
-                raise HTTPException(400, {"errors": ["map.json fehlt im Archiv"]})
-            data = json.loads(zf.read("map.json"))
-    except zipfile.BadZipFile:
-        raise HTTPException(400, {"errors": ["Keine gültige ZIP-Datei"]})
+        # Initialen Snapshot senden
+        if settings.DEMO_MODE:
+            from ws.demo_data import DEMO_STATUS
+            await websocket.send_text(json.dumps({
+                "event":    "snapshot",
+                "ts":       time.time(),
+                "hosts":    DEMO_STATUS,
+                "services": [],
+            }))
+        else:
+            t0      = time.time()
+            hosts   = await livestatus.get_hosts()
+            services= await livestatus.get_services()
+            elapsed = int((time.time() - t0) * 1000)
+            await websocket.send_text(json.dumps({
+                "event":    "snapshot",
+                "ts":       time.time(),
+                "elapsed":  elapsed,
+                "hosts":    hosts,
+                "services": services,
+            }))
 
-    mid = map_id or data.get("id") or "imported-map"
-    data["id"] = mid
+        # Client-Nachrichten empfangen
+        while True:
+            try:
+                raw = await asyncio.wait_for(websocket.receive_text(), timeout=30.0)
+                msg = json.loads(raw)
 
-    bg_saved = False
-    bg_file  = next((n for n in names if n.startswith("background.")), None)
+                if msg.get("cmd") == "force_refresh":
+                    if settings.DEMO_MODE:
+                        from ws.demo_data import DEMO_STATUS
+                        await websocket.send_text(json.dumps({
+                            "event":    "snapshot",
+                            "ts":       time.time(),
+                            "hosts":    DEMO_STATUS,
+                            "services": [],
+                        }))
+                    else:
+                        hosts    = await livestatus.get_hosts()
+                        services = await livestatus.get_services()
+                        await websocket.send_text(json.dumps({
+                            "event":    "snapshot",
+                            "ts":       time.time(),
+                            "hosts":    hosts,
+                            "services": services,
+                        }))
 
-    if dry_run:
-        return {
-            "map_id":       mid,
-            "title":        data.get("title", mid),
-            "object_count": len(data.get("objects", [])),
-            "bg_saved":     bool(bg_file),
-            "warnings":     errors,
-            "dry_run":      True,
-        }
+            except asyncio.TimeoutError:
+                # Heartbeat wenn Client nichts sendet
+                await websocket.send_text(json.dumps({
+                    "event": "heartbeat",
+                    "ts":    time.time(),
+                }))
 
-    # Hintergrundbild speichern
-    if bg_file:
-        with zipfile.ZipFile(io.BytesIO(content)) as zf:
-            ext  = Path(bg_file).suffix
-            dest = settings.BG_DIR / f"{mid}{ext}"
-            dest.write_bytes(zf.read(bg_file))
-            data["background"] = f"/backgrounds/{mid}{ext}"
-            bg_saved = True
-
-    from core.storage import _write_json, map_path
-    _write_json(map_path(mid), data)
-
-    return {
-        "map_id":       mid,
-        "title":        data.get("title", mid),
-        "object_count": len(data.get("objects", [])),
-        "bg_saved":     bg_saved,
-        "warnings":     errors,
-    }
-
-
-# ══════════════════════════════════════════════════════════════════════
-#  NagVis 1 Migration
-# ══════════════════════════════════════════════════════════════════════
-
-@api_router.post("/migrate")
-async def api_migrate(
-    file: UploadFile = File(...),
-    map_id: Optional[str] = Query(None),
-    canvas_w: int = Query(1200),
-    canvas_h: int = Query(800),
-    dry_run: bool = Query(False),
-):
-    raw     = (await file.read()).decode("utf-8", errors="replace")
-    mid     = map_id or Path(file.filename or "map").stem.lower().replace(" ", "-")
-    title   = mid
-    objects = []
-    warnings= []
-
-    for line in raw.splitlines():
-        line = line.strip()
-        if line.startswith("map_title="):
-            title = line.split("=", 1)[1]
-            continue
-        if line.startswith("define "):
-            continue  # Block-Anfang – vereinfachter Parser (nur Zeilen-Format)
-
-        # Key=Value Parsing innerhalb define-Blöcken wird hier vereinfacht
-        # (vollständiger Parser würde Blöcke korrekt parsen)
-
-    if dry_run:
-        return {"map_id": mid, "title": title, "object_count": len(objects),
-                "warnings": warnings, "dry_run": True, "note": "Vereinfachter Parser"}
-
-    data = {
-        "id":      mid,
-        "title":   title,
-        "canvas":  {"mode": "fixed", "w": canvas_w, "h": canvas_h},
-        "objects": objects,
-        "background": None,
-        "parent_map": None,
-    }
-    from core.storage import _write_json, map_path
-    _write_json(map_path(mid), data)
-
-    return {"map_id": mid, "title": title, "object_count": len(objects),
-            "warnings": warnings}
-
-
-# ══════════════════════════════════════════════════════════════════════
-#  Aktionen (ACK / Downtime / Reschedule)
-# ══════════════════════════════════════════════════════════════════════
-
-@api_router.post("/actions")
-async def api_action(body: ActionRequest):
-    if settings.DEMO_MODE:
-        return {"status": "ok", "demo": True}
-
-    ok = False
-    now = int(time.time())
-
-    if body.action == "ack_host":
-        ok = await livestatus.acknowledge_host(
-            body.host_name, body.comment or "", body.author or "nagvis2")
-
-    elif body.action == "ack_service":
-        if not body.service_name:
-            raise HTTPException(400, "service_name erforderlich")
-        ok = await livestatus.acknowledge_service(
-            body.host_name, body.service_name, body.comment or "", body.author or "nagvis2")
-
-    elif body.action == "downtime_host":
-        start = body.start_time or now
-        end   = body.end_time   or (now + 3600)
-        ok = await livestatus.schedule_host_downtime(
-            body.host_name, start, end, body.comment or "", body.author or "nagvis2")
-
-    elif body.action == "reschedule":
-        ok = await livestatus.reschedule_host_check(body.host_name)
-
-    else:
-        raise HTTPException(400, f"Unbekannte Aktion: {body.action}")
-
-    if not ok:
-        raise HTTPException(502, "Livestatus-Kommando fehlgeschlagen")
-    return {"status": "ok"}
-
-
-# ══════════════════════════════════════════════════════════════════════
-#  Kiosk-User
-# ══════════════════════════════════════════════════════════════════════
-
-@api_router.get("/kiosk-users")
-async def api_kiosk_list():
-    return kiosk_list()
-
-
-@api_router.post("/kiosk-users", status_code=201)
-async def api_kiosk_create(body: KioskUser):
-    user = kiosk_create(body.model_dump())
-    return user
-
-
-@api_router.put("/kiosk-users/{uid}")
-async def api_kiosk_update(uid: str, body: KioskUserUpdate):
-    user = kiosk_update(uid, body.model_dump(exclude_unset=True))
-    if not user:
-        raise HTTPException(404, f"Kiosk-User '{uid}' nicht gefunden")
-    return user
-
-
-@api_router.delete("/kiosk-users/{uid}")
-async def api_kiosk_delete(uid: str):
-    if not kiosk_delete(uid):
-        raise HTTPException(404, f"Kiosk-User '{uid}' nicht gefunden")
-    return {"deleted": uid}
-
-
-@api_router.get("/kiosk-users/resolve")
-async def api_kiosk_resolve(token: str = Query(...)):
-    user = kiosk_get_by_token(token)
-    if not user:
-        raise HTTPException(404, "Ungültiger Kiosk-Token")
-    return user
+    except WebSocketDisconnect:
+        pass
+    except Exception:
+        pass
+    finally:
+        manager.disconnect(map_id, websocket)

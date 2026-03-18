@@ -3,11 +3,15 @@ NagVis 2 – FastAPI Backend
 """
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from core.config import settings
+
+# Verzeichnisse sofort anlegen – VOR StaticFiles-Mount
+settings.ensure_dirs()
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -17,7 +21,6 @@ from core.config import settings
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print(f"🚀 NagVis 2 → {settings.ENVIRONMENT} | DEBUG={settings.DEBUG} | DEMO={settings.DEMO_MODE}")
-    settings.ensure_dirs()
     from ws.manager import start_poller
     start_poller()
     yield
@@ -60,11 +63,19 @@ app.include_router(ws_router)
 
 # ══════════════════════════════════════════════════════════════════════
 #  Static Files
-#  Hintergrundbilder werden unter /backgrounds/<map_id>.<ext> ausgeliefert
 # ══════════════════════════════════════════════════════════════════════
 
-app.mount("/backgrounds", StaticFiles(directory=str(settings.BG_DIR)),    name="backgrounds")
-app.mount("/",            StaticFiles(directory=str(settings.BASE_DIR / "frontend"), html=True), name="frontend")
+# /backgrounds/ – immer vorhanden (ensure_dirs hat es angelegt)
+app.mount("/backgrounds", StaticFiles(directory=str(settings.BG_DIR)), name="backgrounds")
+
+# Frontend – nur mounten wenn Ordner existiert
+_frontend_dir = settings.BASE_DIR / "frontend"
+if _frontend_dir.exists():
+    app.mount("/", StaticFiles(directory=str(_frontend_dir), html=True), name="frontend")
+else:
+    print(f"⚠  frontend/ nicht gefunden ({_frontend_dir}) – nur API-Modus aktiv")
+    print(f"   Lege einen 'frontend/' Ordner neben 'backend/' an und kopiere")
+    print(f"   index.html, css/, js/, src/ hinein.")
 
 
 # ══════════════════════════════════════════════════════════════════════
