@@ -93,6 +93,14 @@
 
 ---
 
+## Language Support
+
+- [ ] Sprache der user auswählbar default englisch
+- [ ] Implementierung Englisch
+- [ ] Implementierung Spanisch
+- [ ] Implementierung Französisch
+
+---
 ## Erledigt ✅
 
 - [x] `api/router.py` vollständig implementiert (Objekte CRUD, Background-Upload, Actions)
