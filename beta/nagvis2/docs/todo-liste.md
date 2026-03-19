@@ -86,6 +86,7 @@
 
 ## Dokumentation
 
+- [ ] MKDocs implementieren
 - [ ] `docs/osm-guide.md` — Weltkarte-Feature (sobald implementiert)
 - [ ] `docs/dev-guide.md` — Entwickler-Handbuch (Architektur, lokales Setup, wie man neue Features baut)
 - [ ] README.md aktualisieren (Screenshots, Feature-Übersicht)
@@ -101,6 +102,14 @@
 - [ ] Implementierung Französisch
 
 ---
+
+## UX
+- [ ] Host-Priority - Wenn ein Host DOWN ist, sollten die Services auf der Map idealerweise ausgegraut oder kleiner dargestellt werden
+- [ ] 
+- [ ] 
+
+---
+
 ## Erledigt ✅
 
 - [x] `api/router.py` vollständig implementiert (Objekte CRUD, Background-Upload, Actions)
