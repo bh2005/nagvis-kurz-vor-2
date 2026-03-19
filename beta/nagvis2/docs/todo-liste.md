@@ -101,6 +101,14 @@
 - [ ] Implementierung Französisch
 
 ---
+
+## UX
+- [ ] Host-Priority - Wenn ein Host DOWN ist, sollten die Services auf der Map idealerweise ausgegraut oder kleiner dargestellt werden
+- [ ] Implementierung Spanisch
+- [ ] Implementierung Französisch
+
+---
+
 ## Erledigt ✅
 
 - [x] `api/router.py` vollständig implementiert (Objekte CRUD, Background-Upload, Actions)
