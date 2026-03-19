@@ -1,0 +1,268 @@
+// NagVis 2 – map-core.js
+// Komplett-Fix: Variablen-Scopes, Global-Exports und Dialog-Steuerung.
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════════════
+//  GLOBALE STATUS-VARIABLEN (Initialisierung)
+// ═══════════════════════════════════════════════════════════════════════
+
+window.activeMapId   = null;
+window.activeMapCfg  = null;
+window.editActive    = false;
+window._activeObjType = 'host';
+window._demoMode     = window._demoMode ?? false;
+
+// Dialog-Speicher (Einzeln deklariert gegen ReferenceErrors)
+window._deleteMapId    = null;
+window._deleteMapTitle = null;
+window._renameMapId    = null;
+window._parentMapId    = null;
+window._migFile        = null;
+window._zipFile        = null;
+
+// Lokale Helfer (nicht global nötig)
+let wsClient   = null;
+let hostCache  = {};
+let eventLog   = [];
+let pendingPos = null;
+
+const STATE_CHIP = { 
+    'UP': 'ok', 'OK': 'ok', 
+    'WARNING': 'warn', 
+    'CRITICAL': 'crit', 'DOWN': 'crit', 
+    'UNREACHABLE': 'crit', 'UNKNOWN': 'unkn' 
+};
+
+// ═══════════════════════════════════════════════════════════════════════
+//  MAPS LADEN & RENDERN
+// ═══════════════════════════════════════════════════════════════════════
+
+async function loadMaps() {
+    const maps = await api('/api/maps') ?? [];
+    renderSidebarMaps(maps);
+    renderOverview(maps);
+}
+
+function renderSidebarMaps(maps) {
+    const el = document.getElementById('sidebar-maps');
+    if (!el) return;
+    if (!maps.length) {
+        el.innerHTML = '<div class="empty-hint-sidebar">Keine Maps</div>';
+        return;
+    }
+    el.innerHTML = maps.map(m => `
+        <div class="map-entry" id="smap-${esc(m.id)}" data-map-id="${esc(m.id)}">
+            <div class="map-pip unkn" id="mpip-${esc(m.id)}"></div>
+            <span class="map-entry-title">${esc(m.title)}</span>
+        </div>`).join('');
+
+    el.querySelectorAll('.map-entry').forEach(entry => {
+        entry.addEventListener('click', () => openMap(entry.dataset.mapId));
+    });
+}
+
+function renderOverview(maps) {
+    const grid = document.getElementById('ov-grid');
+    if (!grid) return;
+
+    const cards = maps.map(m => `
+        <div class="ov-card" data-map-id="${esc(m.id)}">
+            <div class="ov-card-header">
+                <div class="ov-card-title">${esc(m.title)}</div>
+                <button class="ov-card-menu-btn" onclick="event.stopPropagation(); openCardMenu(event, '${esc(m.id)}', '${esc(m.title)}')">⋯</button>
+            </div>
+            <div class="ov-card-meta">${m.object_count ?? 0} Objekte · <span class="ov-card-id">${esc(m.id)}</span></div>
+            <div class="ov-card-pills">
+                <span class="ov-card-pill ok" id="ov-ok-${esc(m.id)}">UP –</span>
+                <span class="ov-card-pill warn" id="ov-warn-${esc(m.id)}">W –</span>
+                <span class="ov-card-pill crit" id="ov-crit-${esc(m.id)}">C –</span>
+            </div>
+        </div>`).join('');
+
+    grid.innerHTML = cards + `
+        <div class="ov-new" id="btn-new-map-card">
+            <span style="font-size:18px">＋</span> Neue Map
+        </div>`;
+
+    grid.querySelectorAll('.ov-card').forEach(card => {
+        card.addEventListener('click', () => openMap(card.dataset.mapId));
+    });
+    document.getElementById('btn-new-map-card')?.addEventListener('click', dlgNewMap);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  MAP NAVIGATION & UI-LOGIK
+// ═══════════════════════════════════════════════════════════════════════
+
+async function openMap(mapId) {
+    window.activeMapId = mapId;
+    const cfg = await api(`/api/maps/${mapId}`);
+    if (!cfg) {
+        if (window.showToast) window.showToast('Map nicht gefunden', 'crit');
+        return;
+    }
+    window.activeMapCfg = cfg;
+
+    const app = document.getElementById('app');
+    if (app) {
+        app.classList.add('map-open');
+        app.style.gridTemplateColumns = '44px 1fr';
+    }
+
+    // Panels umschalten
+    document.getElementById('overview').style.display = 'none';
+    document.getElementById('map-area').style.display = 'block';
+    document.getElementById('map-toolbar').style.display = 'flex';
+    document.getElementById('tb-title').textContent = cfg.title;
+    document.getElementById('tb-sub').textContent = `${cfg.objects?.length ?? 0} Objekte · ${mapId}`;
+
+    // Canvas leeren und neu aufbauen
+    const canvas = document.getElementById('nv2-canvas');
+    if (canvas) {
+        canvas.innerHTML = '<div id="map-canvas-wrapper"></div>';
+        if (cfg.background) canvas.style.backgroundImage = `url('/${cfg.background}')`;
+        else canvas.style.backgroundImage = '';
+        
+        // Canvas Modus anwenden (falls Funktion in ui-core oder global)
+        if (window.applyCanvasMode) window.applyCanvasMode(canvas, cfg.canvas);
+    }
+
+    // WebSocket Management
+    if (wsClient) { wsClient._dead = true; wsClient.ws?.close(); }
+    wsClient = window._demoMode ? makeDemoWsClient(mapId) : makeWsClient(mapId);
+    wsClient.connect();
+    
+    // Sidebar Update
+    document.querySelectorAll('.map-entry').forEach(e => e.classList.remove('active'));
+    document.getElementById(`smap-${mapId}`)?.classList.add('active');
+}
+
+function showOverview() {
+    window.activeMapId = null;
+    const app = document.getElementById('app');
+    if (app) app.classList.remove('map-open');
+    
+    document.getElementById('overview').style.display = 'block';
+    document.getElementById('map-area').style.display = 'none';
+    document.getElementById('map-toolbar').style.display = 'none';
+    
+    if (wsClient) { wsClient._dead = true; wsClient.ws?.close(); wsClient = null; }
+    loadMaps();
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  MAP DIALOGE (Neu, Löschen, Umbenennen)
+// ═══════════════════════════════════════════════════════════════════════
+
+function dlgNewMap() {
+    const titleInput = document.getElementById('nm-title');
+    const idInput = document.getElementById('nm-id');
+    if (titleInput) titleInput.value = '';
+    if (idInput) idInput.value = '';
+    
+    // Canvas Radios zurücksetzen
+    const freeRadio = document.querySelector('input[name="nm-canvas-mode"][value="free"]');
+    if (freeRadio) {
+        freeRadio.checked = true;
+        if (window._nmUpdateCanvasFields) window._nmUpdateCanvasFields();
+    }
+
+    window.openDlg('dlg-new-map');
+    setTimeout(() => titleInput?.focus(), 100);
+}
+
+async function confirmNewMap() {
+    const titleInput = document.getElementById('nm-title');
+    const title = titleInput?.value.trim();
+    let mapId = document.getElementById('nm-id')?.value.trim();
+
+    if (!title) {
+        titleInput?.focus();
+        if (window.showToast) window.showToast('Bitte Titel eingeben', 'warn');
+        return;
+    }
+
+    if (!mapId) {
+        mapId = title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+    }
+
+    const mode = document.querySelector('input[name="nm-canvas-mode"]:checked')?.value ?? 'free';
+    const payload = { title, map_id: mapId, canvas: { mode } };
+
+    const created = await api('/api/maps', 'POST', payload);
+    if (created) {
+        window.closeDlg('dlg-new-map');
+        if (window.showToast) window.showToast(`Map '${title}' erstellt`);
+        await loadMaps();
+        openMap(created.map_id || created.id);
+    }
+}
+
+function openCardMenu(e, mapId, mapTitle) {
+    // Schließe altes Menü
+    const old = document.getElementById('card-ctx-menu');
+    if (old) old.remove();
+
+    window._deleteMapId = mapId;
+    window._deleteMapTitle = mapTitle;
+    window._renameMapId = mapId;
+
+    const menu = document.createElement('div');
+    menu.id = 'card-ctx-menu';
+    menu.className = 'ctx-menu';
+    menu.style.cssText = `position:fixed; top:${e.clientY + 5}px; left:${e.clientX - 100}px; z-index:10000;`;
+    
+    menu.innerHTML = `
+        <button class="ctx-item" onclick="openMap('${esc(mapId)}')">▶ Öffnen</button>
+        <button class="ctx-item" onclick="window._renameMapId='${esc(mapId)}'; window.openDlg('dlg-rename-map')">✎ Umbenennen</button>
+        <button class="ctx-item ctx-danger" onclick="confirmDeleteMapById()">🗑 Löschen</button>
+    `;
+    
+    document.body.appendChild(menu);
+    // Klick außerhalb schließt Menü
+    setTimeout(() => {
+        document.addEventListener('click', () => menu.remove(), { once: true });
+    }, 10);
+}
+
+async function confirmDeleteMapById() {
+    const id = window._deleteMapId;
+    const title = window._deleteMapTitle;
+    if (!id) return;
+
+    if (confirm(`Möchtest du die Map "${title || id}" wirklich unwiderruflich löschen?`)) {
+        const ok = await api(`/api/maps/${id}`, 'DELETE');
+        if (ok) {
+            if (window.showToast) window.showToast('Map gelöscht');
+            loadMaps();
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  OBJEKT-LOGIK (createNode, createNodeEl etc. hier einfügen...)
+// ═══════════════════════════════════════════════════════════════════════
+
+// [Hier folgen deine restlichen ~700 Zeilen für Node-Erstellung, Drag&Drop etc.]
+// Wichtig ist, dass diese Funktionen am Ende exportiert werden:
+
+function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  GLOBALE EXPORTE (WICHTIG!)
+// ═══════════════════════════════════════════════════════════════════════
+
+window.loadMaps             = loadMaps;
+window.openMap              = openMap;
+window.showOverview         = showOverview;
+window.dlgNewMap            = dlgNewMap;
+window.confirmNewMap        = confirmNewMap;
+window.openCardMenu         = openCardMenu;
+window.confirmDeleteMapById = confirmDeleteMapById;
+window.esc                  = esc;
+
+// Falls du Migration/Import-Funktionen im Original hast, binde sie hier ebenfalls:
+// window.dlgMigrate = dlgMigrate;
+// window.confirmMigrate = confirmMigrate;
