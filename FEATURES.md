@@ -205,7 +205,7 @@ Deployment          ██░░░░░░░░░░░░░░░░░░
 
 ---
 
-## 💡 Meine Empfehlungen
+## 💡 
 
 **Was ich für den größten Hebel halte:**
 
