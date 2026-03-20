@@ -365,6 +365,7 @@
         <button class="type-chip"        data-type="textbox"      onclick="selectObjType('textbox')">T Textbox</button>
         <button class="type-chip"        data-type="line"         onclick="selectObjType('line')">— Linie</button>
         <button class="type-chip"        data-type="container"    onclick="selectObjType('container')">🖼 Container</button>
+        <button class="type-chip"        data-type="gadget"       onclick="selectObjType('gadget')">📊 Gadget</button>
       </div>
     </div>
 
@@ -480,6 +481,14 @@
         <label class="f-label" for="dlg-ct-url">Bild-URL</label>
         <input class="f-input" id="dlg-ct-url" type="text" placeholder="/backgrounds/logo.svg">
       </div>
+    </div>
+
+    <div id="dlg-fields-gadget" class="dlg-fields" style="display:none">
+      <div class="f-row">
+        <label class="f-label" for="dlg-gadget-metric">Bezeichnung</label>
+        <input class="f-input" id="dlg-gadget-metric" type="text" placeholder="z.B. CPU Auslastung">
+      </div>
+      <p class="f-hint">Nach dem Platzieren öffnet sich automatisch der Gadget-Konfigurations-Dialog.</p>
     </div>
 
     <div class="dlg-foot">

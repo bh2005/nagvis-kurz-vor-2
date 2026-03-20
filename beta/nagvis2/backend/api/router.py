@@ -144,12 +144,18 @@ class KioskUserUpdate(BaseModel):
 async def health():
     ls = await livestatus.check_connection()
     backends = registry.list_backends()
+    backend_health = await registry.health()
+    health_by_id = {b["backend_id"]: b for b in backend_health}
+    backends_with_status = [
+        {**b, "reachable": health_by_id.get(b["backend_id"], {}).get("reachable", False)}
+        for b in backends
+    ]
     return {
         "status":      "ok",
         "environment": settings.ENVIRONMENT,
         "demo_mode":   settings.DEMO_MODE or (not ls["connected"] and not backends),
         "livestatus":  ls,
-        "backends":    backends,
+        "backends":    backends_with_status,
         "version":     "2.0-beta",
     }
 

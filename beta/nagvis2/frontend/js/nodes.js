@@ -144,6 +144,11 @@ function applyStatuses(hosts, services) {
     const key = `${s.host_name}::${s.description}`;
     document.querySelectorAll(`[data-name="${esc(key)}"]`).forEach(el =>
       applyNodeStatus(el, s.state_label, s.acknowledged, s.in_downtime));
+    if (s.host_name && s.description) {
+      if (!serviceCache[s.host_name]) serviceCache[s.host_name] = [];
+      if (!serviceCache[s.host_name].includes(s.description))
+        serviceCache[s.host_name].push(s.description);
+    }
   }
   _updateWeathermapLines();
 }
@@ -173,10 +178,7 @@ function openGadgetConfigDialog(el, obj) {
 
   const cfg = obj.gadget_config ?? { type:'radial', metric:'', value:0, unit:'%', min:0, max:100, warning:70, critical:90 };
   const hosts = Object.values(hostCache);
-
-  const hostOptions = hosts.map(h =>
-    `<option value="${esc(h.name)}" ${cfg.host_name===h.name?'selected':''}>${esc(h.name)}</option>`
-  ).join('');
+  const hostDatalistOpts = hosts.map(h => `<option value="${esc(h.name)}">`).join('');
 
   const dlg = document.createElement('div');
   dlg.id = 'dlg-gadget-cfg';
@@ -200,9 +202,9 @@ function openGadgetConfigDialog(el, obj) {
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <div>
             <label class="f-label">Host</label>
-            <select class="f-select" id="gc-host" onchange="_gcUpdateServices()">
-              <option value="">(Demo / Statisch)</option>${hostOptions}
-            </select>
+            <input class="f-input" id="gc-host" type="text" placeholder="(Demo / Statisch)"
+                   value="${esc(cfg.host_name || '')}" list="gc-host-list" oninput="_gcUpdateServices()">
+            <datalist id="gc-host-list">${hostDatalistOpts}</datalist>
           </div>
           <div>
             <label class="f-label">Service / Metrik</label>
@@ -241,7 +243,7 @@ function openGadgetConfigDialog(el, obj) {
         <div><label class="f-label">↑ Ausgehend (Out)</label><input class="f-input" id="gc-value-out" type="number" value="${cfg.value_out ?? cfg.value ?? 0}" min="0"></div>
         <div><label class="f-label">↓ Eingehend (In)</label><input class="f-input" id="gc-value-in" type="number" value="${cfg.value_in ?? 0}" min="0"></div>
       </div>
-      <div id="gc-demo-row" style="margin-top:8px;${Object.keys(hostCache).length?'display:none':''}">
+      <div id="gc-demo-row" style="margin-top:8px;${cfg.host_name?'display:none':''}">
         <label class="f-label">Demo-Wert</label>
         <input class="f-input" id="gc-demo-value" type="number" value="${cfg.value ?? 0}" min="0" max="9999">
       </div>
@@ -338,7 +340,34 @@ window._gcUpdatePreview = function() {
   preview.appendChild(tmp);
 };
 
-window._gcUpdateServices = function() { /* Services aus hostCache laden – für jetzt Freitext */ };
+window._gcUpdateServices = function() {
+  const hostSel  = document.getElementById('gc-host');
+  const svcInput = document.getElementById('gc-service');
+  if (!hostSel || !svcInput) return;
+
+  const hostName = hostSel.value;
+  const listId   = 'gc-service-list';
+
+  // Alten Datalist entfernen
+  document.getElementById(listId)?.remove();
+
+  // Demo-Wert-Zeile: ausblenden wenn Host eingegeben, einblenden wenn leer
+  const demoRow = document.getElementById('gc-demo-row');
+  if (demoRow) demoRow.style.display = hostName ? 'none' : '';
+
+  const svcs = (hostName && serviceCache[hostName]) ?? [];
+  if (!svcs.length) return;
+
+  const dl = document.createElement('datalist');
+  dl.id = listId;
+  svcs.sort().forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = d;
+    dl.appendChild(opt);
+  });
+  svcInput.insertAdjacentElement('afterend', dl);
+  svcInput.setAttribute('list', listId);
+};
 
 window._gcSave = async function(objectId) {
   const type     = document.querySelector('#dlg-gadget-cfg .type-chip.active')?.dataset.gtype ?? 'radial';

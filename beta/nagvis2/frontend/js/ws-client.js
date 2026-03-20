@@ -210,6 +210,11 @@ async function detectDemoMode() {
         _activateDemoUI();
       } else {
         _demoMode = false;
+        // Backend läuft, aber kein Monitoring verfügbar → Demo-Map als Startpunkt öffnen
+        const anyBackendOk = (data.backends ?? []).some(b => b.reachable);
+        if (!data.livestatus?.connected && !anyBackendOk) {
+          setTimeout(() => { if (!activeMapId) openMap('demo-features'); }, 300);
+        }
       }
       return;
     }
@@ -277,14 +282,14 @@ async function api(path, method = 'GET', body = null) {
       localStorage.setItem('nv2-kiosk-users', JSON.stringify(users));
       return u;
     }
-    const _kioskPut = path.match(/^\/api\/kiosk-users\/([\w-]+)$/);
+    const _kioskPut = path.match(/^\/api\/kiosk-users\/([^/]+)$/);
     if (_kioskPut && method === 'PUT') {
       const users = JSON.parse(localStorage.getItem('nv2-kiosk-users') || '[]');
       const idx = users.findIndex(u => u.id === _kioskPut[1]);
       if (idx >= 0) { Object.assign(users[idx], body); localStorage.setItem('nv2-kiosk-users', JSON.stringify(users)); return users[idx]; }
       return null;
     }
-    const _kioskDel = path.match(/^\/api\/kiosk-users\/([\w-]+)$/);
+    const _kioskDel = path.match(/^\/api\/kiosk-users\/([^/]+)$/);
     if (_kioskDel && method === 'DELETE') {
       const users = JSON.parse(localStorage.getItem('nv2-kiosk-users') || '[]').filter(u => u.id !== _kioskDel[1]);
       localStorage.setItem('nv2-kiosk-users', JSON.stringify(users));
@@ -307,7 +312,7 @@ async function api(path, method = 'GET', body = null) {
       return { ...map };
     }
 
-    const mGet = path.match(/^\/api\/maps\/([\w-]+)$/);
+    const mGet = path.match(/^\/api\/maps\/([^/]+)$/);
     if (mGet && method === 'GET') {
       if (mGet[1] === 'demo-features') return JSON.parse(JSON.stringify(DEMO_MAP));
       const found = _demoMaps.find(m => m.id === mGet[1]);
@@ -315,7 +320,7 @@ async function api(path, method = 'GET', body = null) {
       return null;
     }
 
-    const mDel = path.match(/^\/api\/maps\/([\w-]+)$/);
+    const mDel = path.match(/^\/api\/maps\/([^/]+)$/);
     if (mDel && method === 'DELETE') { _demoMaps = _demoMaps.filter(m => m.id !== mDel[1]); return true; }
 
     const mObj = path.match(/^\/api\/maps\/([\w-]+)\/objects$/);

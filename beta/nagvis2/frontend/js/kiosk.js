@@ -474,7 +474,7 @@ window.openKioskUsersDlg = openKioskUsersDlg;
 //  KIOSK-MODUS (F11 / manueller Toggle)
 // ═══════════════════════════════════════════════════════════════════════
 
-window._kioskActive = false, _kioskRefreshTimer = null;
+window._kioskActive = false; window._kioskRefreshTimer = null;
 
 function toggleKiosk() { _kioskActive ? exitKiosk() : enterKiosk(); }
 
