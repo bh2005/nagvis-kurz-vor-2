@@ -13,6 +13,9 @@ markdown2>=2.4.13
 # Optional: Falls du später Websockets mit hoher Last nutzt
 websockets>=12.0
 
+# Async HTTP Client (Checkmk REST API Connector)
+httpx>=0.27.0
+
 # MkDocs (Help-System / Dokumentations-Website)
 mkdocs>=1.5.0
 mkdocs-material>=9.0.0

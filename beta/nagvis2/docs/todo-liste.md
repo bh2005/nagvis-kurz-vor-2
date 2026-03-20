@@ -26,13 +26,15 @@
 
 ## Checkmk REST API (Alternative zu Livestatus)
 
-- [ ] Checkmk REST API Connector in `core/` implementieren
-- [ ] Umgebungsvariable `MONITORING_TYPE` (z.B. `livestatus` | `checkmk`)
-- [ ] Checkmk-spezifische Config-Vars: `CHECKMK_URL`, `CHECKMK_USER`, `CHECKMK_SECRET`
-- [ ] Host- und Service-Status über REST API abrufen
+- [x] Checkmk REST API Connector in `checkmk/client.py` implementiert
+- [x] Unified Backend Registry in `connectors/registry.py` (Livestatus + Checkmk gemischt)
+- [x] Backends werden in `data/backends.json` persistiert (kein Neustart nötig)
+- [x] LIVESTATUS_* Umgebungsvariablen werden beim ersten Start auto-importiert (Rückwärtskompatibilität)
+- [x] Host- und Service-Status über REST API abrufbar (state ab Checkmk 2.2+)
+- [x] Health-Check-Endpoint zeigt alle konfigurierten Backends
+- [x] REST-API für Backend-Management: `GET/POST/DELETE /api/backends`, `POST /api/backends/{id}/test`
 - [ ] Autocomplete im Eigenschaften-Dialog aus Checkmk-Daten befüllen
-- [ ] Health-Check-Endpoint um Checkmk-Verbindung erweitern
-- [ ] Dokumentation: Admin-Guide um Checkmk-Abschnitt erweitern
+- [ ] Dokumentation: Admin-Guide um Checkmk/Multi-Backend-Abschnitt erweitern
 
 ---
 
@@ -86,27 +88,10 @@
 
 ## Dokumentation
 
-- [ ] MKDocs implementieren
 - [ ] `docs/osm-guide.md` — Weltkarte-Feature (sobald implementiert)
 - [ ] `docs/dev-guide.md` — Entwickler-Handbuch (Architektur, lokales Setup, wie man neue Features baut)
 - [ ] README.md aktualisieren (Screenshots, Feature-Übersicht)
 - [ ] CHANGELOG.md anlegen
-
----
-
-## Language Support
-
-- [ ] Sprache der user auswählbar default englisch
-- [ ] Implementierung Englisch
-- [ ] Implementierung Spanisch
-- [ ] Implementierung Französisch
-
----
-
-## UX
-- [ ] Host-Priority - Wenn ein Host DOWN ist, sollten die Services auf der Map idealerweise ausgegraut oder kleiner dargestellt werden
-- [ ] 
-- [ ] 
 
 ---
 
@@ -127,3 +112,7 @@
 - [x] Dokumentation: `docs/kiosk-guide.md` (ersetzt altes kiosk-integration.md)
 - [x] Dokumentation: `docs/api-reference.md`
 - [x] Altes `docs/kiosk-integration.md` gelöscht
+- [x] Checkmk REST API Connector (`checkmk/client.py`)
+- [x] Unified Backend Registry (`connectors/registry.py`) – Livestatus + Checkmk mixed
+- [x] Backend-Management API (`GET/POST/DELETE /api/backends`, Test-Endpoint)
+- [x] `httpx` zu requirements.txt hinzugefügt
