@@ -12,15 +12,15 @@
 
 ## OSM / Weltkarte
 
-- [ ] Neuer Canvas-Modus `osm` (OpenStreetMap via Leaflet.js)
-- [ ] Leaflet.js ins Frontend integrieren (CDN oder lokal)
-- [ ] Koordinatenformat für OSM-Nodes: lat/lng statt x%/y%
-- [ ] Nodes auf der Karte per Drag & Drop verschieben (Leaflet-Marker)
-- [ ] Tile-Server konfigurierbar machen (OpenStreetMap, eigener Tile-Server)
-- [ ] Canvas-Modus-Dialog um `osm`-Option erweitern
-- [ ] Zoom/Pan-Logik von Leaflet übernehmen (ersetzt eigenes zoom_pan.js für diesen Modus)
-- [ ] Backend: lat/lng in Map-Objekt-Koordinaten speichern
-- [ ] Dokumentation: `docs/osm-guide.md` erstellen
+- [x] Neuer Canvas-Modus `osm` (OpenStreetMap via Leaflet.js)
+- [x] Leaflet.js ins Frontend integrieren (CDN)
+- [x] Koordinatenformat für OSM-Nodes: lat/lng statt x%/y%
+- [x] Nodes auf der Karte per Drag & Drop verschieben (Leaflet-Marker)
+- [x] Tile-Server konfigurierbar machen (OpenStreetMap, eigener Tile-Server)
+- [x] Canvas-Modus-Dialog um `osm`-Option erweitern
+- [x] Zoom/Pan-Logik von Leaflet übernehmen (ersetzt eigenes zoom_pan.js für diesen Modus)
+- [x] Backend: lat/lng in Map-Objekt-Koordinaten speichern (x=lat, y=lng – kein Umbau nötig)
+- [x] Dokumentation: `docs/osm-guide.md` erstellt
 
 ---
 

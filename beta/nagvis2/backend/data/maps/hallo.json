@@ -2,7 +2,11 @@
   "id": "hallo",
   "title": "hallo",
   "canvas": {
-    "mode": "free"
+    "mode": "osm",
+    "overflow": "clamp",
+    "lat": 51,
+    "lng": 10,
+    "zoom": 6
   },
   "background": null,
   "parent_map": null,
