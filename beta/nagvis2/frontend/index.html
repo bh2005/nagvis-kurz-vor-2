@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NagVis 2</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="css/styles.css">
   <!-- Leaflet CSS (OSM-Modus) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -216,6 +217,12 @@
         </button>
         <button class="burger-item" onclick="window.open('/api/docs','_blank'); closeBurgerMenu()">
           <span class="burger-ico">⊞</span> Swagger API
+        </button>
+        <button class="burger-item" onclick="openLogViewer(); closeBurgerMenu()">
+          <span class="burger-ico">📋</span> Log anzeigen
+        </button>
+        <button class="burger-item" onclick="downloadLog(); closeBurgerMenu()">
+          <span class="burger-ico">⬇</span> Log herunterladen
         </button>
 
         <div class="burger-divider"></div>
@@ -771,6 +778,46 @@
     <div class="dlg-actions" style="flex-shrink:0">
       <button class="btn-cancel" onclick="closeDlg('dlg-manage-maps')">Schließen</button>
       <button class="btn-ok"     onclick="dlgNewMap(); closeDlg('dlg-manage-maps')">＋ Neue Map</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- DIALOG – System-Log ──────────────────────────────────────────── -->
+<div class="dlg-overlay" id="dlg-log">
+  <div class="dlg-box" style="width:780px; max-width:95vw; display:flex; flex-direction:column; max-height:85vh;">
+    <h3 style="flex-shrink:0">System-Log</h3>
+    <div style="display:flex; gap:8px; align-items:center; flex-shrink:0;
+                padding-bottom:10px; border-bottom:1px solid var(--border); flex-wrap:wrap;">
+      <label class="f-label" style="margin:0">Zeilen:</label>
+      <select id="log-lines-sel" style="width:80px;">
+        <option value="100">100</option>
+        <option value="250">250</option>
+        <option value="500" selected>500</option>
+        <option value="1000">1000</option>
+        <option value="2000">2000</option>
+      </select>
+      <label class="f-label" style="margin:0 0 0 8px">Level-Filter:</label>
+      <select id="log-level-sel" style="width:100px;">
+        <option value="">Alle</option>
+        <option value="DEBUG">DEBUG</option>
+        <option value="INFO">INFO</option>
+        <option value="WARNING">WARNING</option>
+        <option value="ERROR">ERROR</option>
+        <option value="CRITICAL">CRITICAL</option>
+      </select>
+      <input id="log-text-filter" type="text" placeholder="Textsuche…" style="width:150px; flex:1; min-width:100px;">
+      <button class="btn-ok" style="padding:4px 12px;" onclick="loadLog()">↺ Aktualisieren</button>
+      <button class="btn-cancel" style="padding:4px 12px;" onclick="downloadLog()">⬇ Download</button>
+    </div>
+    <pre id="log-pre"
+         style="flex:1; overflow:auto; margin:10px 0 0; padding:8px 10px;
+                font-size:0.73rem; line-height:1.5; white-space:pre-wrap; word-break:break-all;
+                background:var(--bg-alt,#111); border-radius:var(--r);
+                color:var(--text); font-family:monospace;"></pre>
+    <div class="dlg-actions" style="flex-shrink:0; padding-top:8px;">
+      <span id="log-info" style="font-size:0.75rem; color:var(--muted); margin-right:auto;"></span>
+      <button class="btn-cancel" onclick="closeDlg('dlg-log')">Schließen</button>
     </div>
   </div>
 </div>

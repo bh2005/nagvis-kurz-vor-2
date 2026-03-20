@@ -1,0 +1,135 @@
+# NagVis 2 – Helm Values
+# Alle Werte können per --set oder -f custom-values.yaml überschrieben werden.
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/bh2005/nagvis2
+  pullPolicy: IfNotPresent
+  tag: "2.0-beta"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# ── Service ────────────────────────────────────────────────────────────
+service:
+  type: ClusterIP
+  port: 8000
+
+# ── Ingress ────────────────────────────────────────────────────────────
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: nagvis2.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: nagvis2-tls
+  #    hosts:
+  #      - nagvis2.example.com
+
+# ── Ressourcen ─────────────────────────────────────────────────────────
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# ── Autoscaling ────────────────────────────────────────────────────────
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+# ── Persistenz ─────────────────────────────────────────────────────────
+persistence:
+  enabled: true
+  storageClass: ""   # leer = Default StorageClass
+  accessMode: ReadWriteOnce
+  size: 1Gi
+  # Vorhandenes PVC nutzen (wenn enabled=true und existingClaim gesetzt):
+  existingClaim: ""
+
+# ── Umgebungsvariablen ─────────────────────────────────────────────────
+env:
+  # Demo-Modus (kein Backend nötig, simulierte Status-Updates)
+  DEMO_MODE: "false"
+  # Logging: "text" (Standard) oder "json" (für ELK/Loki)
+  LOG_FORMAT: "json"
+  LOG_LEVEL: "INFO"
+  # Livestatus-Backend (TCP)
+  LIVESTATUS_TYPE: "tcp"
+  LIVESTATUS_HOST: "checkmk-server"
+  LIVESTATUS_PORT: "6557"
+  # WebSocket-Poll-Intervall in Sekunden
+  WS_POLL_INTERVAL: "10"
+  # CORS (komma-separierte Origins, * erlaubt alles)
+  CORS_ORIGINS: "*"
+
+# ── Secrets (als K8s Secret referenzieren) ────────────────────────────
+envFrom: []
+# - secretRef:
+#     name: nagvis2-secrets
+
+# ── Service Account ───────────────────────────────────────────────────
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# ── Pod-Einstellungen ─────────────────────────────────────────────────
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/path: "/metrics"
+  prometheus.io/port: "8000"
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+# ── Probes ────────────────────────────────────────────────────────────
+livenessProbe:
+  httpGet:
+    path: /health/live
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 30
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health/ready
+    port: http
+  initialDelaySeconds: 15
+  periodSeconds: 20
+  failureThreshold: 3
+
+# ── Node-Selector / Tolerations / Affinity ───────────────────────────
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# ── ServiceMonitor (Prometheus Operator) ─────────────────────────────
+serviceMonitor:
+  enabled: false
+  interval: 30s
+  path: /metrics
+  labels: {}
+    # release: prometheus

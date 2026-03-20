@@ -79,6 +79,14 @@ Alle Einstellungen erfolgen über Umgebungsvariablen (oder `.env`-Datei im `back
 | `DEBUG` | `true` | Swagger-Docs aktivieren, Auto-Reload |
 | `DEMO_MODE` | `false` | Statische Testdaten, kein Livestatus |
 
+### Logging
+
+| Variable | Standard | Beschreibung |
+|---|---|---|
+| `LOG_FORMAT` | `text` | `text` (menschenlesbar) oder `json` (ELK/Loki) |
+| `LOG_LEVEL` | `INFO` | `DEBUG` \| `INFO` \| `WARNING` \| `ERROR` \| `CRITICAL` |
+| `LOG_BUFFER_LINES` | `1000` | Anzahl Zeilen im In-Memory-Log-Puffer (0 = deaktiviert) |
+
 ### Server
 
 | Variable | Standard | Beschreibung |
@@ -111,6 +119,110 @@ NagVis 2 sucht automatisch in dieser Reihenfolge:
 1. OMD-Sites: `/omd/sites/<site>/tmp/run/live`
 2. Nagios-Standard: `/var/run/nagios/live`, `/var/lib/nagios3/rw/live`
 3. TCP: `LIVESTATUS_HOST:LIVESTATUS_PORT`
+
+---
+
+## Monitoring & Observability
+
+### Prometheus-Metriken
+
+NagVis 2 stellt einen Prometheus-kompatiblen Scrape-Endpunkt bereit:
+
+```
+GET /metrics
+```
+
+| Metrik | Typ | Beschreibung |
+|---|---|---|
+| `nagvis2_http_requests_total` | Counter | HTTP-Requests nach Method, Path, Status |
+| `nagvis2_http_request_duration_seconds` | Histogram | Request-Dauer |
+| `nagvis2_ws_connections` | Gauge | Aktive WebSocket-Verbindungen gesamt |
+| `nagvis2_ws_connections_per_map` | Gauge | WebSocket-Verbindungen je Map |
+| `nagvis2_backend_reachable` | Gauge | 1 = erreichbar, 0 = nicht erreichbar |
+| `nagvis2_backend_poll_duration_seconds` | Histogram | Dauer des Status-Poll-Zyklus |
+| `nagvis2_backend_poll_errors_total` | Counter | Fehler im Poll-Zyklus |
+| `nagvis2_maps_total` | Gauge | Anzahl konfigurierter Maps |
+| `nagvis2_objects_total` | Gauge | Anzahl aller Objekte auf allen Maps |
+
+**Prometheus `scrape_config`:**
+```yaml
+scrape_configs:
+  - job_name: nagvis2
+    static_configs:
+      - targets: ['nagvis2-host:8000']
+    metrics_path: /metrics
+```
+
+**Helm-Chart mit Prometheus Operator:**
+```bash
+helm install nagvis2 ./helm/nagvis2 \
+  --set serviceMonitor.enabled=true \
+  --set serviceMonitor.labels.release=prometheus
+```
+
+### Kubernetes Health-Probes
+
+| Endpoint | Typ | Antwort |
+|---|---|---|
+| `GET /health/live` | Liveness | Immer `200 {"status":"alive"}` |
+| `GET /health/ready` | Readiness | `200` wenn Backend erreichbar, `503` sonst |
+
+```yaml
+livenessProbe:
+  httpGet:
+    path: /health/live
+    port: 8000
+  initialDelaySeconds: 10
+  periodSeconds: 30
+
+readinessProbe:
+  httpGet:
+    path: /health/ready
+    port: 8000
+  initialDelaySeconds: 15
+  periodSeconds: 20
+```
+
+### Strukturiertes Logging (JSON)
+
+Für Produktionsumgebungen mit ELK-Stack oder Loki:
+
+```env
+LOG_FORMAT=json
+LOG_LEVEL=INFO
+```
+
+Beispiel-Ausgabe:
+```json
+{"ts": "2026-03-20T10:00:00", "level": "INFO", "logger": "nagvis.ws", "message": "Poll-Loop gestartet"}
+```
+
+Voraussetzung: `python-json-logger` muss installiert sein (in `requirements.txt` enthalten).
+
+---
+
+### Log-Viewer (Burger-Menü)
+
+Über **Burger-Menü → System → 📋 Log anzeigen** lassen sich die letzten Anwendungs-Logs direkt im Browser einsehen:
+
+- **Zeilen:** 100 bis 2000 letzte Zeilen auswählbar
+- **Level-Filter:** Alle / DEBUG / INFO / WARNING / ERROR / CRITICAL
+- **Textsuche:** Freitext-Filter (client-seitig, ohne neuen Request)
+- **Download:** Log als `nagvis2.log` herunterladen
+
+Der Puffer hält standardmäßig **1000 Zeilen** im RAM (konfigurierbar via `LOG_BUFFER_LINES`).
+
+REST-API direkt:
+```bash
+# Letzte 200 Zeilen als JSON
+GET /api/logs?lines=200
+
+# Nur ERROR-Einträge
+GET /api/logs?lines=500&level=ERROR
+
+# Als Datei herunterladen
+GET /api/logs?lines=1000&download=true
+```
 
 ---
 
@@ -147,7 +259,9 @@ nagvis2/
     │   ├── storage.py
     │   ├── perfdata.py      ← Nagios/Checkmk Perfdata-Parser
     │   ├── livestatus.py
-    │   └── migrate.py
+    │   ├── migrate.py
+    │   ├── metrics.py       ← Prometheus-Metriken (Gauges, Counter, Histogramme)
+    │   └── logging_setup.py ← Log-Format (text/json), In-Memory-Ringpuffer
     ├── checkmk/
     │   └── client.py        ← Checkmk REST API Client
     ├── connectors/
@@ -349,3 +463,6 @@ Für Produktiv-Deployments `DEBUG=false` setzen.
 - `data/`-Verzeichnis regelmäßig sichern (Maps, Backends, Kiosk-User)
 - `LIVESTATUS_SITE` explizit setzen (schnellerer Start)
 - `UVICORN_WORKERS` auf CPU-Kernanzahl setzen (ab 2 Workers)
+- `LOG_FORMAT=json` für Log-Aggregation (ELK, Loki, Splunk)
+- `/metrics` hinter einem Reverse-Proxy absichern (nicht öffentlich exponieren)
+- `LOG_BUFFER_LINES=500` in Produktionsumgebungen (RAM sparen)

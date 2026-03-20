@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import List, Optional, Any
 
 from fastapi import APIRouter, HTTPException, UploadFile, File, Query, Body
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 from pydantic import BaseModel
 
 from core.config import settings
@@ -544,3 +544,34 @@ async def api_kiosk_resolve(token: str = Query(...)):
     if not user:
         raise HTTPException(404, "Ungültiger Kiosk-Token")
     return user
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  System-Log
+# ══════════════════════════════════════════════════════════════════════
+
+@api_router.get("/logs")
+async def api_get_logs(
+    lines: int  = Query(500, ge=1, le=2000, description="Anzahl der letzten Log-Zeilen"),
+    level: str  = Query("", description="Filter: nur Zeilen die diesen Text enthalten (z.B. ERROR)"),
+    download: bool = Query(False, description="Als Datei herunterladen"),
+):
+    """Gibt die letzten N In-Memory-Log-Zeilen zurück."""
+    from core.logging_setup import get_log_lines
+    log_lines = get_log_lines()
+
+    if level:
+        f = level.upper()
+        log_lines = [l for l in log_lines if f in l.upper()]
+
+    log_lines = log_lines[-lines:]
+
+    if download:
+        content = "\n".join(log_lines)
+        return Response(
+            content=content,
+            media_type="text/plain; charset=utf-8",
+            headers={"Content-Disposition": "attachment; filename=nagvis2.log"},
+        )
+
+    return {"lines": log_lines, "total": len(log_lines), "buffered": len(get_log_lines())}

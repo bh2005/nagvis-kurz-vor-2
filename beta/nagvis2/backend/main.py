@@ -2,13 +2,27 @@
 NagVis 2 – FastAPI Backend
 """
 
+import time
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
-from fastapi import FastAPI
+
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from prometheus_client import make_asgi_app, generate_latest, CONTENT_TYPE_LATEST
 
 from core.config import settings
+from core.logging_setup import setup_logging, get_uvicorn_log_config
+from core.metrics import (
+    http_requests_total, http_request_duration,
+    ws_connections, ws_connections_per_map,
+    maps_total, objects_total,
+)
+
+# Logging als allererstes konfigurieren
+setup_logging()
+log = logging.getLogger("nagvis.main")
 
 # Verzeichnisse sofort anlegen – VOR StaticFiles-Mount
 settings.ensure_dirs()
@@ -20,13 +34,34 @@ settings.ensure_dirs()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print(f"🚀 NagVis 2 → {settings.ENVIRONMENT} | DEBUG={settings.DEBUG} | DEMO={settings.DEMO_MODE}")
+    log.info(
+        "NagVis 2 starting",
+        extra={"environment": settings.ENVIRONMENT,
+               "debug": settings.DEBUG,
+               "demo_mode": settings.DEMO_MODE},
+    )
     from ws.manager import start_poller
     start_poller()
+
+    # Initiale Map-/Objekt-Metriken setzen
+    _refresh_map_metrics()
+
     yield
+
     from ws.manager import stop_poller
     stop_poller()
-    print("🛑 NagVis 2 shutting down")
+    log.info("NagVis 2 shutdown")
+
+
+def _refresh_map_metrics():
+    """Zählt Maps + Objekte und aktualisiert die Prometheus-Gauges."""
+    try:
+        from core.storage import list_maps
+        all_maps = list_maps()
+        maps_total.set(len(all_maps))
+        objects_total.set(sum(len(m.get("objects", [])) for m in all_maps))
+    except Exception:
+        pass
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -51,6 +86,30 @@ app.add_middleware(
 
 
 # ══════════════════════════════════════════════════════════════════════
+#  HTTP-Metriken-Middleware
+# ══════════════════════════════════════════════════════════════════════
+
+# Pfade die nicht in die Metriken aufgenommen werden (zu viel Rauschen)
+_METRICS_SKIP = {"/metrics", "/health", "/health/live", "/health/ready",
+                 "/favicon.svg", "/favicon.ico"}
+
+@app.middleware("http")
+async def _metrics_middleware(request: Request, call_next):
+    path = request.url.path
+    # Statische Dateien (Frontend, Backgrounds) nicht einzeln tracken
+    skip = path in _METRICS_SKIP or path.startswith(("/backgrounds/", "/js/", "/css/", "/help/"))
+    t0 = time.perf_counter()
+    response = await call_next(request)
+    if not skip:
+        elapsed = time.perf_counter() - t0
+        method  = request.method
+        status  = str(response.status_code)
+        http_requests_total.labels(method=method, path=path, status=status).inc()
+        http_request_duration.labels(method=method, path=path).observe(elapsed)
+    return response
+
+
+# ══════════════════════════════════════════════════════════════════════
 #  Router
 # ══════════════════════════════════════════════════════════════════════
 
@@ -62,20 +121,79 @@ app.include_router(ws_router)
 
 
 # ══════════════════════════════════════════════════════════════════════
-#  Static Files
+#  Prometheus /metrics
 # ══════════════════════════════════════════════════════════════════════
 
-# /backgrounds/ – immer vorhanden (ensure_dirs hat es angelegt)
-app.mount("/backgrounds", StaticFiles(directory=str(settings.BG_DIR)), name="backgrounds")
+@app.get("/metrics", include_in_schema=False)
+async def metrics():
+    """Prometheus-Scrape-Endpoint (text/plain; version=0.0.4)."""
+    # WS-Verbindungen aktuell messen
+    try:
+        from ws.manager import manager as ws_manager
+        total = 0
+        for map_id, conns in ws_manager._connections.items():
+            count = len(conns)
+            ws_connections_per_map.labels(map_id=map_id).set(count)
+            total += count
+        ws_connections.set(total)
+    except Exception:
+        pass
 
-# Frontend – nur mounten wenn Ordner existiert
-_frontend_dir = settings.BASE_DIR.parent / "frontend"
-if _frontend_dir.exists():
-    app.mount("/", StaticFiles(directory=str(_frontend_dir), html=True), name="frontend")
-else:
-    print(f"⚠  frontend/ nicht gefunden ({_frontend_dir}) – nur API-Modus aktiv")
-    print(f"   Lege einen 'frontend/' Ordner neben 'backend/' an und kopiere")
-    print(f"   index.html, css/, js/, src/ hinein.")
+    # Map-/Objekt-Zähler aktualisieren
+    _refresh_map_metrics()
+
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  Kubernetes Health-Probes
+# ══════════════════════════════════════════════════════════════════════
+
+@app.get("/health/live", include_in_schema=False)
+async def health_live():
+    """Liveness-Probe: Prozess läuft. Gibt immer 200 zurück."""
+    return {"status": "alive"}
+
+
+@app.get("/health/ready", include_in_schema=False)
+async def health_ready():
+    """
+    Readiness-Probe: Mindestens ein Backend erreichbar ODER Demo-Modus aktiv.
+    Gibt 200 zurück wenn bereit, 503 wenn nicht.
+    """
+    from connectors.registry import registry
+    from fastapi.responses import JSONResponse
+
+    if settings.DEMO_MODE:
+        return {"status": "ready", "demo": True}
+
+    if registry.is_empty():
+        return JSONResponse(
+            status_code=503,
+            content={"status": "not_ready", "reason": "no backends configured"},
+        )
+
+    backend_health = await registry.health()
+    reachable = [b for b in backend_health if b.get("reachable")]
+
+    # Prometheus-Metriken für Backend-Erreichbarkeit aktualisieren
+    try:
+        from core.metrics import backend_reachable
+        for b in backend_health:
+            backend_reachable.labels(
+                backend_id=b["backend_id"],
+                backend_type=b.get("type", "unknown"),
+            ).set(1 if b.get("reachable") else 0)
+    except Exception:
+        pass
+
+    if reachable:
+        return {"status": "ready", "backends": len(reachable)}
+
+    return JSONResponse(
+        status_code=503,
+        content={"status": "not_ready", "reason": "no backends reachable"},
+    )
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -88,6 +206,19 @@ async def health_compat():
     return await health()
 
 
+# ══════════════════════════════════════════════════════════════════════
+#  Static Files
+# ══════════════════════════════════════════════════════════════════════
+
+app.mount("/backgrounds", StaticFiles(directory=str(settings.BG_DIR)), name="backgrounds")
+
+_frontend_dir = settings.BASE_DIR.parent / "frontend"
+if _frontend_dir.exists():
+    app.mount("/", StaticFiles(directory=str(_frontend_dir), html=True), name="frontend")
+else:
+    log.warning("frontend/ nicht gefunden (%s) – nur API-Modus aktiv", _frontend_dir)
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
@@ -96,4 +227,5 @@ if __name__ == "__main__":
         port=settings.PORT,
         reload=settings.DEBUG,
         workers=1 if settings.DEBUG else settings.UVICORN_WORKERS,
+        log_config=get_uvicorn_log_config(),
     )
