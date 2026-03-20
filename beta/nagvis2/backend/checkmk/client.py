@@ -195,6 +195,7 @@ class CheckmkClient:
                 last_check    = _parse_timestamp(ext.get("last_check")),
                 acknowledged  = bool(ext.get("acknowledged", False)),
                 in_downtime   = bool(ext.get("in_downtime", False)),
+                perf_data     = ext.get("perf_data") or ext.get("performance_data", ""),
                 backend_id    = self.cfg.backend_id,
             ))
         log.debug("get_services: %d from '%s'", len(result), self.cfg.backend_id)

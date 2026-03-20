@@ -2,134 +2,163 @@
 
 **Moderne, schnelle und wartbare Web-Oberfläche für Nagios / Checkmk / Icinga**
 
-Eine komplette Neuentwicklung von NagVis mit:
-- FastAPI-Backend + WebSocket-Livestatus
-- Vanilla-JS-Frontend (kein Framework, super leicht)
-- Vollständigem Edit-Mode, Gadgets, Weathermap-Linien und Kiosk-Rotation
+Eine komplette Neuentwicklung von NagVis mit FastAPI-Backend, WebSocket-Livestatus und einem Vanilla-JS-Frontend ohne Framework-Abhängigkeiten.
 
 ---
 
-## ✨ Features
+## Features
 
-- **Echtzeit-Updates** via WebSocket (Livestatus)
-- **Edit-Mode** mit Drag & Drop, Layer-System, Linien & Textboxen
-- **Gadgets** (Radial, Linear, Sparkline, Thermometer, Flow, Raw-Number)
-- **Weathermap-Linien** mit automatischer Status-Farbe
-- **Kiosk-Modus** mit Token-Login und automatischer Rotation
-- **Snap-In-Panels** (Hosts, Events, Maps, Layer)
-- **Docker-fähig** (getrennte Container oder alles-in-einem)
-- **Theme-Switch** (Dark/Light) + vollständige Responsiveness
+| Bereich | Details |
+|---|---|
+| **Echtzeit-Updates** | WebSocket-Livestatus, automatischer Reconnect, Offline-Banner |
+| **Edit-Mode** | Drag & Drop, Multi-Select (Lasso + Shift+Klick), Gruppen-Drag, Layer-System |
+| **Gadgets** | Radial, Linear (H/V), Sparkline, Thermometer, Flow/Weather, Raw-Number |
+| **Perfdata** | Nagios/Checkmk Performance-Daten automatisch in Gadgets eingespeist |
+| **Weathermap-Linien** | Statusfarbe, Bandbreiten-Labels, bidirektionale Pfeile |
+| **Multi-Backend** | Livestatus TCP/Unix + Checkmk REST API gemischt, Hot-Add ohne Neustart |
+| **Kiosk-Modus** | Token-URL, automatische Map-Rotation, Vollbild mit Zoom/Pan |
+| **Help-System** | Integriertes MkDocs-Hilfe-System unter `/help/` |
+| **Docker** | `docker compose up --build` — fertig |
+| **Theme** | Dark / Light, responsiv |
 
 ---
 
-## 🚀 Schnellstart (empfohlen)
+## Schnellstart
 
-### Mit Docker (am einfachsten)
+### Docker (empfohlen)
 
 ```bash
 cd beta/nagvis2
-
-# Erster Start (baut die Images)
 docker compose up --build -d
-
-# Danach reicht:
-docker compose up -d
 ```
 
 Öffne im Browser: **http://localhost:8080**
 
 ---
 
-### Manuelle Installation (ohne Docker)
+### Manuell (ohne Docker)
 
-1. Backend starten:
-   ```bash
-   cd backend
-   pip install -r requirements.txt
-   uvicorn main:app --host 0.0.0.0 --port 8000
-   ```
+```bash
+# 1. Repository klonen
+git clone https://github.com/bh2005/nagvis-kurz-vor-2
+cd nagvis-kurz-vor-2/beta/nagvis2
 
-2. Frontend + nginx:
-   ```bash
-   # nginx.conf liegt bereits im Root
-   nginx -c nginx.conf
-   ```
+# 2. Python-Umgebung anlegen (WSL2 / Linux / macOS)
+cd backend
+python3 -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+
+# 3. Backend starten
+python main.py
+# → http://localhost:8000
+```
+
+Das Frontend wird direkt von FastAPI unter `http://localhost:8000/` ausgeliefert.
 
 ---
 
-## 📁 Ordnerstruktur
+## Konfiguration (.env)
 
-```text
-beta/nagvis2/
-├── backend/              # FastAPI + Livestatus-Logik
-├── frontend/             # Vanilla JS + HTML + CSS
+Kopiere `.env.example` → `.env` im `backend/`-Verzeichnis und passe an:
+
+```env
+# Pflicht für Live-Betrieb
+LIVESTATUS_TYPE=tcp          # tcp | unix | auto | disabled
+LIVESTATUS_HOST=localhost
+LIVESTATUS_PORT=6557
+
+# Optional
+DEBUG=false                  # true = Swagger-Docs + Auto-Reload
+DEMO_MODE=false              # true = statische Testdaten
+WS_POLL_INTERVAL=10          # Sekunden zwischen Livestatus-Abfragen
+```
+
+Alternativ Checkmk REST API als Backend konfigurieren: Burger-Menü → **⚙ Backends verwalten**.
+
+---
+
+## Hilfe & API-Dokumentation
+
+| URL | Inhalt |
+|---|---|
+| `http://localhost:8000/help/` | Integriertes Benutzer- und Admin-Handbuch (MkDocs) |
+| `http://localhost:8000/api/docs` | Swagger UI (nur wenn `DEBUG=true`) |
+| `http://localhost:8000/api/health` | System-Status + Backend-Erreichbarkeit |
+
+---
+
+## Ordnerstruktur
+
+```
+nagvis2/
+├── backend/
+│   ├── main.py
+│   ├── requirements.txt
+│   ├── Dockerfile
+│   ├── core/
+│   │   ├── config.py
+│   │   ├── storage.py
+│   │   ├── perfdata.py       ← Nagios Perfdata-Parser
+│   │   ├── livestatus.py
+│   │   └── migrate.py
+│   ├── checkmk/
+│   │   └── client.py         ← Checkmk REST API Client
+│   ├── connectors/
+│   │   └── registry.py       ← Unified Backend Registry
+│   ├── api/
+│   │   └── router.py
+│   └── ws/
+│       ├── manager.py
+│       ├── router.py
+│       └── demo_data.py
+├── frontend/
 │   ├── index.html
-│   ├── css/
-│   ├── assets/
-│   └── js/               # bereits aufgesplittet
-├── data/                 # Persistente Daten (Maps, Backgrounds, Tokens)
+│   ├── css/styles.css
+│   ├── help/                 ← MkDocs-Output (mkdocs build)
+│   └── js/
+│       ├── constants.js
+│       ├── state.js
+│       ├── gadget-renderer.js
+│       ├── zoom_pan.js
+│       ├── ws-client.js
+│       ├── nodes.js
+│       ├── map-core.js
+│       ├── ui-core.js
+│       ├── kiosk.js
+│       └── app.js
+├── docs/                     ← MkDocs-Quelldateien
+├── data/                     ← Persistente Daten (auto-erstellt)
+│   ├── maps/
+│   ├── backgrounds/
+│   ├── backends.json
+│   └── kiosk_users.json
+├── mkdocs.yml
 ├── nginx.conf
 ├── docker-compose.yml
-├── Dockerfile.backend
-└── README.md
+└── .env.example
 ```
 
 ---
 
-## ⚙️ Konfiguration
+## Hilfe-System bauen (MkDocs)
 
-- Alle wichtigen Einstellungen kommen über `.env` (siehe `.env.example` – wird noch angelegt)
-- Kiosk-Token-Login via `?kiosk=DEIN_TOKEN`
-- Docker-Volumes: `./data` bleibt persistent
+```bash
+cd nagvis-kurz-vor-2/beta/nagvis2
+pip install mkdocs-material
+mkdocs build           # Ausgabe: frontend/help/
+```
 
----
-
-## 📸 Screenshots
-
-*(kommen bald – aktuell in Entwicklung)*
+Danach ist die Hilfe unter `http://localhost:8000/help/` erreichbar.
 
 ---
 
-## 🛠 Entwicklung & Mitwirken
+## Lizenz
 
-1. Forken
-2. `docker compose up --build` (empfohlen)
-3. Änderungen im `frontend/js/` oder `backend/` vornehmen
-4. Pull Request
+Dieses Projekt steht unter der **MIT License** – siehe [LICENSE](LICENSE).
 
 ---
 
-## 📄 License
-
-Dieses Projekt steht unter der **MIT License** – siehe [LICENSE](LICENSE) Datei.
-
----
-
-**Projektstatus:** Beta (funktioniert stabil, aber noch in aktiver Weiterentwicklung)
-
----
-
-**Autor:** bh2005  
+**Projektstatus:** Beta (funktioniert stabil, aktive Weiterentwicklung)
+**Autor:** bh2005
 **Version:** 2.0 Beta (März 2026)
-
----
-
- WSL2 (Ubuntu) 
-bash# Einmalig: venv erstellen
-python3 -m venv venv
-
-# Aktivieren
-source venv/bin/activate
-
-# Jetzt pip install normal
-pip install -r requirements.txt
-
-# Backend starten
-python main.py
-Der Prompt wechselt dann zu (venv) bh2005@NB14656:... – das zeigt dass der venv aktiv ist.
-Für nächste Male reicht dann immer:
-bashcd backend
-source venv/bin/activate
-python main.py
-Den venv/-Ordner am besten in .gitignore eintragen falls noch nicht drin:
-bashecho "venv/" >> ../.gitignore

@@ -379,6 +379,67 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#backends" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backends
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Backends">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-apibackends" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GET /api/backends
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-apibackends" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        POST /api/backends
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-apibackendsbackend_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DELETE /api/backends/{backend_id}
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-apibackendsprobe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        POST /api/backends/probe
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#maps" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1050,6 +1111,67 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#backends" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backends
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Backends">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-apibackends" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GET /api/backends
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-apibackends" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        POST /api/backends
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-apibackendsbackend_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DELETE /api/backends/{backend_id}
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-apibackendsprobe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        POST /api/backends/probe
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#maps" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1432,7 +1554,7 @@
 <hr />
 <h2 id="health">Health</h2>
 <h3 id="get-apihealth">GET /api/health</h3>
-<p>Systemstatus und Livestatus-Verbindung prüfen.</p>
+<p>Systemstatus, Livestatus-Verbindung und alle konfigurierten Backends prüfen.</p>
 <p><strong>Antwort:</strong></p>
 <pre><code class="language-json">{
   &quot;status&quot;: &quot;ok&quot;,
@@ -1443,8 +1565,84 @@
     &quot;demo&quot;: false,
     &quot;error&quot;: null
   },
+  &quot;backends&quot;: [
+    {
+      &quot;backend_id&quot;: &quot;default&quot;,
+      &quot;type&quot;: &quot;livestatus_tcp&quot;,
+      &quot;label&quot;: &quot;Livestatus (localhost:6557)&quot;,
+      &quot;reachable&quot;: true
+    }
+  ],
   &quot;version&quot;: &quot;2.0-beta&quot;
 }
+</code></pre>
+<p>Das Feld <code>reachable</code> zeigt an, ob das Backend beim letzten Ping erreichbar war.</p>
+<hr />
+<h2 id="backends">Backends</h2>
+<h3 id="get-apibackends">GET /api/backends</h3>
+<p>Alle konfigurierten Backends auflisten (inkl. Erreichbarkeitsstatus).</p>
+<p><strong>Antwort:</strong></p>
+<pre><code class="language-json">[
+  {
+    &quot;backend_id&quot;: &quot;default&quot;,
+    &quot;type&quot;: &quot;livestatus_tcp&quot;,
+    &quot;label&quot;: &quot;Livestatus (localhost:6557)&quot;,
+    &quot;host&quot;: &quot;localhost&quot;,
+    &quot;port&quot;: 6557,
+    &quot;reachable&quot;: true
+  },
+  {
+    &quot;backend_id&quot;: &quot;checkmk-prod&quot;,
+    &quot;type&quot;: &quot;checkmk_rest&quot;,
+    &quot;label&quot;: &quot;Checkmk Production&quot;,
+    &quot;url&quot;: &quot;http://checkmk:5000/mysite&quot;,
+    &quot;reachable&quot;: false
+  }
+]
+</code></pre>
+<hr />
+<h3 id="post-apibackends">POST /api/backends</h3>
+<p>Neues Backend hinzufügen.</p>
+<p><strong>Body (Livestatus TCP):</strong></p>
+<pre><code class="language-json">{
+  &quot;type&quot;: &quot;livestatus_tcp&quot;,
+  &quot;label&quot;: &quot;Nagios Production&quot;,
+  &quot;host&quot;: &quot;nagios.example.com&quot;,
+  &quot;port&quot;: 6557
+}
+</code></pre>
+<p><strong>Body (Livestatus Unix):</strong></p>
+<pre><code class="language-json">{
+  &quot;type&quot;: &quot;livestatus_unix&quot;,
+  &quot;label&quot;: &quot;Nagios lokal&quot;,
+  &quot;path&quot;: &quot;/var/run/nagios/live&quot;
+}
+</code></pre>
+<p><strong>Body (Checkmk REST API):</strong></p>
+<pre><code class="language-json">{
+  &quot;type&quot;: &quot;checkmk_rest&quot;,
+  &quot;label&quot;: &quot;Checkmk Production&quot;,
+  &quot;url&quot;: &quot;http://checkmk:5000/mysite&quot;,
+  &quot;username&quot;: &quot;automation&quot;,
+  &quot;password&quot;: &quot;secret&quot;
+}
+</code></pre>
+<p><strong>Antwort:</strong> <code>201 Created</code> mit Backend-Objekt inkl. generierter <code>backend_id</code></p>
+<hr />
+<h3 id="delete-apibackendsbackend_id">DELETE /api/backends/{backend_id}</h3>
+<p>Backend löschen.</p>
+<p><strong>Antwort:</strong></p>
+<pre><code class="language-json">{ &quot;deleted&quot;: &quot;checkmk-prod&quot; }
+</code></pre>
+<hr />
+<h3 id="post-apibackendsprobe">POST /api/backends/probe</h3>
+<p>Verbindung testen <strong>ohne</strong> das Backend zu speichern.</p>
+<p><strong>Body:</strong> wie <code>POST /api/backends</code></p>
+<p><strong>Antwort (Erfolg):</strong></p>
+<pre><code class="language-json">{ &quot;reachable&quot;: true, &quot;message&quot;: &quot;Connection OK – 3 hosts found&quot; }
+</code></pre>
+<p><strong>Antwort (Fehler):</strong></p>
+<pre><code class="language-json">{ &quot;reachable&quot;: false, &quot;message&quot;: &quot;Connection refused&quot; }
 </code></pre>
 <hr />
 <h2 id="maps">Maps</h2>

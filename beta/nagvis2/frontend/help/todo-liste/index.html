@@ -680,28 +680,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#language-support" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Language Support
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#ux" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        UX
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#erledigt" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -843,28 +821,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#language-support" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Language Support
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#ux" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        UX
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#erledigt" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -917,32 +873,36 @@
 <hr />
 <h2 id="checkmk-rest-api-alternative-zu-livestatus">Checkmk REST API (Alternative zu Livestatus)</h2>
 <ul>
-<li>[ ] Checkmk REST API Connector in <code>core/</code> implementieren</li>
-<li>[ ] Umgebungsvariable <code>MONITORING_TYPE</code> (z.B. <code>livestatus</code> | <code>checkmk</code>)</li>
-<li>[ ] Checkmk-spezifische Config-Vars: <code>CHECKMK_URL</code>, <code>CHECKMK_USER</code>, <code>CHECKMK_SECRET</code></li>
-<li>[ ] Host- und Service-Status über REST API abrufen</li>
+<li>[x] Checkmk REST API Connector in <code>checkmk/client.py</code> implementiert</li>
+<li>[x] Unified Backend Registry in <code>connectors/registry.py</code> (Livestatus + Checkmk gemischt)</li>
+<li>[x] Backends werden in <code>data/backends.json</code> persistiert (kein Neustart nötig)</li>
+<li>[x] LIVESTATUS_* Umgebungsvariablen werden beim ersten Start auto-importiert (Rückwärtskompatibilität)</li>
+<li>[x] Host- und Service-Status über REST API abrufbar (state ab Checkmk 2.2+)</li>
+<li>[x] Health-Check-Endpoint zeigt alle konfigurierten Backends</li>
+<li>[x] REST-API für Backend-Management: <code>GET/POST/DELETE /api/backends</code>, <code>POST /api/backends/{id}/test</code></li>
 <li>[ ] Autocomplete im Eigenschaften-Dialog aus Checkmk-Daten befüllen</li>
-<li>[ ] Health-Check-Endpoint um Checkmk-Verbindung erweitern</li>
-<li>[ ] Dokumentation: Admin-Guide um Checkmk-Abschnitt erweitern</li>
+<li>[ ] Dokumentation: Admin-Guide um Checkmk/Multi-Backend-Abschnitt erweitern</li>
 </ul>
 <hr />
 <h2 id="gadget-konfiguration">Gadget-Konfiguration</h2>
 <ul>
-<li>[ ] UI für Gadget-Parameter im Eigenschaften-Dialog</li>
-<li>Radial (CPU, RAM): min/max, Einheit, Farb-Schwellen</li>
-<li>Linear (Balken): min/max, Einheit, Orientierung</li>
-<li>Sparkline (Zeitverlauf): Zeitraum, Datenpunkt-Anzahl</li>
-<li>Thermometer: min/max, Einheit</li>
-<li>Flow/Weather: Richtung, Einheit</li>
-<li>Raw-Number: Einheit, Nachkommastellen</li>
-<li>[ ] Gadget-Vorschau im Konfigurationsdialog</li>
-<li>[ ] Metrikwerte aus Livestatus/Checkmk in Gadgets einspeisen (Perfdata-Parsing)</li>
-<li>[ ] Gadget-Werte im WebSocket-Snapshot mitliefern</li>
+<li>[x] UI für Gadget-Parameter im Eigenschaften-Dialog</li>
+<li>Radial: min/max, Einheit, Warning/Critical-Schwellen</li>
+<li>Linear: min/max, Einheit, Orientierung (Horizontal/Vertikal)</li>
+<li>Sparkline: Datenpunkt-Anzahl konfigurierbar (5–100)</li>
+<li>Thermometer: min/max, Einheit, Warning/Critical</li>
+<li>Flow/Weather: Richtung (aus/ein/bidirektional)</li>
+<li>Raw-Number: Divisor, Anzeigeeinheit, Nachkommastellen</li>
+<li>[x] Gadget-Vorschau im Konfigurationsdialog</li>
+<li>[x] Metrikwerte aus Livestatus/Checkmk in Gadgets einspeisen (Perfdata-Parsing)</li>
+<li>[x] Gadget-Werte im WebSocket-Snapshot mitliefern</li>
 </ul>
 <hr />
 <h2 id="ux-frontend">UX / Frontend</h2>
 <ul>
-<li>[ ] Multi-Select: mehrere Nodes gleichzeitig auswählen und verschieben (Shift+Klick oder Lasso)</li>
+<li>[x] Multi-Select: mehrere Nodes gleichzeitig auswählen und verschieben (Shift+Klick oder Lasso)</li>
+<li>[x] Multi-Select: Delete/Backspace zum Löschen aller ausgewählten Nodes</li>
+<li>[x] Multi-Select: Escape hebt Selektion auf (vor anderen Escape-Aktionen)</li>
 <li>[ ] Undo/Redo für Positionsänderungen (Ctrl+Z / Ctrl+Y)</li>
 <li>[ ] Objekt-Reihenfolge ändern (Layer-Management im Edit-Mode)</li>
 <li>[ ] Suche/Filter in der Sidebar (Maps und Hosts durchsuchen)</li>
@@ -972,26 +932,10 @@
 <hr />
 <h2 id="dokumentation">Dokumentation</h2>
 <ul>
-<li>[ ] MKDocs implementieren</li>
 <li>[ ] <code>docs/osm-guide.md</code> — Weltkarte-Feature (sobald implementiert)</li>
 <li>[ ] <code>docs/dev-guide.md</code> — Entwickler-Handbuch (Architektur, lokales Setup, wie man neue Features baut)</li>
 <li>[ ] README.md aktualisieren (Screenshots, Feature-Übersicht)</li>
 <li>[ ] CHANGELOG.md anlegen</li>
-</ul>
-<hr />
-<h2 id="language-support">Language Support</h2>
-<ul>
-<li>[ ] Sprache der user auswählbar default englisch</li>
-<li>[ ] Implementierung Englisch</li>
-<li>[ ] Implementierung Spanisch</li>
-<li>[ ] Implementierung Französisch</li>
-</ul>
-<hr />
-<h2 id="ux">UX</h2>
-<ul>
-<li>[ ] Host-Priority - Wenn ein Host DOWN ist, sollten die Services auf der Map idealerweise ausgegraut oder kleiner dargestellt werden</li>
-<li>[ ] </li>
-<li>[ ] </li>
 </ul>
 <hr />
 <h2 id="erledigt">Erledigt ✅</h2>
@@ -1011,6 +955,17 @@
 <li>[x] Dokumentation: <code>docs/kiosk-guide.md</code> (ersetzt altes kiosk-integration.md)</li>
 <li>[x] Dokumentation: <code>docs/api-reference.md</code></li>
 <li>[x] Altes <code>docs/kiosk-integration.md</code> gelöscht</li>
+<li>[x] Checkmk REST API Connector (<code>checkmk/client.py</code>)</li>
+<li>[x] Unified Backend Registry (<code>connectors/registry.py</code>) – Livestatus + Checkmk mixed</li>
+<li>[x] Backend-Management API (<code>GET/POST/DELETE /api/backends</code>, Test-Endpoint)</li>
+<li>[x] <code>httpx</code> zu requirements.txt hinzugefügt</li>
+<li>[x] Health-Endpoint: <code>reachable</code>-Feld pro Backend (Frontend-Fallback auf Demo-Map)</li>
+<li>[x] Demo-Features Map (<code>data/maps/demo-features.json</code>) – immer DEMO_STATUS über WS</li>
+<li>[x] Kiosk-Modus: Zoom/Pan-Fix für SVG-Linien und Weathermap-Linien</li>
+<li>[x] Gadget-Konfigurations-Dialog: Host-Feld als Text-Input mit Datalist-Autocomplete</li>
+<li>[x] Burger-Menü: Hilfe-Links öffnen in neuem Fenster + Swagger-Link</li>
+<li>[x] mkdocs.yml: site_dir auf <code>frontend/help/</code> korrigiert</li>
+<li>[x] Dokumentation: user-guide.md, admin-guide.md, kiosk-guide.md, api-reference.md aktualisiert</li>
 </ul>
 
 

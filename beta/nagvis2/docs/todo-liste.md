@@ -48,8 +48,8 @@
   - Flow/Weather: Richtung (aus/ein/bidirektional)
   - Raw-Number: Divisor, Anzeigeeinheit, Nachkommastellen
 - [x] Gadget-Vorschau im Konfigurationsdialog
-- [ ] Metrikwerte aus Livestatus/Checkmk in Gadgets einspeisen (Perfdata-Parsing)
-- [ ] Gadget-Werte im WebSocket-Snapshot mitliefern
+- [x] Metrikwerte aus Livestatus/Checkmk in Gadgets einspeisen (Perfdata-Parsing)
+- [x] Gadget-Werte im WebSocket-Snapshot mitliefern
 
 ---
 

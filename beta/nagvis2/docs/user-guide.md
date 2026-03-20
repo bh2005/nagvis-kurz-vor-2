@@ -47,6 +47,28 @@ NagVis 2 visualisiert den Status deiner Monitoring-Umgebung (Nagios / Checkmk / 
 | Hosts | Live-Liste aller Hosts mit Status |
 | Events | Stream von Statusänderungen |
 
+### Burger-Menü (☰)
+
+| Eintrag | Beschreibung |
+|---|---|
+| ＋ Neue Map erstellen | Neue Map anlegen |
+| ✏ Bearbeiten / Fertig | Edit-Mode umschalten |
+| 🖼 Hintergrund hochladen | Hintergrundbild für aktive Map |
+| ✎ Umbenennen | Titel der aktiven Map ändern |
+| 🗺 Parent-Map setzen | Map in Hierarchie einordnen |
+| ⊡ Canvas-Format ändern | Format + Node-Verhalten anpassen |
+| 📤 Map exportieren | ZIP-Archiv herunterladen |
+| 📥 Map importieren | ZIP-Archiv einspielen |
+| ↑ NagVis 1 importieren | .cfg-Datei migrieren |
+| 🗑 Map löschen | Aktive Map dauerhaft löschen |
+| ⛶ Kiosk / Vollbild | Kiosk-Modus umschalten |
+| ⬛ Kiosk-User verwalten | Token-URLs für Displays anlegen |
+| ⚙ Backends verwalten | Monitoring-Backends konfigurieren |
+| ⚡ Aktionen konfigurieren | URL-Templates für Monitoring-Aktionen |
+| ⚙ Einstellungen | Theme, Sidebar, Kiosk-Optionen |
+| ☰ Hilfe | Handbücher (öffnen im neuen Fenster) |
+| </> Swagger UI | REST-API-Dokumentation (nur im Debug-Modus) |
+
 ---
 
 ## Maps
@@ -60,6 +82,8 @@ NagVis 2 visualisiert den Status deiner Monitoring-Umgebung (Nagios / Checkmk / 
    - **Seitenverhältnis** – 16:9, 4:3, 21:9, etc.
    - **Feste Auflösung** – z.B. 1920×1080 px
    - **Hintergrundbild** – Canvas passt sich an das Bild an
+
+Die neue Map öffnet sich direkt im Edit-Mode.
 
 ### Map öffnen
 
@@ -192,16 +216,42 @@ Zeigt ein Bild (PNG, SVG) an einem festen Punkt auf der Karte.
 
 ### Gadget
 
-Visualisiert Metrikwerte grafisch:
+Visualisiert Metrikwerte grafisch — entweder als statischer Demo-Wert oder mit Live-Daten aus Performance-Daten (Perfdata).
 
 | Typ | Beschreibung |
 |---|---|
-| Radial | Kreisförmige Anzeige (CPU, RAM) |
-| Linear | Balkenanzeige |
-| Sparkline | Zeitverlauf-Kurve |
-| Thermometer | Temperaturanzeige |
-| Flow/Weather | Bidirektionale Durchflussanzeige |
-| Raw-Number | Numerischer Wert mit Einheit |
+| ⏱ Radial | Kreisförmige Anzeige (CPU, RAM, ...) |
+| ▬ Linear Horizontal | Balken von links nach rechts |
+| ▬ Linear Vertikal | Balken von unten nach oben |
+| 〜 Sparkline | Zeitverlauf-Kurve mit konfigurierbarer Datenpunkt-Anzahl |
+| 🌡 Thermometer | Temperatur / Füllstand |
+| → Flow / Weather | Uni- oder bidirektionale Durchflussanzeige |
+| 🔢 Raw-Number | Numerischer Wert mit Divisor und Einheit |
+
+#### Gadget konfigurieren
+
+Rechtsklick auf Gadget → **⚙ Gadget konfigurieren**:
+
+| Feld | Beschreibung |
+|---|---|
+| **Anzeigetyp** | Typ des Gadgets wählen |
+| **Host** | Monitoring-Host (Autocomplete aus Live-Daten) |
+| **Service** | Service-Description (Autocomplete) |
+| **Perfdata-Metrik** | Perfdata-Schlüssel des Monitoring-Checks (z.B. `load1`, `mem_used_percent`) |
+| **Bezeichnung** | Anzeige-Label unter dem Gadget |
+| **Einheit** | Maßeinheit (z.B. `%`, `°C`, `Mbps`) |
+| **Min / Max** | Skalierungsbereich |
+| **Warning / Critical** | Schwellenwerte (Warn = gelb, Crit = rot) |
+| **Orientierung** | Horizontal oder Vertikal (nur Linear) |
+| **Datenpunkte** | Maximale History-Länge (nur Sparkline, 5–100) |
+| **Divisor / Anzeigeeinheit / Nachkommastellen** | Wertumrechnung (nur Raw-Number) |
+| **Richtung** | Ausgehend / Eingehend / Bidirektional (nur Flow) |
+| **Demo-Wert** | Statischer Testwert wenn kein Host konfiguriert |
+| **Anzeigegröße** | Skalierung des Gadgets (40–300%) |
+
+> **Perfdata-Vorrang:** Wenn Host + Service gesetzt sind, werden `warn`/`crit`/`min`/`max` aus den Perfdata automatisch übernommen — eigene Werte im Dialog haben jedoch immer Vorrang.
+
+Die **Live-Vorschau** am unteren Dialogrand aktualisiert sich bei jeder Änderung sofort.
 
 ---
 
@@ -232,6 +282,8 @@ Aktionen konfigurieren: Burger-Menü → ⚡ Aktionen konfigurieren
 | Schwenken | Maus gedrückt halten + ziehen |
 | Zoom zurücksetzen | Topbar **⊙** |
 
+Zoom und Pan funktionieren identisch im normalen Modus und im Kiosk-Modus — alle Objekte (Nodes, SVG-Linien, Weathermap) werden gemeinsam transformiert.
+
 ---
 
 ## Tastaturkürzel
@@ -242,7 +294,7 @@ Aktionen konfigurieren: Burger-Menü → ⚡ Aktionen konfigurieren
 | **Ctrl+E** | Edit-Mode umschalten |
 | **R** | Status-Refresh erzwingen |
 | **F11** | Kiosk-Modus / Vollbild |
-| **Esc** | Auswahl aufheben / Dialog schließen / Edit-Mode beenden |
+| **Esc** | Auswahl aufheben → Dialog schließen → Edit-Mode beenden |
 | **Shift+Klick** | Node zur Multi-Selektion hinzufügen (Edit-Mode) |
 | **Delete** / **Backspace** | Ausgewählte Nodes löschen (Edit-Mode) |
 
@@ -264,7 +316,18 @@ Wenn die WebSocket-Verbindung unterbrochen wird, erscheint ein roter Banner auf 
 
 ### Demo-Modus-Banner
 
-Blauer Banner am unteren Bildschirmrand zeigt an, dass keine Live-Daten vorhanden sind.
+Blauer Banner am unteren Bildschirmrand zeigt an, dass keine Live-Daten vorhanden sind. Die Demo-Map **„NagVis 2 – Feature Demo"** öffnet sich automatisch und zeigt alle Gadget-Typen mit Demo-Perfdata.
+
+### Toast-Benachrichtigungen
+
+Kurze Statusmeldungen oben rechts:
+
+| Typ | Farbe | Beispiel |
+|---|---|---|
+| OK | Grün | „Gadget CPU Load aktualisiert" |
+| Info | Blau | „Map gespeichert" |
+| Warning | Gelb | „Verbindung unterbrochen" |
+| Error | Rot | „Backend nicht erreichbar" |
 
 ---
 
@@ -274,4 +337,4 @@ Burger-Menü → ⚙ Einstellungen:
 
 - **Erscheinungsbild** – Dark / Light Theme
 - **Sidebar beim Start** – ausgeklappt oder eingeklappt
-- **Kiosk-Modus** – Sidebar/Topbar ausblenden, Auto-Refresh-Intervall
+- **Kiosk-Modus** – Sidebar/Topbar ausblenden, Auto-Refresh-Intervall (30s / 1min / 2min / 5min)
