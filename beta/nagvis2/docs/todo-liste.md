@@ -40,14 +40,14 @@
 
 ## Gadget-Konfiguration
 
-- [ ] UI für Gadget-Parameter im Eigenschaften-Dialog
-  - Radial (CPU, RAM): min/max, Einheit, Farb-Schwellen
-  - Linear (Balken): min/max, Einheit, Orientierung
-  - Sparkline (Zeitverlauf): Zeitraum, Datenpunkt-Anzahl
-  - Thermometer: min/max, Einheit
-  - Flow/Weather: Richtung, Einheit
-  - Raw-Number: Einheit, Nachkommastellen
-- [ ] Gadget-Vorschau im Konfigurationsdialog
+- [x] UI für Gadget-Parameter im Eigenschaften-Dialog
+  - Radial: min/max, Einheit, Warning/Critical-Schwellen
+  - Linear: min/max, Einheit, Orientierung (Horizontal/Vertikal)
+  - Sparkline: Datenpunkt-Anzahl konfigurierbar (5–100)
+  - Thermometer: min/max, Einheit, Warning/Critical
+  - Flow/Weather: Richtung (aus/ein/bidirektional)
+  - Raw-Number: Divisor, Anzeigeeinheit, Nachkommastellen
+- [x] Gadget-Vorschau im Konfigurationsdialog
 - [ ] Metrikwerte aus Livestatus/Checkmk in Gadgets einspeisen (Perfdata-Parsing)
 - [ ] Gadget-Werte im WebSocket-Snapshot mitliefern
 

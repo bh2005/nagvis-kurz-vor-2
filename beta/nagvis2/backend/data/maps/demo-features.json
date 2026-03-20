@@ -60,12 +60,12 @@
     {
       "object_id": "line::connection-1",
       "type": "line",
-      "x": 30,
-      "y": 30,
-      "x2": 70,
-      "y2": 70,
+      "x": 30.0,
+      "y": 30.0,
+      "x2": 85.52,
+      "y2": 40.79,
       "line_style": "dashed",
-      "line_width": 2,
+      "line_width": 5,
       "color": "#475569"
     },
     {
@@ -102,14 +102,42 @@
       "gadget_config": {
         "type": "radial",
         "metric": "CPU Load",
-        "value": 42,
         "unit": "%",
         "min": 0,
         "max": 100,
-        "warning": 70,
-        "critical": 90
+        "warning": 85,
+        "critical": 90,
+        "value": 42,
+        "history": [
+          30,
+          45,
+          52,
+          38,
+          61,
+          55,
+          70,
+          65,
+          48,
+          58,
+          72,
+          68,
+          80,
+          75,
+          62,
+          68,
+          55,
+          70,
+          65,
+          78,
+          75,
+          60,
+          65,
+          58,
+          72
+        ]
       },
-      "label": "CPU Load"
+      "label": "CPU Load",
+      "size": 130
     },
     {
       "object_id": "gadget::memory-01",

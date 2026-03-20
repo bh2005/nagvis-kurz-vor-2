@@ -38,18 +38,12 @@ window.createGadget = function(obj) {
 
 window.updateGadget = function(el, data) {
   const type = el.dataset.gadgetType;
-  if (type === 'rawnumber' || type === 'thermometer') {
-    // Komplett neu rendern – einfacher als SVG-Patching
+  if (type === 'rawnumber' || type === 'thermometer' || type === 'linear') {
+    // Komplett neu rendern (linear: Orientierung kann sich ändern)
     el.innerHTML = _renderGadget({ ...data, type });
     return;
   }
-  if (type === 'linear') {
-    const bar   = el.querySelector('.g-bar');
-    const label = el.querySelector('.g-val');
-    const pct   = _pct(data.value, data.min ?? 0, data.max ?? 100);
-    if (bar)   { bar.style.width = `${pct}%`; bar.style.background = _color(pct); }
-    if (label) label.textContent = `${_fmt(data.value)}${data.unit||''}`;
-  } else if (type === 'sparkline') {
+  if (type === 'sparkline') {
     _updateSparkline(el, data.value, data.warning, data.critical, data.max);
   } else if (type === 'weather') {
     _updateWeather(el, data.value, data.max);
@@ -151,9 +145,13 @@ function _arcAngle(pct) {
 
 
 // ════════════════════════════════════════════════════════
-//  LINEAR BAR  – Balken mit Warn/Crit-Linien
+//  LINEAR BAR  – Balken mit Warn/Crit-Linien (horizontal + vertikal)
 // ════════════════════════════════════════════════════════
 function _linear(cfg) {
+  return (cfg.orientation === 'vertical') ? _linearV(cfg) : _linearH(cfg);
+}
+
+function _linearH(cfg) {
   const min  = cfg.min  ?? 0;
   const max  = cfg.max  ?? 100;
   const warn = cfg.warning  ?? 70;
@@ -199,12 +197,57 @@ function _linear(cfg) {
     <div class="nv2-label" style="margin-top:2px">${_gesc(cfg.metric||'Linear')}</div>`;
 }
 
+function _linearV(cfg) {
+  const min  = cfg.min  ?? 0;
+  const max  = cfg.max  ?? 100;
+  const warn = cfg.warning  ?? 70;
+  const crit = cfg.critical ?? 90;
+  const pct  = _pct(cfg.value, min, max);
+  const wPct = _pct(warn, min, max);
+  const cPct = _pct(crit, min, max);
+  const col  = _color(pct);
+
+  return `
+    <div style="display:inline-flex;flex-direction:column;align-items:center;padding:2px 8px">
+      <span style="font-family:monospace;font-size:8px;color:var(--text-dim);margin-bottom:2px">
+        ${max}${cfg.unit||''}
+      </span>
+      <!-- Balken -->
+      <div style="position:relative;width:14px;height:80px;background:var(--border);
+                  border-radius:3px;overflow:visible">
+        <!-- Crit-Linie -->
+        <div style="position:absolute;left:-4px;right:-4px;bottom:${cPct.toFixed(1)}%;
+                    height:2px;background:var(--crit);border-radius:1px;opacity:.85"
+             title="Critical: ${crit}${cfg.unit||''}"></div>
+        <!-- Warn-Linie -->
+        <div style="position:absolute;left:-4px;right:-4px;bottom:${wPct.toFixed(1)}%;
+                    height:2px;background:var(--warn);border-radius:1px;opacity:.85"
+             title="Warning: ${warn}${cfg.unit||''}"></div>
+        <!-- Füll-Balken von unten -->
+        <div class="g-bar" style="
+          position:absolute;bottom:0;left:0;right:0;border-radius:3px;
+          height:${pct.toFixed(1)}%;
+          background:${col};
+          transition:height .4s,background .4s"></div>
+      </div>
+      <span class="g-val" style="font-family:monospace;font-size:9px;color:${col};
+                                 font-weight:600;margin-top:3px">
+        ${_fmt(cfg.value)}${cfg.unit||''}
+      </span>
+      <span style="font-family:monospace;font-size:8px;color:var(--text-dim);margin-top:1px">
+        ${min}
+      </span>
+    </div>
+    <div class="nv2-label">${_gesc(cfg.metric||'Linear')}</div>`;
+}
+
 
 // ════════════════════════════════════════════════════════
 //  SPARKLINE  – korrekt im SVG-Viewport + Warn/Crit-Linien
 // ════════════════════════════════════════════════════════
 function _sparkline(cfg) {
-  const history = (cfg.history || [cfg.value ?? 0]).slice(-25);
+  const maxPts  = cfg.history_points ?? 25;
+  const history = (cfg.history || [cfg.value ?? 0]).slice(-maxPts);
   const max     = Math.max(...history, cfg.max ?? 1, 1);
   const warn    = cfg.warning  ?? max * 0.70;
   const crit    = cfg.critical ?? max * 0.90;
