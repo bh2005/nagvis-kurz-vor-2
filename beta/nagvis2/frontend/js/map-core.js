@@ -198,6 +198,7 @@ function showOverview() {
   if (wsClient) { wsClient._dead = true; wsClient.ws?.close(); wsClient = null; }
   closeSnapin(activeSnapin);
   hostCache = {};
+  serviceCache = {};
   activeMapId = null;
   if (editActive) toggleEdit();
 
@@ -221,11 +222,13 @@ function selectObjType(type) {
   _activeObjType = type;
   document.querySelectorAll('.type-chip').forEach(c => c.classList.toggle('active', c.dataset.type === type));
   const monTypes = ['host','hostgroup','servicegroup','map'];
-  document.getElementById('dlg-fields-monitoring').style.display = monTypes.includes(type) ? 'block' : 'none';
-  document.getElementById('dlg-fields-service')  .style.display = type === 'service'   ? 'block' : 'none';
-  document.getElementById('dlg-fields-textbox')  .style.display = type === 'textbox'   ? 'block' : 'none';
-  document.getElementById('dlg-fields-line')     .style.display = type === 'line'      ? 'block' : 'none';
-  document.getElementById('dlg-fields-container').style.display = type === 'container' ? 'block' : 'none';
+  const _sf = (id, show) => { const el = document.getElementById(id); if (el) el.style.display = show ? 'block' : 'none'; };
+  _sf('dlg-fields-monitoring', monTypes.includes(type));
+  _sf('dlg-fields-service',    type === 'service');
+  _sf('dlg-fields-textbox',    type === 'textbox');
+  _sf('dlg-fields-line',       type === 'line');
+  _sf('dlg-fields-container',  type === 'container');
+  _sf('dlg-fields-gadget',     type === 'gadget');
   const lbl = { host:'Hostname', hostgroup:'Gruppenname', servicegroup:'Gruppenname', map:'Map-ID' };
   const nameLabel = document.getElementById('dlg-name-label');
   if (nameLabel) nameLabel.textContent = lbl[type] ?? 'Name';
@@ -252,17 +255,29 @@ async function confirmAddObject() {
     Object.assign(payload, { x2: parseFloat(pos.x) + 20, y2: parseFloat(pos.y), line_style: document.getElementById('dlg-ln-style').value, line_width: parseInt(document.getElementById('dlg-ln-width').value) || (isWM ? 4 : 1), color: document.getElementById('dlg-ln-color').value, ...(isWM ? { line_type:'weathermap', line_split:true, show_arrow:true } : {}) });
   } else if (type === 'container') {
     Object.assign(payload, { url: document.getElementById('dlg-ct-url').value.trim(), w: 12, h: 8 });
+  } else if (type === 'gadget') {
+    const metric = document.getElementById('dlg-gadget-metric').value.trim() || 'Gadget';
+    Object.assign(payload, {
+      label: metric,
+      gadget_config: { type: 'radial', value: 0, unit: '%', min: 0, max: 100, warning: 70, critical: 90, metric },
+    });
   }
 
   const obj = await api(`/api/maps/${activeMapId}/objects`, 'POST', payload);
-  if (obj) { const el = createNode(obj); if (el && editActive) makeDraggable(el); }
+  if (obj) {
+    const el = createNode(obj);
+    if (el && editActive) makeDraggable(el);
+    if (type === 'gadget' && el && typeof openGadgetConfigDialog === 'function') {
+      openGadgetConfigDialog(el, obj);
+    }
+  }
   closeDlg('dlg-add-object');
   pendingPos = null;
 }
 
 async function confirmNewMap() {
   const title  = document.getElementById('nm-title').value.trim();
-  const mapId  = document.getElementById('nm-id').value.trim();
+  const mapId  = document.getElementById('nm-id').value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
   if (!title) { document.getElementById('nm-title').focus(); return; }
   const mode   = document.querySelector('input[name="nm-canvas-mode"]:checked')?.value ?? 'free';
   const canvas = {};
@@ -272,7 +287,10 @@ async function confirmNewMap() {
   else { canvas.mode = 'free'; }
   closeDlg('dlg-new-map');
   const created = await api('/api/maps', 'POST', { title, map_id: mapId, canvas });
-  if (created) openMap(created.id);
+  if (created) {
+    try { await openMap(created.id); } catch(e) { console.error('[NV2] openMap Fehler:', e); }
+    if (!editActive) toggleEdit();
+  }
 }
 
 async function confirmDeleteMap() {
@@ -282,7 +300,7 @@ async function confirmDeleteMap() {
   showOverview();
 }
 
-window._deleteMapId = null, _deleteMapTitle = null;
+window._deleteMapId = null; window._deleteMapTitle = null;
 async function confirmDeleteMapById() {
   if (!_deleteMapId) return;
   if (!confirm(`Map „${_deleteMapTitle ?? _deleteMapId}" wirklich löschen?`)) return;
@@ -313,7 +331,7 @@ window._nmUpdateCanvasFields = _nmUpdateCanvasFields;
 //  MAP MANAGEMENT
 // ═══════════════════════════════════════════════════════════════════════
 
-window._renameMapId = null, _parentMapId = null;
+window._renameMapId = null; window._parentMapId = null;
 
 function openRenameMapDlg() {
   _renameMapId = activeMapId;

@@ -18,6 +18,7 @@ Object.defineProperty(window, 'editActive', {
 
 window.pendingPos    = null;
 window.hostCache     = {};
+window.serviceCache  = {};   // hostname → string[]  (service descriptions)
 window.eventLog      = [];
 window.activeSnapin  = null;
 window.currentTheme  = 'dark';

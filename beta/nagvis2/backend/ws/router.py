@@ -26,10 +26,11 @@ async def ws_map(websocket: WebSocket, map_id: str):
 
     manager.connect(map_id, websocket)
 
-    try:
-        # Initialen Snapshot senden
-        if settings.DEMO_MODE:
-            from ws.demo_data import DEMO_STATUS
+    from ws.demo_data import DEMO_STATUS
+    is_demo_map = (map_id == "demo-features")
+
+    async def _send_snapshot():
+        if settings.DEMO_MODE or is_demo_map:
             await websocket.send_text(json.dumps({
                 "event":    "snapshot",
                 "ts":       time.time(),
@@ -37,10 +38,10 @@ async def ws_map(websocket: WebSocket, map_id: str):
                 "services": [],
             }))
         else:
-            t0      = time.time()
-            hosts   = await livestatus.get_hosts()
-            services= await livestatus.get_services()
-            elapsed = int((time.time() - t0) * 1000)
+            t0       = time.time()
+            hosts    = await livestatus.get_hosts()
+            services = await livestatus.get_services()
+            elapsed  = int((time.time() - t0) * 1000)
             await websocket.send_text(json.dumps({
                 "event":    "snapshot",
                 "ts":       time.time(),
@@ -49,6 +50,10 @@ async def ws_map(websocket: WebSocket, map_id: str):
                 "services": services,
             }))
 
+    try:
+        # Initialen Snapshot senden
+        await _send_snapshot()
+
         # Client-Nachrichten empfangen
         while True:
             try:
@@ -56,23 +61,7 @@ async def ws_map(websocket: WebSocket, map_id: str):
                 msg = json.loads(raw)
 
                 if msg.get("cmd") == "force_refresh":
-                    if settings.DEMO_MODE:
-                        from ws.demo_data import DEMO_STATUS
-                        await websocket.send_text(json.dumps({
-                            "event":    "snapshot",
-                            "ts":       time.time(),
-                            "hosts":    DEMO_STATUS,
-                            "services": [],
-                        }))
-                    else:
-                        hosts    = await livestatus.get_hosts()
-                        services = await livestatus.get_services()
-                        await websocket.send_text(json.dumps({
-                            "event":    "snapshot",
-                            "ts":       time.time(),
-                            "hosts":    hosts,
-                            "services": services,
-                        }))
+                    await _send_snapshot()
 
             except asyncio.TimeoutError:
                 # Heartbeat wenn Client nichts sendet

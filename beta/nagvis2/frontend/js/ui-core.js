@@ -69,7 +69,7 @@ function closeBurgerMenu() {
 
 window.toggleBurgerMenu    = toggleBurgerMenu;
 window.closeBurgerMenu     = closeBurgerMenu;
-window.showNodeContextMenu = showNodeContextMenu;  // für gadget-renderer.js
+// showNodeContextMenu wird in nodes.js auf window exportiert
 
 function setTheme(theme, save = true) {
   currentTheme = theme;
