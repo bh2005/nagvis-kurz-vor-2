@@ -23,6 +23,7 @@ from core.storage import (
     kiosk_list, kiosk_create, kiosk_update, kiosk_delete, kiosk_get_by_token,
 )
 from core import livestatus
+from connectors.registry import registry
 from ws.manager import manager as ws_manager
 
 api_router = APIRouter(prefix="/api", tags=["api"])
@@ -105,6 +106,23 @@ class ActionRequest(BaseModel):
     start_time: Optional[int] = None
     end_time: Optional[int] = None
 
+class BackendCreate(BaseModel):
+    backend_id:  str
+    type:        str            # "livestatus_tcp" | "livestatus_unix" | "checkmk"
+    # Livestatus TCP
+    host:        Optional[str]  = None
+    port:        Optional[int]  = None
+    # Livestatus Unix
+    socket_path: Optional[str]  = None
+    # Checkmk REST API
+    base_url:    Optional[str]  = None
+    username:    Optional[str]  = None
+    secret:      Optional[str]  = None
+    verify_ssl:  Optional[bool] = True
+    # Gemeinsam
+    timeout:     Optional[float] = None
+    enabled:     bool = True
+
 class KioskUser(BaseModel):
     label: str
     maps: List[str] = []
@@ -125,11 +143,13 @@ class KioskUserUpdate(BaseModel):
 @api_router.get("/health")
 async def health():
     ls = await livestatus.check_connection()
+    backends = registry.list_backends()
     return {
         "status":      "ok",
         "environment": settings.ENVIRONMENT,
-        "demo_mode":   settings.DEMO_MODE or not ls["connected"],
+        "demo_mode":   settings.DEMO_MODE or (not ls["connected"] and not backends),
         "livestatus":  ls,
+        "backends":    backends,
         "version":     "2.0-beta",
     }
 
@@ -459,6 +479,44 @@ async def api_kiosk_delete(uid: str):
     if not kiosk_delete(uid):
         raise HTTPException(404, f"Kiosk-User '{uid}' nicht gefunden")
     return {"deleted": uid}
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  Backends (Livestatus / Checkmk)
+# ══════════════════════════════════════════════════════════════════════
+
+@api_router.get("/backends")
+async def api_list_backends():
+    return registry.list_backends()
+
+
+@api_router.post("/backends", status_code=201)
+async def api_add_backend(body: BackendCreate):
+    entry = body.model_dump(exclude_none=True)
+    try:
+        backend_id = registry.add_backend(entry)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return registry.get_backend_info(backend_id)
+
+
+@api_router.delete("/backends/{backend_id}")
+async def api_remove_backend(backend_id: str):
+    if not registry.remove_backend(backend_id):
+        raise HTTPException(404, f"Backend '{backend_id}' nicht gefunden")
+    return {"deleted": backend_id}
+
+
+@api_router.post("/backends/{backend_id}/test")
+async def api_test_backend(backend_id: str):
+    info = registry.get_backend_info(backend_id)
+    if not info:
+        raise HTTPException(404, f"Backend '{backend_id}' nicht gefunden")
+    results = await registry.health()
+    for r in results:
+        if r["backend_id"] == backend_id:
+            return r
+    raise HTTPException(500, "Kein Health-Ergebnis")
 
 
 @api_router.get("/kiosk-users/resolve")
