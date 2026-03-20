@@ -190,6 +190,17 @@ class UnifiedRegistry:
     def is_empty(self) -> bool:
         return len(self._clients) == 0
 
+    async def probe(self, entry: dict) -> BackendHealth:
+        """Testet eine Verbindung ohne sie zu registrieren (für den Probe-Endpoint)."""
+        client = self._make_client(entry)
+        if not client:
+            return BackendHealth(
+                backend_id = entry.get("backend_id", "probe"),
+                reachable  = False,
+                error      = f"Unbekannter Typ: {entry.get('type')}",
+            )
+        return await client.ping()
+
     # ── Runtime-Management ───────────────────────────────────────────────
 
     def add_backend(self, entry: dict) -> str:

@@ -490,6 +490,19 @@ async def api_list_backends():
     return registry.list_backends()
 
 
+@api_router.post("/backends/probe")
+async def api_probe_backend(body: BackendCreate):
+    """Testet eine Backend-Verbindung ohne sie zu persistieren."""
+    entry = body.model_dump(exclude_none=True)
+    result = await registry.probe(entry)
+    return {
+        "backend_id": result.backend_id,
+        "reachable":  result.reachable,
+        "latency_ms": result.latency_ms,
+        "error":      result.error,
+    }
+
+
 @api_router.post("/backends", status_code=201)
 async def api_add_backend(body: BackendCreate):
     entry = body.model_dump(exclude_none=True)
