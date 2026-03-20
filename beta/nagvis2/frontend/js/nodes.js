@@ -246,14 +246,26 @@ function openGadgetConfigDialog(el, obj) {
         <div><label class="f-label">↑ Ausgehend (Out)</label><input class="f-input" id="gc-value-out" type="number" value="${cfg.value_out ?? cfg.value ?? 0}" min="0"></div>
         <div><label class="f-label">↓ Eingehend (In)</label><input class="f-input" id="gc-value-in" type="number" value="${cfg.value_in ?? 0}" min="0"></div>
       </div>
+      <div id="gc-orientation-row" style="margin-top:8px;${cfg.type==='linear'?'':'display:none'}">
+        <label class="f-label">Orientierung</label>
+        <div style="display:flex;gap:12px">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="gc-orientation" value="horizontal" ${(cfg.orientation??'horizontal')!=='vertical'?'checked':''}><span>↔ Horizontal</span></label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="gc-orientation" value="vertical" ${cfg.orientation==='vertical'?'checked':''}><span>↕ Vertikal</span></label>
+        </div>
+      </div>
+      <div id="gc-sparkline-row" style="margin-top:8px;${cfg.type==='sparkline'?'':'display:none'}">
+        <label class="f-label">Datenpunkte (max.)</label>
+        <input class="f-input" id="gc-history-points" type="number" min="5" max="100" step="5" value="${cfg.history_points ?? 25}" style="max-width:80px">
+      </div>
       <div id="gc-demo-row" style="margin-top:8px;${cfg.host_name?'display:none':''}">
         <label class="f-label">Demo-Wert</label>
         <input class="f-input" id="gc-demo-value" type="number" value="${cfg.value ?? 0}" min="0" max="9999">
       </div>
       <div id="gc-divide-row" style="margin-top:8px;${cfg.type==='rawnumber'?'':'display:none'}">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
           <div><label class="f-label">Divisor</label><input class="f-input" id="gc-divide" type="number" step="any" value="${cfg.divide ?? 1}" min="0.001"></div>
           <div><label class="f-label">Anzeigeeinheit</label><input class="f-input" id="gc-display-unit" type="text" placeholder="MB, GB, …" value="${cfg.display_unit ?? cfg.unit ?? ''}"></div>
+          <div><label class="f-label">Nachkommastellen</label><input class="f-input" id="gc-decimals" type="number" min="0" max="6" value="${cfg.decimals ?? 1}"></div>
         </div>
       </div>
       <div style="margin-top:10px">
@@ -280,7 +292,8 @@ function openGadgetConfigDialog(el, obj) {
   dlg.addEventListener('click', e => { if (e.target === dlg) dlg.remove(); });
 
   _gcUpdatePreview();
-  ['gc-metric','gc-unit','gc-min','gc-max','gc-warning','gc-critical','gc-demo-value','gc-size']
+  ['gc-metric','gc-unit','gc-min','gc-max','gc-warning','gc-critical','gc-demo-value','gc-size',
+   'gc-history-points','gc-decimals','gc-divide','gc-display-unit','gc-value-out','gc-value-in']
     .forEach(id => document.getElementById(id)?.addEventListener('input', _gcUpdatePreview));
 }
 
@@ -291,9 +304,13 @@ window._gcSelectType = function(btn) {
   const mmRow  = document.getElementById('gc-minmax-row');
   const dirRow = document.getElementById('gc-direction-row');
   const divRow = document.getElementById('gc-divide-row');
-  if (mmRow)  mmRow.style.display  = type === 'sparkline' ? 'none' : 'grid';
-  if (dirRow) dirRow.style.display = type === 'weather'   ? 'block' : 'none';
-  if (divRow) divRow.style.display = type === 'rawnumber' ? 'block' : 'none';
+  const orRow  = document.getElementById('gc-orientation-row');
+  const spkRow = document.getElementById('gc-sparkline-row');
+  if (mmRow)  mmRow.style.display  = type === 'sparkline'   ? 'none'  : 'grid';
+  if (dirRow) dirRow.style.display = type === 'weather'     ? 'block' : 'none';
+  if (divRow) divRow.style.display = type === 'rawnumber'   ? 'block' : 'none';
+  if (orRow)  orRow.style.display  = type === 'linear'      ? 'block' : 'none';
+  if (spkRow) spkRow.style.display = type === 'sparkline'   ? 'block' : 'none';
   _gcUpdatePreview();
 };
 
@@ -303,23 +320,38 @@ document.addEventListener('change', e => {
     if (inout) inout.style.display = e.target.value === 'both' ? 'grid' : 'none';
     _gcUpdatePreview();
   }
+  if (e.target.name === 'gc-orientation') {
+    _gcUpdatePreview();
+  }
 });
 
 window._gcUpdatePreview = function() {
   const preview = document.getElementById('gc-preview');
   if (!preview) return;
-  const type     = document.querySelector('#dlg-gadget-cfg .type-chip.active')?.dataset.gtype ?? 'radial';
-  const metric   = document.getElementById('gc-metric')?.value || 'Metrik';
-  const unit     = document.getElementById('gc-unit')?.value   || '%';
-  const min      = parseFloat(document.getElementById('gc-min')?.value)      || 0;
-  const max      = parseFloat(document.getElementById('gc-max')?.value)      || 100;
-  const warning  = parseFloat(document.getElementById('gc-warning')?.value)  || 70;
-  const critical = parseFloat(document.getElementById('gc-critical')?.value) || 90;
-  const value    = parseFloat(document.getElementById('gc-demo-value')?.value) || (max * 0.42);
-  const size     = parseInt(document.getElementById('gc-size')?.value) || 100;
+  const type        = document.querySelector('#dlg-gadget-cfg .type-chip.active')?.dataset.gtype ?? 'radial';
+  const metric      = document.getElementById('gc-metric')?.value || 'Metrik';
+  const unit        = document.getElementById('gc-unit')?.value   || '%';
+  const min         = parseFloat(document.getElementById('gc-min')?.value)         || 0;
+  const max         = parseFloat(document.getElementById('gc-max')?.value)         || 100;
+  const warning     = parseFloat(document.getElementById('gc-warning')?.value)     || 70;
+  const critical    = parseFloat(document.getElementById('gc-critical')?.value)    || 90;
+  const value       = parseFloat(document.getElementById('gc-demo-value')?.value)  || (max * 0.42);
+  const size        = parseInt(document.getElementById('gc-size')?.value)          || 100;
+  const orientation = document.querySelector('input[name="gc-orientation"]:checked')?.value ?? 'horizontal';
+  const direction   = document.querySelector('input[name="gc-direction"]:checked')?.value   ?? 'out';
+  const histPoints  = parseInt(document.getElementById('gc-history-points')?.value) || 25;
+  const decimals    = parseInt(document.getElementById('gc-decimals')?.value)        || 0;
+  const divide      = parseFloat(document.getElementById('gc-divide')?.value)       || 1;
+  const displayUnit = document.getElementById('gc-display-unit')?.value?.trim()     || '';
+  const valueOut    = parseFloat(document.getElementById('gc-value-out')?.value)    || value;
+  const valueIn     = parseFloat(document.getElementById('gc-value-in')?.value)     || 0;
 
+  const _demoHist = [30,45,52,38,61,55,70,65,48,58,72,68,80,75,62,68,55,70,65,78,75,60,65,58,72];
   const tmpCfg = { type, metric, unit, min, max, warning, critical, value,
-    history:[30,45,52,38,61,55,70,65,48,58,72,68,80,75,62,68,55,70,65,78] };
+    orientation, direction, value_out: valueOut, value_in: valueIn,
+    decimals, divide: divide !== 1 ? divide : undefined,
+    display_unit: displayUnit || undefined,
+    history: _demoHist.slice(0, histPoints), history_points: histPoints };
 
   const tmp = document.createElement('div');
   tmp.style.transform = `scale(${size/100})`;
@@ -373,29 +405,34 @@ window._gcUpdateServices = function() {
 };
 
 window._gcSave = async function(objectId) {
-  const type     = document.querySelector('#dlg-gadget-cfg .type-chip.active')?.dataset.gtype ?? 'radial';
-  const metric   = document.getElementById('gc-metric')?.value.trim()   || 'Metrik';
-  const unit     = document.getElementById('gc-unit')?.value.trim()     || '%';
-  const min      = parseFloat(document.getElementById('gc-min')?.value)      || 0;
-  const max      = parseFloat(document.getElementById('gc-max')?.value)      || 100;
-  const warning  = parseFloat(document.getElementById('gc-warning')?.value)  || 70;
-  const critical = parseFloat(document.getElementById('gc-critical')?.value) || 90;
-  const value    = parseFloat(document.getElementById('gc-demo-value')?.value) || 0;
-  const size     = parseInt(document.getElementById('gc-size')?.value)   || 100;
-  const hostName = document.getElementById('gc-host')?.value    || '';
-  const svcName  = document.getElementById('gc-service')?.value || '';
-  const direction   = document.querySelector('input[name="gc-direction"]:checked')?.value ?? 'out';
-  const divide      = parseFloat(document.getElementById('gc-divide')?.value) || 1;
-  const displayUnit = document.getElementById('gc-display-unit')?.value.trim() || '';
-  const valueOut  = parseFloat(document.getElementById('gc-value-out')?.value) || value;
-  const valueIn   = parseFloat(document.getElementById('gc-value-in')?.value)  || 0;
+  const type        = document.querySelector('#dlg-gadget-cfg .type-chip.active')?.dataset.gtype ?? 'radial';
+  const metric      = document.getElementById('gc-metric')?.value.trim()     || 'Metrik';
+  const unit        = document.getElementById('gc-unit')?.value.trim()       || '%';
+  const min         = parseFloat(document.getElementById('gc-min')?.value)        || 0;
+  const max         = parseFloat(document.getElementById('gc-max')?.value)        || 100;
+  const warning     = parseFloat(document.getElementById('gc-warning')?.value)    || 70;
+  const critical    = parseFloat(document.getElementById('gc-critical')?.value)   || 90;
+  const value       = parseFloat(document.getElementById('gc-demo-value')?.value) || 0;
+  const size        = parseInt(document.getElementById('gc-size')?.value)         || 100;
+  const hostName    = document.getElementById('gc-host')?.value    || '';
+  const svcName     = document.getElementById('gc-service')?.value || '';
+  const direction   = document.querySelector('input[name="gc-direction"]:checked')?.value   ?? 'out';
+  const orientation = document.querySelector('input[name="gc-orientation"]:checked')?.value ?? 'horizontal';
+  const divide      = parseFloat(document.getElementById('gc-divide')?.value)       || 1;
+  const displayUnit = document.getElementById('gc-display-unit')?.value.trim()      || '';
+  const decimals    = parseInt(document.getElementById('gc-decimals')?.value)        || 0;
+  const histPoints  = parseInt(document.getElementById('gc-history-points')?.value)  || 25;
+  const valueOut    = parseFloat(document.getElementById('gc-value-out')?.value)    || value;
+  const valueIn     = parseFloat(document.getElementById('gc-value-in')?.value)     || 0;
 
   const newCfg = { type, metric, unit, min, max, warning, critical, value,
-    ...(type === 'rawnumber' ? { divide: divide !== 1 ? divide : undefined, display_unit: displayUnit || undefined } : {}),
-    ...(type === 'weather' ? { direction, ...(direction === 'both' ? { value_out: valueOut, value_in: valueIn } : {}) } : {}),
+    ...(type === 'linear'    ? { orientation: orientation !== 'horizontal' ? orientation : undefined } : {}),
+    ...(type === 'sparkline' ? { history_points: histPoints !== 25 ? histPoints : undefined } : {}),
+    ...(type === 'rawnumber' ? { divide: divide !== 1 ? divide : undefined, display_unit: displayUnit || undefined, decimals: decimals || undefined } : {}),
+    ...(type === 'weather'   ? { direction, ...(direction === 'both' ? { value_out: valueOut, value_in: valueIn } : {}) } : {}),
     ...(hostName ? { host_name: hostName } : {}),
     ...(svcName  ? { service_description: svcName } : {}),
-    history: [30,45,52,38,61,55,70,65,48,58,72,68,80,75,62,68,55,70,65,78],
+    history: [30,45,52,38,61,55,70,65,48,58,72,68,80,75,62,68,55,70,65,78,75,60,65,58,72],
   };
 
   const objRef = activeMapCfg?.objects?.find(o => o.object_id === objectId);
