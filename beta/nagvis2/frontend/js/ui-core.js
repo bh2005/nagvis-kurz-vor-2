@@ -371,3 +371,63 @@ function showToast(msg, type = 'ok', duration = 3500) {
 }
 
 window.showToast = showToast;
+
+
+// ═══════════════════════════════════════════════════════════════════════
+//  LOG VIEWER
+// ═══════════════════════════════════════════════════════════════════════
+
+async function openLogViewer() {
+  openDlg('dlg-log');
+  await loadLog();
+}
+
+async function loadLog() {
+  const lines     = document.getElementById('log-lines-sel')?.value   || 500;
+  const levelSel  = document.getElementById('log-level-sel')?.value   || '';
+  const textFilter = document.getElementById('log-text-filter')?.value || '';
+  const pre       = document.getElementById('log-pre');
+  const info      = document.getElementById('log-info');
+
+  if (pre) pre.textContent = 'Lade…';
+
+  try {
+    const params = new URLSearchParams({ lines });
+    if (levelSel) params.set('level', levelSel);
+    const r    = await fetch('/api/logs?' + params.toString());
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+
+    let logLines = data.lines || [];
+
+    // Clientseitiger Freitext-Filter
+    if (textFilter) {
+      const f = textFilter.toLowerCase();
+      logLines = logLines.filter(l => l.toLowerCase().includes(f));
+    }
+
+    if (pre) {
+      pre.textContent = logLines.length ? logLines.join('\n') : '(keine passenden Log-Einträge)';
+      // Ans Ende scrollen
+      pre.scrollTop = pre.scrollHeight;
+    }
+    if (info) {
+      info.textContent = `${logLines.length} Zeilen angezeigt · ${data.buffered} im Puffer`;
+    }
+  } catch (e) {
+    if (pre)  pre.textContent  = 'Fehler beim Laden: ' + e.message;
+    if (info) info.textContent = '';
+  }
+}
+
+function downloadLog() {
+  const lines    = document.getElementById('log-lines-sel')?.value || 500;
+  const levelSel = document.getElementById('log-level-sel')?.value || '';
+  const params   = new URLSearchParams({ lines, download: 'true' });
+  if (levelSel) params.set('level', levelSel);
+  window.open('/api/logs?' + params.toString(), '_blank');
+}
+
+window.openLogViewer = openLogViewer;
+window.loadLog       = loadLog;
+window.downloadLog   = downloadLog;

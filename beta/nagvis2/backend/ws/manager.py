@@ -93,7 +93,16 @@ async def _poll_loop():
 
             hosts    = await registry.get_all_hosts()
             services = await registry.get_all_services()
-            elapsed  = int((time.time() - t0) * 1000)
+            elapsed  = time.time() - t0
+
+            # Prometheus: Poll-Dauer messen
+            try:
+                from core.metrics import backend_poll_duration
+                backend_poll_duration.observe(elapsed)
+            except Exception:
+                pass
+
+            elapsed_ms = int(elapsed * 1000)
 
             # Diff: geänderte Hosts
             changed_hosts = []
@@ -117,7 +126,7 @@ async def _poll_loop():
                 await manager.broadcast_all({
                     "event":    "status_update",
                     "ts":       t0,
-                    "elapsed":  elapsed,
+                    "elapsed":  elapsed_ms,
                     "hosts":    changed_hosts,
                     "services": changed_svcs,
                 })
@@ -125,13 +134,18 @@ async def _poll_loop():
                 await manager.broadcast_all({
                     "event":   "heartbeat",
                     "ts":      t0,
-                    "elapsed": elapsed,
+                    "elapsed": elapsed_ms,
                 })
 
         except asyncio.CancelledError:
             break
         except Exception as e:
             log.error("Poll-Loop Fehler: %s", e)
+            try:
+                from core.metrics import backend_poll_errors
+                backend_poll_errors.labels(backend_id="all").inc()
+            except Exception:
+                pass
             await manager.broadcast_all({
                 "event":   "backend_error",
                 "message": str(e),

@@ -80,17 +80,17 @@
 
 ## Monitoring / Betrieb
 
-- [ ] Prometheus-Metriken-Endpoint (`/metrics`)
-- [ ] Strukturiertes Logging (JSON-Format) für Produktionsbetrieb
-- [ ] Liveness- und Readiness-Probes für Kubernetes
+- [x] Prometheus-Metriken-Endpoint (`/metrics`)
+- [x] Strukturiertes Logging (JSON-Format) für Produktionsbetrieb (`LOG_FORMAT=json`)
+- [x] Liveness- und Readiness-Probes für Kubernetes (`/health/live`, `/health/ready`)
+- [x] Helm-Chart für Kubernetes-Deployment (`helm/nagvis2/`)
 - [ ] Docker-Image auf Docker Hub veröffentlichen
-- [ ] Helm-Chart für Kubernetes-Deployment
 
 ---
 
 ## Dokumentation
 
-- [ ] `docs/osm-guide.md` — Weltkarte-Feature (sobald implementiert)
+- [x] `docs/osm-guide.md` — Weltkarte-Feature
 - [ ] `docs/dev-guide.md` — Entwickler-Handbuch (Architektur, lokales Setup, wie man neue Features baut)
 - [ ] README.md aktualisieren (Screenshots, Feature-Übersicht)
 - [ ] CHANGELOG.md anlegen
