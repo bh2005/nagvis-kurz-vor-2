@@ -10,7 +10,7 @@ Interaktive Dokumentation (nur `DEBUG=true`): `http://localhost:8000/api/docs`
 
 ### GET /api/health
 
-Systemstatus und Livestatus-Verbindung prüfen.
+Systemstatus, Livestatus-Verbindung und alle konfigurierten Backends prüfen.
 
 **Antwort:**
 ```json
@@ -23,8 +23,114 @@ Systemstatus und Livestatus-Verbindung prüfen.
     "demo": false,
     "error": null
   },
+  "backends": [
+    {
+      "backend_id": "default",
+      "type": "livestatus_tcp",
+      "label": "Livestatus (localhost:6557)",
+      "reachable": true
+    }
+  ],
   "version": "2.0-beta"
 }
+```
+
+Das Feld `reachable` zeigt an, ob das Backend beim letzten Ping erreichbar war.
+
+---
+
+## Backends
+
+### GET /api/backends
+
+Alle konfigurierten Backends auflisten (inkl. Erreichbarkeitsstatus).
+
+**Antwort:**
+```json
+[
+  {
+    "backend_id": "default",
+    "type": "livestatus_tcp",
+    "label": "Livestatus (localhost:6557)",
+    "host": "localhost",
+    "port": 6557,
+    "reachable": true
+  },
+  {
+    "backend_id": "checkmk-prod",
+    "type": "checkmk_rest",
+    "label": "Checkmk Production",
+    "url": "http://checkmk:5000/mysite",
+    "reachable": false
+  }
+]
+```
+
+---
+
+### POST /api/backends
+
+Neues Backend hinzufügen.
+
+**Body (Livestatus TCP):**
+```json
+{
+  "type": "livestatus_tcp",
+  "label": "Nagios Production",
+  "host": "nagios.example.com",
+  "port": 6557
+}
+```
+
+**Body (Livestatus Unix):**
+```json
+{
+  "type": "livestatus_unix",
+  "label": "Nagios lokal",
+  "path": "/var/run/nagios/live"
+}
+```
+
+**Body (Checkmk REST API):**
+```json
+{
+  "type": "checkmk_rest",
+  "label": "Checkmk Production",
+  "url": "http://checkmk:5000/mysite",
+  "username": "automation",
+  "password": "secret"
+}
+```
+
+**Antwort:** `201 Created` mit Backend-Objekt inkl. generierter `backend_id`
+
+---
+
+### DELETE /api/backends/{backend_id}
+
+Backend löschen.
+
+**Antwort:**
+```json
+{ "deleted": "checkmk-prod" }
+```
+
+---
+
+### POST /api/backends/probe
+
+Verbindung testen **ohne** das Backend zu speichern.
+
+**Body:** wie `POST /api/backends`
+
+**Antwort (Erfolg):**
+```json
+{ "reachable": true, "message": "Connection OK – 3 hosts found" }
+```
+
+**Antwort (Fehler):**
+```json
+{ "reachable": false, "message": "Connection refused" }
 ```
 
 ---

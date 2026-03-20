@@ -3,7 +3,7 @@ site_description: NagVis 2 Bedienungsanleitung & Referenz
 site_author: NagVis 2 Team
 
 docs_dir: docs
-site_dir: site
+site_dir: frontend/help
 
 theme:
   name: material

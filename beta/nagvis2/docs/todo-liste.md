@@ -55,7 +55,9 @@
 
 ## UX / Frontend
 
-- [ ] Multi-Select: mehrere Nodes gleichzeitig auswählen und verschieben (Shift+Klick oder Lasso)
+- [x] Multi-Select: mehrere Nodes gleichzeitig auswählen und verschieben (Shift+Klick oder Lasso)
+- [x] Multi-Select: Delete/Backspace zum Löschen aller ausgewählten Nodes
+- [x] Multi-Select: Escape hebt Selektion auf (vor anderen Escape-Aktionen)
 - [ ] Undo/Redo für Positionsänderungen (Ctrl+Z / Ctrl+Y)
 - [ ] Objekt-Reihenfolge ändern (Layer-Management im Edit-Mode)
 - [ ] Suche/Filter in der Sidebar (Maps und Hosts durchsuchen)
@@ -116,3 +118,10 @@
 - [x] Unified Backend Registry (`connectors/registry.py`) – Livestatus + Checkmk mixed
 - [x] Backend-Management API (`GET/POST/DELETE /api/backends`, Test-Endpoint)
 - [x] `httpx` zu requirements.txt hinzugefügt
+- [x] Health-Endpoint: `reachable`-Feld pro Backend (Frontend-Fallback auf Demo-Map)
+- [x] Demo-Features Map (`data/maps/demo-features.json`) – immer DEMO_STATUS über WS
+- [x] Kiosk-Modus: Zoom/Pan-Fix für SVG-Linien und Weathermap-Linien
+- [x] Gadget-Konfigurations-Dialog: Host-Feld als Text-Input mit Datalist-Autocomplete
+- [x] Burger-Menü: Hilfe-Links öffnen in neuem Fenster + Swagger-Link
+- [x] mkdocs.yml: site_dir auf `frontend/help/` korrigiert
+- [x] Dokumentation: user-guide.md, admin-guide.md, kiosk-guide.md, api-reference.md aktualisiert

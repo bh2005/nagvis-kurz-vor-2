@@ -66,6 +66,7 @@ function _renderMonitoringNode(obj) {
     if (editActive) showNodeContextMenu(e, el, obj);
     else            showViewContextMenu(e, el, obj);
   });
+  _attachSelectHandler(el);
 
   getNodeContainer().appendChild(el);
 
@@ -105,6 +106,7 @@ function _renderTextbox(obj) {
   }
 
   el.addEventListener('contextmenu', e => { e.preventDefault(); if (editActive) showNodeContextMenu(e, el, obj); });
+  _attachSelectHandler(el);
 
   getNodeContainer().appendChild(el);
   if (editActive) makeDraggable(el);
@@ -129,6 +131,7 @@ function _renderContainer(obj) {
     }
   }
   el.addEventListener('contextmenu', e => { e.preventDefault(); if (editActive) showNodeContextMenu(e, el, obj); });
+  _attachSelectHandler(el);
   getNodeContainer().appendChild(el);
   if (editActive) makeDraggable(el);
   return el;
@@ -1182,8 +1185,35 @@ function hideTooltip() { _activeTooltip?.remove(); _activeTooltip = null; }
 //  EDIT MODE
 // ═══════════════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════════════
+//  MULTI-SELECT HELPERS
+// ═══════════════════════════════════════════════════════════════════════
+
+function clearSelection() {
+  selectedNodes.forEach(n => n.classList.remove('nv2-selected'));
+  selectedNodes.clear();
+}
+window.clearSelection = clearSelection;
+
+function _attachSelectHandler(el) {
+  el.addEventListener('click', e => {
+    if (!editActive) return;
+    if (el._nv2wasDragged) { el._nv2wasDragged = false; return; }
+    e.stopPropagation();
+    if (e.shiftKey) {
+      if (selectedNodes.has(el)) { selectedNodes.delete(el); el.classList.remove('nv2-selected'); }
+      else                       { selectedNodes.add(el);    el.classList.add('nv2-selected'); }
+    } else {
+      clearSelection();
+      selectedNodes.add(el);
+      el.classList.add('nv2-selected');
+    }
+  });
+}
+
 function toggleEdit() {
   editActive = !editActive;
+  if (!editActive) clearSelection();
   const btn    = document.getElementById('btn-edit');
   const addBtn = document.getElementById('btn-add-host');
   const banner = document.getElementById('nv2-edit-banner');
@@ -1205,33 +1235,91 @@ function makeDraggable(el) {
     if (e.target.tagName === 'TEXTAREA') return;
     e.preventDefault(); e.stopPropagation();
     hideTooltip();
+    el._nv2wasDragged = false;
+
     const canvas = document.getElementById('nv2-canvas');
     const rect   = canvas.getBoundingClientRect();
-    const x0 = parseFloat(el.style.left);
-    const y0 = parseFloat(el.style.top);
     const sx = e.clientX, sy = e.clientY;
-    el.classList.add('nv2-dragging');
-    el.style.zIndex = '40';
+
+    // Gruppen-Drag: alle selektierten Nodes bewegen
+    const isGroup   = selectedNodes.size > 1 && selectedNodes.has(el);
+    const dragNodes = isGroup ? [...selectedNodes] : [el];
+    dragNodes.forEach(n => { n._dragX0 = parseFloat(n.style.left); n._dragY0 = parseFloat(n.style.top); });
+    dragNodes.forEach(n => { n.classList.add('nv2-dragging'); n.style.zIndex = '40'; });
+
     const onMove = ev => {
-      const zs      = window.NV2_ZOOM?.getState?.() ?? { zoom: 1 };
-      const clamp   = (activeMapCfg?.canvas?.overflow ?? 'clamp') !== 'free';
-      const newX    = x0 + (ev.clientX - sx) / rect.width  * 100 / zs.zoom;
-      const newY    = y0 + (ev.clientY - sy) / rect.height * 100 / zs.zoom;
-      el.style.left = `${(clamp ? Math.max(0, Math.min(100, newX)) : newX).toFixed(2)}%`;
-      el.style.top  = `${(clamp ? Math.max(0, Math.min(97,  newY)) : newY).toFixed(2)}%`;
+      el._nv2wasDragged = true;
+      const zs    = window.NV2_ZOOM?.getState?.() ?? { zoom: 1 };
+      const clamp = (activeMapCfg?.canvas?.overflow ?? 'clamp') !== 'free';
+      const dx = (ev.clientX - sx) / rect.width  * 100 / zs.zoom;
+      const dy = (ev.clientY - sy) / rect.height * 100 / zs.zoom;
+      dragNodes.forEach(n => {
+        const nx = n._dragX0 + dx;
+        const ny = n._dragY0 + dy;
+        n.style.left = `${(clamp ? Math.max(0, Math.min(100, nx)) : nx).toFixed(2)}%`;
+        n.style.top  = `${(clamp ? Math.max(0, Math.min(97,  ny)) : ny).toFixed(2)}%`;
+      });
     };
     const onUp = async () => {
-      el.classList.remove('nv2-dragging');
-      el.style.zIndex = '';
+      dragNodes.forEach(n => { n.classList.remove('nv2-dragging'); n.style.zIndex = ''; });
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup',   onUp);
-      await api(`/api/maps/${activeMapId}/objects/${el.dataset.objectId}/pos`, 'PATCH',
-        { x: parseFloat(el.style.left), y: parseFloat(el.style.top) });
+      await Promise.all(dragNodes.map(n =>
+        api(`/api/maps/${activeMapId}/objects/${n.dataset.objectId}/pos`, 'PATCH',
+          { x: parseFloat(n.style.left), y: parseFloat(n.style.top) })
+      ));
     };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup',   onUp);
   });
 }
+
+// ── Lasso-Selektion ─────────────────────────────────────────────────────
+
+function onCanvasMouseDown(e) {
+  if (!editActive || e.button !== 0) return;
+  if (e.target.closest('.nv2-node,.nv2-textbox,.nv2-container,.nv2-line-el,.nv2-wm-line,.line-handle,.ctx-menu')) return;
+
+  const canvas  = document.getElementById('nv2-canvas');
+  const rect    = canvas.getBoundingClientRect();
+  const startX  = e.clientX - rect.left;
+  const startY  = e.clientY - rect.top;
+  let lasso = document.createElement('div');
+  lasso.id = 'nv2-lasso';
+  lasso.style.cssText = `left:${startX}px;top:${startY}px;width:0;height:0`;
+  canvas.appendChild(lasso);
+  let moved = false;
+
+  const onMove = ev => {
+    const cx = ev.clientX - rect.left;
+    const cy = ev.clientY - rect.top;
+    const x = Math.min(cx, startX), y = Math.min(cy, startY);
+    const w = Math.abs(cx - startX), h = Math.abs(cy - startY);
+    if (w > 4 || h > 4) moved = true;
+    lasso.style.left = `${x}px`; lasso.style.top  = `${y}px`;
+    lasso.style.width = `${w}px`; lasso.style.height = `${h}px`;
+  };
+
+  const onUp = ev => {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    const lr = lasso.getBoundingClientRect();
+    lasso.remove();
+    if (!moved) return;
+    if (!ev.shiftKey) clearSelection();
+    document.querySelectorAll('.nv2-node,.nv2-textbox,.nv2-container').forEach(node => {
+      const nr = node.getBoundingClientRect();
+      const cx = nr.left + nr.width / 2, cy = nr.top + nr.height / 2;
+      if (cx >= lr.left && cx <= lr.right && cy >= lr.top && cy <= lr.bottom) {
+        selectedNodes.add(node); node.classList.add('nv2-selected');
+      }
+    });
+  };
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+window.onCanvasMouseDown = onCanvasMouseDown;
 
 async function removeNode(el, obj) {
   if (!confirm(`"${obj.name ?? obj.object_id}" von der Map entfernen?`)) return;
@@ -1551,6 +1639,36 @@ window.openActionConfigDlg  = openActionConfigDlg;
 
 function showNodeContextMenu(e, el, obj) {
   closeContextMenu();
+
+  // Multi-Select-Menü wenn mehrere Nodes selektiert
+  if (selectedNodes.size > 1 && selectedNodes.has(el)) {
+    const menu = document.createElement('div');
+    menu.id = 'nv2-ctx-menu'; menu.className = 'ctx-menu';
+    menu.style.left = `${e.clientX}px`; menu.style.top = `${e.clientY}px`;
+    const hdr = document.createElement('div');
+    hdr.style.cssText = 'padding:6px 12px 4px;font-size:10px;color:var(--text-dim);font-weight:600;text-transform:uppercase;letter-spacing:0.5px';
+    hdr.textContent = `${selectedNodes.size} Objekte ausgewählt`;
+    menu.appendChild(hdr);
+    const delBtn = document.createElement('button');
+    delBtn.className = 'ctx-item ctx-danger';
+    delBtn.textContent = '🗑 Alle entfernen';
+    delBtn.onclick = async () => {
+      closeContextMenu();
+      if (!confirm(`${selectedNodes.size} Objekte entfernen?`)) return;
+      const nodes = [...selectedNodes];
+      clearSelection();
+      await Promise.all(nodes.map(n =>
+        api(`/api/maps/${activeMapId}/objects/${n.dataset.objectId}`, 'DELETE').then(() => n.remove())
+      ));
+    };
+    menu.appendChild(delBtn);
+    menu.addEventListener('click', ev => ev.stopPropagation());
+    document.body.appendChild(menu);
+    _ctxMenu = menu;
+    setTimeout(() => document.addEventListener('click', closeContextMenu, { once: true }), 0);
+    return;
+  }
+
   const menu = document.createElement('div');
   menu.id = 'nv2-ctx-menu'; menu.className = 'ctx-menu';
   menu.style.left = `${e.clientX}px`; menu.style.top = `${e.clientY}px`;
@@ -1921,6 +2039,7 @@ function onCanvasClick(e) {
   if (document.getElementById('nv2-resize-panel')) { closeResizeDialog(); return; }
   if (_ctxMenu) { closeContextMenu(); return; }
   if (document.getElementById('nv2-iconset-dlg')) return;
+  clearSelection();
 
   const rect  = document.getElementById('nv2-canvas').getBoundingClientRect();
   const state = window.NV2_ZOOM?.getState?.() ?? { zoom: 1, panX: 0, panY: 0 };
