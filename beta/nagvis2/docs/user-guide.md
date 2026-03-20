@@ -108,6 +108,20 @@ Im Edit-Mode: Objekt per **Drag & Drop** verschieben. Die Position wird automati
 > **Hinweis:** Standardmäßig bleiben Nodes innerhalb der Canvas-Fläche (0–100%).
 > Dieses Verhalten kann unter **Canvas-Format ändern → Node-Verhalten** auf **Frei** umgestellt werden.
 
+### Multi-Select
+
+Mehrere Objekte gleichzeitig auswählen und bearbeiten:
+
+| Aktion | Methode |
+|---|---|
+| Einzelne Auswahl | Klick auf ein Objekt (blauer Rahmen) |
+| Zur Auswahl hinzufügen | **Shift+Klick** auf weiteres Objekt |
+| Aus Auswahl entfernen | **Shift+Klick** auf bereits gewähltes Objekt |
+| Lasso-Auswahl | Mousedown auf **leerer Canvas-Fläche** → Rechteck aufziehen |
+| Auswahl aufheben | **Esc** oder Klick auf leere Fläche |
+| Gruppe verschieben | Beliebiges ausgewähltes Objekt ziehen – alle bewegen sich mit |
+| Gruppe löschen | **Delete** / **Backspace** oder Rechtsklick → Gruppe löschen |
+
 ### Objekt-Kontext-Menü (Edit-Mode)
 
 Rechtsklick auf ein Objekt im Edit-Mode:
@@ -228,7 +242,9 @@ Aktionen konfigurieren: Burger-Menü → ⚡ Aktionen konfigurieren
 | **Ctrl+E** | Edit-Mode umschalten |
 | **R** | Status-Refresh erzwingen |
 | **F11** | Kiosk-Modus / Vollbild |
-| **Esc** | Dialog schließen / Edit-Mode beenden |
+| **Esc** | Auswahl aufheben / Dialog schließen / Edit-Mode beenden |
+| **Shift+Klick** | Node zur Multi-Selektion hinzufügen (Edit-Mode) |
+| **Delete** / **Backspace** | Ausgewählte Nodes löschen (Edit-Mode) |
 
 ---
 

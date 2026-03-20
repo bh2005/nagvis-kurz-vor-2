@@ -132,6 +132,18 @@ Burger-Menü → ⚙ Einstellungen → **Kiosk-Modus Optionen**:
 
 ---
 
+## Zoom & Pan im Kiosk-Modus
+
+Zoom und Pan funktionieren im Kiosk-Modus identisch zum normalen Betrieb:
+
+- Alle Objekte (Nodes, SVG-Linien, Weathermap-Linien) werden gemeinsam skaliert und verschoben
+- Mausrad oder Trackpad zum Zoomen
+- Gedrückt halten + ziehen zum Schwenken
+
+> **Hinweis:** Nach dem Verlassen des Kiosk-Modus (Esc) bleibt der Zoom-Zustand erhalten.
+
+---
+
 ## Sicherheitshinweise
 
 - Token-URLs sollten **nicht öffentlich** geteilt werden – sie gewähren Lesezugriff auf die konfigurierten Maps

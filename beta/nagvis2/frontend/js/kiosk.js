@@ -485,12 +485,10 @@ function enterKiosk() {
   const overlay  = document.getElementById('kiosk-overlay');
   const wrap     = document.getElementById('kiosk-canvas-wrap');
   const canvas   = document.getElementById('nv2-canvas');
-  const svg      = document.getElementById('nv2-lines-svg');
   const banner   = document.getElementById('nv2-edit-banner');
   const snapCont = document.getElementById('snapin-container');
   const snapTabs = document.getElementById('snap-tabs');
-  wrap.appendChild(canvas);
-  if (svg)      wrap.appendChild(svg);
+  wrap.appendChild(canvas);           // SVG ist in #map-canvas-wrapper → wandert mit canvas
   if (banner)   wrap.appendChild(banner);
   if (snapCont) wrap.appendChild(snapCont);
   if (snapTabs) wrap.appendChild(snapTabs);
@@ -515,12 +513,10 @@ function exitKiosk() {
   const overlay  = document.getElementById('kiosk-overlay');
   const mapArea  = document.getElementById('map-area');
   const canvas   = document.getElementById('nv2-canvas');
-  const svg      = document.getElementById('nv2-lines-svg');
   const banner   = document.getElementById('nv2-edit-banner');
   const snapCont = document.getElementById('snapin-container');
   const snapTabs = document.getElementById('snap-tabs');
   mapArea.appendChild(canvas);
-  if (svg)      mapArea.appendChild(svg);
   if (banner)   mapArea.appendChild(banner);
   if (snapCont) mapArea.appendChild(snapCont);
   if (snapTabs) mapArea.appendChild(snapTabs);

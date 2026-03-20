@@ -17,6 +17,7 @@ Object.defineProperty(window, 'editActive', {
 });
 
 window.pendingPos    = null;
+window.selectedNodes = new Set();   // Set<HTMLElement> — aktive Multi-Selektion
 window.hostCache     = {};
 window.serviceCache  = {};   // hostname → string[]  (service descriptions)
 window.eventLog      = [];

@@ -307,11 +307,21 @@ function onKeyDown(e) {
   if (e.key === 'b' && !inInput && !e.ctrlKey && !e.metaKey) toggleSidebar();
   if (e.key === 'Escape') {
     if (_kioskActive) { exitKiosk(); return; }
+    if (selectedNodes?.size) { clearSelection(); return; }
     closeBurgerMenu();
     window.closeDlg('dlg-add-object'); window.closeDlg('dlg-new-map'); window.closeDlg('dlg-user-settings');
     closeResizeDialog(); closeContextMenu();
     if (editActive) toggleEdit();
     closeSnapin(activeSnapin);
+  }
+  if ((e.key === 'Delete' || e.key === 'Backspace') && editActive && selectedNodes?.size && !inInput) {
+    e.preventDefault();
+    const nodes = [...selectedNodes];
+    if (!confirm(`${nodes.length} Objekte entfernen?`)) return;
+    clearSelection();
+    Promise.all(nodes.map(n =>
+      api(`/api/maps/${activeMapId}/objects/${n.dataset.objectId}`, 'DELETE').then(() => n.remove())
+    ));
   }
   if (e.key === 'F11' && activeMapId) { e.preventDefault(); toggleKiosk(); }
   if ((e.metaKey || e.ctrlKey) && e.key === 'e' && activeMapId) { e.preventDefault(); toggleEdit(); }

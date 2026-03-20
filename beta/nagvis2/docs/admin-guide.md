@@ -146,6 +146,10 @@ nagvis2/
     │   ├── storage.py
     │   ├── livestatus.py
     │   └── migrate.py
+    ├── checkmk/
+    │   └── client.py        ← Checkmk REST API Client
+    ├── connectors/
+    │   └── registry.py      ← Unified Backend Registry
     ├── api/
     │   └── router.py
     ├── ws/
@@ -155,7 +159,54 @@ nagvis2/
     └── data/                ← auto-erstellt
         ├── maps/
         ├── backgrounds/
+        ├── backends.json    ← Backend-Konfigurationen
         └── kiosk_users.json
+```
+
+---
+
+## Multi-Backend-Unterstützung
+
+NagVis 2 unterstützt mehrere Monitoring-Backends gleichzeitig: **Livestatus (TCP/Unix)** und **Checkmk REST API**.
+
+### Backends verwalten
+
+Burger-Menü → **⚙ Backends verwalten** (nur im Admin-Modus oder wenn kein Backend konfiguriert ist).
+
+| Funktion | Beschreibung |
+|---|---|
+| Backend hinzufügen | Typ wählen (Checkmk REST API / Livestatus TCP / Unix), URL/Pfad + Credentials eingeben |
+| Backend testen | „Test"-Button prüft die Verbindung ohne zu speichern (`POST /api/backends/probe`) |
+| Backend entfernen | Backend dauerhaft löschen |
+
+### Unterstützte Backend-Typen
+
+| Typ | Konfiguration |
+|---|---|
+| **Checkmk REST API** | URL (z.B. `http://checkmk:5000/site`), Benutzername, Passwort |
+| **Livestatus TCP** | Host + Port (Standard: 6557) |
+| **Livestatus Unix** | Socket-Pfad (z.B. `/var/run/nagios/live`) |
+
+### Backend-Persistenz
+
+Konfigurierte Backends werden in `data/backends.json` gespeichert – kein Neustart erforderlich.
+
+Beim ersten Start werden `LIVESTATUS_*`-Umgebungsvariablen automatisch als „default"-Backend importiert (Rückwärtskompatibilität).
+
+### REST-API für Backends
+
+```bash
+# Alle Backends auflisten (mit Erreichbarkeitsstatus)
+GET /api/backends
+
+# Backend hinzufügen
+POST /api/backends
+
+# Backend löschen
+DELETE /api/backends/{id}
+
+# Verbindung testen (ohne Speichern)
+POST /api/backends/probe
 ```
 
 ---
@@ -166,7 +217,7 @@ nagvis2/
 curl http://localhost:8000/api/health
 ```
 
-Antwort (Beispiel mit Livestatus):
+Antwort (Beispiel mit konfigurierten Backends):
 ```json
 {
   "status": "ok",
@@ -177,6 +228,20 @@ Antwort (Beispiel mit Livestatus):
     "demo": false,
     "error": null
   },
+  "backends": [
+    {
+      "backend_id": "default",
+      "type": "livestatus_tcp",
+      "label": "Livestatus (localhost:6557)",
+      "reachable": true
+    },
+    {
+      "backend_id": "checkmk-prod",
+      "type": "checkmk_rest",
+      "label": "Checkmk Production",
+      "reachable": false
+    }
+  ],
   "version": "2.0-beta"
 }
 ```
@@ -185,13 +250,14 @@ Antwort (Beispiel mit Livestatus):
 
 ## Demo-Modus
 
-Der Demo-Modus aktiviert sich automatisch wenn:
-- `DEMO_MODE=true` gesetzt ist, **oder**
-- kein Livestatus-Socket gefunden wird
+Der vollständige Demo-Modus aktiviert sich wenn `DEMO_MODE=true` gesetzt ist.
 
-Im Demo-Modus:
-- Statische Beispiel-Hosts werden angezeigt
-- Die Demo-Map „NagVis 2 – Feature Demo" wird automatisch geöffnet
+Wenn kein Backend konfiguriert ist oder alle Backends nicht erreichbar sind:
+- Die Demo-Map **„NagVis 2 – Feature Demo"** wird automatisch geöffnet (Fallback)
+- Alle anderen Maps und CRUD-Operationen bleiben verfügbar
+- Ein blauer Demo-Banner am unteren Bildschirmrand wird angezeigt
+
+Im vollständigen Demo-Modus (`DEMO_MODE=true`):
 - Alle Aktionen (ACK, Downtime etc.) werden simuliert
 - Maps und Objekte können normal bearbeitet werden
 

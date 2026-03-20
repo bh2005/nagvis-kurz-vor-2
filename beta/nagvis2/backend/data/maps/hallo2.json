@@ -1,0 +1,25 @@
+{
+  "id": "hallo2",
+  "title": "hallo",
+  "canvas": {
+    "mode": "fixed",
+    "w": 1920,
+    "h": 1080
+  },
+  "background": null,
+  "parent_map": null,
+  "objects": [
+    {
+      "type": "line",
+      "x": 37.29,
+      "y": 34.07,
+      "iconset": "std_small",
+      "color": "#555555",
+      "x2": 57.29,
+      "y2": 34.07,
+      "line_style": "solid",
+      "line_width": 1,
+      "object_id": "line::3dd8cd::f289cf"
+    }
+  ]
+}

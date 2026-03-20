@@ -530,6 +530,16 @@ body, #sidebar, #topbar, #overview, .ov-card, .nav-btn, .map-entry,
 
 .nv2-dragging .nv2-ring { border-style: dashed !important; box-shadow: none; }
 .nv2-dragging { opacity: 0.7; }
+.nv2-selected { outline: 2px solid var(--accent, #3b82f6); outline-offset: 3px; z-index: 31 !important; }
+.nv2-selected.nv2-dragging { opacity: 0.8; }
+
+#nv2-lasso {
+  position: absolute;
+  border: 1.5px dashed var(--accent, #3b82f6);
+  background: rgba(59, 130, 246, 0.08);
+  pointer-events: none;
+  z-index: 200;
+}
 
 @keyframes statusFlash { 0%, 100% { opacity: 1; } 40% { opacity: 0.1; } }
 .nv2-status-changed { animation: statusFlash 0.5s ease; }
