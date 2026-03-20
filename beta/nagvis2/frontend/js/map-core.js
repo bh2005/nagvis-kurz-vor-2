@@ -1005,6 +1005,245 @@ function setupDragDrop() {
 
 
 // ═══════════════════════════════════════════════════════════════════════
+//  BACKEND MANAGEMENT DIALOG
+// ═══════════════════════════════════════════════════════════════════════
+
+function openBackendMgmtDlg() {
+  document.getElementById('dlg-backend-mgmt')?.remove();
+  const dlg = document.createElement('div');
+  dlg.id = 'dlg-backend-mgmt';
+  dlg.className = 'dlg-overlay show';
+  dlg.innerHTML = `
+    <div class="dlg-box" style="width:580px;max-height:90vh;display:flex;flex-direction:column;gap:0">
+      <h3 style="flex-shrink:0;margin-bottom:14px">Backend-Verwaltung</h3>
+
+      <div class="burger-head" style="padding:0 0 6px 0;flex-shrink:0">Konfigurierte Backends</div>
+      <div id="bm-list" style="flex-shrink:0;min-height:42px;max-height:220px;overflow-y:auto;
+           border:1px solid var(--border);border-radius:var(--r);margin-bottom:16px">
+        <div style="padding:12px;text-align:center;color:var(--text-dim);font-size:12px">Lade…</div>
+      </div>
+
+      <div style="overflow-y:auto;flex:1">
+        <div class="burger-head" style="padding:0 0 8px 0">Backend hinzufügen</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div>
+            <label class="f-label">Backend-ID <span style="color:var(--crit)">*</span></label>
+            <input class="f-input" id="bm-id" type="text" placeholder="z.B. prod-checkmk">
+          </div>
+          <div>
+            <label class="f-label">Typ</label>
+            <select class="f-select" id="bm-type" onchange="_bmUpdateFields()">
+              <option value="checkmk">Checkmk REST API</option>
+              <option value="livestatus_tcp">Livestatus TCP</option>
+              <option value="livestatus_unix">Livestatus Unix-Socket</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="bm-fields-checkmk">
+          <div style="margin-bottom:8px">
+            <label class="f-label">API Base-URL <span style="color:var(--crit)">*</span></label>
+            <input class="f-input" id="bm-base-url" type="text"
+                   placeholder="https://monitoring.example.com/mysite/check_mk/api/1.0">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+            <div>
+              <label class="f-label">Automation User</label>
+              <input class="f-input" id="bm-username" type="text" placeholder="automation" value="automation">
+            </div>
+            <div>
+              <label class="f-label">Passwort / Token</label>
+              <input class="f-input" id="bm-secret" type="password" placeholder="••••••••">
+            </div>
+          </div>
+          <div style="margin-bottom:8px">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text-dim)">
+              <input type="checkbox" id="bm-verify-ssl" checked> SSL-Zertifikat prüfen
+            </label>
+          </div>
+        </div>
+
+        <div id="bm-fields-tcp" style="display:none">
+          <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:8px">
+            <div>
+              <label class="f-label">Host / IP <span style="color:var(--crit)">*</span></label>
+              <input class="f-input" id="bm-host" type="text" placeholder="192.168.1.10">
+            </div>
+            <div>
+              <label class="f-label">Port</label>
+              <input class="f-input" id="bm-port" type="number" value="6557" placeholder="6557">
+            </div>
+          </div>
+        </div>
+
+        <div id="bm-fields-unix" style="display:none">
+          <div style="margin-bottom:8px">
+            <label class="f-label">Socket-Pfad <span style="color:var(--crit)">*</span></label>
+            <input class="f-input" id="bm-socket" type="text"
+                   placeholder="/omd/sites/mysite/tmp/run/live">
+          </div>
+        </div>
+
+        <div style="margin-bottom:12px">
+          <label class="f-label">Timeout (Sekunden)</label>
+          <input class="f-input" id="bm-timeout" type="number" value="15" min="1" max="60"
+                 style="width:80px">
+        </div>
+
+        <div id="bm-probe-result" style="display:none;margin-bottom:10px;padding:8px;
+             background:var(--bg);border-radius:var(--r);font-size:11px;
+             font-family:var(--mono);border:1px solid var(--border)"></div>
+
+        <div style="display:flex;gap:8px">
+          <button class="btn-cancel" style="flex:1" onclick="_bmProbe()">🔌 Testen</button>
+          <button class="btn-ok"     style="flex:2" onclick="_bmAdd()">＋ Hinzufügen</button>
+        </div>
+      </div>
+
+      <div class="dlg-actions" style="flex-shrink:0;margin-top:12px">
+        <button class="btn-cancel" onclick="document.getElementById('dlg-backend-mgmt').remove()">Schließen</button>
+      </div>
+    </div>`;
+  document.body.appendChild(dlg);
+  dlg.addEventListener('click', e => { if (e.target === dlg) dlg.remove(); });
+  _bmLoad();
+}
+
+async function _bmLoad() {
+  const list = document.getElementById('bm-list');
+  if (!list) return;
+  const backends = await api('/api/backends', 'GET');
+  if (!backends?.length) {
+    list.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text-dim);font-size:12px">Keine Backends konfiguriert</div>';
+    return;
+  }
+  const typeColor = t => t === 'checkmk'
+    ? 'background:rgba(59,130,246,.15);color:#3b82f6'
+    : 'background:rgba(16,185,129,.15);color:#10b981';
+  list.innerHTML = backends.map((b, i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;
+         border-bottom:${i < backends.length - 1 ? '1px solid var(--border)' : 'none'}">
+      <div id="bm-dot-${esc(b.backend_id)}"
+           style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--text-dim)"
+           title="Noch nicht getestet"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:600;color:var(--text)">
+          ${esc(b.backend_id)}
+          <span style="font-size:9px;margin-left:6px;padding:1px 5px;border-radius:3px;
+                       font-family:var(--mono);${typeColor(b.type)}">${esc(b.type)}</span>
+        </div>
+        <div style="font-size:10px;color:var(--text-dim);font-family:var(--mono);margin-top:1px;
+                    overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+          ${esc(b.address || '')}${b.username ? ' · ' + esc(b.username) : ''}
+        </div>
+      </div>
+      <div style="display:flex;gap:4px;flex-shrink:0">
+        <button class="manage-btn" title="Verbindung testen"
+                onclick="_bmTestExisting('${esc(b.backend_id)}')">🔌</button>
+        <button class="manage-btn manage-btn-danger" title="Entfernen"
+                onclick="_bmRemove('${esc(b.backend_id)}')">🗑</button>
+      </div>
+    </div>`).join('');
+}
+
+function _bmUpdateFields() {
+  const t = document.getElementById('bm-type')?.value;
+  document.getElementById('bm-fields-checkmk').style.display = t === 'checkmk'         ? '' : 'none';
+  document.getElementById('bm-fields-tcp').style.display     = t === 'livestatus_tcp'  ? '' : 'none';
+  document.getElementById('bm-fields-unix').style.display    = t === 'livestatus_unix' ? '' : 'none';
+}
+
+async function _bmTestExisting(backendId) {
+  const dot = document.getElementById(`bm-dot-${backendId}`);
+  if (dot) { dot.style.background = 'var(--warn)'; dot.title = 'Teste…'; }
+  const result = await api(`/api/backends/${encodeURIComponent(backendId)}/test`, 'POST', {});
+  if (dot) {
+    dot.style.background = result?.reachable ? 'var(--ok)' : 'var(--crit)';
+    dot.title = result?.reachable ? `OK · ${result.latency_ms}ms` : (result?.error || 'Nicht erreichbar');
+  }
+  showToast(
+    result?.reachable ? `✓ ${backendId} erreichbar · ${result.latency_ms}ms` : `✗ ${backendId}: ${result?.error || 'Fehler'}`,
+    result?.reachable ? 'ok' : 'error'
+  );
+}
+
+async function _bmRemove(backendId) {
+  if (!confirm(`Backend "${backendId}" wirklich entfernen?`)) return;
+  const ok = await api(`/api/backends/${encodeURIComponent(backendId)}`, 'DELETE');
+  if (ok !== null) {
+    showToast(`Backend "${backendId}" entfernt`, 'warn');
+    _bmLoad();
+  }
+}
+
+function _bmBuildEntry() {
+  const id   = document.getElementById('bm-id')?.value.trim();
+  const type = document.getElementById('bm-type')?.value;
+  if (!id) { showToast('Backend-ID fehlt', 'warn'); return null; }
+  const timeout = parseFloat(document.getElementById('bm-timeout')?.value || '15');
+  const base = { backend_id: id, type, timeout, enabled: true };
+
+  if (type === 'checkmk') {
+    const url = document.getElementById('bm-base-url')?.value.trim();
+    if (!url) { showToast('API Base-URL fehlt', 'warn'); return null; }
+    return {
+      ...base,
+      base_url:   url,
+      username:   document.getElementById('bm-username')?.value.trim() || 'automation',
+      secret:     document.getElementById('bm-secret')?.value || '',
+      verify_ssl: document.getElementById('bm-verify-ssl')?.checked ?? true,
+    };
+  }
+  if (type === 'livestatus_tcp') {
+    const host = document.getElementById('bm-host')?.value.trim();
+    if (!host) { showToast('Host / IP fehlt', 'warn'); return null; }
+    return { ...base, host, port: parseInt(document.getElementById('bm-port')?.value || '6557') };
+  }
+  if (type === 'livestatus_unix') {
+    const sock = document.getElementById('bm-socket')?.value.trim();
+    if (!sock) { showToast('Socket-Pfad fehlt', 'warn'); return null; }
+    return { ...base, socket_path: sock };
+  }
+  return null;
+}
+
+async function _bmProbe() {
+  const body = _bmBuildEntry();
+  if (!body) return;
+  const res = document.getElementById('bm-probe-result');
+  res.style.display = '';
+  res.style.color   = 'var(--text-dim)';
+  res.textContent   = '⏳ Teste Verbindung…';
+  const result = await api('/api/backends/probe', 'POST', body);
+  if (result?.reachable) {
+    res.textContent = `✓ Verbindung erfolgreich · ${result.latency_ms}ms`;
+    res.style.color = 'var(--ok)';
+  } else {
+    res.textContent = `✗ ${result?.error || 'Nicht erreichbar'}`;
+    res.style.color = 'var(--crit)';
+  }
+}
+
+async function _bmAdd() {
+  const body = _bmBuildEntry();
+  if (!body) return;
+  const result = await api('/api/backends', 'POST', body);
+  if (result) {
+    showToast(`Backend "${body.backend_id}" hinzugefügt`, 'ok');
+    ['bm-id', 'bm-base-url', 'bm-username', 'bm-secret', 'bm-host', 'bm-socket'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = el.id === 'bm-username' ? 'automation' : '';
+    });
+    const portEl = document.getElementById('bm-port');
+    if (portEl) portEl.value = '6557';
+    document.getElementById('bm-probe-result').style.display = 'none';
+    _bmLoad();
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════
 
 window.showOverview          = showOverview;
 window.openCardMenu          = openCardMenu;
@@ -1030,3 +1269,9 @@ window.confirmDeleteMapById  = confirmDeleteMapById;
 window._nmUpdateCanvasFields = _nmUpdateCanvasFields;
 window._cmUpdate             = _cmUpdate;
 window._cmSave               = _cmSave;
+window.openBackendMgmtDlg   = openBackendMgmtDlg;
+window._bmUpdateFields      = _bmUpdateFields;
+window._bmTestExisting      = _bmTestExisting;
+window._bmRemove            = _bmRemove;
+window._bmProbe             = _bmProbe;
+window._bmAdd               = _bmAdd;
