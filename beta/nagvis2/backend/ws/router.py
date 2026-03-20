@@ -26,7 +26,7 @@ async def ws_map(websocket: WebSocket, map_id: str):
 
     manager.connect(map_id, websocket)
 
-    from ws.demo_data import DEMO_STATUS
+    from ws.demo_data import DEMO_STATUS, DEMO_SERVICES
     is_demo_map = (map_id == "demo-features")
 
     async def _send_snapshot():
@@ -35,7 +35,7 @@ async def ws_map(websocket: WebSocket, map_id: str):
                 "event":    "snapshot",
                 "ts":       time.time(),
                 "hosts":    DEMO_STATUS,
-                "services": [],
+                "services": DEMO_SERVICES,
             }))
         else:
             t0       = time.time()

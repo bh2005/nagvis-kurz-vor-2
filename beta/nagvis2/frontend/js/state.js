@@ -19,7 +19,8 @@ Object.defineProperty(window, 'editActive', {
 window.pendingPos    = null;
 window.selectedNodes = new Set();   // Set<HTMLElement> — aktive Multi-Selektion
 window.hostCache     = {};
-window.serviceCache  = {};   // hostname → string[]  (service descriptions)
+window.serviceCache  = {};     // hostname → string[]  (service descriptions)
+window.perfdataCache = {};     // "hostname::service_desc" → { metric: {value,unit,warn,crit,min,max} }
 window.eventLog      = [];
 window.activeSnapin  = null;
 window.currentTheme  = 'dark';

@@ -152,8 +152,46 @@ function applyStatuses(hosts, services) {
       if (!serviceCache[s.host_name].includes(s.description))
         serviceCache[s.host_name].push(s.description);
     }
+    // Perfdata cachen
+    if (s.perfdata && Object.keys(s.perfdata).length) {
+      perfdataCache[key] = s.perfdata;
+    }
   }
   _updateWeathermapLines();
+  _applyGadgetPerfdata();
+}
+
+function _applyGadgetPerfdata() {
+  if (!activeMapCfg?.objects) return;
+  document.querySelectorAll('.nv2-node.gadget').forEach(el => {
+    const obj = activeMapCfg.objects.find(o => o.object_id === el.dataset.objectId);
+    const cfg = obj?.gadget_config;
+    if (!cfg?.host_name || !cfg?.service_description) return;
+
+    const key = `${cfg.host_name}::${cfg.service_description}`;
+    const pd  = perfdataCache[key];
+    if (!pd) return;
+
+    // Metrik suchen: perf_label → metric (case-insensitive) → erste Metrik
+    const searchLabel = (cfg.perf_label || cfg.metric || '').toLowerCase();
+    const metric =
+      pd[cfg.perf_label || cfg.metric] ??
+      Object.entries(pd).find(([k]) => k.toLowerCase() === searchLabel)?.[1] ??
+      Object.values(pd)[0];
+
+    if (!metric || metric.value == null) return;
+
+    // Live-Konfiguration zusammenbauen:
+    // Eigene warn/crit/min/max aus Gadget-Config haben Vorrang vor Perfdata-Werten
+    const liveCfg = { ...cfg, value: metric.value };
+    if (!cfg.unit)                        liveCfg.unit     = metric.unit || '';
+    if (cfg.warning  == null && metric.warn != null) liveCfg.warning  = metric.warn;
+    if (cfg.critical == null && metric.crit != null) liveCfg.critical = metric.crit;
+    if (cfg.min      == null && metric.min  != null) liveCfg.min      = metric.min;
+    if (cfg.max      == null && metric.max  != null) liveCfg.max      = metric.max;
+
+    updateGadget(el, liveCfg);
+  });
 }
 
 function applyNodeStatus(el, label, ack, downtime) {
@@ -211,9 +249,16 @@ function openGadgetConfigDialog(el, obj) {
           </div>
           <div>
             <label class="f-label">Service / Metrik</label>
-            <input class="f-input" id="gc-service" type="text" placeholder="z.B. CPU load"
-                   value="${esc(cfg.service_description || '')}">
+            <input class="f-input" id="gc-service" type="text" placeholder="z.B. CPU Load"
+                   value="${esc(cfg.service_description || '')}" oninput="_gcUpdateServices()">
           </div>
+        </div>
+        <div id="gc-perflabel-row" style="margin-top:6px;${cfg.host_name?'':'display:none'}">
+          <label class="f-label">Perfdata-Metrik</label>
+          <input class="f-input" id="gc-perf-label" type="text"
+                 placeholder="z.B. load1, mem_used_percent, temp"
+                 value="${esc(cfg.perf_label || '')}" list="gc-perf-label-list">
+          <datalist id="gc-perf-label-list"></datalist>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-top:8px">
@@ -292,9 +337,11 @@ function openGadgetConfigDialog(el, obj) {
   dlg.addEventListener('click', e => { if (e.target === dlg) dlg.remove(); });
 
   _gcUpdatePreview();
+  _gcUpdatePerfLabels();
   ['gc-metric','gc-unit','gc-min','gc-max','gc-warning','gc-critical','gc-demo-value','gc-size',
    'gc-history-points','gc-decimals','gc-divide','gc-display-unit','gc-value-out','gc-value-in']
     .forEach(id => document.getElementById(id)?.addEventListener('input', _gcUpdatePreview));
+  document.getElementById('gc-service')?.addEventListener('input', _gcUpdatePerfLabels);
 }
 
 window._gcSelectType = function(btn) {
@@ -388,20 +435,44 @@ window._gcUpdateServices = function() {
 
   // Demo-Wert-Zeile: ausblenden wenn Host eingegeben, einblenden wenn leer
   const demoRow = document.getElementById('gc-demo-row');
+  const perfRow = document.getElementById('gc-perflabel-row');
   if (demoRow) demoRow.style.display = hostName ? 'none' : '';
+  if (perfRow) perfRow.style.display = hostName ? ''     : 'none';
 
   const svcs = (hostName && serviceCache[hostName]) ?? [];
-  if (!svcs.length) return;
+  if (svcs.length) {
+    const dl = document.createElement('datalist');
+    dl.id = listId;
+    svcs.sort().forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d;
+      dl.appendChild(opt);
+    });
+    svcInput.insertAdjacentElement('afterend', dl);
+    svcInput.setAttribute('list', listId);
+  }
 
-  const dl = document.createElement('datalist');
-  dl.id = listId;
-  svcs.sort().forEach(d => {
-    const opt = document.createElement('option');
-    opt.value = d;
-    dl.appendChild(opt);
-  });
-  svcInput.insertAdjacentElement('afterend', dl);
-  svcInput.setAttribute('list', listId);
+  _gcUpdatePerfLabels();
+};
+
+window._gcUpdatePerfLabels = function() {
+  const hostSel  = document.getElementById('gc-host');
+  const svcInput = document.getElementById('gc-service');
+  const dl       = document.getElementById('gc-perf-label-list');
+  if (!hostSel || !svcInput || !dl) return;
+
+  const key = `${hostSel.value}::${svcInput.value}`;
+  const pd  = (typeof perfdataCache !== 'undefined') ? perfdataCache[key] : null;
+  dl.innerHTML = '';
+  if (pd) {
+    Object.keys(pd).sort().forEach(label => {
+      const m   = pd[label];
+      const opt = document.createElement('option');
+      opt.value = label;
+      opt.label = `${label} = ${m.value}${m.unit || ''}`;
+      dl.appendChild(opt);
+    });
+  }
 };
 
 window._gcSave = async function(objectId) {
@@ -414,8 +485,9 @@ window._gcSave = async function(objectId) {
   const critical    = parseFloat(document.getElementById('gc-critical')?.value)   || 90;
   const value       = parseFloat(document.getElementById('gc-demo-value')?.value) || 0;
   const size        = parseInt(document.getElementById('gc-size')?.value)         || 100;
-  const hostName    = document.getElementById('gc-host')?.value    || '';
-  const svcName     = document.getElementById('gc-service')?.value || '';
+  const hostName    = document.getElementById('gc-host')?.value      || '';
+  const svcName     = document.getElementById('gc-service')?.value   || '';
+  const perfLabel   = document.getElementById('gc-perf-label')?.value.trim() || '';
   const direction   = document.querySelector('input[name="gc-direction"]:checked')?.value   ?? 'out';
   const orientation = document.querySelector('input[name="gc-orientation"]:checked')?.value ?? 'horizontal';
   const divide      = parseFloat(document.getElementById('gc-divide')?.value)       || 1;
@@ -430,8 +502,9 @@ window._gcSave = async function(objectId) {
     ...(type === 'sparkline' ? { history_points: histPoints !== 25 ? histPoints : undefined } : {}),
     ...(type === 'rawnumber' ? { divide: divide !== 1 ? divide : undefined, display_unit: displayUnit || undefined, decimals: decimals || undefined } : {}),
     ...(type === 'weather'   ? { direction, ...(direction === 'both' ? { value_out: valueOut, value_in: valueIn } : {}) } : {}),
-    ...(hostName ? { host_name: hostName } : {}),
-    ...(svcName  ? { service_description: svcName } : {}),
+    ...(hostName  ? { host_name: hostName }                  : {}),
+    ...(svcName   ? { service_description: svcName }         : {}),
+    ...(perfLabel ? { perf_label: perfLabel }                : {}),
     history: [30,45,52,38,61,55,70,65,48,58,72,68,80,75,62,68,55,70,65,78,75,60,65,58,72],
   };
 

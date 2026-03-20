@@ -127,9 +127,11 @@ class ServiceStatus:
     last_check:    int
     acknowledged:  bool
     in_downtime:   bool
+    perf_data:     str = ""       # raw Nagios perfdata string
     backend_id:    str = "default"
 
     def to_dict(self) -> dict:
+        from core.perfdata import parse_perfdata
         return {
             "type":         "service",
             "host_name":    self.host_name,
@@ -140,6 +142,7 @@ class ServiceStatus:
             "last_check":   self.last_check,
             "acknowledged": self.acknowledged,
             "in_downtime":  self.in_downtime,
+            "perfdata":     parse_perfdata(self.perf_data),
             "backend_id":   self.backend_id,
         }
 
@@ -271,7 +274,7 @@ class LivestatusClient:
         q = (
             "GET services\n"
             "Columns: host_name description state plugin_output last_check "
-            "acknowledged scheduled_downtime_depth\n"
+            "acknowledged scheduled_downtime_depth perf_data\n"
         )
         if host_name:
             q += f"Filter: host_name = {host_name}\n"
@@ -281,7 +284,7 @@ class LivestatusClient:
         rows = await self.query(q)
         result = []
         for r in rows:
-            host, desc, state, output, last_check, ack, downtime = r
+            host, desc, state, output, last_check, ack, downtime, perf_data = r
             result.append(ServiceStatus(
                 host_name     = host,
                 description   = desc,
@@ -291,6 +294,7 @@ class LivestatusClient:
                 last_check    = last_check,
                 acknowledged  = bool(ack),
                 in_downtime   = downtime > 0,
+                perf_data     = perf_data or "",
                 backend_id    = self.cfg.backend_id,
             ))
         return result

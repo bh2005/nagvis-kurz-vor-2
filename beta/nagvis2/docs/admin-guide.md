@@ -6,7 +6,7 @@
 |---|---|
 | Python | 3.11 |
 | Docker / Docker Compose | 24.x / 2.x |
-| Nagios / Checkmk / Icinga | mit Livestatus-Modul |
+| Nagios / Checkmk / Icinga | mit Livestatus-Modul oder Checkmk REST API |
 
 ---
 
@@ -20,7 +20,7 @@ cd nagvis-kurz-vor-2/beta/nagvis2
 # 2. Python-Umgebung anlegen
 cd backend
 python3 -m venv venv
-source venv/bin/activate
+source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
 # 3. Konfiguration (optional – Standardwerte funktionieren für lokale Tests)
@@ -61,6 +61,7 @@ Persistente Daten liegen in `./data/` (wird automatisch angelegt):
 data/
 ├── maps/            ← Map-Konfigurationen (*.json)
 ├── backgrounds/     ← Hintergrundbilder
+├── backends.json    ← Backend-Konfigurationen
 └── kiosk_users.json ← Kiosk-User
 ```
 
@@ -75,7 +76,7 @@ Alle Einstellungen erfolgen über Umgebungsvariablen (oder `.env`-Datei im `back
 | Variable | Standard | Beschreibung |
 |---|---|---|
 | `ENVIRONMENT` | `development` | `development` oder `production` |
-| `DEBUG` | `true` | API-Docs aktivieren, Auto-Reload |
+| `DEBUG` | `true` | Swagger-Docs aktivieren, Auto-Reload |
 | `DEMO_MODE` | `false` | Statische Testdaten, kein Livestatus |
 
 ### Server
@@ -111,8 +112,6 @@ NagVis 2 sucht automatisch in dieser Reihenfolge:
 2. Nagios-Standard: `/var/run/nagios/live`, `/var/lib/nagios3/rw/live`
 3. TCP: `LIVESTATUS_HOST:LIVESTATUS_PORT`
 
-Wenn kein Livestatus gefunden wird, aktiviert sich automatisch der **Demo-Modus** mit statischen Testdaten.
-
 ---
 
 ## Verzeichnisstruktur
@@ -121,11 +120,13 @@ Wenn kein Livestatus gefunden wird, aktiviert sich automatisch der **Demo-Modus*
 nagvis2/
 ├── docker-compose.yml
 ├── nginx.conf
+├── mkdocs.yml
 ├── .env.example
-├── docs/                    ← Dokumentation
+├── docs/                    ← MkDocs-Quelldateien
 ├── frontend/
 │   ├── index.html
 │   ├── css/styles.css
+│   ├── help/                ← MkDocs-Output (mkdocs build)
 │   └── js/
 │       ├── gadget-renderer.js
 │       ├── zoom_pan.js
@@ -144,6 +145,7 @@ nagvis2/
     ├── core/
     │   ├── config.py
     │   ├── storage.py
+    │   ├── perfdata.py      ← Nagios/Checkmk Perfdata-Parser
     │   ├── livestatus.py
     │   └── migrate.py
     ├── checkmk/
@@ -171,7 +173,7 @@ NagVis 2 unterstützt mehrere Monitoring-Backends gleichzeitig: **Livestatus (TC
 
 ### Backends verwalten
 
-Burger-Menü → **⚙ Backends verwalten** (nur im Admin-Modus oder wenn kein Backend konfiguriert ist).
+Burger-Menü → **⚙ Backends verwalten**
 
 | Funktion | Beschreibung |
 |---|---|
@@ -183,15 +185,15 @@ Burger-Menü → **⚙ Backends verwalten** (nur im Admin-Modus oder wenn kein B
 
 | Typ | Konfiguration |
 |---|---|
-| **Checkmk REST API** | URL (z.B. `http://checkmk:5000/site`), Benutzername, Passwort |
+| **Checkmk REST API** | URL (z.B. `http://checkmk:5000/mysite/check_mk/api/1.0`), Automation-User, Secret |
 | **Livestatus TCP** | Host + Port (Standard: 6557) |
-| **Livestatus Unix** | Socket-Pfad (z.B. `/var/run/nagios/live`) |
+| **Livestatus Unix** | Socket-Pfad (z.B. `/omd/sites/mysite/tmp/run/live`) |
 
 ### Backend-Persistenz
 
-Konfigurierte Backends werden in `data/backends.json` gespeichert – kein Neustart erforderlich.
+Konfigurierte Backends werden in `data/backends.json` gespeichert — kein Neustart erforderlich.
 
-Beim ersten Start werden `LIVESTATUS_*`-Umgebungsvariablen automatisch als „default"-Backend importiert (Rückwärtskompatibilität).
+Beim ersten Start werden `LIVESTATUS_*`-Umgebungsvariablen automatisch als „default"-Backend importiert (Rückwärtskompatibilität zu bestehenden Deployments).
 
 ### REST-API für Backends
 
@@ -208,6 +210,37 @@ DELETE /api/backends/{id}
 # Verbindung testen (ohne Speichern)
 POST /api/backends/probe
 ```
+
+---
+
+## Perfdata-Verarbeitung
+
+NagVis 2 parst Nagios/Checkmk Performance-Daten automatisch und stellt sie für Gadgets bereit.
+
+### Format
+
+```
+'label'=value[UOM];[warn];[crit];[min];[max]
+```
+
+Beispiele:
+```
+load1=0.42;70;90;0;100
+mem_used_percent=78.0%;75;90;0;100
+rta=1.234ms;3000;5000;0;
+'Used Space'=14.2GB;80%;90%;0%;100%
+```
+
+### Unterstützte UOM (Units of Measure)
+
+`%`, `s`, `ms`, `us`, `B`, `KB`, `MB`, `GB`, `TB`, `PB`, `c` (Counter)
+
+### Zuordnung zu Gadgets
+
+Im Gadget-Konfigurationsdialog:
+1. **Host** und **Service** eintragen
+2. **Perfdata-Metrik** aus der Datalist wählen (wird automatisch aus dem WS-Snapshot befüllt)
+3. Eigene `Warning`/`Critical`/`Min`/`Max`-Werte überschreiben die Perfdata-Werte
 
 ---
 
@@ -256,6 +289,7 @@ Wenn kein Backend konfiguriert ist oder alle Backends nicht erreichbar sind:
 - Die Demo-Map **„NagVis 2 – Feature Demo"** wird automatisch geöffnet (Fallback)
 - Alle anderen Maps und CRUD-Operationen bleiben verfügbar
 - Ein blauer Demo-Banner am unteren Bildschirmrand wird angezeigt
+- Demo-Services mit vollständiger Perfdata werden im WebSocket-Snapshot mitgesendet
 
 Im vollständigen Demo-Modus (`DEMO_MODE=true`):
 - Alle Aktionen (ACK, Downtime etc.) werden simuliert
@@ -263,11 +297,55 @@ Im vollständigen Demo-Modus (`DEMO_MODE=true`):
 
 ---
 
+## Hilfe-System (MkDocs)
+
+Die integrierte Hilfe liegt unter `frontend/help/` und wird von FastAPI statisch ausgeliefert.
+
+### Hilfe neu bauen
+
+```bash
+cd nagvis-kurz-vor-2/beta/nagvis2
+pip install mkdocs-material
+mkdocs build
+# Ausgabe: frontend/help/
+```
+
+Erreichbar unter: `http://localhost:8000/help/`
+
+### Direktlinks im Burger-Menü
+
+Alle Hilfe-Links öffnen in einem neuen Fenster/Tab.
+
+| Link | Ziel |
+|---|---|
+| Canvas | `/help/help/canvas-modes/` |
+| Verbindungen | `/help/help/connections/` |
+| Dashboard | `/help/help/dashboard/` |
+| Migration | `/help/help/migrate/` |
+| Swagger UI | `/api/docs` (nur `DEBUG=true`) |
+
+---
+
+## API-Dokumentation (Swagger)
+
+Swagger UI ist nur im Debug-Modus aktiv:
+
+```env
+DEBUG=true
+```
+
+Erreichbar unter: `http://localhost:8000/api/docs`
+
+Für Produktiv-Deployments `DEBUG=false` setzen.
+
+---
+
 ## Produktions-Empfehlungen
 
-- `DEBUG=false` setzen (deaktiviert API-Docs und Auto-Reload)
+- `DEBUG=false` setzen (deaktiviert Swagger UI und Auto-Reload)
 - `ENVIRONMENT=production` setzen
 - nginx als Reverse Proxy verwenden (TLS-Terminierung, Security-Header)
 - `CORS_ORIGINS` auf tatsächliche Domains einschränken
-- `data/`-Verzeichnis regelmäßig sichern
+- `data/`-Verzeichnis regelmäßig sichern (Maps, Backends, Kiosk-User)
 - `LIVESTATUS_SITE` explizit setzen (schnellerer Start)
+- `UVICORN_WORKERS` auf CPU-Kernanzahl setzen (ab 2 Workers)
