@@ -195,7 +195,9 @@ function _applyGadgetPerfdata() {
 }
 
 function applyNodeStatus(el, label, ack, downtime) {
+  const isOsm = el.classList.contains('nv2-osm-marker');
   let cls = 'nv2-node ' + (STATE_CLS[label] ?? 'nv2-unknown');
+  if (isOsm)    cls = 'nv2-osm-marker ' + cls;
   if (ack)      cls += ' nv2-ack';
   if (downtime) cls += ' nv2-downtime';
   if (el.className === cls) return;
@@ -1334,7 +1336,9 @@ function toggleEdit() {
   addBtn.style.display = editActive ? 'flex' : 'none';
   banner.classList.toggle('show', editActive);
   canvas.classList.toggle('nv2-edit-mode', editActive);
-  if (editActive) document.querySelectorAll('.nv2-node, .nv2-textbox, .nv2-container').forEach(makeDraggable);
+  // OSM-Marker vom Canvas-Drag ausschließen (Leaflet übernimmt das)
+  if (editActive) document.querySelectorAll('.nv2-node:not(.nv2-osm-marker), .nv2-textbox, .nv2-container').forEach(makeDraggable);
+  if (window.NV2_OSM?.isActive()) NV2_OSM.setEditMode(editActive);
 }
 
 function makeDraggable(el) {

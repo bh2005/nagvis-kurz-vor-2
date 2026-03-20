@@ -31,4 +31,5 @@ nav:
       - Dashboard: help/dashboard.md
       - Migration: help/migrate.md
       - ZIP Import: help/zip-import.md
+      - OSM / Weltkarte: osm-guide.md
       - ToDo: todo-liste.md

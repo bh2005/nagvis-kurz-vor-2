@@ -61,11 +61,12 @@ function renderOverview(maps) {
   const grid = document.getElementById('ov-grid');
 
   const cards = maps.map(m => `
-    <div class="ov-card" data-map-id="${esc(m.id)}">
+    <div class="ov-card" data-map-id="${esc(m.id)}" data-title="${esc(m.title)}"
+         data-canvas="${esc(JSON.stringify(m.canvas ?? {}))}">
       <div class="ov-card-header">
         <div class="ov-card-title">${esc(m.title)}</div>
         <button class="ov-card-menu-btn" data-map-id="${esc(m.id)}"
-                title="Map-Optionen" onclick="event.stopPropagation(); openCardMenu(event, '${esc(m.id)}', '${esc(m.title)}')">⋯</button>
+                title="Map-Optionen" onclick="event.stopPropagation(); openCardMenu(event, '${esc(m.id)}', '${esc(m.title)}', this.closest('.ov-card').dataset.canvas)">⋯</button>
       </div>
       <div class="ov-card-meta">${m.object_count ?? 0} Objekte · <span class="ov-card-id">${esc(m.id)}</span></div>
       ${m.parent_map ? `<div class="ov-card-parent">↳ ${esc(m.parent_map)}</div>` : ''}
@@ -83,23 +84,38 @@ function renderOverview(maps) {
 
   grid.querySelectorAll('.ov-card').forEach(card => {
     card.addEventListener('click', () => openMap(card.dataset.mapId));
+    card.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      openCardMenu(e, card.dataset.mapId, card.dataset.title, card.dataset.canvas);
+    });
   });
   document.getElementById('btn-new-map')?.addEventListener('click', dlgNewMap);
 }
 
-function openCardMenu(e, mapId, mapTitle) {
+function openCardMenu(e, mapId, mapTitle, canvasJson) {
   closeCardMenu();
+  let canvasCfg = {};
+  try { canvasCfg = JSON.parse(canvasJson ?? '{}'); } catch { /* ignore */ }
+  const canvasArg = JSON.stringify(canvasCfg).replace(/"/g, '&quot;');
+
   const menu = document.createElement('div');
   menu.id = 'card-ctx-menu';
   menu.className = 'ctx-menu';
-  menu.style.cssText = `position:fixed;top:${e.clientY + 4}px;left:${e.clientX - 140}px`;
+  // Menü bleibt im Viewport (Rechts-Überlauf vermeiden)
+  const x = Math.min(e.clientX, window.innerWidth  - 200);
+  const y = Math.min(e.clientY + 4, window.innerHeight - 220);
+  menu.style.cssText = `position:fixed;top:${y}px;left:${x}px`;
   menu.innerHTML = `
     <button class="ctx-item" onclick="closeCardMenu(); openMap('${esc(mapId)}')">▶ Öffnen</button>
+    <div class="ctx-sep"></div>
     <button class="ctx-item" onclick="closeCardMenu(); _renameMapId='${esc(mapId)}';
       document.getElementById('rename-map-title').value='${esc(mapTitle)}';
       openDlg('dlg-rename-map')">✎ Umbenennen</button>
     <button class="ctx-item" onclick="closeCardMenu(); _parentMapId='${esc(mapId)}'; openParentMapDlg()">
       🗺 Parent-Map setzen</button>
+    <button class="ctx-item" onclick="closeCardMenu(); openCanvasModeDialog('${esc(mapId)}', '${esc(mapTitle)}', ${canvasArg})">
+      ⊡ Canvas-Format ändern</button>
+    <div class="ctx-sep"></div>
     <button class="ctx-item" onclick="closeCardMenu(); exportMapById('${esc(mapId)}')">
       📤 Exportieren (.zip)</button>
     <button class="ctx-item ctx-danger"
@@ -154,11 +170,33 @@ async function openMap(mapId) {
 
   applyCanvasMode(canvas, activeMapCfg.canvas);
 
-  for (const obj of activeMapCfg.objects ?? []) {
-    const el = createNode(obj);
-    if (el && obj.layer != null) el.dataset.layer = obj.layer;
+  const isOsm = activeMapCfg.canvas?.mode === 'osm';
+  const osmEl  = document.getElementById('osm-map');
+
+  // Vorherigen OSM-Modus aufräumen (falls vorher aktiv)
+  if (window.NV2_OSM?.isActive()) NV2_OSM.destroy();
+
+  if (isOsm) {
+    canvas.style.display = 'none';
+    if (osmEl) {
+      osmEl.style.display = 'block';
+      void osmEl.offsetHeight; // Reflow erzwingen, damit Leaflet korrekte Containermaße liest
+    }
+    if (window.NV2_OSM) {
+      NV2_OSM.init(activeMapCfg.canvas, activeMapCfg.objects ?? []);
+      // Sicherheits-Invalidate nach erstem Paint (falls Container noch 0×0 war)
+      setTimeout(() => { if (window.NV2_OSM?.isActive()) NV2_OSM.invalidate(); }, 80);
+    }
+    initLayers([]);
+  } else {
+    canvas.style.display = '';
+    if (osmEl) osmEl.style.display = 'none';
+    for (const obj of activeMapCfg.objects ?? []) {
+      const el = createNode(obj);
+      if (el && obj.layer != null) el.dataset.layer = obj.layer;
+    }
+    initLayers(activeMapCfg.objects ?? []);
   }
-  initLayers(activeMapCfg.objects ?? []);
 
   if (wsClient) {
     wsClient._dead = true;
@@ -168,10 +206,15 @@ async function openMap(mapId) {
   wsClient.connect();
 
   const zoomControls = document.getElementById('nv2-zoom-controls');
-  if (zoomControls) zoomControls.style.display = 'flex';
-  if (window.NV2_ZOOM) {
-    NV2_ZOOM.reset();
-    NV2_ZOOM.init(canvas, wrapper);
+  if (isOsm) {
+    if (zoomControls) zoomControls.style.display = 'none';
+    if (window.NV2_ZOOM) NV2_ZOOM.destroy();
+  } else {
+    if (zoomControls) zoomControls.style.display = 'flex';
+    if (window.NV2_ZOOM) {
+      NV2_ZOOM.reset();
+      NV2_ZOOM.init(canvas, wrapper);
+    }
   }
 }
 
@@ -205,6 +248,10 @@ function showOverview() {
   const zoomControls = document.getElementById('nv2-zoom-controls');
   if (zoomControls) zoomControls.style.display = 'none';
   if (window.NV2_ZOOM) NV2_ZOOM.destroy();
+  if (window.NV2_OSM?.isActive()) NV2_OSM.destroy();
+  const _osmEl = document.getElementById('osm-map');
+  if (_osmEl) _osmEl.style.display = 'none';
+  document.getElementById('nv2-canvas').style.display = '';
 
   loadMaps();
 }
@@ -284,6 +331,12 @@ async function confirmNewMap() {
   if (mode === 'ratio') { canvas.mode = 'ratio'; canvas.ratio = document.getElementById('nm-ratio').value; }
   else if (mode === 'fixed') { canvas.mode = 'fixed'; canvas.w = parseInt(document.getElementById('nm-fixed-w').value) || 1920; canvas.h = parseInt(document.getElementById('nm-fixed-h').value) || 1080; }
   else if (mode === 'background') { canvas.mode = 'background'; }
+  else if (mode === 'osm') {
+    canvas.mode = 'osm';
+    canvas.lat  = parseFloat(document.getElementById('nm-osm-lat')?.value)  || 51.0;
+    canvas.lng  = parseFloat(document.getElementById('nm-osm-lng')?.value)  || 10.0;
+    canvas.zoom = parseInt(document.getElementById('nm-osm-zoom')?.value)   || 6;
+  }
   else { canvas.mode = 'free'; }
   closeDlg('dlg-new-map');
   const created = await api('/api/maps', 'POST', { title, map_id: mapId, canvas });
@@ -320,9 +373,10 @@ function dlgNewMap() {
 
 function _nmUpdateCanvasFields() {
   const mode = document.querySelector('input[name="nm-canvas-mode"]:checked')?.value ?? 'free';
-  document.getElementById('nm-fields-ratio')?.style && (document.getElementById('nm-fields-ratio').style.display      = mode === 'ratio'      ? 'flex' : 'none');
-  document.getElementById('nm-fields-fixed')?.style && (document.getElementById('nm-fields-fixed').style.display      = mode === 'fixed'      ? 'grid' : 'none');
-  document.getElementById('nm-fields-background')?.style && (document.getElementById('nm-fields-background').style.display = mode === 'background' ? 'block': 'none');
+  document.getElementById('nm-fields-ratio')?.style && (document.getElementById('nm-fields-ratio').style.display      = mode === 'ratio'      ? 'flex'  : 'none');
+  document.getElementById('nm-fields-fixed')?.style && (document.getElementById('nm-fields-fixed').style.display      = mode === 'fixed'      ? 'grid'  : 'none');
+  document.getElementById('nm-fields-background')?.style && (document.getElementById('nm-fields-background').style.display = mode === 'background' ? 'block' : 'none');
+  document.getElementById('nm-fields-osm')?.style && (document.getElementById('nm-fields-osm').style.display         = mode === 'osm'        ? 'block' : 'none');
 }
 window._nmUpdateCanvasFields = _nmUpdateCanvasFields;
 
@@ -457,6 +511,37 @@ async function openCanvasModeDialog(mapId, mapTitle, currentCanvas) {
         <div id="cm-fields-background" style="padding-left:22px;${cfg.mode==='background'?'':'display:none'}">
           <p class="f-hint">Canvas passt sich beim nächsten Hintergrundbild-Upload an.</p>
         </div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--text)">
+          <input type="radio" name="cm-mode" value="osm" ${cfg.mode==='osm'?'checked':''} onchange="_cmUpdate()">
+          <span>🗺 <b>OpenStreetMap</b> – interaktive Weltkarte (Leaflet)</span>
+        </label>
+        <div id="cm-fields-osm" style="padding-left:22px;${cfg.mode==='osm'?'':'display:none'}">
+          <div style="margin-bottom:6px">
+            <label class="f-label" style="font-size:11px">Tile-Server URL <span style="color:var(--text-dim)">(leer = OpenStreetMap-Standard)</span></label>
+            <input class="f-input" id="cm-osm-tile" type="text"
+                   value="${esc(cfg.tile_url ?? '')}"
+                   placeholder="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                   style="font-size:11px;font-family:var(--mono)">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:6px">
+            <div>
+              <label class="f-label" style="font-size:11px">Start-Breitengrad (Lat)</label>
+              <input class="f-input" id="cm-osm-lat" type="number" step="0.001"
+                     value="${cfg.lat ?? 51.0}">
+            </div>
+            <div>
+              <label class="f-label" style="font-size:11px">Start-Längengrad (Lng)</label>
+              <input class="f-input" id="cm-osm-lng" type="number" step="0.001"
+                     value="${cfg.lng ?? 10.0}">
+            </div>
+            <div>
+              <label class="f-label" style="font-size:11px">Zoom</label>
+              <input class="f-input" id="cm-osm-zoom" type="number"
+                     value="${cfg.zoom ?? 6}" min="1" max="18">
+            </div>
+          </div>
+          <p class="f-hint" style="margin-top:6px">Nodes werden mit Breitengrad (x) / Längengrad (y) positioniert statt x%/y%.</p>
+        </div>
       </div>
       <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
         <div class="f-label" style="margin-bottom:6px">Node-Verhalten an den Grenzen</div>
@@ -480,20 +565,27 @@ async function openCanvasModeDialog(mapId, mapTitle, currentCanvas) {
 
 window._cmUpdate = function() {
   const mode = document.querySelector('input[name="cm-mode"]:checked')?.value ?? 'free';
-  ['ratio','fixed','background'].forEach(k => {
+  ['ratio','fixed','background','osm'].forEach(k => {
     const el = document.getElementById(`cm-fields-${k}`);
     if (el) el.style.display = mode === k ? (k === 'fixed' ? 'grid' : 'block') : 'none';
   });
 };
 
 window._cmSave = async function(mapId) {
-  const mode = document.querySelector('input[name="cm-mode"]:checked')?.value ?? 'free';
+  const mode     = document.querySelector('input[name="cm-mode"]:checked')?.value ?? 'free';
   const overflow = document.querySelector('input[name="cm-overflow"]:checked')?.value ?? 'clamp';
   const canvas = { mode, overflow };
-  if (mode === 'ratio')  canvas.ratio = document.getElementById('cm-ratio').value;
+  if (mode === 'ratio') canvas.ratio = document.getElementById('cm-ratio').value;
   if (mode === 'fixed') {
     canvas.w = parseInt(document.getElementById('cm-fixed-w').value) || 1920;
     canvas.h = parseInt(document.getElementById('cm-fixed-h').value) || 1080;
+  }
+  if (mode === 'osm') {
+    const tileVal = document.getElementById('cm-osm-tile')?.value?.trim();
+    if (tileVal) canvas.tile_url = tileVal;
+    canvas.lat  = parseFloat(document.getElementById('cm-osm-lat')?.value)  || 51.0;
+    canvas.lng  = parseFloat(document.getElementById('cm-osm-lng')?.value)  || 10.0;
+    canvas.zoom = parseInt(document.getElementById('cm-osm-zoom')?.value)   || 6;
   }
   if (_demoMode) {
     const m = _demoMaps.find(m => m.id === mapId);
@@ -502,9 +594,14 @@ window._cmSave = async function(mapId) {
     await api(`/api/maps/${mapId}/canvas`, 'PUT', canvas);
   }
   document.getElementById('dlg-canvas-mode')?.remove();
-  if (mapId === activeMapId && activeMapCfg) {
-    activeMapCfg.canvas = canvas;
-    applyCanvasMode(document.getElementById('nv2-canvas'), canvas);
+  if (mapId === activeMapId) {
+    // Wechsel zu/von OSM erfordert vollständigen Map-Reload
+    if (mode === 'osm' || window.NV2_OSM?.isActive()) {
+      await openMap(mapId);
+    } else if (activeMapCfg) {
+      activeMapCfg.canvas = canvas;
+      applyCanvasMode(document.getElementById('nv2-canvas'), canvas);
+    }
   }
   setStatusBar(`Canvas-Format für „${mapId}" gesetzt: ${mode}`);
 };
@@ -908,6 +1005,7 @@ async function confirmImportZip() {
 
 function applyCanvasMode(canvas, cfg) {
   const mode = cfg?.mode ?? 'free';
+  if (mode === 'osm') return;  // Leaflet übernimmt Zoom/Pan – kein CSS nötig
   canvas.style.width       = '';
   canvas.style.height      = '';
   canvas.style.maxWidth    = '';

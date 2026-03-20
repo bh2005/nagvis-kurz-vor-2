@@ -1,0 +1,14 @@
+{
+  "id": "world",
+  "title": "world",
+  "canvas": {
+    "mode": "osm",
+    "overflow": "free",
+    "lat": 51,
+    "lng": 10,
+    "zoom": 6
+  },
+  "background": null,
+  "parent_map": null,
+  "objects": []
+}

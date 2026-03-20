@@ -806,6 +806,7 @@ img.nv2-icon { display: block; width: 100%; height: 100%; object-fit: contain; t
 .ctx-item:hover { background: var(--bg-hover); }
 .ctx-item.ctx-danger { color: var(--crit); }
 .ctx-item.ctx-danger:hover { background: color-mix(in srgb, var(--crit) 12%, transparent); }
+.ctx-sep { height: 1px; background: var(--border); margin: 3px 0; }
 
 
 /* ═══════════════════════════════════════════════════════════════════════
