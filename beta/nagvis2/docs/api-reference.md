@@ -39,7 +39,11 @@ Systemstatus, Livestatus-Verbindung und alle konfigurierten Backends prüfen.
 
 Das Feld `reachable` zeigt an, ob das Backend beim letzten Ping erreichbar war.
 
-Die Status-Objekte enthalten ab Version 2.0-beta auch das Feld `labels` (Dict), das Checkmk-Labels bzw. Nagios-Custom-Variables enthält.
+Die Status-Objekte enthalten das Feld `labels` (Dict) mit backend-spezifischen Labels:
+- **Checkmk**: `extensions.labels` aus der REST API
+- **Livestatus/Nagios**: `custom_variables` (z. B. `_OS` → `os`)
+- **Icinga2**: `vars.*` (Custom-Variables)
+- **Zabbix**: Host/Problem-Tags als `{tag: value}` Dict
 
 ---
 
@@ -108,11 +112,35 @@ Neues Backend hinzufügen.
 **Body (Checkmk REST API):**
 ```json
 {
-  "type": "checkmk_rest",
-  "label": "Checkmk Production",
-  "url": "http://checkmk:5000/mysite",
+  "type": "checkmk",
+  "backend_id": "checkmk-prod",
+  "base_url": "https://monitoring.example.com/mysite/check_mk/api/1.0",
   "username": "automation",
-  "password": "secret"
+  "secret": "automation-secret",
+  "verify_ssl": true
+}
+```
+
+**Body (Icinga2 REST API):**
+```json
+{
+  "type": "icinga2",
+  "backend_id": "icinga2-prod",
+  "base_url": "https://icinga2.example.com:5665/v1",
+  "username": "nagvis2",
+  "password": "geheimes-passwort",
+  "verify_ssl": false
+}
+```
+
+**Body (Zabbix JSON-RPC):**
+```json
+{
+  "type": "zabbix",
+  "backend_id": "zabbix-prod",
+  "url": "https://zabbix.example.com",
+  "token": "abc123...",
+  "verify_ssl": true
 }
 ```
 

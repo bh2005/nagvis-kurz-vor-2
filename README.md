@@ -1,6 +1,6 @@
 # NagVis 2 (Beta)
 
-**Moderne, schnelle und wartbare Web-Oberfläche für Nagios / Checkmk / Icinga**
+**Moderne, schnelle und wartbare Web-Oberfläche für Nagios / Checkmk / Icinga2 / Zabbix**
 
 Eine komplette Neuentwicklung von NagVis mit FastAPI-Backend, WebSocket-Livestatus und einem Vanilla-JS-Frontend ohne Framework-Abhängigkeiten.
 
@@ -16,7 +16,7 @@ Eine komplette Neuentwicklung von NagVis mit FastAPI-Backend, WebSocket-Livestat
 | **Gadgets** | Radial, Linear (H/V), Sparkline, Thermometer, Flow/Weather, Raw-Number |
 | **Perfdata** | Nagios/Checkmk Performance-Daten automatisch in Gadgets eingespeist |
 | **Weathermap-Linien** | Statusfarbe, Bandbreiten-Labels, bidirektionale Pfeile |
-| **Multi-Backend** | Livestatus TCP/Unix + Checkmk REST API gemischt, Hot-Add ohne Neustart |
+| **Multi-Backend** | Livestatus, Checkmk REST API, **Icinga2 REST API**, **Zabbix JSON-RPC** gemischt, Hot-Add ohne Neustart |
 | **Kiosk-Modus** | Token-URL, automatische Map-Rotation, Vollbild mit Zoom/Pan |
 | **API-Versionierung** | Alle Endpunkte unter `/api/v1/`; 308-Redirect für Rückwärtskompatibilität |
 | **Help-System** | Integriertes MkDocs-Hilfe-System unter `/help/` |
@@ -106,6 +106,10 @@ nagvis2/
 │   │   └── migrate.py
 │   ├── checkmk/
 │   │   └── client.py         ← Checkmk REST API Client
+│   ├── icinga2/
+│   │   └── client.py         ← Icinga2 REST API v1 Client
+│   ├── zabbix/
+│   │   └── client.py         ← Zabbix JSON-RPC Client
 │   ├── connectors/
 │   │   └── registry.py       ← Unified Backend Registry
 │   ├── api/

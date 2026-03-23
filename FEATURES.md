@@ -73,7 +73,7 @@
 ### Label-Template-System
 - **Nagios-Macros** – `$HOSTNAME$`, `$HOSTALIAS$`, `$HOSTSTATE$`, `$HOSTOUTPUT$`, `$SERVICEDESC$`, `$SERVICESTATE$`, `$SERVICEOUTPUT$`, `$MAPNAME$`
 - **Checkmk/Nagios-Labels** – `$LABEL:os$`, `$LABEL:location$`, `$LABEL:env$`, … (beliebiger Key)
-- **Datenquellen** – Livestatus: `custom_variables` → Labels; Checkmk REST API: `extensions.labels`
+- **Datenquellen** – Livestatus: `custom_variables` → Labels; Checkmk: `extensions.labels`; Icinga2: `vars.*`; Zabbix: Tags
 - **Live-Aktualisierung** – Template wird bei jedem WebSocket-Status-Update neu aufgelöst
 - **Konfiguration** – Eigenschaften-Dialog im Edit-Mode; separates Feld für Template vs. statisches Label
 
@@ -176,7 +176,9 @@
 ### Multi-Backend
 - **Livestatus TCP/Unix** – direkte Nagios/Checkmk-Verbindung
 - **Checkmk REST API** – async HTTP-Client für Checkmk REST API v1.0
-- **Unified Registry** – Backends gemischt nutzbar, Hot-Add ohne Neustart
+- **Icinga2 REST API** – Basic Auth, `X-HTTP-Method-Override: GET`; Host/Service/Gruppe; ACK, Downtime, Reschedule ✅
+- **Zabbix JSON-RPC API** – Zabbix 6.0+ (Bearer-Token) + ältere Versionen (user.login); Host/Problem/Gruppe; ACK, Maintenance ✅
+- **Unified Registry** – alle Backend-Typen gemischt nutzbar, Hot-Add ohne Neustart
 - **Persistenz** – `data/backends.json`, LIVESTATUS_* Env-Vars werden auto-importiert
 - **Backend-Management-UI** – Burger-Menü → Backends verwalten (hinzufügen, testen, entfernen)
 - **Probe-Endpoint** – Verbindungstest ohne permanenten Eintrag (`POST /api/backends/probe`)

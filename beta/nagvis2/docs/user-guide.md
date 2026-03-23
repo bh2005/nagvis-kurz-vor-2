@@ -2,7 +2,7 @@
 
 ## Übersicht
 
-NagVis 2 visualisiert den Status deiner Monitoring-Umgebung (Nagios / Checkmk / Icinga) auf interaktiven Karten. Nodes auf der Karte zeigen den aktuellen Status von Hosts, Services, Hostgruppen und mehr in Echtzeit via WebSocket.
+NagVis 2 visualisiert den Status deiner Monitoring-Umgebung (Nagios / Checkmk / Icinga2 / Zabbix) auf interaktiven Karten. Nodes auf der Karte zeigen den aktuellen Status von Hosts, Services, Hostgruppen und mehr in Echtzeit via WebSocket.
 
 ---
 
@@ -71,6 +71,29 @@ NagVis 2 visualisiert den Status deiner Monitoring-Umgebung (Nagios / Checkmk / 
 | ☰ Hilfe | Handbücher (öffnen im neuen Fenster) |
 | </> Swagger UI | REST-API-Dokumentation (`/api/v1/docs`) |
 | ℹ Über NagVis 2 | Version, GitHub-Link, Changelog-Viewer |
+
+---
+
+## Backends konfigurieren
+
+### Burger-Menü → ⚙ Backends verwalten
+
+Öffnet den Backend-Verwaltungs-Dialog. Hier können Monitoring-Backends hinzugefügt, getestet, aktiviert/deaktiviert und entfernt werden.
+
+**Unterstützte Backend-Typen:**
+
+| Typ | Beschreibung | Felder |
+|-----|-------------|--------|
+| **Checkmk REST API** | Checkmk REST API v1.0 | Base-URL, Automation-User, Secret/Token, SSL |
+| **Icinga2 REST API** | Icinga2 REST API v1 (Basic Auth) | Base-URL, API-Benutzer, Passwort, SSL (Standard: aus) |
+| **Zabbix JSON-RPC** | Zabbix 6.0+ (Bearer-Token) oder älter (Login) | URL, API-Token (bevorzugt) oder Benutzer + Passwort, SSL |
+| **Livestatus TCP** | Nagios/Checkmk via TCP-Verbindung | Host/IP, Port (Standard: 6557) |
+| **Livestatus Unix** | Nagios/Checkmk via Unix-Socket (lokal/OMD) | Socket-Pfad |
+| **Demo** | Statische Musterdaten, keine Verbindung nötig | — |
+
+**Verbindungstest:** Der Button **🔌 Testen** prüft die Verbindung ohne das Backend zu speichern.
+
+**Mehrere Backends** können gleichzeitig aktiv sein. Hosts werden dedupliziert (gleichnamige Hosts aus verschiedenen Backends erscheinen nur einmal).
 
 ---
 
@@ -200,7 +223,11 @@ $LABEL:env$ – $HOSTNAME$          → "production – webserver-01"
 $SERVICESTATE$: $SERVICEOUTPUT$   → "CRITICAL: HTTP timeout after 30s"
 ```
 
-**Checkmk-Labels** werden automatisch aus `extensions.labels` der Checkmk REST API bzw. aus `custom_variables` (Livestatus) importiert. Der führende Unterstrich wird entfernt: `_OS` → `$LABEL:os$`.
+Labels werden je nach Backend-Typ automatisch importiert:
+- **Checkmk**: `extensions.labels` aus der REST API
+- **Livestatus/Nagios**: `custom_variables` (führender `_` wird entfernt: `_OS` → `$LABEL:os$`)
+- **Icinga2**: `vars.*` (Custom-Variables)
+- **Zabbix**: Host- und Problem-Tags (`{tag, value}`)
 
 ### Canvas Rechtsklick-Menü
 
