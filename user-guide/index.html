@@ -510,6 +510,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#label-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Label-Templates
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#canvas-rechtsklick-menu" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1407,6 +1418,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#label-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Label-Templates
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#canvas-rechtsklick-menu" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1905,7 +1927,11 @@
 </tr>
 <tr>
 <td>&lt;/&gt; Swagger UI</td>
-<td>REST-API-Dokumentation (nur im Debug-Modus)</td>
+<td>REST-API-Dokumentation (<code>/api/v1/docs</code>)</td>
+</tr>
+<tr>
+<td>ℹ Über NagVis 2</td>
+<td>Version, GitHub-Link, Changelog-Viewer</td>
 </tr>
 </tbody>
 </table>
@@ -2071,8 +2097,66 @@ Dieses Verhalten kann unter <strong>Canvas-Format ändern → Node-Verhalten</st
 <p>Über <strong>⚙ Eigenschaften</strong> im Kontext-Menü:
 - <strong>Name</strong> – Hostname, Hostgruppen-Name oder Map-ID (mit Autocomplete aus Livestatus)
 - <strong>Hostname + Service-Name</strong> – bei Services
-- <strong>Label</strong> – Anzeigename unter dem Icon (leer = Name wird verwendet)
+- <strong>Label-Template</strong> – dynamische Beschriftung mit Nagios-Macros und Checkmk-Labels (siehe unten)
+- <strong>Statisches Label</strong> – fester Anzeigename; wird ignoriert wenn ein Template gesetzt ist
 - <strong>Label anzeigen</strong> – Checkbox zum Ein-/Ausblenden des Labels</p>
+<h3 id="label-templates">Label-Templates</h3>
+<p>Nodes können dynamische Beschriftungen erhalten, die bei jedem Status-Update neu aufgelöst werden.</p>
+<p><strong>Verfügbare Macros:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Macro</th>
+<th>Wert</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>$HOSTNAME$</code></td>
+<td>Host-Name</td>
+</tr>
+<tr>
+<td><code>$HOSTALIAS$</code></td>
+<td>Alias des Hosts</td>
+</tr>
+<tr>
+<td><code>$HOSTSTATE$</code></td>
+<td><code>UP</code> / <code>DOWN</code> / <code>UNREACHABLE</code></td>
+</tr>
+<tr>
+<td><code>$HOSTOUTPUT$</code></td>
+<td>Plugin-Ausgabe des Hosts</td>
+</tr>
+<tr>
+<td><code>$SERVICEDESC$</code></td>
+<td>Service-Beschreibung</td>
+</tr>
+<tr>
+<td><code>$SERVICESTATE$</code></td>
+<td><code>OK</code> / <code>WARNING</code> / <code>CRITICAL</code> / <code>UNKNOWN</code></td>
+</tr>
+<tr>
+<td><code>$SERVICEOUTPUT$</code></td>
+<td>Plugin-Ausgabe des Services</td>
+</tr>
+<tr>
+<td><code>$LABEL:key$</code></td>
+<td>Checkmk-Label oder Nagios-Custom-Variable (lowercase)</td>
+</tr>
+<tr>
+<td><code>$MAPNAME$</code></td>
+<td>ID der aktiven Map</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Beispiele:</strong></p>
+<pre><code>$HOSTNAME$ ($HOSTSTATE$)          → &quot;webserver-01 (DOWN)&quot;
+$HOSTALIAS$                       → &quot;Webserver Hamburg&quot;
+$LABEL:os$ / $LABEL:location$     → &quot;linux / hamburg&quot;
+$LABEL:env$ – $HOSTNAME$          → &quot;production – webserver-01&quot;
+$SERVICESTATE$: $SERVICEOUTPUT$   → &quot;CRITICAL: HTTP timeout after 30s&quot;
+</code></pre>
+<p><strong>Checkmk-Labels</strong> werden automatisch aus <code>extensions.labels</code> der Checkmk REST API bzw. aus <code>custom_variables</code> (Livestatus) importiert. Der führende Unterstrich wird entfernt: <code>_OS</code> → <code>$LABEL:os$</code>.</p>
 <h3 id="canvas-rechtsklick-menu">Canvas Rechtsklick-Menü</h3>
 <p>Rechtsklick auf freie Fläche im Edit-Mode:</p>
 <table>
