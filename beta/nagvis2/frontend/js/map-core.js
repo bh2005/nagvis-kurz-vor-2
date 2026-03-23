@@ -70,10 +70,8 @@ function renderOverview(maps) {
       </div>
       <div class="ov-card-meta">${m.object_count ?? 0} Objekte · <span class="ov-card-id">${esc(m.id)}</span></div>
       ${m.parent_map ? `<div class="ov-card-parent">↳ ${esc(m.parent_map)}</div>` : ''}
-      <div class="ov-card-pills">
-        <span class="ov-card-pill ok">UP –</span>
-        <span class="ov-card-pill warn">W –</span>
-        <span class="ov-card-pill crit">C –</span>
+      <div class="ov-card-pills" id="ov-pills-${esc(m.id)}">
+        ${_pillsHtml(m.id)}
       </div>
     </div>`).join('');
 
@@ -130,7 +128,8 @@ function closeCardMenu() {
 }
 
 
-async function openMap(mapId) {
+async function openMap(mapId, { skipHistory = false } = {}) {
+  if (!skipHistory) history.pushState({ mapId }, '', `#/map/${mapId}`);
   activeMapId  = mapId;
   activeMapCfg = await api(`/api/maps/${mapId}`);
   if (!activeMapCfg) { alert('Map nicht gefunden'); return; }
@@ -198,6 +197,10 @@ async function openMap(mapId) {
     initLayers(activeMapCfg.objects ?? []);
   }
 
+  // Hostgroup-Mitglieder laden wenn hg-Nodes auf der Map sind
+  const hasHgNodes = (activeMapCfg.objects ?? []).some(o => o.type === 'hostgroup');
+  if (hasHgNodes) loadHostgroups();
+
   if (wsClient) {
     wsClient._dead = true;
     wsClient.ws?.close();
@@ -218,7 +221,8 @@ async function openMap(mapId) {
   }
 }
 
-function showOverview() {
+function showOverview({ skipHistory = false } = {}) {
+  if (!skipHistory) history.pushState(null, '', '#/');
   document.getElementById('app')?.classList.remove('map-open');
   document.getElementById('app')?.classList.remove('sidebar-expanded');
   document.getElementById('app').style.gridTemplateColumns =
@@ -257,6 +261,63 @@ function showOverview() {
 }
 
 window.showOverview = showOverview;
+
+
+// ═══════════════════════════════════════════════════════════════════════
+//  STATUS-PILLS – Helper
+// ═══════════════════════════════════════════════════════════════════════
+
+function _pillsHtml(mapId) {
+  const c = mapStatusCache[mapId];
+  if (!c) return `
+    <span class="ov-card-pill ok">UP –</span>
+    <span class="ov-card-pill warn">W –</span>
+    <span class="ov-card-pill crit">C –</span>`;
+  return `
+    <span class="ov-card-pill ok">UP ${c.ok}</span>
+    <span class="ov-card-pill warn">W ${c.warn}</span>
+    <span class="ov-card-pill crit ${c.crit > 0 ? 'has-crit' : ''}">C ${c.crit}</span>`;
+}
+
+function _updateOverviewCardPills(mapId, counts) {
+  const el = document.getElementById(`ov-pills-${mapId}`);
+  if (!el) return;
+  el.innerHTML = `
+    <span class="ov-card-pill ok">UP ${counts.ok}</span>
+    <span class="ov-card-pill warn">W ${counts.warn}</span>
+    <span class="ov-card-pill crit ${counts.crit > 0 ? 'has-crit' : ''}">C ${counts.crit}</span>`;
+}
+
+function _updateSidebarPip(mapId, counts) {
+  const pip = document.getElementById(`mpip-${mapId}`);
+  if (!pip) return;
+  let cls = 'map-pip ';
+  if (counts.crit > 0)      cls += 'crit';
+  else if (counts.warn > 0) cls += 'warn';
+  else if (counts.ok > 0)   cls += 'ok';
+  else                      cls += 'unkn';
+  pip.className = cls;
+}
+
+window._updateOverviewCardPills = _updateOverviewCardPills;
+window._updateSidebarPip        = _updateSidebarPip;
+
+
+// ═══════════════════════════════════════════════════════════════════════
+//  HOSTGROUP-CACHE – laden und befüllen
+// ═══════════════════════════════════════════════════════════════════════
+
+async function loadHostgroups() {
+  const groups = await api('/api/hostgroups') ?? [];
+  hostgroupCache = {};
+  for (const g of groups) {
+    hostgroupCache[g.name] = g.members ?? [];
+  }
+  // Sofort Hostgroup-Status anwenden falls bereits WS-Daten vorhanden
+  if (typeof _applyHostgroupStatuses === 'function') _applyHostgroupStatuses();
+}
+
+window.loadHostgroups = loadHostgroups;
 
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -609,192 +670,6 @@ window._cmSave = async function(mapId) {
 window.openCanvasModeDialog = openCanvasModeDialog;
 
 
-/* ═══════════════════════════════════════════════════════════════════════
-   VERBINDUNGS-VERWALTUNG
-═══════════════════════════════════════════════════════════════════════ */
-
-function openConnectionsDlg() {
-  document.getElementById('dlg-connections')?.remove();
-  const dlg = document.createElement('div');
-  dlg.id = 'dlg-connections';
-  dlg.className = 'dlg-overlay show';
-  dlg.innerHTML = `
-    <div class="dlg-box" style="width:520px;max-height:85vh;display:flex;flex-direction:column">
-      <h3 style="flex-shrink:0">Verbindungen verwalten</h3>
-      <div id="conn-list" style="flex:1;overflow-y:auto;min-height:80px;
-           border:1px solid var(--border);border-radius:var(--r);margin-bottom:12px"></div>
-      <div style="flex-shrink:0">
-        <div class="burger-head" style="padding:0 0 6px 0">Neue Verbindung</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <div><label class="f-label">Name</label><input class="f-input" id="nc-name" type="text" placeholder="z.B. Checkmk Prod"></div>
-          <div><label class="f-label">Typ</label>
-            <select class="f-select" id="nc-type" onchange="_ncUpdateFields()">
-              <option value="checkmk">Checkmk / OMD</option>
-              <option value="nagios">Nagios / Icinga</option>
-              <option value="tcp">TCP Socket</option>
-              <option value="unix">Unix Socket (Pfad)</option>
-              <option value="demo">Demo (kein Backend)</option>
-            </select>
-          </div>
-        </div>
-        <div id="nc-fields-server" style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-top:8px">
-          <div><label class="f-label">Host / IP</label><input class="f-input" id="nc-host" type="text" placeholder="192.168.1.10"></div>
-          <div><label class="f-label">Port</label><input class="f-input" id="nc-port" type="number" placeholder="6557" value="6557"></div>
-        </div>
-        <div id="nc-fields-site" style="margin-top:8px">
-          <label class="f-label">OMD-Site <span style="color:var(--text-dim);font-weight:400">(nur Checkmk)</span></label>
-          <input class="f-input" id="nc-site" type="text" placeholder="mysite">
-        </div>
-        <div id="nc-fields-path" style="display:none;margin-top:8px">
-          <label class="f-label">Socket-Pfad</label>
-          <input class="f-input" id="nc-path" type="text" placeholder="/omd/sites/mysite/tmp/run/live">
-        </div>
-        <div style="display:flex;gap:8px;margin-top:12px">
-          <button class="btn-cancel" style="flex:1" onclick="_ncTest()">🔌 Test</button>
-          <button class="btn-ok" style="flex:2" onclick="_ncAdd()">＋ Hinzufügen</button>
-        </div>
-        <div id="nc-test-result" style="display:none;margin-top:8px;padding:8px;
-             background:var(--bg);border-radius:var(--r);font-size:11px;font-family:var(--mono);border:1px solid var(--border)"></div>
-      </div>
-      <div class="dlg-actions" style="flex-shrink:0;margin-top:8px">
-        <button class="btn-cancel" onclick="document.getElementById('dlg-connections').remove()">Schließen</button>
-      </div>
-    </div>`;
-  document.body.appendChild(dlg);
-  dlg.addEventListener('click', e => { if (e.target === dlg) dlg.remove(); });
-  _renderConnectionList();
-}
-
-function _renderConnectionList() {
-  const list = document.getElementById('conn-list');
-  if (!list) return;
-  if (!_connections.length) {
-    list.innerHTML = '<div class="empty-hint">Keine Verbindungen konfiguriert</div>';
-    return;
-  }
-  list.innerHTML = _connections.map((c, i) => `
-    <div class="conn-row" style="display:flex;align-items:center;gap:8px;padding:9px 12px;
-         border-bottom:1px solid var(--border);${i===_connections.length-1?'border-bottom:none':''}">
-      <div class="conn-status-dot" id="cdot-${i}"
-           style="width:8px;height:8px;border-radius:50%;flex-shrink:0;
-                  background:${c.active ? 'var(--ok)' : 'var(--border-hi)'}"></div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:12px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-          ${esc(c.name)}
-          ${c.active ? '<span style="font-size:9px;color:var(--ok);margin-left:6px;font-family:var(--mono)">● AKTIV</span>' : ''}
-        </div>
-        <div style="font-size:10px;color:var(--text-dim);font-family:var(--mono);margin-top:1px">${_connLabel(c)}</div>
-      </div>
-      <div style="display:flex;gap:4px;flex-shrink:0">
-        ${!c.active ? `<button class="manage-btn" title="Aktivieren" onclick="_connActivate(${i})">▶</button>` : ''}
-        <button class="manage-btn" title="Verbindung testen" onclick="_connTest(${i})">🔌</button>
-        <button class="manage-btn manage-btn-danger" title="Löschen" onclick="_connDelete(${i})">🗑</button>
-      </div>
-    </div>`).join('');
-}
-
-function _connLabel(c) {
-  if (c.type === 'demo')    return 'Demo-Modus · kein Backend';
-  if (c.type === 'unix')    return `Unix: ${c.path || '–'}`;
-  if (c.type === 'tcp')     return `TCP: ${c.host}:${c.port}`;
-  if (c.type === 'checkmk') return `Checkmk: ${c.host}${c.site ? ' · ' + c.site : ''}`;
-  if (c.type === 'nagios')  return `Nagios: ${c.host}:${c.port}`;
-  return c.host || '–';
-}
-
-window._ncUpdateFields = function() {
-  const type = document.getElementById('nc-type')?.value;
-  const srv  = document.getElementById('nc-fields-server');
-  const site = document.getElementById('nc-fields-site');
-  const path = document.getElementById('nc-fields-path');
-  if (!srv) return;
-  srv.style.display  = ['checkmk','nagios','tcp'].includes(type) ? 'grid' : 'none';
-  site.style.display = type === 'checkmk' ? 'block' : 'none';
-  path.style.display = type === 'unix'    ? 'block' : 'none';
-};
-
-window._ncAdd = function() {
-  const name = document.getElementById('nc-name')?.value.trim();
-  const type = document.getElementById('nc-type')?.value;
-  if (!name) { document.getElementById('nc-name')?.focus(); return; }
-  const conn = { id: Date.now().toString(36), name, type, active: false };
-  if (type !== 'demo' && type !== 'unix') {
-    conn.host = document.getElementById('nc-host')?.value.trim() || '';
-    conn.port = document.getElementById('nc-port')?.value || '6557';
-  }
-  if (type === 'checkmk') conn.site = document.getElementById('nc-site')?.value.trim() || '';
-  if (type === 'unix')    conn.path = document.getElementById('nc-path')?.value.trim() || '';
-  _connections.push(conn);
-  _saveConnections();
-  _renderConnectionList();
-  ['nc-name','nc-host','nc-site','nc-path'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
-};
-
-window._connActivate = function(i) {
-  _connections.forEach((c, j) => c.active = (j === i));
-  _saveConnections();
-  _renderConnectionList();
-  const active = _connections[i];
-  if (active.type === 'demo') {
-    _demoMode = true;
-    setSidebarLive(true, 'Demo-Modus · kein Backend');
-    setStatusBar('Demo-Modus · statische Daten');
-    setConnDot('connected');
-  } else {
-    _demoMode = false;
-    setSidebarLive(false, `Verbinde ${active.name}…`);
-    setConnDot('connecting');
-    if (activeMapId) {
-      if (wsClient) { wsClient._dead = true; wsClient.ws?.close(); }
-      wsClient = makeWsClient(activeMapId);
-      wsClient.connect();
-    }
-    pollHealth();
-  }
-};
-
-window._connDelete = function(i) {
-  if (_connections[i]?.active) {
-    alert('Aktive Verbindung kann nicht gelöscht werden. Zuerst eine andere aktivieren.');
-    return;
-  }
-  _connections.splice(i, 1);
-  _saveConnections();
-  _renderConnectionList();
-};
-
-window._connTest = async function(i) {
-  const c   = _connections[i];
-  const dot = document.getElementById(`cdot-${i}`);
-  if (dot) dot.style.background = 'var(--warn)';
-  if (c.type === 'demo') { if (dot) dot.style.background = 'var(--ok)'; return; }
-  try {
-    const r = await fetch('/api/health', { signal: AbortSignal.timeout(3000) });
-    if (dot) dot.style.background = r.ok ? 'var(--ok)' : 'var(--crit)';
-  } catch { if (dot) dot.style.background = 'var(--crit)'; }
-};
-
-window._ncTest = async function() {
-  const result = document.getElementById('nc-test-result');
-  if (!result) return;
-  result.style.display = 'block';
-  result.textContent = '⏳ Teste Verbindung…';
-  try {
-    const r = await fetch('/api/health', { signal: AbortSignal.timeout(3000) });
-    const d = await r.json();
-    result.style.color = r.ok ? 'var(--ok)' : 'var(--crit)';
-    result.textContent = r.ok
-      ? `✅ Verbunden · ${d.demo_mode ? 'Demo' : 'Livestatus'} · ${d.status}`
-      : `❌ Fehler: ${d.detail ?? r.statusText}`;
-  } catch (err) {
-    result.style.color = 'var(--crit)';
-    result.textContent = `❌ Nicht erreichbar: ${err.message}`;
-  }
-};
-
-window.openConnectionsDlg   = openConnectionsDlg;
 window.openCardMenu          = openCardMenu;
 window.closeCardMenu         = closeCardMenu;
 window.confirmDeleteMapById  = confirmDeleteMapById;
@@ -1131,7 +1006,7 @@ function openBackendMgmtDlg() {
   dlg.className = 'dlg-overlay show';
   dlg.innerHTML = `
     <div class="dlg-box" style="width:580px;max-height:90vh;display:flex;flex-direction:column;gap:0">
-      <h3 style="flex-shrink:0;margin-bottom:14px">Backend-Verwaltung</h3>
+      <h3 style="flex-shrink:0;margin-bottom:14px">Datenquellen verwalten</h3>
 
       <div class="burger-head" style="padding:0 0 6px 0;flex-shrink:0">Konfigurierte Backends</div>
       <div id="bm-list" style="flex-shrink:0;min-height:42px;max-height:220px;overflow-y:auto;
@@ -1140,7 +1015,7 @@ function openBackendMgmtDlg() {
       </div>
 
       <div style="overflow-y:auto;flex:1">
-        <div class="burger-head" style="padding:0 0 8px 0">Backend hinzufügen</div>
+        <div class="burger-head" id="bm-form-head" style="padding:0 0 8px 0">Datenquelle hinzufügen</div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
           <div>
@@ -1153,6 +1028,7 @@ function openBackendMgmtDlg() {
               <option value="checkmk">Checkmk REST API</option>
               <option value="livestatus_tcp">Livestatus TCP</option>
               <option value="livestatus_unix">Livestatus Unix-Socket</option>
+              <option value="demo">Demo (Musterdaten)</option>
             </select>
           </div>
         </div>
@@ -1213,7 +1089,8 @@ function openBackendMgmtDlg() {
 
         <div style="display:flex;gap:8px">
           <button class="btn-cancel" style="flex:1" onclick="_bmProbe()">🔌 Testen</button>
-          <button class="btn-ok"     style="flex:2" onclick="_bmAdd()">＋ Hinzufügen</button>
+          <button class="btn-cancel" id="bm-cancel-btn" style="flex:1;display:none" onclick="_bmCancelEdit()">✕ Abbrechen</button>
+          <button class="btn-ok"     id="bm-save-btn" style="flex:2" onclick="_bmAdd()">＋ Hinzufügen</button>
         </div>
       </div>
 
@@ -1236,18 +1113,24 @@ async function _bmLoad() {
   }
   const typeColor = t => t === 'checkmk'
     ? 'background:rgba(59,130,246,.15);color:#3b82f6'
-    : 'background:rgba(16,185,129,.15);color:#10b981';
-  list.innerHTML = backends.map((b, i) => `
+    : t === 'demo'
+      ? 'background:rgba(168,85,247,.15);color:#a855f7'
+      : 'background:rgba(16,185,129,.15);color:#10b981';
+  list.innerHTML = backends.map((b, i) => {
+    const disabled = b.enabled === false;
+    return `
     <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;
-         border-bottom:${i < backends.length - 1 ? '1px solid var(--border)' : 'none'}">
+         border-bottom:${i < backends.length - 1 ? '1px solid var(--border)' : 'none'};
+         opacity:${disabled ? '0.5' : '1'}">
       <div id="bm-dot-${esc(b.backend_id)}"
-           style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--text-dim)"
-           title="Noch nicht getestet"></div>
+           style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${disabled ? 'var(--text-dim)' : 'var(--text-dim)'}"
+           title="${disabled ? 'Deaktiviert' : 'Noch nicht getestet'}"></div>
       <div style="flex:1;min-width:0">
         <div style="font-size:12px;font-weight:600;color:var(--text)">
           ${esc(b.backend_id)}
           <span style="font-size:9px;margin-left:6px;padding:1px 5px;border-radius:3px;
                        font-family:var(--mono);${typeColor(b.type)}">${esc(b.type)}</span>
+          ${disabled ? '<span style="font-size:9px;margin-left:4px;color:var(--text-dim)">(inaktiv)</span>' : ''}
         </div>
         <div style="font-size:10px;color:var(--text-dim);font-family:var(--mono);margin-top:1px;
                     overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
@@ -1255,12 +1138,17 @@ async function _bmLoad() {
         </div>
       </div>
       <div style="display:flex;gap:4px;flex-shrink:0">
-        <button class="manage-btn" title="Verbindung testen"
-                onclick="_bmTestExisting('${esc(b.backend_id)}')">🔌</button>
+        <button class="manage-btn" title="${disabled ? 'Aktivieren' : 'Deaktivieren'}"
+                onclick="_bmToggle('${esc(b.backend_id)}', ${disabled})">${disabled ? '▶' : '⏸'}</button>
+        <button class="manage-btn" title="Bearbeiten"
+                onclick="_bmEditLoad('${esc(b.backend_id)}')">✎</button>
+        <button class="manage-btn" title="Verbindung testen" ${disabled ? 'disabled style="opacity:.4;cursor:default"' : ''}
+                onclick="${disabled ? '' : `_bmTestExisting('${esc(b.backend_id)}')`}">🔌</button>
         <button class="manage-btn manage-btn-danger" title="Entfernen"
                 onclick="_bmRemove('${esc(b.backend_id)}')">🗑</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function _bmUpdateFields() {
@@ -1268,6 +1156,9 @@ function _bmUpdateFields() {
   document.getElementById('bm-fields-checkmk').style.display = t === 'checkmk'         ? '' : 'none';
   document.getElementById('bm-fields-tcp').style.display     = t === 'livestatus_tcp'  ? '' : 'none';
   document.getElementById('bm-fields-unix').style.display    = t === 'livestatus_unix' ? '' : 'none';
+  // Demo hat keine Verbindungsfelder
+  const timeoutRow = document.getElementById('bm-timeout')?.closest('div[style]');
+  if (timeoutRow) timeoutRow.style.display = t === 'demo' ? 'none' : '';
 }
 
 async function _bmTestExisting(backendId) {
@@ -1300,6 +1191,9 @@ function _bmBuildEntry() {
   const timeout = parseFloat(document.getElementById('bm-timeout')?.value || '15');
   const base = { backend_id: id, type, timeout, enabled: true };
 
+  if (type === 'demo') {
+    return { backend_id: id, type: 'demo', enabled: true };
+  }
   if (type === 'checkmk') {
     const url = document.getElementById('bm-base-url')?.value.trim();
     if (!url) { showToast('API Base-URL fehlt', 'warn'); return null; }
@@ -1341,21 +1235,95 @@ async function _bmProbe() {
   }
 }
 
+let _bmEditId = null;  // null = Neu-Modus, string = Edit-Modus
+
 async function _bmAdd() {
   const body = _bmBuildEntry();
   if (!body) return;
-  const result = await api('/api/backends', 'POST', body);
-  if (result) {
-    showToast(`Backend "${body.backend_id}" hinzugefügt`, 'ok');
-    ['bm-id', 'bm-base-url', 'bm-username', 'bm-secret', 'bm-host', 'bm-socket'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.value = el.id === 'bm-username' ? 'automation' : '';
-    });
-    const portEl = document.getElementById('bm-port');
-    if (portEl) portEl.value = '6557';
-    document.getElementById('bm-probe-result').style.display = 'none';
+
+  if (_bmEditId !== null) {
+    // Update: PATCH (delete + re-add unter ggf. neuer ID)
+    const result = await api(`/api/backends/${encodeURIComponent(_bmEditId)}`, 'PATCH', body);
+    if (result) {
+      showToast(`Datenquelle "${body.backend_id}" gespeichert`, 'ok');
+      _bmCancelEdit();
+      _bmLoad();
+    }
+  } else {
+    // Neu anlegen
+    const result = await api('/api/backends', 'POST', body);
+    if (result) {
+      showToast(`Datenquelle "${body.backend_id}" hinzugefügt`, 'ok');
+      _bmClearForm();
+      _bmLoad();
+    }
+  }
+}
+
+async function _bmToggle(backendId, currentlyDisabled) {
+  const enable = currentlyDisabled;  // invert: if currently disabled, we enable
+  const result = await api(`/api/backends/${encodeURIComponent(backendId)}/enabled`, 'PUT', { enabled: enable });
+  if (result !== null) {
+    showToast(
+      enable ? `Datenquelle "${backendId}" aktiviert` : `Datenquelle "${backendId}" deaktiviert`,
+      enable ? 'ok' : 'warn'
+    );
     _bmLoad();
   }
+}
+
+function _bmClearForm() {
+  ['bm-id', 'bm-base-url', 'bm-username', 'bm-secret', 'bm-host', 'bm-socket'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = el.id === 'bm-username' ? 'automation' : '';
+  });
+  const portEl = document.getElementById('bm-port');
+  if (portEl) portEl.value = '6557';
+  document.getElementById('bm-probe-result').style.display = 'none';
+}
+
+function _bmCancelEdit() {
+  _bmEditId = null;
+  const btn = document.getElementById('bm-save-btn');
+  const lbl = document.getElementById('bm-form-head');
+  const cnl = document.getElementById('bm-cancel-btn');
+  if (btn) btn.textContent = '＋ Hinzufügen';
+  if (lbl) lbl.textContent = 'Datenquelle hinzufügen';
+  if (cnl) cnl.style.display = 'none';
+  _bmClearForm();
+}
+
+async function _bmEditLoad(backendId) {
+  const cfg = await api(`/api/backends/${encodeURIComponent(backendId)}`, 'GET');
+  if (!cfg) return;
+  _bmEditId = backendId;
+
+  // Typ setzen + Felder einblenden
+  const typeEl = document.getElementById('bm-type');
+  if (typeEl) { typeEl.value = cfg.type; _bmUpdateFields(); }
+
+  // Felder befüllen
+  const set = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val ?? ''; };
+  set('bm-id',       cfg.backend_id);
+  set('bm-base-url', cfg.base_url);
+  set('bm-username', cfg.username || 'automation');
+  set('bm-secret',   cfg.secret);
+  set('bm-host',     cfg.host);
+  set('bm-port',     cfg.port || 6557);
+  set('bm-socket',   cfg.socket_path);
+
+  const timeoutEl = document.getElementById('bm-timeout');
+  if (timeoutEl) timeoutEl.value = cfg.timeout ?? 15;
+  const sslEl = document.getElementById('bm-verify-ssl');
+  if (sslEl) sslEl.checked = cfg.verify_ssl !== false;
+
+  // Buttons umschalten
+  const btn = document.getElementById('bm-save-btn');
+  const lbl = document.getElementById('bm-form-head');
+  const cnl = document.getElementById('bm-cancel-btn');
+  if (btn) btn.textContent = '💾 Speichern';
+  if (lbl) lbl.textContent = `Backend bearbeiten: ${backendId}`;
+  if (cnl) cnl.style.display = 'inline-flex';
 }
 
 
@@ -1370,7 +1338,6 @@ window.openParentMapDlg      = openParentMapDlg;
 window.confirmSetParentMap   = confirmSetParentMap;
 window.openManageMapsOverlay = openManageMapsOverlay;
 window.openCanvasModeDialog  = openCanvasModeDialog;
-window.openConnectionsDlg    = openConnectionsDlg;
 window.confirmAddObject      = confirmAddObject;
 window.selectObjType         = selectObjType;
 window.confirmNewMap         = confirmNewMap;
@@ -1391,3 +1358,6 @@ window._bmTestExisting      = _bmTestExisting;
 window._bmRemove            = _bmRemove;
 window._bmProbe             = _bmProbe;
 window._bmAdd               = _bmAdd;
+window._bmEditLoad          = _bmEditLoad;
+window._bmCancelEdit        = _bmCancelEdit;
+window._bmToggle            = _bmToggle;

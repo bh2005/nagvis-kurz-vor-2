@@ -42,6 +42,12 @@ class Settings:
     # ── WebSocket ───────────────────────────────────────────────────────
     WS_POLL_INTERVAL: int = int(os.getenv("WS_POLL_INTERVAL", "10"))  # Sekunden
 
+    # ── Lokale Auth (Backup) ─────────────────────────────────────────────────
+    # AUTH_ENABLED=true: Frontend zeigt Login-Overlay, API prüft Bearer-Token.
+    # AUTH_ENABLED=false (default): App läuft offen (Schutz via nginx/OMD).
+    AUTH_ENABLED: bool = os.getenv("AUTH_ENABLED", "false").lower() == "true"
+    NAGVIS_SECRET: str = os.getenv("NAGVIS_SECRET", "")  # JWT-Signing-Key
+
     def ensure_dirs(self):
         for d in [self.DATA_DIR, self.MAPS_DIR, self.BG_DIR, self.KIOSK_DIR]:
             d.mkdir(parents=True, exist_ok=True)

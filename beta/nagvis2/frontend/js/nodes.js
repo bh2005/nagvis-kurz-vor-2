@@ -157,8 +157,59 @@ function applyStatuses(hosts, services) {
       perfdataCache[key] = s.perfdata;
     }
   }
+  _applyHostgroupStatuses();
   _updateWeathermapLines();
   _applyGadgetPerfdata();
+
+  // Status-Zähler für aktive Map cachen → Overview-Pills
+  if (activeMapId) {
+    const counts = { ok: 0, warn: 0, crit: 0, unkn: 0 };
+    for (const h of hosts) {
+      const l = h.state_label;
+      if (l === 'UP' || l === 'OK')                          counts.ok++;
+      else if (l === 'WARNING')                              counts.warn++;
+      else if (l === 'CRITICAL' || l === 'DOWN' || l === 'UNREACHABLE') counts.crit++;
+      else                                                   counts.unkn++;
+    }
+    for (const s of services) {
+      const l = s.state_label;
+      if (l === 'OK')                counts.ok++;
+      else if (l === 'WARNING')      counts.warn++;
+      else if (l === 'CRITICAL')     counts.crit++;
+      else                           counts.unkn++;
+    }
+    mapStatusCache[activeMapId] = counts;
+    _updateOverviewCardPills(activeMapId, counts);
+    _updateSidebarPip(activeMapId, counts);
+  }
+}
+
+function _applyHostgroupStatuses() {
+  // Für jeden Hostgroup-Node: Worst-State aus Mitglieds-Hosts berechnen
+  const HG_SEVERITY = { UP:0, OK:0, WARNING:1, UNKNOWN:2, UNREACHABLE:3, DOWN:4, CRITICAL:4 };
+
+  document.querySelectorAll('.nv2-node[data-type="hostgroup"]').forEach(el => {
+    const groupName = el.dataset.name;
+    const members   = hostgroupCache[groupName];
+    if (!members || !members.length) return;
+
+    let worstLabel = 'UP';
+    let worstSev   = -1;
+    let anyAck     = false;
+    let anyDT      = false;
+
+    for (const hname of members) {
+      const h = hostCache[hname];
+      if (!h) continue;
+      const sev = HG_SEVERITY[h.state_label] ?? 0;
+      if (sev > worstSev) { worstSev = sev; worstLabel = h.state_label; }
+      if (h.acknowledged) anyAck = true;
+      if (h.in_downtime)  anyDT  = true;
+    }
+
+    if (worstSev < 0) return; // kein Member im Cache → kein Update
+    applyNodeStatus(el, worstLabel, anyAck, anyDT);
+  });
 }
 
 function _applyGadgetPerfdata() {
@@ -1656,10 +1707,20 @@ window._confirmDowntime = async function(hostname, type, service) {
   const endInput   = document.getElementById('dt-end')?.value;
   const childHosts = document.getElementById('dt-child-hosts')?.checked ?? false;
   if (!startInput || !endInput) return;
-  const start = Math.floor(new Date(startInput).getTime() / 1000);
-  const end   = Math.floor(new Date(endInput).getTime()   / 1000);
+  const start_time = Math.floor(new Date(startInput).getTime() / 1000);
+  const end_time   = Math.floor(new Date(endInput).getTime()   / 1000);
   document.getElementById('dlg-downtime')?.remove();
-  const res = await api('/api/actions', 'POST', { action:'schedule_downtime', hostname, type, ...(service ? {service}:{}), ...(childHosts ? {child_hosts:true}:{}), comment, start, end });
+  const body = {
+    action:     type === 'service' ? 'downtime_service' : 'downtime_host',
+    host_name:  hostname,
+    type,
+    comment,
+    start_time,
+    end_time,
+    ...(service     ? { service_name: service } : {}),
+    ...(childHosts  ? { child_hosts: true }     : {}),
+  };
+  const res = await api('/api/actions', 'POST', body);
   setStatusBar(res ? `🔧 Wartung geplant: ${hostname}` : `⚠ Wartung fehlgeschlagen`);
   wsClient?.forceRefresh();
 };

@@ -85,6 +85,7 @@ function onWsMsg(ev) {
       updateTopbarPills(ev.hosts ?? []);
       renderHostsPanel(ev.hosts ?? []);
       fillHostDatalist(ev.hosts ?? []);
+      appendEvents(ev.hosts ?? [], ev.services ?? [], ev.ts);
       setStatusBar(`${fmt(ev.ts)} · Snapshot · ${ev.hosts?.length ?? 0} Hosts`);
       break;
 
@@ -190,14 +191,6 @@ window._demoMode = false;
 window._demoMaps = [
   { id:"demo-features", title:"NagVis 2 – Feature Demo", background:null, canvas: { mode:"ratio", ratio:"16:9" }, object_count:DEMO_MAP.objects.length }
 ];
-
-window._connections = JSON.parse(localStorage.getItem('nv2-connections') || '[]');
-if (!_connections.length) {
-  _connections = [{ id:'local', name:'Lokal (Demo)', type:'demo', host:'', port:'', site:'', active:true }];
-}
-function _saveConnections() {
-  localStorage.setItem('nv2-connections', JSON.stringify(_connections));
-}
 
 async function detectDemoMode() {
   try {
@@ -346,7 +339,12 @@ async function api(path, method = 'GET', body = null) {
   try {
     const opts = { method, headers:{} };
     if (body) { opts.body = JSON.stringify(body); opts.headers['Content-Type'] = 'application/json'; }
+    // Bearer-Token injizieren wenn vorhanden
+    const _token = window.nv2Auth?.getToken?.();
+    if (_token) opts.headers['Authorization'] = `Bearer ${_token}`;
     const r = await fetch(path, opts);
+    // 401 → Auth-Handler aufrufen
+    if (r.status === 401) { window.nv2Auth?.handleUnauthorized?.(); return null; }
     if (!r.ok) {
       console.warn(`[NV2] API ${method} ${path} → ${r.status}`);
       let detail = r.statusText;

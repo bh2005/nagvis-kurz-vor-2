@@ -2,6 +2,8 @@
 NagVis 2 – FastAPI Backend
 """
 
+import logging
+import logging.handlers
 from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI
@@ -12,6 +14,37 @@ from core.config import settings
 
 # Verzeichnisse sofort anlegen – VOR StaticFiles-Mount
 settings.ensure_dirs()
+
+# ── File-Logging einrichten ────────────────────────────────────────────────────
+_log_file = settings.DATA_DIR / "nagvis2.log"
+_file_handler = logging.handlers.RotatingFileHandler(
+    _log_file, maxBytes=5 * 1024 * 1024, backupCount=3, encoding="utf-8"
+)
+_file_handler.setFormatter(logging.Formatter(
+    "%(asctime)s %(levelname)-8s %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+))
+logging.getLogger().addHandler(_file_handler)
+logging.getLogger().setLevel(logging.DEBUG if settings.DEBUG else logging.INFO)
+# Uvicorn-Logger ebenfalls in die Datei leiten
+for _uv_log in ("uvicorn", "uvicorn.access", "uvicorn.error"):
+    logging.getLogger(_uv_log).addHandler(_file_handler)
+
+# ── Lokale Auth initialisieren ─────────────────────────────────────────────────
+from core.auth  import AuthManager,  set_auth_manager
+from core.users import UserManager,  set_user_manager
+
+_auth_mgr = AuthManager()
+_user_mgr = UserManager()
+set_auth_manager(_auth_mgr)
+set_user_manager(_user_mgr)
+
+# Erster Start: Default-Admin anlegen wenn noch keine Benutzer vorhanden
+if _user_mgr.count() == 0:
+    _user_mgr.create_user("admin", "admin", "admin")
+    print("⚠  ERSTER START: Benutzer 'admin' mit Passwort 'admin' angelegt.")
+    print("   Bitte sofort in der Benutzerverwaltung ändern!")
+    print("   (AUTH_ENABLED=true in .env setzen um den Login zu aktivieren)")
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -54,9 +87,11 @@ app.add_middleware(
 #  Router
 # ══════════════════════════════════════════════════════════════════════
 
-from api.router import api_router
-from ws.router  import ws_router
+from api.router      import api_router
+from api.auth_router import auth_router
+from ws.router       import ws_router
 
+app.include_router(auth_router)
 app.include_router(api_router)
 app.include_router(ws_router)
 
