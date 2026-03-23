@@ -29,11 +29,11 @@ cp .env.example .env
 
 # 4. Backend starten
 python main.py
-# → http://localhost:8000
+# → http://localhost:8008
 ```
 
-Das Frontend wird automatisch unter `http://localhost:8000/` ausgeliefert.
-API-Dokumentation (nur im Debug-Modus): `http://localhost:8000/api/docs`
+Das Frontend wird automatisch unter `http://localhost:8008/` ausgeliefert.
+API-Dokumentation (nur im Debug-Modus): `http://localhost:8008/api/docs`
 
 ---
 
@@ -53,7 +53,7 @@ docker-compose down
 ```
 
 Die `docker-compose.yml` startet:
-- **backend** – FastAPI auf Port 8000
+- **backend** – FastAPI auf Port 8008
 - **nginx** – Reverse Proxy auf Port 80, leitet WebSocket-Verbindungen weiter
 
 Persistente Daten liegen in `./data/` (wird automatisch angelegt):
@@ -92,9 +92,9 @@ Alle Einstellungen erfolgen über Umgebungsvariablen (oder `.env`-Datei im `back
 | Variable | Standard | Beschreibung |
 |---|---|---|
 | `HOST` | `0.0.0.0` | Bind-Adresse |
-| `PORT` | `8000` | HTTP-Port |
+| `PORT` | `8008` | HTTP-Port |
 | `UVICORN_WORKERS` | `1` | Anzahl Worker-Prozesse (nur Production) |
-| `CORS_ORIGINS` | `http://localhost:8000,...` | Erlaubte Origins (kommagetrennt) |
+| `CORS_ORIGINS` | `http://localhost:8008,...` | Erlaubte Origins (kommagetrennt) |
 
 ### Livestatus
 
@@ -149,7 +149,7 @@ GET /metrics
 scrape_configs:
   - job_name: nagvis2
     static_configs:
-      - targets: ['nagvis2-host:8000']
+      - targets: ['nagvis2-host:8008']
     metrics_path: /metrics
 ```
 
@@ -171,14 +171,14 @@ helm install nagvis2 ./helm/nagvis2 \
 livenessProbe:
   httpGet:
     path: /health/live
-    port: 8000
+    port: 8008
   initialDelaySeconds: 10
   periodSeconds: 30
 
 readinessProbe:
   httpGet:
     path: /health/ready
-    port: 8000
+    port: 8008
   initialDelaySeconds: 15
   periodSeconds: 20
 ```
@@ -361,7 +361,7 @@ Im Gadget-Konfigurationsdialog:
 ## Health-Check
 
 ```bash
-curl http://localhost:8000/api/health
+curl http://localhost:8008/api/health
 ```
 
 Antwort (Beispiel mit konfigurierten Backends):
@@ -424,7 +424,7 @@ mkdocs build
 # Ausgabe: frontend/help/
 ```
 
-Erreichbar unter: `http://localhost:8000/help/`
+Erreichbar unter: `http://localhost:8008/help/`
 
 ### Direktlinks im Burger-Menü
 
@@ -448,7 +448,7 @@ Swagger UI ist nur im Debug-Modus aktiv:
 DEBUG=true
 ```
 
-Erreichbar unter: `http://localhost:8000/api/docs`
+Erreichbar unter: `http://localhost:8008/api/docs`
 
 Für Produktiv-Deployments `DEBUG=false` setzen.
 

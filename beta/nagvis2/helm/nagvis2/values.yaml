@@ -15,7 +15,7 @@ fullnameOverride: ""
 # ── Service ────────────────────────────────────────────────────────────
 service:
   type: ClusterIP
-  port: 8000
+  port: 8008
 
 # ── Ingress ────────────────────────────────────────────────────────────
 ingress:
@@ -90,7 +90,7 @@ serviceAccount:
 podAnnotations:
   prometheus.io/scrape: "true"
   prometheus.io/path: "/metrics"
-  prometheus.io/port: "8000"
+  prometheus.io/port: "8008"
 
 podSecurityContext:
   runAsNonRoot: true

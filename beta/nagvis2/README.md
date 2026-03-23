@@ -51,10 +51,10 @@ pip install -r requirements.txt
 
 # 3. Backend starten
 python main.py
-# → http://localhost:8000
+# → http://localhost:8008
 ```
 
-Das Frontend wird direkt von FastAPI unter `http://localhost:8000/` ausgeliefert.
+Das Frontend wird direkt von FastAPI unter `http://localhost:8008/` ausgeliefert.
 
 ---
 
@@ -82,9 +82,9 @@ Alternativ Checkmk REST API als Backend konfigurieren: Burger-Menü → **⚙ Ba
 
 | URL | Inhalt |
 |---|---|
-| `http://localhost:8000/help/` | Integriertes Benutzer- und Admin-Handbuch (MkDocs) |
-| `http://localhost:8000/api/docs` | Swagger UI (nur wenn `DEBUG=true`) |
-| `http://localhost:8000/api/health` | System-Status + Backend-Erreichbarkeit |
+| `http://localhost:8008/help/` | Integriertes Benutzer- und Admin-Handbuch (MkDocs) |
+| `http://localhost:8008/api/docs` | Swagger UI (nur wenn `DEBUG=true`) |
+| `http://localhost:8008/api/health` | System-Status + Backend-Erreichbarkeit |
 
 ---
 
@@ -149,7 +149,7 @@ pip install mkdocs-material
 mkdocs build           # Ausgabe: frontend/help/
 ```
 
-Danach ist die Hilfe unter `http://localhost:8000/help/` erreichbar.
+Danach ist die Hilfe unter `http://localhost:8008/help/` erreichbar.
 
 ---
 
