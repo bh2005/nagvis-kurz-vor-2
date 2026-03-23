@@ -2,13 +2,8 @@
 NagVis 2 – FastAPI Backend
 """
 
-<<<<<<< HEAD
 import time
 import logging
-=======
-import logging
-import logging.handlers
->>>>>>> 069f706b9f472e5c070fd976710890e94095f3d4
 from contextlib import asynccontextmanager
 from pathlib import Path
 

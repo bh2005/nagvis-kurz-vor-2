@@ -647,7 +647,6 @@ async def api_kiosk_resolve(token: str = Query(...)):
 
 
 # ══════════════════════════════════════════════════════════════════════
-<<<<<<< HEAD
 #  System-Log
 # ══════════════════════════════════════════════════════════════════════
 
@@ -676,56 +675,3 @@ async def api_get_logs(
         )
 
     return {"lines": log_lines, "total": len(log_lines), "buffered": len(get_log_lines())}
-=======
-#  System-Logs
-# ══════════════════════════════════════════════════════════════════════
-
-_NGINX_PATHS = {
-    "nginx_access": [
-        "/var/log/nginx/access.log",
-        "/var/log/nginx/nagvis2-access.log",
-    ],
-    "nginx_error": [
-        "/var/log/nginx/error.log",
-        "/var/log/nginx/nagvis2-error.log",
-    ],
-}
-
-
-def _tail_file(path: str, lines: int) -> list[str]:
-    """Letzte N Zeilen einer Datei lesen (effizient via seek)."""
-    p = Path(path)
-    if not p.exists():
-        return []
-    try:
-        with open(p, "rb") as f:
-            f.seek(0, 2)
-            size = f.tell()
-            buf  = min(size, lines * 200)
-            f.seek(max(0, size - buf))
-            raw  = f.read().decode("utf-8", errors="replace")
-        all_lines = raw.splitlines()
-        return all_lines[-lines:]
-    except Exception as e:
-        return [f"[Lesefehler: {e}]"]
-
-
-@api_router.get("/logs")
-async def api_logs(
-    source: str = Query("app", description="app | nginx_access | nginx_error"),
-    lines:  int = Query(200, ge=10, le=2000),
-):
-    if source == "app":
-        log_path = str(settings.DATA_DIR / "nagvis2.log")
-        result   = _tail_file(log_path, lines)
-        return {"source": source, "path": log_path, "lines": result}
-
-    if source in _NGINX_PATHS:
-        for candidate in _NGINX_PATHS[source]:
-            content = _tail_file(candidate, lines)
-            if content:
-                return {"source": source, "path": candidate, "lines": content}
-        return {"source": source, "path": None, "lines": ["[Nginx-Log nicht gefunden]"]}
-
-    raise HTTPException(400, f"Unbekannte Log-Quelle: {source}")
->>>>>>> 069f706b9f472e5c070fd976710890e94095f3d4
