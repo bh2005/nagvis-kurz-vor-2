@@ -5,10 +5,14 @@ Gibt strukturierte Host/Service-Daten zurück.
 """
 
 import asyncio
+import logging
 import socket
 import re
+import time
 from typing import Optional
 from core.config import settings
+
+log = logging.getLogger("nagvis.livestatus.core")
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -16,27 +20,43 @@ from core.config import settings
 # ══════════════════════════════════════════════════════════════════════
 
 async def _query_tcp(host: str, port: int, query: str) -> str:
-    reader, writer = await asyncio.wait_for(
-        asyncio.open_connection(host, port), timeout=5.0
-    )
-    writer.write(query.encode())
-    writer.write_eof()
-    data = await asyncio.wait_for(reader.read(1 << 20), timeout=10.0)
-    writer.close()
-    await writer.wait_closed()
-    return data.decode("utf-8", errors="replace")
+    t0 = time.monotonic()
+    log.debug("TCP connect → %s:%d", host, port)
+    try:
+        reader, writer = await asyncio.wait_for(
+            asyncio.open_connection(host, port), timeout=5.0
+        )
+        writer.write(query.encode())
+        writer.write_eof()
+        data = await asyncio.wait_for(reader.read(1 << 20), timeout=10.0)
+        writer.close()
+        await writer.wait_closed()
+        ms = int((time.monotonic() - t0) * 1000)
+        log.debug("TCP %s:%d OK – %d bytes in %dms", host, port, len(data), ms)
+        return data.decode("utf-8", errors="replace")
+    except Exception as e:
+        log.warning("TCP %s:%d FEHLER – %s", host, port, e)
+        raise
 
 
 async def _query_unix(path: str, query: str) -> str:
-    reader, writer = await asyncio.wait_for(
-        asyncio.open_unix_connection(path), timeout=5.0
-    )
-    writer.write(query.encode())
-    writer.write_eof()
-    data = await asyncio.wait_for(reader.read(1 << 20), timeout=10.0)
-    writer.close()
-    await writer.wait_closed()
-    return data.decode("utf-8", errors="replace")
+    t0 = time.monotonic()
+    log.debug("Unix-Socket connect → %s", path)
+    try:
+        reader, writer = await asyncio.wait_for(
+            asyncio.open_unix_connection(path), timeout=5.0
+        )
+        writer.write(query.encode())
+        writer.write_eof()
+        data = await asyncio.wait_for(reader.read(1 << 20), timeout=10.0)
+        writer.close()
+        await writer.wait_closed()
+        ms = int((time.monotonic() - t0) * 1000)
+        log.debug("Unix %s OK – %d bytes in %dms", path, len(data), ms)
+        return data.decode("utf-8", errors="replace")
+    except Exception as e:
+        log.warning("Unix %s FEHLER – %s", path, e)
+        raise
 
 
 async def _query(lql: str) -> str:
@@ -75,7 +95,8 @@ async def _query(lql: str) -> str:
         if os.path.exists(path):
             try:
                 return await _query_unix(path, lql)
-            except Exception:
+            except Exception as e:
+                log.warning("auto: Unix %s fehlgeschlagen – %s", path, e)
                 continue
 
     # TCP als letzter Ausweg
@@ -228,10 +249,36 @@ async def schedule_host_downtime(host: str, start: int, end: int,
     return await send_command(cmd)
 
 
+async def schedule_service_downtime(host: str, svc: str, start: int, end: int,
+                                     comment: str, author: str = "nagvis2") -> bool:
+    cmd = f"SCHEDULE_SVC_DOWNTIME;{host};{svc};{start};{end};1;0;0;{author};{comment}"
+    return await send_command(cmd)
+
+
 async def reschedule_host_check(host: str) -> bool:
     import time
     cmd = f"SCHEDULE_FORCED_HOST_CHECK;{host};{int(time.time())}"
     return await send_command(cmd)
+
+
+async def get_hostgroups() -> list[dict]:
+    """Alle Hostgruppen mit Mitgliederliste aus Livestatus."""
+    lql = "GET hostgroups\nColumns: name members\nOutputFormat: csv\n\n"
+    try:
+        raw = await _query(lql)
+    except Exception:
+        return []
+    result = []
+    for line in raw.strip().splitlines():
+        if not line.strip():
+            continue
+        parts = line.split(";", 1)
+        if not parts[0].strip():
+            continue
+        name = parts[0].strip()
+        members = [m.strip() for m in parts[1].split(",") if m.strip()] if len(parts) > 1 else []
+        result.append({"name": name, "members": members})
+    return result
 
 
 # ══════════════════════════════════════════════════════════════════════

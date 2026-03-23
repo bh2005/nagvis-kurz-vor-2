@@ -109,32 +109,44 @@ class CheckmkClient:
         return f"{self.cfg.base_url.rstrip('/')}/{path.lstrip('/')}"
 
     async def _get(self, path: str, params: dict | None = None) -> dict:
-        async with httpx.AsyncClient(
-            verify=self.cfg.verify_ssl,
-            timeout=self.cfg.timeout,
-        ) as client:
-            r = await client.get(
-                self._url(path),
-                headers=self._headers(),
-                params=params or {},
-            )
-            r.raise_for_status()
-            return r.json()
+        url = self._url(path)
+        log.debug("[%s] GET %s", self.cfg.backend_id, url)
+        t0 = time.monotonic()
+        try:
+            async with httpx.AsyncClient(
+                verify=self.cfg.verify_ssl,
+                timeout=self.cfg.timeout,
+            ) as client:
+                r = await client.get(url, headers=self._headers(), params=params or {})
+                ms = int((time.monotonic() - t0) * 1000)
+                log.debug("[%s] GET %s → HTTP %d in %dms",
+                          self.cfg.backend_id, url, r.status_code, ms)
+                r.raise_for_status()
+                return r.json()
+        except Exception as e:
+            log.error("[%s] GET %s FEHLER – %s", self.cfg.backend_id, url, e)
+            raise
 
     async def _post(self, path: str, body: dict) -> dict | None:
-        async with httpx.AsyncClient(
-            verify=self.cfg.verify_ssl,
-            timeout=self.cfg.timeout,
-        ) as client:
-            r = await client.post(
-                self._url(path),
-                headers=self._headers(),
-                json=body,
-            )
-            if r.status_code == 204:
-                return None
-            r.raise_for_status()
-            return r.json()
+        url = self._url(path)
+        log.debug("[%s] POST %s", self.cfg.backend_id, url)
+        t0 = time.monotonic()
+        try:
+            async with httpx.AsyncClient(
+                verify=self.cfg.verify_ssl,
+                timeout=self.cfg.timeout,
+            ) as client:
+                r = await client.post(url, headers=self._headers(), json=body)
+                ms = int((time.monotonic() - t0) * 1000)
+                log.debug("[%s] POST %s → HTTP %d in %dms",
+                          self.cfg.backend_id, url, r.status_code, ms)
+                if r.status_code == 204:
+                    return None
+                r.raise_for_status()
+                return r.json()
+        except Exception as e:
+            log.error("[%s] POST %s FEHLER – %s", self.cfg.backend_id, url, e)
+            raise
 
     # ── Monitoring API ───────────────────────────────────────────────────
 
@@ -283,6 +295,49 @@ class CheckmkClient:
             return True
         except Exception as e:
             log.error("schedule_host_downtime failed [%s]: %s", self.cfg.backend_id, e)
+            return False
+
+    async def get_hostgroups(self) -> list[dict]:
+        """Alle Hostgruppen mit Mitgliedernamen via Checkmk REST API."""
+        try:
+            data = await self._get("/domain-types/host_group_config/collections/all")
+            result = []
+            for item in data.get("value", []):
+                name = item.get("id", "")
+                if not name:
+                    continue
+                # Mitglieder: extensions.members oder leer
+                members = item.get("extensions", {}).get("members", [])
+                if isinstance(members, str):
+                    members = [m.strip() for m in members.split(",") if m.strip()]
+                result.append({"name": name, "members": members})
+            log.debug("get_hostgroups: %d from '%s'", len(result), self.cfg.backend_id)
+            return result
+        except Exception as e:
+            log.warning("get_hostgroups failed [%s]: %s", self.cfg.backend_id, e)
+            return []
+
+    async def schedule_service_downtime(
+        self,
+        host_name:           str,
+        service_description: str,
+        start_time:          int,
+        end_time:            int,
+        comment:             str = "NagVis 2",
+        author:              str = "nagvis2",
+    ) -> bool:
+        try:
+            await self._post("/domain-types/downtime/collections/service", {
+                "downtime_type":       "service",
+                "host_name":           host_name,
+                "service_description": service_description,
+                "start_time":          datetime.fromtimestamp(start_time, tz=timezone.utc).isoformat(),
+                "end_time":            datetime.fromtimestamp(end_time,   tz=timezone.utc).isoformat(),
+                "comment":             comment,
+            })
+            return True
+        except Exception as e:
+            log.error("schedule_service_downtime failed [%s]: %s", self.cfg.backend_id, e)
             return False
 
     async def reschedule_host_check(self, host_name: str) -> bool:

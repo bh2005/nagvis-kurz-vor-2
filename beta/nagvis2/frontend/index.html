@@ -120,6 +120,10 @@
 
     <div class="tb-gap"></div>
 
+    <!-- User-Chip (Auth) -->
+    <span id="nv2-user-chip" style="display:none; font-size:11px; color:var(--text-dim);
+          margin-right:4px; cursor:default; white-space:nowrap;"></span>
+
     <!-- Burger -->
     <div id="burger-wrap" style="position:relative; flex-shrink:0;">
 
@@ -193,10 +197,7 @@
           <span id="burger-theme-label">Light-Theme</span>
         </button>
         <button class="burger-item" onclick="openBackendMgmtDlg(); closeBurgerMenu()">
-          <span class="burger-ico">⚙</span> Backends verwalten
-        </button>
-        <button class="burger-item" onclick="openConnectionsDlg(); closeBurgerMenu()">
-          <span class="burger-ico">🔌</span> Verbindungen verwalten
+          <span class="burger-ico">🗄</span> Datenquellen verwalten
         </button>
         <button class="burger-item" onclick="openKioskUsersDlg(); closeBurgerMenu()">
           <span class="burger-ico">⬛</span> Kiosk-User verwalten
@@ -217,8 +218,25 @@
         <button class="burger-item" onclick="window.open('/api/docs','_blank'); closeBurgerMenu()">
           <span class="burger-ico">⊞</span> Swagger API
         </button>
+        <button class="burger-item" onclick="nv2LogOpen(); closeBurgerMenu()">
+          <span class="burger-ico">📋</span> System-Logs
+        </button>
 
         <div class="burger-divider"></div>
+
+        <div id="auth-burger-section" style="display:none">
+          <div class="burger-head">Konto</div>
+          <button class="burger-item" id="btn-manage-users" style="display:none"
+                  onclick="nv2Auth.openUserMgmtDlg(); closeBurgerMenu()">
+            <span class="burger-ico">👥</span> Benutzer verwalten
+          </button>
+          <button class="burger-item" id="btn-logout" style="display:none"
+                  onclick="nv2Auth.logout(); closeBurgerMenu()">
+            <span class="burger-ico">⏻</span> Abmelden (<span id="burger-username"></span>)
+          </button>
+          <div class="burger-divider"></div>
+        </div>
+
         <div class="burger-head">Hilfe</div>
         <button class="burger-item" onclick="window.open('help/index.html','_blank'); closeBurgerMenu()">
           <span class="burger-ico">📖</span> Dokumentation
@@ -368,6 +386,122 @@
 
 
 <input type="file" id="bg-file-input" accept="image/*,.svg">
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     LOGIN-OVERLAY (wird von auth.js gesteuert)
+═══════════════════════════════════════════════════════════════════════ -->
+<div id="nv2-login-overlay" style="display:none; position:fixed; inset:0; z-index:99000;
+     background:rgba(0,0,0,.75); align-items:center; justify-content:center;
+     backdrop-filter:blur(4px)">
+  <div style="background:var(--bg-panel); border:1px solid var(--border);
+              border-radius:var(--r); padding:32px 36px; width:320px;
+              box-shadow:0 8px 32px rgba(0,0,0,.5)">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:24px">
+      <svg viewBox="0 0 34 38" width="28" height="28" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="17,2 32,10.5 32,27.5 17,36 2,27.5 2,10.5" fill="none"
+                 stroke="var(--acc)" stroke-width="2.5"/>
+        <text x="17" y="25" text-anchor="middle" font-size="14" font-weight="700"
+              fill="var(--acc)" font-family="monospace">N2</text>
+      </svg>
+      <span style="font-size:16px; font-weight:600; color:var(--text)">NagVis 2 – Anmelden</span>
+    </div>
+
+    <div class="f-row" style="margin-bottom:10px">
+      <label class="f-label" style="width:90px">Benutzer</label>
+      <input class="f-input" id="login-username" type="text"
+             placeholder="Benutzername" autocomplete="username"
+             style="flex:1">
+    </div>
+    <div class="f-row" style="margin-bottom:18px">
+      <label class="f-label" style="width:90px">Passwort</label>
+      <input class="f-input" id="login-password" type="password"
+             placeholder="Passwort" autocomplete="current-password"
+             style="flex:1">
+    </div>
+
+    <div id="login-error" style="color:var(--err); font-size:12px;
+         min-height:16px; margin-bottom:12px"></div>
+
+    <button id="btn-login-submit" class="btn-ok" style="width:100%"
+            onclick="nv2DoLogin()">Anmelden</button>
+  </div>
+</div>
+
+
+<!-- DIALOG – Benutzerverwaltung (admin only) -->
+<div id="dlg-user-mgmt" class="dlg-overlay" style="display:none">
+  <div class="dlg-box" style="width:520px; max-height:80vh; display:flex; flex-direction:column">
+    <h3 style="flex-shrink:0">Benutzer verwalten</h3>
+
+    <!-- Bestehende Benutzer -->
+    <div id="user-mgmt-list"
+         style="flex:1; overflow-y:auto; margin-bottom:14px;
+                border:1px solid var(--border); border-radius:var(--r);
+                min-height:80px; padding:6px">
+    </div>
+
+    <!-- Neuen Benutzer anlegen -->
+    <div style="border-top:1px solid var(--border); padding-top:12px; margin-bottom:12px">
+      <div style="font-size:11px; font-weight:600; color:var(--text-dim);
+                  margin-bottom:8px; text-transform:uppercase; letter-spacing:.05em">
+        Neuen Benutzer anlegen
+      </div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap">
+        <input class="f-input" id="new-user-name" type="text"
+               placeholder="Benutzername" style="flex:1; min-width:100px">
+        <input class="f-input" id="new-user-pw" type="password"
+               placeholder="Passwort" style="flex:1; min-width:100px">
+        <select class="f-select" id="new-user-role" style="width:90px">
+          <option value="viewer">viewer</option>
+          <option value="editor">editor</option>
+          <option value="admin">admin</option>
+        </select>
+        <button class="btn-ok" style="white-space:nowrap"
+                onclick="nv2AuthCreateUser()">＋ Anlegen</button>
+      </div>
+    </div>
+
+    <div class="dlg-actions" style="flex-shrink:0">
+      <button class="btn-cancel" onclick="nv2AuthCloseUserMgmt()">Schließen</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- DIALOG – System-Logs -->
+<div id="dlg-system-logs" class="dlg-overlay" style="display:none">
+  <div class="dlg-box" style="width:820px; max-height:85vh; display:flex; flex-direction:column">
+    <h3 style="flex-shrink:0; margin-bottom:10px">System-Logs</h3>
+
+    <!-- Quelle + Refresh -->
+    <div style="display:flex; gap:8px; align-items:center; flex-shrink:0; margin-bottom:10px">
+      <select id="log-source-sel" class="f-select" style="width:200px" onchange="nv2LogLoad()">
+        <option value="app">NagVis 2 App</option>
+        <option value="nginx_access">Nginx Access</option>
+        <option value="nginx_error">Nginx Error</option>
+      </select>
+      <select id="log-lines-sel" class="f-select" style="width:110px" onchange="nv2LogLoad()">
+        <option value="100">100 Zeilen</option>
+        <option value="200" selected>200 Zeilen</option>
+        <option value="500">500 Zeilen</option>
+        <option value="1000">1000 Zeilen</option>
+      </select>
+      <button class="btn-ok" style="padding:4px 12px" onclick="nv2LogLoad()">↻ Aktualisieren</button>
+      <span id="log-path-lbl" style="font-size:11px; color:var(--text-dim); margin-left:auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap"></span>
+    </div>
+
+    <!-- Log-Ausgabe -->
+    <pre id="log-output"
+         style="flex:1; overflow-y:auto; background:var(--bg2); border:1px solid var(--border);
+                border-radius:var(--r); padding:10px; font-size:11px; line-height:1.5;
+                white-space:pre-wrap; word-break:break-all; margin:0">Lade…</pre>
+
+    <div style="display:flex; justify-content:flex-end; margin-top:12px; flex-shrink:0">
+      <button class="btn-cancel" onclick="document.getElementById('dlg-system-logs').style.display='none'">Schließen</button>
+    </div>
+  </div>
+</div>
 
 
 <!-- DIALOG – Objekt hinzufügen -->
@@ -805,6 +939,7 @@
 <script src="js/zoom_pan.js" onerror="console.warn('[NV2] zoom_pan.js fehlt – Stub aktiv')"></script>
 
 <!-- NagVis 2 Module – in Ladereihenfolge -->
+<script src="js/auth.js"></script>       <!-- Auth – muss VOR allen anderen Modulen geladen sein -->
 <script src="js/constants.js"></script>  <!-- Konstanten, SVG-Icons, Helper -->
 <script src="js/state.js"></script>      <!-- Globale Laufzeit-Variablen -->
 <script src="js/ui-core.js"></script>    <!-- Theme, Sidebar, Burger, Snapins, Keyboard -->
@@ -826,7 +961,7 @@
   <span style="color:#29b6d4;font-weight:700">⬡ DEMO-MODUS</span>
   <span>Kein Backend verbunden · statische Beispieldaten</span>
   <span style="color:var(--text-dim)">·</span>
-  <span>Backend-URL in <b>Verbindungen verwalten</b> eintragen um Live-Daten zu nutzen</span>
+  <span>Datenquellen unter <b>Datenquellen verwalten</b> konfigurieren um Live-Daten zu nutzen</span>
   <button onclick="document.getElementById('nv2-demo-banner').style.display='none'"
           style="margin-left:auto;background:none;border:none;color:#94d4e8;
                  cursor:pointer;font-size:14px;padding:0 4px;line-height:1">✕</button>

@@ -175,10 +175,12 @@ class LivestatusClient:
 
     async def _connect(self) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
         if self.cfg.use_tcp:
+            log.debug("[%s] TCP connect → %s:%d", self.cfg.backend_id, self.cfg.host, self.cfg.port)
             return await asyncio.wait_for(
                 asyncio.open_connection(self.cfg.host, self.cfg.port),
                 timeout=self.cfg.timeout,
             )
+        log.debug("[%s] Unix-Socket connect → %s", self.cfg.backend_id, self.cfg.socket_path)
         return await asyncio.wait_for(
             asyncio.open_unix_connection(self.cfg.socket_path),
             timeout=self.cfg.timeout,
@@ -191,7 +193,15 @@ class LivestatusClient:
         Sendet eine Livestatus-Query, gibt JSON-Antwort zurück.
         ResponseHeader fixed16: "200          1234\\n" (16 Bytes)
         """
-        reader, writer = await self._connect()
+        t0 = time.monotonic()
+        try:
+            reader, writer = await self._connect()
+        except Exception as e:
+            addr = (f"{self.cfg.host}:{self.cfg.port}" if self.cfg.use_tcp
+                    else self.cfg.socket_path)
+            log.error("[%s] Verbindung fehlgeschlagen (%s) – %s",
+                      self.cfg.backend_id, addr, e)
+            raise
         try:
             full_query = (
                 query_str.strip()
@@ -205,8 +215,15 @@ class LivestatusClient:
             header = await asyncio.wait_for(
                 reader.readexactly(16), timeout=self.cfg.timeout
             )
-            status_code = int(header[:3])
-            data_len    = int(header[4:15].strip())
+            try:
+                status_code = int(header[:3].decode("ascii"))
+                data_len    = int(header[4:15].strip().decode("ascii"))
+            except (ValueError, UnicodeDecodeError) as parse_err:
+                raise RuntimeError(
+                    f"[{self.cfg.backend_id}] Ungültiger Response-Header "
+                    f"{header!r} – ResponseHeader: fixed16 nicht unterstützt? "
+                    f"({parse_err})"
+                )
 
             if status_code != 200:
                 raise RuntimeError(
@@ -217,8 +234,15 @@ class LivestatusClient:
             raw = await asyncio.wait_for(
                 reader.readexactly(data_len), timeout=self.cfg.timeout
             )
-            return json.loads(raw.decode())
+            result = json.loads(raw.decode())
+            ms = int((time.monotonic() - t0) * 1000)
+            log.debug("[%s] Query OK – %d Zeilen in %dms",
+                      self.cfg.backend_id, len(result), ms)
+            return result
 
+        except Exception as e:
+            log.error("[%s] Query FEHLER – %s", self.cfg.backend_id, e)
+            raise
         finally:
             writer.close()
             try:
@@ -303,6 +327,47 @@ class LivestatusClient:
         """Einzelner Host – für Tooltip/Detail."""
         results = await self.get_hosts(f"Filter: name = {host_name}")
         return results[0] if results else None
+
+    async def get_hostgroups(self) -> list[dict]:
+        """Alle Hostgruppen mit Mitgliedernamen."""
+        rows = await self.query(
+            "GET hostgroups\n"
+            "Columns: name members\n"
+        )
+        result = []
+        for r in rows:
+            if not r or len(r) < 2:
+                continue
+            name, members = r[0], r[1]
+            if isinstance(members, str):
+                members = [m.strip() for m in members.split(",") if m.strip()]
+            elif not isinstance(members, list):
+                members = []
+            result.append({"name": name, "members": members})
+        log.debug("get_hostgroups: %d from '%s'", len(result), self.cfg.backend_id)
+        return result
+
+    async def schedule_service_downtime(
+        self,
+        host_name:           str,
+        service_description: str,
+        start_time:          int,
+        end_time:            int,
+        comment:             str = "NagVis 2",
+        author:              str = "nagvis2",
+    ) -> bool:
+        import time as _time
+        cmd = (
+            f"SCHEDULE_SVC_DOWNTIME;{host_name};{service_description};"
+            f"{start_time};{end_time};1;0;0;{author};{comment}"
+        )
+        lql = f"COMMAND [{int(_time.time())}] {cmd}\n\n"
+        try:
+            await self.query(lql)
+            return True
+        except Exception as e:
+            log.error("schedule_service_downtime failed: %s", e)
+            return False
 
     async def ping(self) -> BackendHealth:
         """Verbindungstest mit Latenz-Messung."""

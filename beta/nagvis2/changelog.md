@@ -2,6 +2,12 @@
 
 Diese Datei wurde aus dem Git-Verlauf erstellt (Commits für `beta/nagvis2`).
 
+## 2026-03-22
+### Feature
+- Demo-Datenquelle: neuer Backend-Typ `demo` mit statischen Musterdaten (`DemoClient`)
+- Backend Aktivieren/Deaktivieren: `toggle_backend()` + `PUT /api/backends/{id}/enabled`
+- Frontend: Toggle-Button ⏸/▶ in Datenquellen-Dialog, deaktivierte Backends mit `(inaktiv)` Kennzeichnung
+
 ## 2026-03-19
 ### Feature
 - `fa8155f` Add UX tasks for host display and language support
