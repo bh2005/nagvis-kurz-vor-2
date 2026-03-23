@@ -1,0 +1,1334 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="NagVis 2 Bedienungsanleitung & Referenz">
+      
+      
+        <meta name="author" content="NagVis 2 Team">
+      
+      
+        <link rel="canonical" href="https://bh2005.github.io/nagvis-kurz-vor-2/osm-guide/">
+      
+      
+        <link rel="prev" href="../help/zip-import/">
+      
+      
+        <link rel="next" href="../todo-liste/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>OSM / Weltkarte - NagVis 2 Help</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/css/nagvis2-tokens.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#nagvis-2-openstreetmap-weltkarte" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="NagVis 2 Help" class="md-header__button md-logo" aria-label="NagVis 2 Help" data-md-component="logo">
+      
+  <img src="../assets/images/nagvis2-logo.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            NagVis 2 Help
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              OSM / Weltkarte
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="NagVis 2 Help" class="md-nav__button md-logo" aria-label="NagVis 2 Help" data-md-component="logo">
+      
+  <img src="../assets/images/nagvis2-logo.svg" alt="logo">
+
+    </a>
+    NagVis 2 Help
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Benutzer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../admin-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kiosk-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kiosk
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hilfe
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Hilfe
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../help/canvas-modes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Canvas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../help/connections/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Verbindungen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../help/dashboard/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dashboard
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../help/migrate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../help/zip-import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ZIP Import
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OSM / Weltkarte
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OSM / Weltkarte
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#ubersicht" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Übersicht
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#voraussetzungen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Voraussetzungen
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#map-auf-osm-modus-umstellen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Map auf OSM-Modus umstellen
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#nodes-positionieren" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Nodes positionieren
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Nodes positionieren">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#koordinatenformat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Koordinatenformat
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#node-platzieren-edit-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node platzieren (Edit-Mode)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#node-verschieben-edit-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node verschieben (Edit-Mode)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tile-server-konfigurieren" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tile-Server konfigurieren
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tile-Server konfigurieren">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#openstreetmap-standard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OpenStreetMap (Standard)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#eigener-tile-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Eigener Tile-Server
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cluster-bubbles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cluster-Bubbles
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#zoom-pan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Zoom &amp; Pan
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#status-anzeige" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status-Anzeige
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kartenpositon-speichern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kartenpositon speichern
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#einschrankungen-im-osm-modus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Einschränkungen im OSM-Modus
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#wechsel-zuruck-zum-normalen-canvas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Wechsel zurück zum normalen Canvas
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../todo-liste/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ToDo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#ubersicht" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Übersicht
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#voraussetzungen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Voraussetzungen
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#map-auf-osm-modus-umstellen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Map auf OSM-Modus umstellen
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#nodes-positionieren" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Nodes positionieren
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Nodes positionieren">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#koordinatenformat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Koordinatenformat
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#node-platzieren-edit-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node platzieren (Edit-Mode)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#node-verschieben-edit-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node verschieben (Edit-Mode)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tile-server-konfigurieren" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tile-Server konfigurieren
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tile-Server konfigurieren">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#openstreetmap-standard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OpenStreetMap (Standard)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#eigener-tile-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Eigener Tile-Server
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cluster-bubbles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cluster-Bubbles
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#zoom-pan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Zoom &amp; Pan
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#status-anzeige" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status-Anzeige
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kartenpositon-speichern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kartenpositon speichern
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#einschrankungen-im-osm-modus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Einschränkungen im OSM-Modus
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#wechsel-zuruck-zum-normalen-canvas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Wechsel zurück zum normalen Canvas
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="nagvis-2-openstreetmap-weltkarte">NagVis 2 – OpenStreetMap / Weltkarte</h1>
+<h2 id="ubersicht">Übersicht</h2>
+<p>Der Canvas-Modus <strong>OpenStreetMap</strong> ersetzt das normale Canvas durch eine interaktive Leaflet-Karte. Nodes werden anhand geographischer Koordinaten (Breitengrad / Längengrad) auf der Karte positioniert statt mit x%/y%-Prozentangaben.</p>
+<hr />
+<h2 id="voraussetzungen">Voraussetzungen</h2>
+<p>Der OSM-Modus benötigt eine Internet-Verbindung zum Standard-Tile-Server (<code>tile.openstreetmap.org</code>) – oder einen intern erreichbaren Tile-Server (z.B. einen selbst gehosteten OSM-Stack mit <a href="https://github.com/Overv/openstreetmap-tile-server">tile-server-ubuntu</a>).</p>
+<hr />
+<h2 id="map-auf-osm-modus-umstellen">Map auf OSM-Modus umstellen</h2>
+<ol>
+<li>Map öffnen</li>
+<li>Burger-Menü → <strong>⊡ Canvas-Format ändern</strong></li>
+<li>Option <strong>🗺 OpenStreetMap</strong> wählen</li>
+<li>Optional: Tile-Server URL, Start-Koordinaten (Lat/Lng) und Zoom-Stufe eintragen</li>
+<li><strong>Übernehmen</strong> klicken – die Map wird neu geladen</li>
+</ol>
+<hr />
+<h2 id="nodes-positionieren">Nodes positionieren</h2>
+<h3 id="koordinatenformat">Koordinatenformat</h3>
+<p>Im OSM-Modus werden die Felder <code>x</code> und <code>y</code> eines Objekts als geographische Koordinaten interpretiert:</p>
+<table>
+<thead>
+<tr>
+<th>Feld</th>
+<th>Bedeutung</th>
+<th>Beispiel</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>x</code></td>
+<td>Breitengrad (Latitude)</td>
+<td><code>51.5074</code> (London)</td>
+</tr>
+<tr>
+<td><code>y</code></td>
+<td>Längengrad (Longitude)</td>
+<td><code>-0.1278</code> (London)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="node-platzieren-edit-mode">Node platzieren (Edit-Mode)</h3>
+<ol>
+<li><strong>Ctrl+E</strong> → Edit-Mode aktivieren</li>
+<li>Klick auf die Karte an der gewünschten Position → Add-Object-Dialog öffnet sich</li>
+<li>Typ und Name eintragen → <strong>Platzieren</strong></li>
+</ol>
+<h3 id="node-verschieben-edit-mode">Node verschieben (Edit-Mode)</h3>
+<p>Im Edit-Mode ist jeder Marker per <strong>Drag &amp; Drop</strong> verschiebbar. Die neue Position wird automatisch über die API gespeichert (kein manuelles Speichern nötig).</p>
+<hr />
+<h2 id="tile-server-konfigurieren">Tile-Server konfigurieren</h2>
+<h3 id="openstreetmap-standard">OpenStreetMap (Standard)</h3>
+<p>Tile-URL-Feld leer lassen – NagVis 2 verwendet automatisch:</p>
+<pre><code>https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png
+</code></pre>
+<h3 id="eigener-tile-server">Eigener Tile-Server</h3>
+<p>Tile-URL mit den Leaflet-Platzhaltern <code>{z}</code>, <code>{x}</code>, <code>{y}</code> und optional <code>{s}</code> für Subdomains:</p>
+<pre><code>http://tiles.intern.example.com/{z}/{x}/{y}.png
+http://a.tiles.intern.example.com/{z}/{x}/{y}.png
+</code></pre>
+<hr />
+<h2 id="cluster-bubbles">Cluster-Bubbles</h2>
+<p>Beim Herauszoomen werden nahe beieinander liegende Nodes automatisch zu <strong>Cluster-Bubbles</strong> zusammengefasst. Die Bubble-Farbe zeigt den schlechtesten Status der enthaltenen Nodes:</p>
+<table>
+<thead>
+<tr>
+<th>Farbe</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Grün</td>
+<td>Alle Nodes OK / UP</td>
+</tr>
+<tr>
+<td>Gelb</td>
+<td>Mindestens ein WARNING</td>
+</tr>
+<tr>
+<td>Orange</td>
+<td>Mindestens ein UNKNOWN</td>
+</tr>
+<tr>
+<td>Rot</td>
+<td>Mindestens ein CRITICAL / DOWN</td>
+</tr>
+</tbody>
+</table>
+<p>Die Zahl in der Bubble gibt die Anzahl der enthaltenen Nodes an. Beim Hineinzoomen oder Klick auf die Bubble löst sie sich in Einzelmarker auf.</p>
+<blockquote>
+<p><strong>Edit-Mode:</strong> Im Edit-Mode ist Clustering deaktiviert, damit alle Marker einzeln per Drag &amp; Drop verschoben werden können.</p>
+</blockquote>
+<hr />
+<h2 id="zoom-pan">Zoom &amp; Pan</h2>
+<p>Leaflet übernimmt im OSM-Modus die komplette Zoom/Pan-Steuerung:</p>
+<table>
+<thead>
+<tr>
+<th>Aktion</th>
+<th>Methode</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Zoomen</td>
+<td>Mausrad oder Leaflet-Zoom-Buttons (+ / −)</td>
+</tr>
+<tr>
+<td>Schwenken</td>
+<td>Maus gedrückt halten + ziehen</td>
+</tr>
+<tr>
+<td>Doppelklick</td>
+<td>Zoom-In zum Punkt</td>
+</tr>
+<tr>
+<td>Touch / Pinch</td>
+<td>Pinch-Zoom auf Touchscreens</td>
+</tr>
+</tbody>
+</table>
+<p>Die NagVis-Topbar-Zoom-Buttons (+ − ⊙) sind im OSM-Modus ausgeblendet.</p>
+<hr />
+<h2 id="status-anzeige">Status-Anzeige</h2>
+<p>Nodes zeigen denselben Status wie im normalen Canvas-Modus:</p>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Farbe</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>UP / OK</td>
+<td>Grün</td>
+</tr>
+<tr>
+<td>DOWN / CRITICAL</td>
+<td>Rot</td>
+</tr>
+<tr>
+<td>WARNING</td>
+<td>Gelb</td>
+</tr>
+<tr>
+<td>UNKNOWN / UNREACHABLE</td>
+<td>Orange</td>
+</tr>
+<tr>
+<td>ACK (bestätigt)</td>
+<td>Gedimmt + Häkchen</td>
+</tr>
+<tr>
+<td>Downtime</td>
+<td>Gedimmt + Schraubenschlüssel</td>
+</tr>
+</tbody>
+</table>
+<p>Rechtsklick auf einen Node öffnet das gewohnte Aktions-Menü (ACK, Downtime, SSH, ...).</p>
+<hr />
+<h2 id="kartenpositon-speichern">Kartenpositon speichern</h2>
+<p>Wenn der Benutzer die Karte verschiebt oder zoomt, wird die aktuelle Ansicht (Lat, Lng, Zoom) automatisch in der Map-Konfiguration gespeichert – die Map öffnet beim nächsten Aufruf am selben Ort.</p>
+<hr />
+<h2 id="einschrankungen-im-osm-modus">Einschränkungen im OSM-Modus</h2>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Linien / Weathermap</td>
+<td>✖ Nicht verfügbar (canvas-basiert)</td>
+</tr>
+<tr>
+<td>Gadgets</td>
+<td>✖ Nicht verfügbar (canvas-basiert)</td>
+</tr>
+<tr>
+<td>Container (SVG/Bild)</td>
+<td>✖ Nicht verfügbar</td>
+</tr>
+<tr>
+<td>Hintergrundbild</td>
+<td>✖ Nicht relevant (Karte ist der Hintergrund)</td>
+</tr>
+<tr>
+<td>Hosts, Services, Gruppen, Map-Nodes</td>
+<td>✔ Vollständig</td>
+</tr>
+<tr>
+<td>Textbox</td>
+<td>✖ Nicht verfügbar</td>
+</tr>
+<tr>
+<td>Kiosk-Modus</td>
+<td>✔ Funktioniert</td>
+</tr>
+<tr>
+<td>Echtzeit-Status via WebSocket</td>
+<td>✔ Funktioniert</td>
+</tr>
+<tr>
+<td>Multi-Select / Layer</td>
+<td>✖ Nicht verfügbar</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="wechsel-zuruck-zum-normalen-canvas">Wechsel zurück zum normalen Canvas</h2>
+<p>Burger-Menü → <strong>⊡ Canvas-Format ändern</strong> → <strong>Frei</strong>, <strong>Seitenverhältnis</strong> oder <strong>Feste Auflösung</strong> wählen → <strong>Übernehmen</strong>.</p>
+<blockquote>
+<p><strong>Hinweis:</strong> Die Nodes behalten ihre lat/lng-Werte als x/y. Im normalen Canvas-Modus werden diese als Prozentangaben interpretiert (z.B. <code>51.0</code> → 51%). Eine manuelle Positionskorrektur kann nötig sein.</p>
+</blockquote>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "search.highlight", "search.suggest"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
