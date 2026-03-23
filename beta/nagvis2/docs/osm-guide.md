@@ -65,6 +65,23 @@ http://a.tiles.intern.example.com/{z}/{x}/{y}.png
 
 ---
 
+## Cluster-Bubbles
+
+Beim Herauszoomen werden nahe beieinander liegende Nodes automatisch zu **Cluster-Bubbles** zusammengefasst. Die Bubble-Farbe zeigt den schlechtesten Status der enthaltenen Nodes:
+
+| Farbe | Status |
+|---|---|
+| Grün | Alle Nodes OK / UP |
+| Gelb | Mindestens ein WARNING |
+| Orange | Mindestens ein UNKNOWN |
+| Rot | Mindestens ein CRITICAL / DOWN |
+
+Die Zahl in der Bubble gibt die Anzahl der enthaltenen Nodes an. Beim Hineinzoomen oder Klick auf die Bubble löst sie sich in Einzelmarker auf.
+
+> **Edit-Mode:** Im Edit-Mode ist Clustering deaktiviert, damit alle Marker einzeln per Drag & Drop verschoben werden können.
+
+---
+
 ## Zoom & Pan
 
 Leaflet übernimmt im OSM-Modus die komplette Zoom/Pan-Steuerung:

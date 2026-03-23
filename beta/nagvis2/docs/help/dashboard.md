@@ -21,4 +21,15 @@ In einer offenen Map kannst du mit **Rechtsklick auf das Canvas** neue Objekte h
 * **Line**: Verbindet zwei Objekte und zeigt die Bandbreite oder den Status der Verbindung.
 
 ---
-**Pro-Tipp:** Nutze den **Edit-Modus** (Hotkey `E`), um Objekte per Drag & Drop frei zu verschieben. Vergiss nicht, am Ende zu speichern!
+
+### 4. Maps strukturieren (optional)
+
+Sobald du mehrere Maps hast, kannst du sie in einer Hierarchie organisieren:
+
+* **Root-Map**: Eine Map ohne übergeordnete Map – erscheint oben in der Sidebar und in der Übersicht.
+* **Kind-Map**: Wird über **Burger-Menü → 🗺 Parent-Map setzen** einer Root-Map zugeordnet.
+* In der Sidebar und Übersicht erscheinen Kind-Maps eingerückt (↳) direkt unter ihrer Root-Map.
+* In der Topbar wird beim Öffnen einer Kind-Map ein `↑ Eltern-Map`-Link angezeigt – bei Root-Maps erscheinen die Kind-Maps als Chips.
+
+---
+**Pro-Tipp:** Nutze den **Edit-Modus** (Hotkey `Ctrl+E`), um Objekte per Drag & Drop frei zu verschieben. Die Position wird automatisch gespeichert – kein manuelles Speichern nötig!

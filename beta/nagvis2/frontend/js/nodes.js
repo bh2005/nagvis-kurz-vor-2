@@ -1151,20 +1151,24 @@ function initLayers(objects) {
 function renderLayerPanel() {
   const el = document.getElementById('sidebar-layers');
   if (!el) return;
-  if (!Object.keys(_layers).length) {
+  const layerList = Object.values(_layers).sort((a, b) => a.zIndex - b.zIndex);
+  if (!layerList.length) {
     el.innerHTML = '<div style="padding:5px 10px 5px 20px;font-size:11px;color:var(--text-dim)">Keine Layer</div>';
     return;
   }
-  el.innerHTML = Object.values(_layers).map(l => `
-    <div class="layer-row" data-layer-id="${l.id}">
+  el.innerHTML = layerList.map(l => `
+    <div class="layer-row" data-layer-id="${l.id}" draggable="true">
+      <span class="layer-drag-handle" title="Reihenfolge ändern">⠿</span>
       <label class="layer-toggle" title="${l.visible ? 'Ausblenden' : 'Einblenden'}">
         <input type="checkbox" class="layer-cb" data-layer="${l.id}" ${l.visible ? 'checked' : ''}>
         <span class="layer-eye">${l.visible ? '👁' : '🚫'}</span>
       </label>
       <span class="layer-name" data-layer="${l.id}">${esc(l.name)}</span>
       <span class="layer-z" title="Z-Index">${l.zIndex}</span>
+      <button class="layer-del-btn" data-layer="${l.id}" title="Layer löschen">✕</button>
     </div>`).join('');
 
+  // Checkbox: Ein/Ausblenden
   el.querySelectorAll('.layer-cb').forEach(cb => {
     cb.addEventListener('change', () => {
       const id = parseInt(cb.dataset.layer);
@@ -1175,6 +1179,7 @@ function renderLayerPanel() {
     });
   });
 
+  // Doppelklick: Layer umbenennen
   el.querySelectorAll('.layer-name').forEach(span => {
     span.addEventListener('dblclick', () => {
       const id  = parseInt(span.dataset.layer);
@@ -1190,6 +1195,69 @@ function renderLayerPanel() {
       };
       inp.addEventListener('blur', done);
       inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
+    });
+  });
+
+  // Löschen
+  el.querySelectorAll('.layer-del-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = parseInt(btn.dataset.layer);
+      const hasObjects = !!document.querySelector(`[data-layer="${id}"]`);
+      if (hasObjects && !confirm(`Layer "${_layers[id].name}" löschen? Objekte werden Layer 0 zugewiesen.`)) return;
+      // Alle Objekte auf Layer 0 verschieben
+      document.querySelectorAll(`[data-layer="${id}"]`).forEach(node => {
+        node.dataset.layer = 0;
+        node.style.zIndex  = _layers[0]?.zIndex ?? 10;
+        if (_layers[0]?.visible === false) node.style.display = 'none';
+      });
+      delete _layers[id];
+      renderLayerPanel();
+    });
+  });
+
+  // Drag-to-Reorder
+  _initLayerDrag(el);
+}
+
+function _initLayerDrag(container) {
+  let _dragSrc = null;
+
+  container.querySelectorAll('.layer-row').forEach(row => {
+    row.addEventListener('dragstart', e => {
+      _dragSrc = row;
+      row.classList.add('layer-dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    row.addEventListener('dragend', () => {
+      row.classList.remove('layer-dragging');
+      container.querySelectorAll('.layer-row').forEach(r => r.classList.remove('layer-drag-over'));
+      _dragSrc = null;
+    });
+    row.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (row !== _dragSrc) {
+        container.querySelectorAll('.layer-row').forEach(r => r.classList.remove('layer-drag-over'));
+        row.classList.add('layer-drag-over');
+      }
+    });
+    row.addEventListener('drop', e => {
+      e.preventDefault();
+      if (!_dragSrc || _dragSrc === row) return;
+      row.classList.remove('layer-drag-over');
+      // Neue Reihenfolge aus DOM ermitteln
+      const rows  = [...container.querySelectorAll('.layer-row')];
+      const from  = rows.indexOf(_dragSrc);
+      const to    = rows.indexOf(row);
+      rows.splice(from, 1);
+      rows.splice(to, 0, _dragSrc);
+      // zIndex neu vergeben (10, 20, 30, …)
+      rows.forEach((r, i) => {
+        const id = parseInt(r.dataset.layerId);
+        if (_layers[id]) _layers[id].zIndex = 10 + i * 10;
+      });
+      applyAllLayerVisibility();
+      renderLayerPanel();
     });
   });
 }

@@ -37,6 +37,8 @@
 - **Rechtsklick-Kontextmenü** auf Übersichtskarten – Öffnen, Umbenennen, Parent, Canvas-Format ändern, Exportieren, Löschen
 - **Map-Export/Import** – ZIP-Download + Upload (Map-JSON + Hintergrundbild)
 - **NagVis 1 Import** – `.cfg`-Parser, Canvas-Dimensionen wählbar, Dry-Run-Modus
+- **Sidebar-Hierarchie** – Root-Maps oben, Kind-Maps darunter eingerückt (↳); gleiche Sortierung in der Übersicht
+- **Topbar-Navigation** – Kind-Map geöffnet: `↑ Eltern-Map`-Link; Root-Map: Kind-Map-Chips
 
 ---
 
@@ -131,6 +133,8 @@
 ### Layer-System
 - Layer-State `{ id → { name, visible, zIndex } }` im Speicher
 - **Sidebar-Panel** – Checkbox Ein/Aus, Doppelklick umbenennen
+- **Drag-to-Reorder** – Layer per ⠿-Handle umsortieren; zIndex wird automatisch neu vergeben und sofort auf alle Nodes angewendet
+- **Layer löschen** – ✕-Button (hover); Objekte werden auf Layer 0 verschoben (mit Bestätigungs-Dialog)
 - **Layer-Dialog** – Zuweisung zu bestehendem oder neuem Layer
 - **Kontextmenü-Eintrag** „◫ Layer zuweisen" auf allen Nodes und Linien
 
@@ -154,10 +158,10 @@
 ---
 
 ### Benutzereinstellungen
-- Dark/Light Theme-Chips (visuell)
-- Sidebar-Startzustand (Expanded/Collapsed)
+- Dark/Light Theme-Chips (visuell) – **Standard: Dark**
+- Sidebar-Startzustand (Expanded/Collapsed) – **Standard: Expanded**
 - Kiosk-Optionen (Sidebar, Topbar, Auto-Refresh, Intervall)
-- Persistenz via `nv2-user-settings` in localStorage
+- Persistenz via `nv2-user-settings` in localStorage (einzige Quelle; `nv2-theme` / `nv2-sidebar` entfernt)
 
 ---
 
@@ -232,7 +236,7 @@ Map-Verwaltung      ██████████████████░░
 Objekt-Typen        ███████████████████░   95%
 Edit-Mode           ████████████████████  100%
 Live-Status         ██████████████████░░   90%  (Livestatus + Checkmk)
-Layer-System        █████████████████░░░   85%
+Layer-System        ████████████████████  100%
 Kiosk-Modus         ████████████████████  100%
 OSM / Weltkarte     ████████████████████  100%
 Gadget-System       ████████████████████  100%

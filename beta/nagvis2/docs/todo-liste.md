@@ -60,7 +60,7 @@
 - [x] Multi-Select: Escape hebt Selektion auf (vor anderen Escape-Aktionen)
 - [x] Map-Miniaturbilder in der Übersicht (OffscreenCanvas, POST/DELETE `/api/maps/{id}/thumbnail`; Timing-Fix: DOM direkt nach Upload aktualisiert)
 - [ ] Undo/Redo für Positionsänderungen (Ctrl+Z / Ctrl+Y)
-- [ ] Objekt-Reihenfolge ändern (Layer-Management im Edit-Mode)
+- [x] Objekt-Reihenfolge ändern: Layer per Drag & Drop umsortieren (zIndex), Layer löschen
 - [ ] Suche/Filter in der Sidebar (Maps und Hosts durchsuchen)
 - [ ] Favoriten: bestimmte Maps als Favoriten markieren
 - [ ] Map-Minimap / Übersichtsfenster bei großen Karten
@@ -103,6 +103,11 @@
 ## Erledigt ✅
 
 - [x] OSM Cluster-Bubbles: Leaflet.markercluster, Worst-State-Farbe, Edit-Mode deaktiviert Clustering
+- [x] Sidebar Map-Hierarchie: Root-Maps oben, Kind-Maps eingerückt (↳), `_sortMapsHierarchically()`
+- [x] Übersicht Map-Hierarchie: gleiche Sortierung, Kind-Karten mit Akzentbalken + Eltern-Titel
+- [x] Topbar-Navigation: Kind-Map → ↑ Eltern-Link; Root-Map → ↳ Kind-Chips
+- [x] Standard-Defaults: Dark-Theme + Sidebar ausgeklappt (über `nv2-user-settings`, nicht separate Keys)
+- [x] Layer: Drag-to-Reorder (zIndex), Löschen mit Objekt-Migration auf Layer 0
 - [x] Test-Coverage: 137 Tests, ws/manager.py 89 %, main.py 76 % (Ziel ≥ 70 % erreicht)
 - [x] `api/router.py` vollständig implementiert (Objekte CRUD, Background-Upload, Actions)
 - [x] WebSocket-Broadcasts für Objektänderungen (`object_added`, `object_updated`, `object_removed`, `map_reloaded`)

@@ -87,6 +87,8 @@
       <div class="tb-sub"   id="tb-sub">Wähle eine Map</div>
     </div>
 
+    <div id="tb-nav" class="tb-nav"></div>
+
     <div id="tb-pills" style="display:none; align-items:center; gap:5px;">
       <div class="tb-sep"></div>
       <span class="pill ok"   id="pill-ok">  ● –</span>
@@ -1033,8 +1035,10 @@
 <script>
   /* Theme so früh wie möglich setzen – verhindert FOUC */
   (function() {
-    const t = localStorage.getItem('nv2-theme') ?? 'dark';
-    document.documentElement.setAttribute('data-theme', t);
+    try {
+      const s = JSON.parse(localStorage.getItem('nv2-user-settings') ?? '{}');
+      document.documentElement.setAttribute('data-theme', s.theme ?? 'dark');
+    } catch { /* bleibt bei data-theme="dark" aus dem HTML */ }
   })();
 </script>
 

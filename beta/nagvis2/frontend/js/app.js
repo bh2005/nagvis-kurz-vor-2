@@ -10,8 +10,8 @@
 
 document.addEventListener('DOMContentLoaded', async () => {
 
-  const savedTheme = localStorage.getItem('nv2-theme') ?? 'dark';
-  setTheme(savedTheme, false);
+  // Theme aus User-Settings laden (Default: 'dark')
+  setTheme(loadUserSettings().theme, false);
 
   restoreSidebar();
 

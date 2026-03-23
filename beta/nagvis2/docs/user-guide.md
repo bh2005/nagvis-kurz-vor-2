@@ -27,7 +27,8 @@ NagVis 2 visualisiert den Status deiner Monitoring-Umgebung (Nagios / Checkmk / 
 |---|---|
 | Logo | Zurück zur Übersicht |
 | Verbindungspunkt | Grün = Livestatus verbunden |
-| Statusleiste | Letztes Update, Heartbeat, Fehler |
+| Map-Titel / Untertitel | Name und Objekt-Anzahl der aktiven Map |
+| **Navigation** | Bei Kind-Map: `↑ Eltern-Map` als Link; bei Root-Map: `↳ Kind1` `↳ Kind2` als Chips |
 | Pills (●OK ●WARN ●CRIT) | Schnellübersicht aller Hosts |
 | Zoom-Buttons (+ −) | Canvas vergrößern/verkleinern |
 | Burger-Menü (☰) | Alle Funktionen |
@@ -35,8 +36,9 @@ NagVis 2 visualisiert den Status deiner Monitoring-Umgebung (Nagios / Checkmk / 
 ### Sidebar
 
 - **Übersicht** – zeigt alle Maps als Kachelansicht
-- **Maps-Liste** – direkter Zugriff auf einzelne Maps
+- **Maps-Liste** – direkter Zugriff auf einzelne Maps; Root-Maps oben, Kind-Maps darunter eingerückt (↳)
 - **Farbpunkte** – zeigen den schlechtesten Status der jeweiligen Map
+- **Layer-Panel** – erscheint beim Öffnen einer Map; Layer ein-/ausblenden, umbenennen, per Drag umsortieren und löschen
 - Sidebar ein-/ausklappen: Taste **B** oder Button unten links
 
 ### Snap-Ins (rechte Seite)
@@ -331,10 +333,61 @@ Kurze Statusmeldungen oben rechts:
 
 ---
 
+## Layer-System
+
+Auf jeder Map können Objekte verschiedenen **Layern** zugewiesen werden, um Sichtbarkeit und Render-Reihenfolge zu steuern.
+
+### Layer-Panel (Sidebar)
+
+Das Layer-Panel erscheint in der Sidebar, sobald eine Map geöffnet wird. Pro Layer gibt es:
+
+| Element | Funktion |
+|---|---|
+| ⠿ Drag-Handle | Layer per Drag & Drop umsortieren → ändert den Z-Index aller zugehörigen Objekte |
+| 👁 / 🚫 Checkbox | Layer ein- oder ausblenden |
+| Name (Doppelklick) | Layer umbenennen |
+| Z-Index-Anzeige | Aktueller Z-Index (10, 20, 30, …) |
+| ✕ Löschen | Layer entfernen; Objekte werden auf Layer 0 verschoben (mit Bestätigung) |
+
+### Layer zuweisen
+
+Im Edit-Mode: Rechtsklick auf ein Objekt → **◫ Layer zuweisen** → vorhandenen Layer wählen oder neue Layer-ID + Name eingeben.
+
+---
+
+## Map-Hierarchie
+
+### Sidebar
+
+Root-Maps (keine übergeordnete Map) erscheinen direkt in der Liste. Kind-Maps sind eingerückt und mit einem `↳` markiert:
+
+```
+◉ Rechenzentrum Nord
+  ↳ Server-Raum A
+  ↳ Server-Raum B
+◉ Standort Frankfurt
+  ↳ DMZ
+```
+
+### Übersicht (Kachelansicht)
+
+Die Kacheln folgen derselben Reihenfolge. Kind-Karten haben einen dezenten linken Akzentbalken und zeigen den Titel der Eltern-Map an.
+
+### Topbar-Navigation
+
+- **Kind-Map geöffnet** → `↑ Eltern-Map-Titel`-Button in der Topbar → Klick öffnet die Eltern-Map
+- **Root-Map geöffnet** → Kind-Map-Chips erscheinen in der Topbar → Klick öffnet die jeweilige Kind-Map
+
+### Parent-Map setzen
+
+Burger-Menü → **🗺 Parent-Map setzen** → gewünschte Root-Map wählen.
+
+---
+
 ## Benutzereinstellungen
 
 Burger-Menü → ⚙ Einstellungen:
 
-- **Erscheinungsbild** – Dark / Light Theme
-- **Sidebar beim Start** – ausgeklappt oder eingeklappt
+- **Erscheinungsbild** – Dark / Light Theme (Standard: **Dark**)
+- **Sidebar beim Start** – ausgeklappt oder eingeklappt (Standard: **ausgeklappt**)
 - **Kiosk-Modus** – Sidebar/Topbar ausblenden, Auto-Refresh-Intervall (30s / 1min / 2min / 5min)
