@@ -716,6 +716,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#cluster-bubbles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cluster-Bubbles
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#zoom-pan" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -963,6 +974,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#cluster-bubbles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cluster-Bubbles
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#zoom-pan" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1093,6 +1115,39 @@
 <pre><code>http://tiles.intern.example.com/{z}/{x}/{y}.png
 http://a.tiles.intern.example.com/{z}/{x}/{y}.png
 </code></pre>
+<hr />
+<h2 id="cluster-bubbles">Cluster-Bubbles</h2>
+<p>Beim Herauszoomen werden nahe beieinander liegende Nodes automatisch zu <strong>Cluster-Bubbles</strong> zusammengefasst. Die Bubble-Farbe zeigt den schlechtesten Status der enthaltenen Nodes:</p>
+<table>
+<thead>
+<tr>
+<th>Farbe</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Grün</td>
+<td>Alle Nodes OK / UP</td>
+</tr>
+<tr>
+<td>Gelb</td>
+<td>Mindestens ein WARNING</td>
+</tr>
+<tr>
+<td>Orange</td>
+<td>Mindestens ein UNKNOWN</td>
+</tr>
+<tr>
+<td>Rot</td>
+<td>Mindestens ein CRITICAL / DOWN</td>
+</tr>
+</tbody>
+</table>
+<p>Die Zahl in der Bubble gibt die Anzahl der enthaltenen Nodes an. Beim Hineinzoomen oder Klick auf die Bubble löst sie sich in Einzelmarker auf.</p>
+<blockquote>
+<p><strong>Edit-Mode:</strong> Im Edit-Mode ist Clustering deaktiviert, damit alle Marker einzeln per Drag &amp; Drop verschoben werden können.</p>
+</blockquote>
 <hr />
 <h2 id="zoom-pan">Zoom &amp; Pan</h2>
 <p>Leaflet übernimmt im OSM-Modus die komplette Zoom/Pan-Steuerung:</p>

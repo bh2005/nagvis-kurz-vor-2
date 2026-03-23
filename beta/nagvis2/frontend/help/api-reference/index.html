@@ -1578,7 +1578,7 @@
 
 <h1 id="nagvis-2-api-referenz">NagVis 2 – API-Referenz</h1>
 <p>Basis-URL: <code>http://&lt;host&gt;:&lt;port&gt;/api</code></p>
-<p>Interaktive Dokumentation (nur <code>DEBUG=true</code>): <code>http://localhost:8000/api/docs</code></p>
+<p>Interaktive Dokumentation (nur <code>DEBUG=true</code>): <code>http://localhost:8008/api/docs</code></p>
 <hr />
 <h2 id="health">Health</h2>
 <h3 id="get-apihealth">GET /api/health</h3>
@@ -1965,7 +1965,7 @@
 <h3 id="ws-wsmapmap_id">WS /ws/map/{map_id}</h3>
 <p>Echtzeit-Statusstream für eine Map.</p>
 <p><strong>Verbindung aufbauen:</strong></p>
-<pre><code class="language-javascript">const ws = new WebSocket('ws://localhost:8000/ws/map/datacenter-hh');
+<pre><code class="language-javascript">const ws = new WebSocket('ws://localhost:8008/ws/map/datacenter-hh');
 </code></pre>
 <h3 id="server-client">Server → Client</h3>
 <p><strong>snapshot</strong> – vollständiger Statusdump beim Verbindungsaufbau:</p>
