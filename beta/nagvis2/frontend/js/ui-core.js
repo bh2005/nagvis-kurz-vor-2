@@ -25,11 +25,16 @@ function toggleSidebar() {
     }
   }
 
-  localStorage.setItem('nv2-sidebar', sidebarCollapsed ? '1' : '0');
+  // Sidebar-Zustand in User-Settings persistieren
+  const s = loadUserSettings();
+  s.sidebarDefault = sidebarCollapsed ? 'collapsed' : 'expanded';
+  localStorage.setItem(USER_SETTINGS_KEY, JSON.stringify(s));
 }
 
 function restoreSidebar() {
-  if (localStorage.getItem('nv2-sidebar') === '1') {
+  // User-Settings sind die einzige Quelle für den Sidebar-Startzustand
+  const pref = loadUserSettings().sidebarDefault;  // Default: 'expanded'
+  if (pref === 'collapsed') {
     sidebarCollapsed = true;
     document.getElementById('sidebar').classList.add('collapsed');
     document.getElementById('app').style.gridTemplateColumns = '44px 1fr';
@@ -78,7 +83,11 @@ function setTheme(theme, save = true) {
   const label = document.getElementById('burger-theme-label');
   if (ico)   ico.textContent   = theme === 'dark' ? '☀' : '☽';
   if (label) label.textContent = theme === 'dark' ? 'Light-Theme' : 'Dark-Theme';
-  if (save) localStorage.setItem('nv2-theme', theme);
+  if (save) {
+    const s = loadUserSettings();
+    s.theme = theme;
+    localStorage.setItem(USER_SETTINGS_KEY, JSON.stringify(s));
+  }
   updateThemeChips();
 }
 

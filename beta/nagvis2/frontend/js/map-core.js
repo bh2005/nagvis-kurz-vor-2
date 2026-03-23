@@ -8,10 +8,32 @@
 //  MAPS LADEN & RENDERN
 // ═══════════════════════════════════════════════════════════════════════
 
+// Globale Map-Liste – wird von openMap / topbar-Nav genutzt
+window._allMaps = [];
+
 async function loadMaps() {
   const maps = await api('/api/maps') ?? [];
+  window._allMaps = maps;
   renderSidebarMaps(maps);
   renderOverview(maps);
+}
+
+// Sortiert Maps hierarchisch: Root, dann Kinder des Roots, dann nächster Root …
+function _sortMapsHierarchically(maps) {
+  const byId     = Object.fromEntries(maps.map(m => [m.id, m]));
+  const byParent = {};
+  maps.filter(m => m.parent_map && byId[m.parent_map]).forEach(m => {
+    (byParent[m.parent_map] ??= []).push(m);
+  });
+  const roots  = maps.filter(m => !m.parent_map || !byId[m.parent_map]);
+  const result = [];
+  for (const root of roots) {
+    result.push({ ...root, _depth: 0 });
+    for (const child of (byParent[root.id] ?? [])) {
+      result.push({ ...child, _depth: 1 });
+    }
+  }
+  return result;
 }
 
 function renderSidebarMaps(maps) {
@@ -21,8 +43,11 @@ function renderSidebarMaps(maps) {
     renderMapsSnapin(maps);
     return;
   }
-  el.innerHTML = maps.map(m => `
-    <div class="map-entry" id="smap-${esc(m.id)}" data-map-id="${esc(m.id)}" data-title="${esc(m.title)}">
+  const sorted = _sortMapsHierarchically(maps);
+  el.innerHTML = sorted.map(m => `
+    <div class="map-entry${m._depth ? ' map-entry-child' : ''}" id="smap-${esc(m.id)}"
+         data-map-id="${esc(m.id)}" data-title="${esc(m.title)}">
+      ${m._depth ? '<span class="map-entry-indent">↳</span>' : ''}
       <div class="map-pip unkn" id="mpip-${esc(m.id)}" title="${esc(m.title)}"></div>
       <span class="map-entry-title">${esc(m.title)}</span>
     </div>`).join('');
@@ -76,10 +101,14 @@ function _thumbHtml(m) {
 }
 
 function renderOverview(maps) {
-  const grid = document.getElementById('ov-grid');
+  const grid   = document.getElementById('ov-grid');
+  const sorted = _sortMapsHierarchically(maps);
+  const byId   = Object.fromEntries(maps.map(m => [m.id, m]));
 
-  const cards = maps.map(m => `
-    <div class="ov-card" data-map-id="${esc(m.id)}" data-title="${esc(m.title)}"
+  const cards = sorted.map(m => {
+    const parentTitle = m.parent_map ? (byId[m.parent_map]?.title ?? m.parent_map) : null;
+    return `
+    <div class="ov-card${m._depth ? ' ov-card-child' : ''}" data-map-id="${esc(m.id)}" data-title="${esc(m.title)}"
          data-canvas="${esc(JSON.stringify(m.canvas ?? {}))}">
       ${_thumbHtml(m)}
       <div class="ov-card-header">
@@ -88,11 +117,12 @@ function renderOverview(maps) {
                 title="Map-Optionen" onclick="event.stopPropagation(); openCardMenu(event, '${esc(m.id)}', '${esc(m.title)}', this.closest('.ov-card').dataset.canvas)">⋯</button>
       </div>
       <div class="ov-card-meta">${m.object_count ?? 0} Objekte · <span class="ov-card-id">${esc(m.id)}</span></div>
-      ${m.parent_map ? `<div class="ov-card-parent">↳ ${esc(m.parent_map)}</div>` : ''}
+      ${parentTitle ? `<div class="ov-card-parent">↳ ${esc(parentTitle)}</div>` : ''}
       <div class="ov-card-pills" id="ov-pills-${esc(m.id)}">
         ${_pillsHtml(m.id)}
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
   grid.innerHTML = cards + `
     <div class="ov-new" id="btn-new-map">
@@ -167,6 +197,7 @@ async function openMap(mapId, { skipHistory = false } = {}) {
   document.getElementById('tb-title').textContent = activeMapCfg.title;
   document.getElementById('tb-sub')  .textContent =
     `${activeMapCfg.objects?.length ?? 0} Objekte · ${mapId}`;
+  _renderTopbarNav(mapId, activeMapCfg.parent_map);
 
   document.querySelectorAll('.map-entry').forEach(e => e.classList.remove('active'));
   document.getElementById('nav-btn-overview')?.classList.remove('active');
@@ -363,6 +394,7 @@ function showOverview({ skipHistory = false } = {}) {
 
   document.getElementById('tb-title').textContent = 'NagVis 2';
   document.getElementById('tb-sub')  .textContent = 'Wähle eine Map';
+  const _tnav = document.getElementById('tb-nav'); if (_tnav) _tnav.innerHTML = '';
   document.getElementById('nav-btn-overview').classList.add('active');
   document.querySelectorAll('.map-entry').forEach(e => e.classList.remove('active'));
 
@@ -385,6 +417,26 @@ function showOverview({ skipHistory = false } = {}) {
 }
 
 window.showOverview = showOverview;
+
+// Topbar-Navigation: Eltern-Link (Kind-Map) oder Kind-Chips (Root-Map)
+function _renderTopbarNav(mapId, parentMapId) {
+  const el = document.getElementById('tb-nav');
+  if (!el) return;
+  if (parentMapId) {
+    // Diese Map hat einen Elternteil → Link nach oben anzeigen
+    const parent = _allMaps.find(m => m.id === parentMapId);
+    const title  = parent?.title ?? parentMapId;
+    el.innerHTML = `<button class="tb-nav-up" onclick="openMap('${esc(parentMapId)}')"
+      title="Zur Eltern-Map: ${esc(title)}">↑ ${esc(title)}</button>`;
+  } else {
+    // Root-Map → Kind-Maps als Chips anzeigen
+    const children = _allMaps.filter(m => m.parent_map === mapId);
+    el.innerHTML = children.map(c =>
+      `<button class="tb-nav-child" onclick="openMap('${esc(c.id)}')"
+        title="${esc(c.title)}">↳ ${esc(c.title)}</button>`
+    ).join('');
+  }
+}
 
 
 // ═══════════════════════════════════════════════════════════════════════

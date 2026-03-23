@@ -301,6 +301,45 @@ NagVis 2 - Changelog
                Ergebnis: 137 Tests, alle gruen
                ws/manager.py: 89%, main.py: 76% (Ziel >= 70% erreicht)
                - backend/main.py: import logging.handlers ergaenzt
+
+[2026-03-23]   Feature: Layer-System vervollstaendigt (100%)
+               - nodes.js: Layer-Panel zeigt jetzt Drag-Handle (Braille-Zeichen)
+               - Drag-to-Reorder: Layer per Drag&Drop umsortieren;
+                 zIndex wird neu vergeben (10,20,30,...) und sofort angewendet
+               - Loeschen-Button (X): erscheint beim Hover; Objekte werden auf
+                 Layer 0 verschoben (mit Bestaetigung wenn Objekte vorhanden)
+               - Layer-Liste wird nach zIndex sortiert dargestellt
+               - css/styles.css: .layer-drag-handle, .layer-del-btn,
+                 .layer-dragging, .layer-drag-over
+
+[2026-03-23]   Feature: Sidebar + Uebersicht Map-Hierarchie
+               - map-core.js: _sortMapsHierarchically() - Root-Maps oben,
+                 Kind-Maps direkt darunter (depth=1)
+               - renderSidebarMaps(): Kind-Maps mit .map-entry-child + Pfeil (ue)
+               - renderOverview(): gleiche Sortierung; Kind-Karten mit
+                 .ov-card-child (linker Akzentbalken); Eltern-Titel statt ID
+               - css/styles.css: .map-entry-child, .map-entry-indent,
+                 .ov-card-child
+
+[2026-03-23]   Feature: Topbar-Navigation (Eltern-/Kind-Links)
+               - index.html: <div id="tb-nav" class="tb-nav"> zwischen
+                 tb-ident und tb-pills
+               - map-core.js: _renderTopbarNav(mapId, parentMapId)
+                 Kind-Map: zeigt Aufwaerts-Link zur Eltern-Map
+                 Root-Map: zeigt Kind-Map-Chips (Pfeil + Titel)
+               - showOverview(): leert #tb-nav
+               - css/styles.css: .tb-nav, .tb-nav-up, .tb-nav-child
+
+[2026-03-23]   Bugfix: Standard-Defaults konsolidiert
+               - ui-core.js: restoreSidebar() liest jetzt loadUserSettings()
+                 .sidebarDefault statt separatem nv2-sidebar Key
+               - ui-core.js: toggleSidebar() speichert in nv2-user-settings
+                 statt nv2-sidebar
+               - ui-core.js: setTheme() speichert in nv2-user-settings
+                 statt nv2-theme
+               - app.js: Theme beim Start aus loadUserSettings().theme
+               - index.html FOUC-Snippet: liest nv2-user-settings.theme
+               Standard: Dark-Theme + Sidebar ausgeklappt + Uebersicht
 """
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -399,6 +438,35 @@ MD = """\
 - Neue Test-Dateien: `test_ws_manager.py` (25), `test_api_maps.py` (34), `test_auth.py` (17), `test_audit.py` (13), `test_storage.py` (25), `test_perfdata.py` (18)
 - **137 Tests, alle grün** — `ws/manager.py` **89 %**, `main.py` **76 %**
 - `backend/main.py`: `import logging.handlers` ergänzt (fehlte → 34 Test-Fehler)
+
+### Feature: Layer-System vervollständigt ✅
+- `js/nodes.js`: Layer-Panel mit Drag-Handle (`⠿`) vor jeder Zeile
+- Drag-to-Reorder: Layer per Drag & Drop umsortieren; zIndex neu vergeben (10, 20, 30, …) und sofort angewendet
+- Löschen-Button (`✕`, erscheint beim Hover): Layer entfernen; Objekte werden auf Layer 0 verschoben (Bestätigung wenn belegt)
+- Layer-Liste wird nach zIndex sortiert dargestellt
+- `css/styles.css`: `.layer-drag-handle`, `.layer-del-btn`, `.layer-dragging`, `.layer-drag-over`
+
+### Feature: Sidebar + Übersicht Map-Hierarchie ✅
+- `js/map-core.js`: `_sortMapsHierarchically()` — Root-Maps oben, Kind-Maps direkt darunter (`_depth=1`)
+- `renderSidebarMaps()`: Kind-Maps mit `.map-entry-child` + `↳`-Pfeil eingerückt
+- `renderOverview()`: gleiche Sortierung; Kind-Karten `.ov-card-child` (linker Akzentbalken); Eltern-Titel statt ID
+- `css/styles.css`: `.map-entry-child`, `.map-entry-indent`, `.ov-card-child`
+
+### Feature: Topbar-Navigation (Eltern-/Kind-Links) ✅
+- `index.html`: `<div id="tb-nav" class="tb-nav">` zwischen `tb-ident` und `tb-pills`
+- `js/map-core.js`: `_renderTopbarNav(mapId, parentMapId)`
+  - Kind-Map: zeigt `↑ Eltern-Map-Titel`-Button
+  - Root-Map: zeigt Kind-Map-Chips (`↳ Titel`)
+- `showOverview()`: leert `#tb-nav`
+- `css/styles.css`: `.tb-nav`, `.tb-nav-up`, `.tb-nav-child`
+
+### Bugfix: Standard-Defaults konsolidiert ✅
+- `js/ui-core.js`: `restoreSidebar()` liest `loadUserSettings().sidebarDefault` (Standard: `'expanded'`)
+- `js/ui-core.js`: `toggleSidebar()` speichert in `nv2-user-settings` statt `nv2-sidebar`
+- `js/ui-core.js`: `setTheme()` speichert in `nv2-user-settings` statt `nv2-theme`
+- `js/app.js`: Theme beim Start aus `loadUserSettings().theme` (Standard: `'dark'`)
+- `index.html` FOUC-Snippet: liest `nv2-user-settings.theme`
+- Erstbesuch / Inkognito → immer: **Dark-Theme + Sidebar ausgeklappt + Übersicht**
 
 ---
 

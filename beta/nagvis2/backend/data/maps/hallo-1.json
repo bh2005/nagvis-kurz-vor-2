@@ -6,7 +6,7 @@
     "ratio": "21:9"
   },
   "background": null,
-  "parent_map": null,
+  "parent_map": "demo-features",
   "objects": [
     {
       "type": "line",
