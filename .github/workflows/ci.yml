@@ -60,9 +60,3 @@ jobs:
           path: beta/nagvis2/backend/coverage.xml
           retention-days: 14
 
-      - name: Coverage-Kommentar auf PR posten
-        if: github.event_name == 'pull_request' && matrix.python-version == '3.13'
-        uses: py-cov-action/python-coverage-comment-action@v3
-        with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COVERAGE_DATA_FILE: beta/nagvis2/backend/coverage.xml
