@@ -10,9 +10,6 @@ updates:
       time: "07:00"
       timezone: Europe/Berlin
     open-pull-requests-limit: 5
-    labels:
-      - dependencies
-      - python
     commit-message:
       prefix: "chore(deps)"
     groups:
@@ -43,8 +40,5 @@ updates:
       time: "07:00"
       timezone: Europe/Berlin
     open-pull-requests-limit: 5
-    labels:
-      - dependencies
-      - github-actions
     commit-message:
       prefix: "chore(actions)"
