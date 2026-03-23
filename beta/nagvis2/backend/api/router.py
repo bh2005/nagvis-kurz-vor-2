@@ -169,6 +169,25 @@ class KioskUserUpdate(BaseModel):
 
 
 # ══════════════════════════════════════════════════════════════════════
+#  Changelog
+# ══════════════════════════════════════════════════════════════════════
+
+@api_router.get("/changelog", response_class=Response)
+async def get_changelog():
+    """Liefert changelog.txt (UTF-16) als UTF-8 text/plain."""
+    cl_path = settings.BASE_DIR.parent / "changelog.txt"
+    if cl_path.exists():
+        text = cl_path.read_text(encoding="utf-16")
+        return Response(content=text, media_type="text/plain; charset=utf-8")
+    # Fallback: changelog.md
+    md_path = settings.BASE_DIR.parent / "changelog.md"
+    if md_path.exists():
+        text = md_path.read_text(encoding="utf-8")
+        return Response(content=text, media_type="text/plain; charset=utf-8")
+    raise HTTPException(status_code=404, detail="Changelog nicht gefunden")
+
+
+# ══════════════════════════════════════════════════════════════════════
 #  Health
 # ══════════════════════════════════════════════════════════════════════
 
