@@ -255,6 +255,16 @@ async def schedule_service_downtime(host: str, svc: str, start: int, end: int,
     return await send_command(cmd)
 
 
+async def remove_host_ack(host: str) -> bool:
+    cmd = f"REMOVE_HOST_ACKNOWLEDGEMENT;{host}"
+    return await send_command(cmd)
+
+
+async def remove_service_ack(host: str, svc: str) -> bool:
+    cmd = f"REMOVE_SVC_ACKNOWLEDGEMENT;{host};{svc}"
+    return await send_command(cmd)
+
+
 async def reschedule_host_check(host: str) -> bool:
     import time
     cmd = f"SCHEDULE_FORCED_HOST_CHECK;{host};{int(time.time())}"

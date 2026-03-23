@@ -628,6 +628,7 @@ function _renderLine(obj) {
   line.addEventListener('contextmenu', e => {
     e.preventDefault(); e.stopPropagation();
     if (editActive) showLineContextMenu(e, lineVis, obj);
+    else            showLineViewContextMenu(e, obj);
   });
   line.addEventListener('mousedown', e => {
     if (!editActive || e.button !== 0) return;
@@ -722,6 +723,7 @@ function _renderWeathermapLine(obj, svg) {
   hit.addEventListener('contextmenu', e => {
     e.preventDefault(); e.stopPropagation();
     if (editActive) showLineContextMenu(e, g.querySelector('.wm-seg-from,.wm-seg-to') ?? hit, obj);
+    else            showLineViewContextMenu(e, obj);
   });
   hit.addEventListener('mousedown', e => {
     if (!editActive || e.button !== 0) return;
@@ -1002,6 +1004,63 @@ function showLineContextMenu(e, lineVis, obj) {
     btn.onclick = () => { closeContextMenu(); item.action(); };
     menu.appendChild(btn);
   });
+  menu.addEventListener('click', e => e.stopPropagation());
+  document.body.appendChild(menu);
+  _ctxMenu = menu;
+  setTimeout(() => document.addEventListener('click', closeContextMenu, { once: true }), 0);
+}
+
+function showLineViewContextMenu(e, obj) {
+  closeContextMenu();
+
+  // Hosts die mit dieser Linie verknüpft sind
+  const hosts = [];
+  if (obj.host_from) hosts.push({ name: obj.host_from, role: 'Von' });
+  if (obj.host_to)   hosts.push({ name: obj.host_to,   role: 'Nach' });
+  if (!hosts.length) return; // einfache Statuslinie ohne Host-Bezug → kein Menü
+
+  const menu = document.createElement('div');
+  menu.id = 'nv2-ctx-menu'; menu.className = 'ctx-menu';
+  menu.style.left = `${e.clientX}px`; menu.style.top = `${e.clientY}px`;
+
+  hosts.forEach(({ name, role }) => {
+    const h = hostCache[name];
+    const label = h?.state_label ?? 'UNKNOWN';
+    const col   = STATE_CHIP[label] ?? 'unkn';
+
+    const hdr = document.createElement('div');
+    hdr.style.cssText = 'padding:5px 14px 4px;border-bottom:1px solid var(--border);margin-bottom:2px';
+    hdr.innerHTML = `
+      <div style="font-size:10px;color:var(--text-dim)">${esc(role)}</div>
+      <div style="font-size:11.5px;font-weight:600;color:var(--text)">${esc(name)}</div>
+      <div style="font-size:9px;font-family:var(--mono);color:var(--${col})">${label}</div>`;
+    menu.appendChild(hdr);
+
+    const actions = [];
+    if (h && ['CRITICAL','DOWN','WARNING','UNKNOWN','UNREACHABLE'].includes(h.state_label) && !h.acknowledged) {
+      actions.push({ label: '✔ Problem bestätigen', fn: () => openAcknowledgeDlg({ type:'host', name }, h) });
+    }
+    if (h?.acknowledged) {
+      actions.push({ label: '✖ Bestätigung aufheben', fn: () => _apiAction('remove_ack', name, null) });
+    }
+    actions.push({ label: '🔧 Wartung einplanen', fn: () => openDowntimeDlg({ type:'host', name }, h) });
+    actions.push({ label: '↻ Check jetzt erzwingen', fn: () => _apiAction('reschedule_check', name, null) });
+
+    actions.forEach(({ label, fn }) => {
+      const btn = document.createElement('button');
+      btn.className = 'ctx-item';
+      btn.textContent = label;
+      btn.onclick = () => { closeContextMenu(); fn(); };
+      menu.appendChild(btn);
+    });
+
+    if (hosts.length > 1 && role !== hosts[hosts.length - 1].role) {
+      const sep = document.createElement('div');
+      sep.style.cssText = 'height:1px;background:var(--border);margin:3px 0';
+      menu.appendChild(sep);
+    }
+  });
+
   menu.addEventListener('click', e => e.stopPropagation());
   document.body.appendChild(menu);
   _ctxMenu = menu;
@@ -1942,11 +2001,14 @@ function showNodeContextMenu(e, el, obj) {
 
 function closeContextMenu() { _ctxMenu?.remove(); _ctxMenu = null; }
 
-function openNodePropsDialog(el, obj) {
+async function openNodePropsDialog(el, obj) {
   document.getElementById('dlg-node-props')?.remove();
   const isService = obj.type === 'service';
   const nameLabel = { host:'Hostname', hostgroup:'Hostgruppen-Name', servicegroup:'Servicegruppen-Name', map:'Map-ID' }[obj.type] ?? 'Name';
-  const hostOptions = Object.keys(hostCache).filter(k => !k.includes('::')).map(k => `<option value="${esc(k)}">`).join('');
+
+  // Host-Datalist: zuerst aus Cache, dann API-Abfrage im Hintergrund
+  const cacheKeys  = Object.keys(hostCache).filter(k => !k.includes('::'));
+  const hostOptions = cacheKeys.map(k => `<option value="${esc(k)}">`).join('');
 
   const dlg = document.createElement('div');
   dlg.id = 'dlg-node-props'; dlg.className = 'dlg-overlay show';
@@ -1981,6 +2043,13 @@ function openNodePropsDialog(el, obj) {
       </div>
     </div>`;
   document.body.appendChild(dlg);
+
+  // Datalist asynchron mit vollständiger Host-Liste aus dem Backend befüllen
+  api('/api/hosts').then(names => {
+    if (!Array.isArray(names) || !names.length) return;
+    const opts = names.map(n => `<option value="${esc(n)}">`).join('');
+    dlg.querySelectorAll('datalist[id^="np-hosts-dl"]').forEach(dl => { dl.innerHTML = opts; });
+  }).catch(() => {});
 
   const inName      = dlg.querySelector('#np-name');
   const inHost      = isService ? dlg.querySelector('#np-host') : null;

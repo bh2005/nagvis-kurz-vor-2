@@ -102,7 +102,7 @@ class ObjectProps(BaseModel):
 
 class ActionRequest(BaseModel):
     action: str                        # "downtime_host" | "downtime_service" | "schedule_downtime"
-                                       # | "ack_host" | "ack_service" | "reschedule"
+                                       # | "ack_host" | "ack_service" | "remove_ack" | "reschedule"
     # Canonical field names
     host_name:    str      = ""
     service_name: Optional[str] = None
@@ -519,6 +519,12 @@ async def api_action(body: ActionRequest):
             raise HTTPException(400, "service_name erforderlich")
         ok = await livestatus.acknowledge_service(host, svc, comment, author)
 
+    elif body.action == "remove_ack":
+        if svc:
+            ok = await livestatus.remove_service_ack(host, svc)
+        else:
+            ok = await livestatus.remove_host_ack(host)
+
     elif body.action in ("downtime_host", "schedule_downtime") and not svc and body.type != "service":
         # Host-Downtime (auch via Registry für Checkmk-Backends)
         start = body.eff_start or now
@@ -551,6 +557,25 @@ async def api_action(body: ActionRequest):
     if not ok:
         raise HTTPException(502, "Aktion fehlgeschlagen – Backend nicht erreichbar?")
     return {"status": "ok"}
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  Host-Liste (für Autocomplete)
+# ══════════════════════════════════════════════════════════════════════
+
+@api_router.get("/hosts")
+async def api_hosts():
+    """
+    Alle bekannten Hostnamen zurückgeben – wird vom Frontend für
+    Datalist-Autocomplete im Properties-Dialog verwendet.
+    Gibt [] zurück wenn kein Backend erreichbar oder DEMO_MODE aktiv.
+    """
+    if settings.DEMO_MODE:
+        return []
+    hosts = await registry.get_all_hosts()
+    if not hosts:
+        hosts = await livestatus.get_hosts()
+    return [h["name"] if isinstance(h, dict) else h.name for h in hosts]
 
 
 # ══════════════════════════════════════════════════════════════════════
