@@ -718,6 +718,106 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#layer-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer-System
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Layer-System">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#layer-panel-sidebar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer-Panel (Sidebar)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#layer-zuweisen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer zuweisen
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#map-hierarchie" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Map-Hierarchie
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Map-Hierarchie">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sidebar_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sidebar
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ubersicht-kachelansicht" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Übersicht (Kachelansicht)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#topbar-navigation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Topbar-Navigation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parent-map-setzen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parent-Map setzen
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#benutzereinstellungen" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1515,6 +1615,106 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#layer-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer-System
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Layer-System">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#layer-panel-sidebar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer-Panel (Sidebar)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#layer-zuweisen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer zuweisen
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#map-hierarchie" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Map-Hierarchie
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Map-Hierarchie">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sidebar_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sidebar
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ubersicht-kachelansicht" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Übersicht (Kachelansicht)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#topbar-navigation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Topbar-Navigation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parent-map-setzen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parent-Map setzen
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#benutzereinstellungen" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1576,8 +1776,12 @@
 <td>Grün = Livestatus verbunden</td>
 </tr>
 <tr>
-<td>Statusleiste</td>
-<td>Letztes Update, Heartbeat, Fehler</td>
+<td>Map-Titel / Untertitel</td>
+<td>Name und Objekt-Anzahl der aktiven Map</td>
+</tr>
+<tr>
+<td><strong>Navigation</strong></td>
+<td>Bei Kind-Map: <code>↑ Eltern-Map</code> als Link; bei Root-Map: <code>↳ Kind1</code> <code>↳ Kind2</code> als Chips</td>
 </tr>
 <tr>
 <td>Pills (●OK ●WARN ●CRIT)</td>
@@ -1596,8 +1800,9 @@
 <h3 id="sidebar">Sidebar</h3>
 <ul>
 <li><strong>Übersicht</strong> – zeigt alle Maps als Kachelansicht</li>
-<li><strong>Maps-Liste</strong> – direkter Zugriff auf einzelne Maps</li>
+<li><strong>Maps-Liste</strong> – direkter Zugriff auf einzelne Maps; Root-Maps oben, Kind-Maps darunter eingerückt (↳)</li>
 <li><strong>Farbpunkte</strong> – zeigen den schlechtesten Status der jeweiligen Map</li>
+<li><strong>Layer-Panel</strong> – erscheint beim Öffnen einer Map; Layer ein-/ausblenden, umbenennen, per Drag umsortieren und löschen</li>
 <li>Sidebar ein-/ausklappen: Taste <strong>B</strong> oder Button unten links</li>
 </ul>
 <h3 id="snap-ins-rechte-seite">Snap-Ins (rechte Seite)</h3>
@@ -2224,11 +2429,67 @@ Mit Option <strong>🌡 Weathermap</strong>: Linie färbt sich nach dem Status d
 </tbody>
 </table>
 <hr />
+<h2 id="layer-system">Layer-System</h2>
+<p>Auf jeder Map können Objekte verschiedenen <strong>Layern</strong> zugewiesen werden, um Sichtbarkeit und Render-Reihenfolge zu steuern.</p>
+<h3 id="layer-panel-sidebar">Layer-Panel (Sidebar)</h3>
+<p>Das Layer-Panel erscheint in der Sidebar, sobald eine Map geöffnet wird. Pro Layer gibt es:</p>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>Funktion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⠿ Drag-Handle</td>
+<td>Layer per Drag &amp; Drop umsortieren → ändert den Z-Index aller zugehörigen Objekte</td>
+</tr>
+<tr>
+<td>👁 / 🚫 Checkbox</td>
+<td>Layer ein- oder ausblenden</td>
+</tr>
+<tr>
+<td>Name (Doppelklick)</td>
+<td>Layer umbenennen</td>
+</tr>
+<tr>
+<td>Z-Index-Anzeige</td>
+<td>Aktueller Z-Index (10, 20, 30, …)</td>
+</tr>
+<tr>
+<td>✕ Löschen</td>
+<td>Layer entfernen; Objekte werden auf Layer 0 verschoben (mit Bestätigung)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="layer-zuweisen">Layer zuweisen</h3>
+<p>Im Edit-Mode: Rechtsklick auf ein Objekt → <strong>◫ Layer zuweisen</strong> → vorhandenen Layer wählen oder neue Layer-ID + Name eingeben.</p>
+<hr />
+<h2 id="map-hierarchie">Map-Hierarchie</h2>
+<h3 id="sidebar_1">Sidebar</h3>
+<p>Root-Maps (keine übergeordnete Map) erscheinen direkt in der Liste. Kind-Maps sind eingerückt und mit einem <code>↳</code> markiert:</p>
+<pre><code>◉ Rechenzentrum Nord
+  ↳ Server-Raum A
+  ↳ Server-Raum B
+◉ Standort Frankfurt
+  ↳ DMZ
+</code></pre>
+<h3 id="ubersicht-kachelansicht">Übersicht (Kachelansicht)</h3>
+<p>Die Kacheln folgen derselben Reihenfolge. Kind-Karten haben einen dezenten linken Akzentbalken und zeigen den Titel der Eltern-Map an.</p>
+<h3 id="topbar-navigation">Topbar-Navigation</h3>
+<ul>
+<li><strong>Kind-Map geöffnet</strong> → <code>↑ Eltern-Map-Titel</code>-Button in der Topbar → Klick öffnet die Eltern-Map</li>
+<li><strong>Root-Map geöffnet</strong> → Kind-Map-Chips erscheinen in der Topbar → Klick öffnet die jeweilige Kind-Map</li>
+</ul>
+<h3 id="parent-map-setzen">Parent-Map setzen</h3>
+<p>Burger-Menü → <strong>🗺 Parent-Map setzen</strong> → gewünschte Root-Map wählen.</p>
+<hr />
 <h2 id="benutzereinstellungen">Benutzereinstellungen</h2>
 <p>Burger-Menü → ⚙ Einstellungen:</p>
 <ul>
-<li><strong>Erscheinungsbild</strong> – Dark / Light Theme</li>
-<li><strong>Sidebar beim Start</strong> – ausgeklappt oder eingeklappt</li>
+<li><strong>Erscheinungsbild</strong> – Dark / Light Theme (Standard: <strong>Dark</strong>)</li>
+<li><strong>Sidebar beim Start</strong> – ausgeklappt oder eingeklappt (Standard: <strong>ausgeklappt</strong>)</li>
 <li><strong>Kiosk-Modus</strong> – Sidebar/Topbar ausblenden, Auto-Refresh-Intervall (30s / 1min / 2min / 5min)</li>
 </ul>
 
