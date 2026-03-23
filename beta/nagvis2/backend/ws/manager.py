@@ -84,10 +84,14 @@ async def _poll_loop():
             t0 = time.time()
 
             if settings.DEMO_MODE or registry.is_empty():
+                # Demo-Modus: periodisch Demo-Daten pushen (simuliert Live-Updates)
+                from ws.demo_data import DEMO_STATUS, DEMO_SERVICES
                 await manager.broadcast_all({
-                    "event":   "heartbeat",
-                    "ts":      t0,
-                    "elapsed": 0,
+                    "event":    "status_update",
+                    "ts":       t0,
+                    "elapsed":  0,
+                    "hosts":    DEMO_STATUS,
+                    "services": DEMO_SERVICES,
                 })
                 continue
 

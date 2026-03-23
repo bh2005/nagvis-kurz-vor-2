@@ -412,6 +412,55 @@ body, #sidebar, #topbar, #overview, .ov-card, .nav-btn, .map-entry,
 .ov-card-pill.warn { background: var(--warn-bg); color: var(--warn); }
 .ov-card-pill.crit { background: var(--crit-bg); color: var(--crit); }
 
+/* ── Map-Karten: Vorschaubild ─────────────────────────────────── */
+.ov-thumb {
+  height: 88px;
+  margin: -14px -15px 10px;
+  background-color: var(--canvas-bg);
+  background-size: cover;
+  background-position: center;
+  border-radius: calc(var(--r) - 1px) calc(var(--r) - 1px) 0 0;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; flex-shrink: 0; position: relative;
+  transition: filter var(--t);
+}
+.ov-card:hover .ov-thumb { filter: brightness(1.08); }
+.ov-thumb-ico { font-size: 28px; opacity: 0.15; user-select: none; pointer-events: none; }
+.ov-thumb-grid {
+  position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    linear-gradient(var(--canvas-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--canvas-grid) 1px, transparent 1px);
+  background-size: 14px 14px; opacity: 0.6;
+}
+
+/* ── Audit-Log-Tabelle ─────────────────────────────────────────────────────── */
+.audit-table {
+  width: 100%; border-collapse: collapse; font-size: 12px;
+}
+.audit-table thead th {
+  position: sticky; top: 0; background: var(--bg2);
+  padding: 7px 10px; text-align: left; font-weight: 600;
+  border-bottom: 1px solid var(--border); color: var(--text-dim);
+  font-size: 11px; text-transform: uppercase; letter-spacing: .04em;
+  z-index: 1;
+}
+.audit-table tbody tr { border-bottom: 1px solid var(--border); }
+.audit-table tbody tr:last-child { border-bottom: none; }
+.audit-table tbody tr:hover { background: var(--hover); }
+.audit-table td { padding: 6px 10px; vertical-align: top; }
+.audit-table code {
+  background: var(--bg3, var(--bg2)); border-radius: 3px;
+  padding: 1px 4px; font-size: 11px;
+}
+.audit-act-del { color: var(--err, #e05252); }
+.audit-act-add { color: var(--ok, #52b052); }
+.audit-detail {
+  display: inline-block; background: var(--bg2);
+  border-radius: 3px; padding: 1px 5px; margin: 1px 2px 1px 0;
+  font-size: 11px;
+}
+
 .ov-new {
   background: transparent; border: 1px dashed var(--border); border-radius: var(--r);
   padding: 14px 15px; cursor: pointer; display: flex; align-items: center;

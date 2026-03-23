@@ -8,7 +8,18 @@
     "lng": 10,
     "zoom": 6
   },
-  "background": null,
+  "background": "/backgrounds/world.svg",
   "parent_map": null,
-  "objects": []
+  "objects": [
+    {
+      "type": "host",
+      "x": 51.79163,
+      "y": 9.794312,
+      "name": "srv-web-01",
+      "iconset": "std_small",
+      "label": "srv-web-01",
+      "size": 32,
+      "object_id": "host::srv-web-01::54a9a8"
+    }
+  ]
 }

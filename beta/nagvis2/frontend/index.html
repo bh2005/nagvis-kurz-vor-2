@@ -9,6 +9,9 @@
   <!-- Leaflet CSS (OSM-Modus) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <!-- Leaflet.markercluster CSS (OSM-Clustering) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" crossorigin="">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin="">
 </head>
 
 <body>
@@ -224,6 +227,9 @@
         </button>
         <button class="burger-item" onclick="downloadLog(); closeBurgerMenu()">
           <span class="burger-ico">⬇</span> Log herunterladen
+        </button>
+        <button class="burger-item" onclick="nv2AuditOpen(); closeBurgerMenu()">
+          <span class="burger-ico">📜</span> Audit-Log
         </button>
 
         <div class="burger-divider"></div>
@@ -503,6 +509,72 @@
 
     <div style="display:flex; justify-content:flex-end; margin-top:12px; flex-shrink:0">
       <button class="btn-cancel" onclick="document.getElementById('dlg-system-logs').style.display='none'">Schließen</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- DIALOG – Audit-Log -->
+<div id="dlg-audit" class="dlg-overlay" style="display:none">
+  <div class="dlg-box" style="width:860px; max-height:85vh; display:flex; flex-direction:column">
+    <h3 style="flex-shrink:0; margin-bottom:10px">Audit-Log</h3>
+
+    <!-- Filter-Zeile -->
+    <div style="display:flex; gap:8px; align-items:center; flex-shrink:0; margin-bottom:10px; flex-wrap:wrap">
+      <input class="f-input" id="audit-filter-map" placeholder="Map-ID filtern"
+             style="width:140px" oninput="nv2AuditLoad()">
+      <input class="f-input" id="audit-filter-user" placeholder="Benutzer filtern"
+             style="width:120px" oninput="nv2AuditLoad()">
+      <select class="f-select" id="audit-filter-action" style="width:170px" onchange="nv2AuditLoad()">
+        <option value="">Alle Aktionen</option>
+        <option value="map.create">map.create</option>
+        <option value="map.delete">map.delete</option>
+        <option value="map.rename">map.rename</option>
+        <option value="map.canvas_update">map.canvas_update</option>
+        <option value="map.background_upload">map.background_upload</option>
+        <option value="map.import">map.import</option>
+        <option value="map.migrate">map.migrate</option>
+        <option value="object.create">object.create</option>
+        <option value="object.update">object.update</option>
+        <option value="object.move">object.move</option>
+        <option value="object.delete">object.delete</option>
+        <option value="backend.add">backend.add</option>
+        <option value="backend.update">backend.update</option>
+        <option value="backend.delete">backend.delete</option>
+        <option value="user.create">user.create</option>
+        <option value="user.delete">user.delete</option>
+        <option value="user.role_change">user.role_change</option>
+      </select>
+      <select class="f-select" id="audit-limit-sel" style="width:110px" onchange="nv2AuditLoad()">
+        <option value="100">100 Einträge</option>
+        <option value="200" selected>200 Einträge</option>
+        <option value="500">500 Einträge</option>
+        <option value="1000">1000 Einträge</option>
+      </select>
+      <button class="btn-ok" style="padding:4px 12px" onclick="nv2AuditLoad()">↻</button>
+      <span id="audit-count-lbl" style="font-size:11px; color:var(--text-dim); margin-left:auto"></span>
+    </div>
+
+    <!-- Tabelle -->
+    <div style="flex:1; overflow-y:auto; border:1px solid var(--border); border-radius:var(--r)">
+      <table class="audit-table" id="audit-table-body">
+        <thead>
+          <tr>
+            <th>Zeitpunkt</th>
+            <th>Benutzer</th>
+            <th>Aktion</th>
+            <th>Map</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody id="audit-rows">
+          <tr><td colspan="5" style="text-align:center; color:var(--text-dim); padding:20px">Lade…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; margin-top:12px; flex-shrink:0">
+      <button class="btn-cancel" onclick="document.getElementById('dlg-audit').style.display='none'">Schließen</button>
     </div>
   </div>
 </div>
@@ -971,6 +1043,8 @@
 <!-- Leaflet JS (OSM-Modus) -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<!-- Leaflet.markercluster JS (OSM-Clustering) -->
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
 
 <!-- NV2_ZOOM Stub – greift wenn zoom_pan.js fehlt -->
 <script>

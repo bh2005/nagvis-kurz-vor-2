@@ -1,21 +1,76 @@
 // NagVis 2 – osm.js
-// OpenStreetMap Canvas-Modus via Leaflet.js.
+// OpenStreetMap Canvas-Modus via Leaflet.js + Leaflet.markercluster.
 // Nodes werden als Custom-HTML-Marker platziert (x = Breitengrad lat, y = Längengrad lng).
+// Beim Rauszoomen werden Nodes zu Status-Bubbles geclustert.
 'use strict';
 
 window.NV2_OSM = (() => {
 
-  let _map        = null;   // L.map-Instanz
-  let _tileLayer  = null;
-  let _markers    = {};     // object_id → L.Marker
-  let _editActive = false;
+  let _map          = null;   // L.map-Instanz
+  let _tileLayer    = null;
+  let _clusterGroup = null;   // L.markerClusterGroup (View-Modus)
+  let _markers      = {};     // object_id → L.Marker
+  let _objects      = {};     // object_id → obj (für Rebuild bei Mode-Wechsel)
+  let _editActive   = false;
 
   const DEFAULT_TILE = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
   const DEFAULT_LAT  = 51.0;
   const DEFAULT_LNG  = 10.0;
   const DEFAULT_ZOOM = 6;
 
-  // ── Marker-HTML aufbauen (gleiche Struktur wie canvas-Nodes) ───────────
+  // Status-Gewichtung für Cluster-Farbe (höher = schlimmer)
+  const _STATE_RANK = {
+    'up': 0, 'ok': 0,
+    'warning': 1, 'warn': 1,
+    'unknown': 2, 'unkn': 2,
+    'critical': 3, 'crit': 3,
+    'down': 3, 'unreachable': 3,
+  };
+  // Farben passend zum NagVis-Farbschema
+  const _CLUSTER_COLORS   = ['#52b052', '#d4b800', '#d47800', '#d43030'];
+  const _CLUSTER_BORDERS  = ['#3a8f3a', '#a88e00', '#a85a00', '#a81010'];
+
+  // ── Cluster-Icon erzeugen ────────────────────────────────────────────────
+  function _clusterIcon(cluster) {
+    const markers = cluster.getAllChildMarkers();
+    let worst = 0;
+    for (const m of markers) {
+      const rank = _STATE_RANK[(m._nv2State ?? '').toLowerCase()] ?? 0;
+      if (rank > worst) worst = rank;
+    }
+    const color  = _CLUSTER_COLORS[worst];
+    const border = _CLUSTER_BORDERS[worst];
+    const count  = markers.length;
+    const size   = count < 10 ? 36 : count < 100 ? 44 : 52;
+    const fs     = size < 44 ? 13 : 15;
+    return L.divIcon({
+      html: `<div style="
+        width:${size}px;height:${size}px;
+        background:${color};border:3px solid ${border};
+        border-radius:50%;display:flex;align-items:center;justify-content:center;
+        color:#fff;font-weight:700;font-size:${fs}px;
+        box-shadow:0 2px 8px rgba(0,0,0,.45);
+        font-family:inherit;
+      ">${count}</div>`,
+      className:  '',
+      iconSize:   [size, size],
+      iconAnchor: [size / 2, size / 2],
+    });
+  }
+
+  // ── Cluster-Gruppe erstellen ─────────────────────────────────────────────
+  function _makeClusterGroup() {
+    return L.markerClusterGroup({
+      iconCreateFunction: _clusterIcon,
+      maxClusterRadius:   80,      // px bis zum Zusammenfassen
+      showCoverageOnHover: false,
+      zoomToBoundsOnClick: true,
+      spiderfyOnMaxZoom:   true,   // bei max. Zoom aufspinnen statt zoomen
+      animate:             true,
+    });
+  }
+
+  // ── Marker-HTML aufbauen (gleiche Struktur wie canvas-Nodes) ─────────────
   function _buildIconHtml(obj) {
     const size     = obj.size ?? 32;
     const iconset  = obj.iconset ?? 'std_small';
@@ -54,7 +109,7 @@ window.NV2_OSM = (() => {
     </div>`;
   }
 
-  // ── Tooltip + Kontext-Menü an inneres Element hängen ───────────────────
+  // ── Tooltip + Kontext-Menü ────────────────────────────────────────────────
   function _attachHandlers(marker, obj) {
     marker.on('add', () => {
       const el = marker.getElement()?.querySelector('.nv2-osm-marker');
@@ -76,7 +131,7 @@ window.NV2_OSM = (() => {
     });
   }
 
-  // ── Drag-Handler für Edit-Mode ─────────────────────────────────────────
+  // ── Drag-Handler für Edit-Mode ────────────────────────────────────────────
   function _enableDrag(marker, obj) {
     marker.dragging?.enable();
     marker.off('dragend');
@@ -92,7 +147,24 @@ window.NV2_OSM = (() => {
     });
   }
 
-  // ── Öffentliche API ────────────────────────────────────────────────────
+  // ── Marker erstellen (ohne Hinzufügen zur Karte) ──────────────────────────
+  function _createMarker(obj) {
+    const lat  = parseFloat(obj.x) || DEFAULT_LAT;
+    const lng  = parseFloat(obj.y) || DEFAULT_LNG;
+    const size = obj.size ?? 32;
+    const icon = L.divIcon({
+      html:       _buildIconHtml(obj),
+      className:  '',
+      iconAnchor: [size / 2, size / 2],
+      iconSize:   [size + 60, size + 24],
+    });
+    const marker = L.marker([lat, lng], { icon, draggable: false });
+    marker._nv2State = 'unknown';   // für Cluster-Farb-Berechnung
+    _attachHandlers(marker, obj);
+    return marker;
+  }
+
+  // ── Öffentliche API ────────────────────────────────────────────────────────
   return {
 
     isActive() { return _map !== null; },
@@ -101,6 +173,9 @@ window.NV2_OSM = (() => {
       if (!window.L) {
         console.error('[NV2_OSM] Leaflet (L) nicht geladen – OSM-Modus nicht verfügbar');
         return;
+      }
+      if (!window.L.MarkerClusterGroup) {
+        console.warn('[NV2_OSM] Leaflet.markercluster nicht geladen – Clustering deaktiviert');
       }
       if (_map) this.destroy();
 
@@ -120,6 +195,12 @@ window.NV2_OSM = (() => {
           : '',
       }).addTo(_map);
       _map.setView([lat, lng], zoom);
+
+      // Cluster-Gruppe anlegen und zur Karte hinzufügen
+      _clusterGroup = window.L.MarkerClusterGroup
+        ? _makeClusterGroup()
+        : L.layerGroup();   // Fallback wenn Plugin nicht geladen
+      _clusterGroup.addTo(_map);
 
       // Kartenposition nach Bewegen automatisch in activeMapCfg persistieren
       let _saveTid;
@@ -146,69 +227,98 @@ window.NV2_OSM = (() => {
       });
 
       _markers = {};
+      _objects = {};
       (objects ?? []).forEach(obj => this.addNode(obj));
     },
 
     destroy() {
       if (!_map) return;
       _map.remove();
-      _map        = null;
-      _tileLayer  = null;
-      _markers    = {};
-      _editActive = false;
+      _map          = null;
+      _tileLayer    = null;
+      _clusterGroup = null;
+      _markers      = {};
+      _objects      = {};
+      _editActive   = false;
     },
 
     addNode(obj) {
       if (!_map) return;
-      // In OSM-Modus: obj.x = lat, obj.y = lng
-      const lat = parseFloat(obj.x) || DEFAULT_LAT;
-      const lng = parseFloat(obj.y) || DEFAULT_LNG;
-
-      const size = obj.size ?? 32;
-      const icon = L.divIcon({
-        html:       _buildIconHtml(obj),
-        className:  '',            // kein Leaflet-Standard-Klassen-Overhead
-        iconAnchor: [size / 2, size / 2],
-        iconSize:   [size + 60, size + 24],  // Platz für Label
-      });
-      const marker = L.marker([lat, lng], { icon, draggable: _editActive });
-      marker.addTo(_map);
+      _objects[obj.object_id] = obj;
+      const marker = _createMarker(obj);
       _markers[obj.object_id] = marker;
-      _attachHandlers(marker, obj);
-      if (_editActive) _enableDrag(marker, obj);
+
+      if (_editActive) {
+        // Im Edit-Modus: direkt zur Karte (kein Clustering – Drag muss funktionieren)
+        marker.addTo(_map);
+        _enableDrag(marker, obj);
+      } else {
+        _clusterGroup.addLayer(marker);
+      }
     },
 
     removeNode(objectId) {
       const m = _markers[objectId];
-      if (m && _map) { m.remove(); delete _markers[objectId]; }
+      if (m && _map) {
+        _clusterGroup.removeLayer(m);
+        m.remove();
+        delete _markers[objectId];
+        delete _objects[objectId];
+      }
     },
 
-    // Status-Update für einen einzelnen Marker (wird von applyStatuses via
-    // querySelectorAll('[data-name=...]') automatisch aufgerufen, alternativ direkt)
+    // Status-Update: Marker-DOM aktualisieren + Cluster-Farbe neu berechnen
     updateNodeStatus(objectId, stateLabel, acknowledged, inDowntime) {
       const m = _markers[objectId];
       if (!m) return;
+
+      // Zustand für Cluster-Icon merken
+      m._nv2State = stateLabel ?? 'unknown';
+
+      // DOM des Markers aktualisieren (nur wenn sichtbar)
       const el = m.getElement()?.querySelector('.nv2-osm-marker');
       if (el && typeof applyNodeStatus === 'function') {
         applyNodeStatus(el, stateLabel, acknowledged, inDowntime);
       }
+
+      // Cluster-Icon neu zeichnen (refreshClusters ist markercluster-API)
+      if (_clusterGroup?.refreshClusters) {
+        _clusterGroup.refreshClusters(m);
+      }
     },
 
-    // Edit-Mode umschalten – Marker-Dragging aktivieren/deaktivieren
+    // Edit-Mode umschalten
+    // View → Edit: Cluster-Gruppe entfernen, Marker direkt + draggable
+    // Edit → View: direkte Marker entfernen, Cluster-Gruppe wieder befüllen
     setEditMode(active) {
       _editActive = active;
       if (!_map) return;
-      const objs = (typeof activeMapCfg !== 'undefined')
-        ? (activeMapCfg?.objects ?? []) : [];
-      Object.entries(_markers).forEach(([oid, marker]) => {
-        if (active) {
-          const obj = objs.find(o => o.object_id === oid);
+
+      if (active) {
+        // Cluster-Gruppe leeren und verstecken
+        _clusterGroup.clearLayers();
+
+        // Alle Marker direkt zur Karte hinzufügen (draggable)
+        const objs = _objects;
+        Object.entries(_markers).forEach(([oid, marker]) => {
+          const obj = objs[oid];
+          marker.addTo(_map);
           if (obj) _enableDrag(marker, obj);
-        } else {
+        });
+      } else {
+        // Direkte Marker von der Karte nehmen
+        Object.values(_markers).forEach(marker => {
           marker.dragging?.disable();
           marker.off('dragend');
-        }
-      });
+          _map.removeLayer(marker);
+        });
+
+        // Alle Marker wieder in die Cluster-Gruppe
+        _clusterGroup.clearLayers();
+        Object.values(_markers).forEach(marker => {
+          _clusterGroup.addLayer(marker);
+        });
+      }
     },
 
     // Nach Container-Größenänderung aufrufen (z.B. Kiosk-Modus)

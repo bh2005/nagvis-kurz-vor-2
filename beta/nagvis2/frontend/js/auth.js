@@ -52,11 +52,8 @@ window.nv2Auth = {
     }
 
     if (!this.enabled) {
-      // Auth deaktiviert – gespeicherten User trotzdem laden (für Anzeige)
-      const saved = localStorage.getItem(NV2_USER_KEY);
-      if (saved) {
-        try { this.currentUser = JSON.parse(saved); } catch { /* ignore */ }
-      }
+      // Auth deaktiviert – als lokaler Admin behandeln (offener Betrieb)
+      this.currentUser = { username: 'admin', role: 'admin' };
       _updateAuthUI();
       return; // keine Login-Pflicht
     }
@@ -370,5 +367,95 @@ window.nv2LogLoad = async function() {
     out.scrollTop = out.scrollHeight;
   } catch (e) {
     out.textContent = `Netzwerkfehler: ${e}`;
+  }
+};
+
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Audit-Log Dialog
+// ═══════════════════════════════════════════════════════════════════════
+
+const _AUDIT_ACTION_LABELS = {
+  'map.create':           '🗺 Map angelegt',
+  'map.delete':           '🗑 Map gelöscht',
+  'map.rename':           '✎ Map umbenannt',
+  'map.canvas_update':    '⊡ Canvas geändert',
+  'map.background_upload':'🖼 Hintergrund hochgeladen',
+  'map.import':           '📥 Map importiert',
+  'map.migrate':          '🔄 Migration',
+  'map.parent_set':       '↳ Parent gesetzt',
+  'object.create':        '＋ Objekt angelegt',
+  'object.update':        '✎ Objekt geändert',
+  'object.move':          '↔ Objekt verschoben',
+  'object.delete':        '🗑 Objekt gelöscht',
+  'backend.add':          '⊕ Backend hinzugefügt',
+  'backend.update':       '✎ Backend geändert',
+  'backend.delete':       '🗑 Backend entfernt',
+  'user.create':          '👤 Benutzer angelegt',
+  'user.delete':          '🗑 Benutzer gelöscht',
+  'user.role_change':     '⬡ Rolle geändert',
+  'user.password_change': '🔑 Passwort geändert',
+};
+
+window.nv2AuditOpen = function() {
+  document.getElementById('dlg-audit').style.display = 'flex';
+  nv2AuditLoad();
+};
+
+window.nv2AuditLoad = async function() {
+  const tbody   = document.getElementById('audit-rows');
+  const countLbl = document.getElementById('audit-count-lbl');
+  if (!tbody) return;
+
+  const mapId  = document.getElementById('audit-filter-map')?.value?.trim()  || '';
+  const user   = document.getElementById('audit-filter-user')?.value?.trim() || '';
+  const action = document.getElementById('audit-filter-action')?.value || '';
+  const limit  = document.getElementById('audit-limit-sel')?.value || '200';
+
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-dim);padding:16px">Lade…</td></tr>';
+
+  const params = new URLSearchParams({ limit });
+  if (mapId)  params.set('map_id', mapId);
+  if (user)   params.set('user',   user);
+  if (action) params.set('action', action);
+
+  try {
+    const token = nv2Auth.getToken();
+    const r = await fetch(`/api/audit?${params}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!r.ok) {
+      tbody.innerHTML = `<tr><td colspan="5" style="color:var(--err);padding:16px">Fehler ${r.status}</td></tr>`;
+      return;
+    }
+    const entries = await r.json();
+    if (countLbl) countLbl.textContent = `${entries.length} Einträge`;
+
+    if (!entries.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-dim);padding:16px">Keine Einträge gefunden.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = entries.map(e => {
+      const dt      = new Date(e.ts * 1000);
+      const tsStr   = dt.toLocaleString('de-DE', { dateStyle:'short', timeStyle:'medium' });
+      const label   = _AUDIT_ACTION_LABELS[e.action] ?? e.action;
+      const mapCell = e.map_id ? `<code>${_esc(e.map_id)}</code>` : '—';
+      const det     = Object.entries(e.details ?? {})
+        .filter(([, v]) => v != null && v !== '')
+        .map(([k, v]) => `<span class="audit-detail"><b>${_esc(k)}</b>: ${_esc(String(v))}</span>`)
+        .join(' ');
+      const actionCls = e.action.includes('delete') ? 'audit-act-del'
+                      : e.action.includes('create') ? 'audit-act-add' : '';
+      return `<tr>
+        <td style="white-space:nowrap;font-size:11px">${_esc(tsStr)}</td>
+        <td><code>${_esc(e.user)}</code></td>
+        <td class="${actionCls}">${label}</td>
+        <td>${mapCell}</td>
+        <td style="font-size:11px">${det}</td>
+      </tr>`;
+    }).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" style="color:var(--err);padding:16px">Netzwerkfehler: ${_esc(String(err))}</td></tr>`;
   }
 };

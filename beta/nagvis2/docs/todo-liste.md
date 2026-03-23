@@ -58,6 +58,7 @@
 - [x] Multi-Select: mehrere Nodes gleichzeitig auswählen und verschieben (Shift+Klick oder Lasso)
 - [x] Multi-Select: Delete/Backspace zum Löschen aller ausgewählten Nodes
 - [x] Multi-Select: Escape hebt Selektion auf (vor anderen Escape-Aktionen)
+- [x] Map-Miniaturbilder in der Übersicht (OffscreenCanvas, POST/DELETE `/api/maps/{id}/thumbnail`; Timing-Fix: DOM direkt nach Upload aktualisiert)
 - [ ] Undo/Redo für Positionsänderungen (Ctrl+Z / Ctrl+Y)
 - [ ] Objekt-Reihenfolge ändern (Layer-Management im Edit-Mode)
 - [ ] Suche/Filter in der Sidebar (Maps und Hosts durchsuchen)
@@ -74,7 +75,7 @@
 - [ ] Objekt-Kopieren zwischen Maps
 - [ ] API-Versionierung (z.B. `/api/v1/`)
 - [ ] Rate-Limiting für Action-Endpoints (ACK, Downtime)
-- [ ] Audit-Log: wer hat was wann geändert
+- [x] Audit-Log: wer hat was wann geändert (`core/audit.py`, `GET /api/audit`, UI-Dialog)
 
 ---
 
@@ -84,6 +85,7 @@
 - [x] Strukturiertes Logging (JSON-Format) für Produktionsbetrieb (`LOG_FORMAT=json`)
 - [x] Liveness- und Readiness-Probes für Kubernetes (`/health/live`, `/health/ready`)
 - [x] Helm-Chart für Kubernetes-Deployment (`helm/nagvis2/`)
+- [x] Dockerfile + docker-compose.yml auf Port 8008 und WORKDIR /app/backend umgestellt
 - [ ] Docker-Image auf Docker Hub veröffentlichen
 
 ---
@@ -92,13 +94,16 @@
 
 - [x] `docs/osm-guide.md` — Weltkarte-Feature
 - [ ] `docs/dev-guide.md` — Entwickler-Handbuch (Architektur, lokales Setup, wie man neue Features baut)
-- [ ] README.md aktualisieren (Screenshots, Feature-Übersicht)
-- [ ] CHANGELOG.md anlegen
+- [x] README.md aktualisieren (Port 8008, Docker-Anleitung)
+- [x] FEATURES.md aktualisieren (erledigte Features markiert)
+- [x] CHANGELOG.md + changelog.txt anlegen (script: `scripts/update_changelog.py`)
 
 ---
 
 ## Erledigt ✅
 
+- [x] OSM Cluster-Bubbles: Leaflet.markercluster, Worst-State-Farbe, Edit-Mode deaktiviert Clustering
+- [x] Test-Coverage: 137 Tests, ws/manager.py 89 %, main.py 76 % (Ziel ≥ 70 % erreicht)
 - [x] `api/router.py` vollständig implementiert (Objekte CRUD, Background-Upload, Actions)
 - [x] WebSocket-Broadcasts für Objektänderungen (`object_added`, `object_updated`, `object_removed`, `map_reloaded`)
 - [x] Script-Pfade in `index.html` korrigiert (`src/` → `js/`)

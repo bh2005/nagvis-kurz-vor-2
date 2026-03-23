@@ -16,6 +16,8 @@ from fastapi import APIRouter, HTTPException, UploadFile, File, Query, Body
 from fastapi.responses import StreamingResponse, Response
 from pydantic import BaseModel
 
+from fastapi import Request
+
 from core.config import settings
 from core.storage import (
     list_maps, get_map, create_map, delete_map, update_map_field,
@@ -23,6 +25,7 @@ from core.storage import (
     kiosk_list, kiosk_create, kiosk_update, kiosk_delete, kiosk_get_by_token,
 )
 from core import livestatus
+from core.audit import audit_log, read_audit
 from connectors.registry import registry
 from ws.manager import manager as ws_manager
 
@@ -199,8 +202,9 @@ async def api_list_maps():
 
 
 @api_router.post("/maps", status_code=201)
-async def api_create_map(body: MapCreate):
+async def api_create_map(body: MapCreate, request: Request):
     data = create_map(body.title, body.map_id, body.canvas)
+    audit_log(request, "map.create", map_id=data["id"], title=body.title)
     return {**data, "object_count": 0}
 
 
@@ -213,33 +217,40 @@ async def api_get_map(map_id: str):
 
 
 @api_router.delete("/maps/{map_id}")
-async def api_delete_map(map_id: str):
-    if not delete_map(map_id):
+async def api_delete_map(map_id: str, request: Request):
+    m = get_map(map_id)
+    if not m or not delete_map(map_id):
         raise HTTPException(404, f"Map '{map_id}' nicht gefunden")
+    audit_log(request, "map.delete", map_id=map_id, title=m.get("title"))
     return {"deleted": map_id}
 
 
 @api_router.put("/maps/{map_id}/title")
-async def api_rename_map(map_id: str, body: MapTitleUpdate):
+async def api_rename_map(map_id: str, body: MapTitleUpdate, request: Request):
+    old = get_map(map_id)
     data = update_map_field(map_id, title=body.title)
     if not data:
         raise HTTPException(404, f"Map '{map_id}' nicht gefunden")
+    audit_log(request, "map.rename", map_id=map_id,
+              old_title=old.get("title") if old else None, new_title=body.title)
     return {"id": map_id, "title": data["title"]}
 
 
 @api_router.put("/maps/{map_id}/parent")
-async def api_set_parent(map_id: str, body: MapParentUpdate):
+async def api_set_parent(map_id: str, body: MapParentUpdate, request: Request):
     data = update_map_field(map_id, parent_map=body.parent_map)
     if not data:
         raise HTTPException(404, f"Map '{map_id}' nicht gefunden")
+    audit_log(request, "map.parent_set", map_id=map_id, parent=body.parent_map)
     return {"id": map_id, "parent_map": data["parent_map"]}
 
 
 @api_router.put("/maps/{map_id}/canvas")
-async def api_set_canvas(map_id: str, body: dict = Body(...)):
+async def api_set_canvas(map_id: str, body: dict = Body(...), request: Request = None):
     data = update_map_field(map_id, canvas=body)
     if not data:
         raise HTTPException(404, f"Map '{map_id}' nicht gefunden")
+    audit_log(request, "map.canvas_update", map_id=map_id, mode=body.get("mode"))
     await ws_manager.broadcast(map_id, {"event": "map_reloaded", "map_id": map_id})
     return {"id": map_id, "canvas": data["canvas"]}
 
@@ -249,10 +260,12 @@ async def api_set_canvas(map_id: str, body: dict = Body(...)):
 # ══════════════════════════════════════════════════════════════════════
 
 @api_router.post("/maps/{map_id}/objects", status_code=201)
-async def api_create_object(map_id: str, body: ObjectCreate):
+async def api_create_object(map_id: str, body: ObjectCreate, request: Request):
     if not get_map(map_id):
         raise HTTPException(404, f"Map '{map_id}' nicht gefunden")
     obj = add_object(map_id, body.model_dump(exclude_none=True))
+    audit_log(request, "object.create", map_id=map_id,
+              object_id=obj.get("object_id"), type=body.type, name=body.name or body.host_name)
     await ws_manager.broadcast(map_id, {
         "event":  "object_added",
         "map_id": map_id,
@@ -262,10 +275,11 @@ async def api_create_object(map_id: str, body: ObjectCreate):
 
 
 @api_router.patch("/maps/{map_id}/objects/{object_id}/pos")
-async def api_update_pos(map_id: str, object_id: str, pos: ObjectPosition):
+async def api_update_pos(map_id: str, object_id: str, pos: ObjectPosition, request: Request):
     obj = update_object(map_id, object_id, **pos.model_dump(exclude_none=True))
     if not obj:
         raise HTTPException(404, "Objekt nicht gefunden")
+    audit_log(request, "object.move", map_id=map_id, object_id=object_id)
     await ws_manager.broadcast(map_id, {
         "event":  "object_updated",
         "map_id": map_id,
@@ -275,10 +289,11 @@ async def api_update_pos(map_id: str, object_id: str, pos: ObjectPosition):
 
 
 @api_router.patch("/maps/{map_id}/objects/{object_id}/props")
-async def api_update_props(map_id: str, object_id: str, props: ObjectProps):
+async def api_update_props(map_id: str, object_id: str, props: ObjectProps, request: Request):
     obj = update_object(map_id, object_id, **props.model_dump(exclude_unset=True))
     if not obj:
         raise HTTPException(404, "Objekt nicht gefunden")
+    audit_log(request, "object.update", map_id=map_id, object_id=object_id)
     await ws_manager.broadcast(map_id, {
         "event":  "object_updated",
         "map_id": map_id,
@@ -288,9 +303,10 @@ async def api_update_props(map_id: str, object_id: str, props: ObjectProps):
 
 
 @api_router.delete("/maps/{map_id}/objects/{object_id}")
-async def api_delete_object(map_id: str, object_id: str):
+async def api_delete_object(map_id: str, object_id: str, request: Request):
     if not delete_object(map_id, object_id):
         raise HTTPException(404, "Objekt nicht gefunden")
+    audit_log(request, "object.delete", map_id=map_id, object_id=object_id)
     await ws_manager.broadcast(map_id, {
         "event":     "object_removed",
         "map_id":    map_id,
@@ -309,7 +325,7 @@ ALLOWED_BG_TYPES = {
 }
 
 @api_router.post("/maps/{map_id}/background")
-async def api_upload_background(map_id: str, file: UploadFile = File(...)):
+async def api_upload_background(map_id: str, file: UploadFile = File(...), request: Request = None):
     if not get_map(map_id):
         raise HTTPException(404, f"Map '{map_id}' nicht gefunden")
 
@@ -331,8 +347,31 @@ async def api_upload_background(map_id: str, file: UploadFile = File(...)):
 
     url = f"/backgrounds/{map_id}.{ext}"
     update_map_field(map_id, background=url)
+    audit_log(request, "map.background_upload", map_id=map_id, filename=file.filename)
     await ws_manager.broadcast(map_id, {"event": "map_reloaded", "map_id": map_id})
     return {"url": url}
+
+
+@api_router.post("/maps/{map_id}/thumbnail")
+async def api_upload_thumbnail(map_id: str, file: UploadFile = File(...)):
+    """Speichert ein automatisch generiertes Vorschaubild (PNG) für die Map-Übersicht."""
+    if not get_map(map_id):
+        raise HTTPException(404, f"Map '{map_id}' nicht gefunden")
+    if file.content_type not in ("image/png", "image/jpeg", "image/webp"):
+        raise HTTPException(400, "Thumbnail muss PNG, JPEG oder WebP sein")
+    content = await file.read()
+    dest = settings.THUMBS_DIR / f"{map_id}.png"
+    dest.write_bytes(content)
+    return {"url": f"/thumbnails/{map_id}.png"}
+
+
+@api_router.delete("/maps/{map_id}/thumbnail")
+async def api_delete_thumbnail(map_id: str):
+    """Löscht das gespeicherte Vorschaubild einer Map."""
+    thumb = settings.THUMBS_DIR / f"{map_id}.png"
+    if thumb.exists():
+        thumb.unlink()
+    return {"ok": True}
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -369,6 +408,7 @@ async def api_import_map(
     file: UploadFile = File(...),
     map_id: Optional[str] = Query(None),
     dry_run: bool = Query(False),
+    request: Request = None,
 ):
     content = await file.read()
     errors = []
@@ -409,6 +449,8 @@ async def api_import_map(
 
     from core.storage import _write_json, map_path
     _write_json(map_path(mid), data)
+    audit_log(request, "map.import", map_id=mid,
+              title=data.get("title", mid), object_count=len(data.get("objects", [])))
 
     return {
         "map_id":       mid,
@@ -430,6 +472,7 @@ async def api_migrate(
     canvas_w: int = Query(1200),
     canvas_h: int = Query(800),
     dry_run: bool = Query(False),
+    request: Request = None,
 ):
     raw = (await file.read()).decode("utf-8", errors="replace")
     mid = map_id or Path(file.filename or "map").stem.lower().replace(" ", "-")
@@ -443,6 +486,8 @@ async def api_migrate(
 
     from core.storage import _write_json, map_path
     _write_json(map_path(mid), {k: v for k, v in result.items() if k != "object_count"})
+    audit_log(request, "map.migrate", map_id=mid,
+              source_file=file.filename, object_count=result.get("object_count"))
 
     return {**result, "warnings": warnings}
 
@@ -580,12 +625,13 @@ async def api_probe_backend(body: BackendCreate):
 
 
 @api_router.post("/backends", status_code=201)
-async def api_add_backend(body: BackendCreate):
+async def api_add_backend(body: BackendCreate, request: Request):
     entry = body.model_dump(exclude_none=True)
     try:
         backend_id = registry.add_backend(entry)
     except ValueError as e:
         raise HTTPException(400, str(e))
+    audit_log(request, "backend.add", backend_id=backend_id, type=body.type)
     return registry.get_backend_info(backend_id)
 
 
@@ -598,7 +644,7 @@ async def api_get_backend(backend_id: str):
 
 
 @api_router.patch("/backends/{backend_id}", status_code=200)
-async def api_update_backend(backend_id: str, body: BackendCreate):
+async def api_update_backend(backend_id: str, body: BackendCreate, request: Request):
     if not registry.get_backend_info(backend_id):
         raise HTTPException(404, f"Backend '{backend_id}' nicht gefunden")
     registry.remove_backend(backend_id)
@@ -607,13 +653,15 @@ async def api_update_backend(backend_id: str, body: BackendCreate):
         new_id = registry.add_backend(entry)
     except ValueError as e:
         raise HTTPException(400, str(e))
+    audit_log(request, "backend.update", backend_id=new_id, type=body.type)
     return registry.get_backend_info(new_id)
 
 
 @api_router.delete("/backends/{backend_id}")
-async def api_remove_backend(backend_id: str):
+async def api_remove_backend(backend_id: str, request: Request):
     if not registry.remove_backend(backend_id):
         raise HTTPException(404, f"Backend '{backend_id}' nicht gefunden")
+    audit_log(request, "backend.delete", backend_id=backend_id)
     return {"deleted": backend_id}
 
 
@@ -675,3 +723,18 @@ async def api_get_logs(
         )
 
     return {"lines": log_lines, "total": len(log_lines), "buffered": len(get_log_lines())}
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  Audit-Log
+# ══════════════════════════════════════════════════════════════════════
+
+@api_router.get("/audit")
+async def api_get_audit(
+    limit:  int          = Query(200, ge=1, le=2000),
+    map_id: Optional[str] = Query(None, description="Filter auf eine bestimmte Map"),
+    action: Optional[str] = Query(None, description="Filter auf Aktions-Typ z.B. map.create"),
+    user:   Optional[str] = Query(None, description="Filter auf Benutzer"),
+):
+    """Gibt die letzten Audit-Log-Einträge zurück (neueste zuerst)."""
+    return read_audit(limit=limit, map_id=map_id, action=action, user=user)
