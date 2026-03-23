@@ -12,7 +12,8 @@ services:
       # Frontend-Dateien (index.html, css/, js/, src/)
       - ./frontend:/app/frontend:ro
       # Persistente Daten (Maps, Hintergründe, Kiosk-User)
-      - nagvis2-data:/app/data
+      # Pfad muss mit WORKDIR /app/backend übereinstimmen (BASE_DIR/data)
+      - nagvis2-data:/app/backend/data
     environment:
       ENVIRONMENT: production
       DEBUG: "false"
