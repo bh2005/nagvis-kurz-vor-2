@@ -1,32 +1,46 @@
-FROM python:3.12-slim
+# ============================================================
+# NagVis 2 – Backend Docker Image
+# Build-Kontext: ./backend
+# ============================================================
 
-WORKDIR /app
+FROM python:3.13-slim
 
-# System-Deps
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
+# Tini: sauberes Signal-Handling (SIGTERM → Graceful Shutdown)
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends tini \
     && rm -rf /var/lib/apt/lists/*
 
-# Python-Deps zuerst (Layer-Cache)
+# Unprivilegierter Runtime-User
+RUN useradd -r -u 1000 -m nagvis
+
+# WICHTIG: /app/backend als WORKDIR damit BASE_DIR.parent == /app
+# → Frontend wird bei /app/frontend erwartet (Volume oder COPY)
+WORKDIR /app/backend
+
+# Python-Abhängigkeiten zuerst (Layer-Caching)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# App-Code
+# Source-Code
 COPY . .
 
-# Verzeichnisse anlegen
-RUN mkdir -p data/maps data/backgrounds data/kiosk
+# Datenverzeichnisse anlegen + Berechtigungen setzen
+RUN mkdir -p data/maps data/backgrounds data/kiosk \
+    && chown -R nagvis:nagvis /app/backend/data
 
-# Frontend-Dateien werden via Volume eingebunden (siehe docker-compose.yml)
-# oder alternativ direkt hier COPY-t:
-# COPY ../frontend ./frontend
+USER nagvis
 
 EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+# Healthcheck nutzt den Liveness-Probe-Endpoint
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD python3 -c \
+        "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')" \
+        || exit 1
 
-CMD ["python", "-m", "uvicorn", "main:app", \
+ENTRYPOINT ["/usr/bin/tini", "--"]
+CMD ["uvicorn", "main:app", \
      "--host", "0.0.0.0", \
      "--port", "8000", \
-     "--workers", "1"]
+     "--workers", "1", \
+     "--no-access-log"]
