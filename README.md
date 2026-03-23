@@ -32,7 +32,7 @@ cd beta/nagvis2
 docker compose up --build -d
 ```
 
-Öffne im Browser: **http://localhost:8008**
+Öffne im Browser: **http://localhost:8080**
 
 ---
 
@@ -150,6 +150,24 @@ mkdocs build           # Ausgabe: frontend/help/
 ```
 
 Danach ist die Hilfe unter `http://localhost:8008/help/` erreichbar.
+
+---
+
+## Codebase-Statistik
+
+> Stand: März 2026 · ohne `venv/`, `__pycache__/`, `frontend/help/` (Build-Output)
+
+| Sprache | Dateien | Zeilen | Anteil |
+|---|---|---|---|
+| **Python** | 40 | 8 078 | 37 % |
+| **JavaScript** | 13 | 7 200 | 33 % |
+| **Markdown** (Docs) | 17 | 2 478 | 11 % |
+| **CSS** | 2 | 1 496 | 7 % |
+| **HTML** | 1 | 1 093 | 5 % |
+| **JSON** (Config/Data) | 12 | 651 | 3 % |
+| **YAML** (Docker/Helm) | 12 | 431 | 2 % |
+| **Sonstige** | 4 | 371 | 2 % |
+| **Gesamt** | **101** | **21 798** | 100 % |
 
 ---
 
