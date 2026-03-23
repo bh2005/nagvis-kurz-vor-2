@@ -7,7 +7,7 @@ services:
     container_name: nagvis2
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "8008:8008"
     volumes:
       # Frontend-Dateien (index.html, css/, js/, src/)
       - ./frontend:/app/frontend:ro
@@ -27,7 +27,7 @@ services:
       # WebSocket-Polling
       WS_POLL_INTERVAL: "10"
       # CORS (komma-getrennt)
-      CORS_ORIGINS: "http://localhost:8000,https://monitoring.example.com"
+      CORS_ORIGINS: "http://localhost:8008,https://monitoring.example.com"
     # Zugriff auf Livestatus-Socket auf dem Host:
     # volumes:
     #   - /omd/sites/mysite/tmp/run/live:/var/run/nagios/live:ro

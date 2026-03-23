@@ -16,12 +16,12 @@ class Settings:
 
     # ── Server ──────────────────────────────────────────────────────────
     HOST: str            = os.getenv("HOST", "0.0.0.0")
-    PORT: int            = int(os.getenv("PORT", "8000"))
+    PORT: int            = int(os.getenv("PORT", "8008"))
     UVICORN_WORKERS: int = int(os.getenv("UVICORN_WORKERS", "1"))
 
     # ── CORS ────────────────────────────────────────────────────────────
     CORS_ORIGINS: List[str] = os.getenv(
-        "CORS_ORIGINS", "http://localhost:8000,http://localhost:3000"
+        "CORS_ORIGINS", "http://localhost:8008,http://localhost:3000"
     ).split(",")
 
     # ── Verzeichnisse ───────────────────────────────────────────────────

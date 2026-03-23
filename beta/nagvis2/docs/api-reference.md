@@ -2,7 +2,7 @@
 
 Basis-URL: `http://<host>:<port>/api`
 
-Interaktive Dokumentation (nur `DEBUG=true`): `http://localhost:8000/api/docs`
+Interaktive Dokumentation (nur `DEBUG=true`): `http://localhost:8008/api/docs`
 
 ---
 
@@ -536,7 +536,7 @@ Echtzeit-Statusstream für eine Map.
 
 **Verbindung aufbauen:**
 ```javascript
-const ws = new WebSocket('ws://localhost:8000/ws/map/datacenter-hh');
+const ws = new WebSocket('ws://localhost:8008/ws/map/datacenter-hh');
 ```
 
 ### Server → Client

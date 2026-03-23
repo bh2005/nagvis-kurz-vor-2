@@ -30,17 +30,17 @@ RUN mkdir -p data/maps data/backgrounds data/kiosk \
 
 USER nagvis
 
-EXPOSE 8000
+EXPOSE 8008
 
 # Healthcheck nutzt den Liveness-Probe-Endpoint
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD python3 -c \
-        "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')" \
+        "import urllib.request; urllib.request.urlopen('http://localhost:8008/health/live')" \
         || exit 1
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["uvicorn", "main:app", \
      "--host", "0.0.0.0", \
-     "--port", "8000", \
+     "--port", "8008", \
      "--workers", "1", \
      "--no-access-log"]
