@@ -396,6 +396,20 @@ NagVis 2 - Changelog
                - Neue Sektion "Codebase-Statistik"
                - 101 Quelldateien / 21.798 Zeilen (ohne venv, pycache, help-Build)
                - Anteil: Python 37%, JS 33%, Markdown 11%, CSS 7%, HTML 5%
+
+[2026-03-23]   Feature: About-Dialog im Burger-Menue
+               Frontend:
+               - index.html: "Ueber"-Abschnitt + "Ueber NagVis 2"-Button im
+                 Burger-Menue (unterhalb Einstellungen)
+               - index.html: About-Dialog (#dlg-about) mit NagVis-Logo,
+                 Versionsnummer (aus /api/v1/health), Beschreibung,
+                 GitHub-Link mit SVG-Icon, Changelog-Toggle-Button
+               - js/ui-core.js: openAboutDlg() (async)
+                 Laedt Version aus GET /api/v1/health
+                 Laedt changelog.txt als ArrayBuffer, dekodiert UTF-16
+                 Fallback auf /changelog.md bei Fehler
+                 Setzt Toggle-State bei jedem Oeffnen zurueck
+               - window.openAboutDlg exportiert
 """
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -579,6 +593,19 @@ MD = """\
 - Neue Sektion „Codebase-Statistik": 101 Quelldateien / 21 798 Zeilen
 - Anteil: Python 37 %, JavaScript 33 %, Markdown 11 %, CSS 7 %, HTML 5 %
 - Basis: ohne `venv/`, `__pycache__/`, `frontend/help/` (Build-Output)
+
+### Feature: About-Dialog im Burger-Menü ✅
+
+**Frontend**
+- `index.html`: „Über"-Abschnitt + „Über NagVis 2"-Button im Burger-Menü (unterhalb Einstellungen)
+- `index.html`: About-Dialog (`#dlg-about`) mit NagVis-Logo (⬡), Versionsnummer (aus `GET /api/v1/health`),
+  Beschreibung, GitHub-Link mit SVG-Icon, Changelog-Toggle-Button
+- `js/ui-core.js`: `openAboutDlg()` (async)
+  - Lädt Version aus `GET /api/v1/health`
+  - Lädt `changelog.txt` als `ArrayBuffer`, dekodiert mit `TextDecoder('utf-16')`
+  - Fallback auf `/changelog.md` bei Fehler
+  - Setzt Toggle-State bei jedem Öffnen zurück
+- `window.openAboutDlg` exportiert
 
 ---
 

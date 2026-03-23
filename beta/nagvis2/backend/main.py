@@ -161,13 +161,17 @@ app.include_router(ws_router)
 # ══════════════════════════════════════════════════════════════════════
 
 from fastapi.responses import RedirectResponse
+from fastapi import Request as _Request
 
 @app.api_route("/api/{rest_of_path:path}",
                methods=["GET","POST","PUT","PATCH","DELETE"],
                include_in_schema=False)
-async def api_compat_redirect(rest_of_path: str):
-    """308 Permanent Redirect von /api/* auf /api/v1/*."""
-    return RedirectResponse(url=f"/api/v1/{rest_of_path}", status_code=308)
+async def api_compat_redirect(rest_of_path: str, request: _Request):
+    """308 Permanent Redirect von /api/* auf /api/v1/* – inkl. Query-Parameter."""
+    url = f"/api/v1/{rest_of_path}"
+    if request.url.query:
+        url += f"?{request.url.query}"
+    return RedirectResponse(url=url, status_code=308)
 
 
 # ══════════════════════════════════════════════════════════════════════

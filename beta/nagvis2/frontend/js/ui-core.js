@@ -439,4 +439,63 @@ function downloadLog() {
 
 window.openLogViewer = openLogViewer;
 window.loadLog       = loadLog;
+
+// ═══════════════════════════════════════════════════════════════════════
+//  ABOUT-DIALOG
+// ═══════════════════════════════════════════════════════════════════════
+
+async function openAboutDlg() {
+  const dlg = document.getElementById('dlg-about');
+  if (!dlg) return;
+
+  // Version aus Health-Endpoint laden
+  try {
+    const h = await api('/api/v1/health');
+    const vEl = document.getElementById('about-version');
+    if (vEl && h?.version) vEl.textContent = h.version;
+  } catch { /* bleibt bei "2.0-beta" */ }
+
+  // Changelog-Button: toggle
+  const btn  = document.getElementById('about-changelog-btn');
+  const view = document.getElementById('about-changelog-view');
+  let clLoaded = false;
+
+  btn.onclick = async () => {
+    if (view.style.display === 'none') {
+      if (!clLoaded) {
+        view.textContent = 'Lade …';
+        try {
+          const r = await fetch('/changelog.txt');
+          // changelog.txt ist UTF-16 → als ArrayBuffer lesen und dekodieren
+          const buf  = await r.arrayBuffer();
+          const text = new TextDecoder('utf-16').decode(buf);
+          view.textContent = text;
+        } catch {
+          try {
+            // Fallback: changelog.md (UTF-8)
+            const r = await fetch('/changelog.md');
+            view.textContent = await r.text();
+          } catch {
+            view.textContent = 'Changelog konnte nicht geladen werden.';
+          }
+        }
+        clLoaded = true;
+      }
+      view.style.display = 'block';
+      btn.textContent = '📋 Changelog ausblenden';
+    } else {
+      view.style.display = 'none';
+      btn.textContent = '📋 Changelog';
+    }
+  };
+
+  // Reset bei erneutem Öffnen
+  view.style.display = 'none';
+  btn.textContent = '📋 Changelog';
+  clLoaded = false;
+
+  dlg.style.display = 'flex';
+}
+
+window.openAboutDlg = openAboutDlg;
 window.downloadLog   = downloadLog;
