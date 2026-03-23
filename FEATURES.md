@@ -17,14 +17,15 @@
 ---
 
 ### Burger-Menü ☰
-- Dropdown mit Sektionen: Aktive Map · Maps verwalten · System · Hilfe · Konto
+- Dropdown mit Sektionen: Aktive Map · Maps verwalten · System · Hilfe · Konto · Über
 - Außenklick schließt, `on`-Zustand beim Edit-Mode visuell markiert
 - Map-Sektion erscheint/verschwindet kontextabhängig (nur wenn Map offen)
 - **Log-Viewer** – gefilterbarer In-Memory-Log-Dialog (Level, Zeilenanzahl, Freitext)
 - **Log-Download** – `nagvis2.log` als Plaintext herunterladen
-- **Swagger-Link** – sichtbar nur wenn `DEBUG=true`
+- **Swagger-Link** – immer sichtbar (öffnet `/api/v1/docs`)
 - **Backends verwalten** – Dialog zum Hinzufügen/Testen/Entfernen von Backends
 - **Audit-Log** – Dialog mit Filterung nach Map, Benutzer, Aktion; alle Änderungen nachvollziehbar
+- **Über NagVis 2** – Version, GitHub-Link, integrierten Changelog-Viewer
 
 ---
 
@@ -59,15 +60,22 @@
 ### Objekt-Typen auf der Map
 | Typ | Status | Besonderheiten |
 |---|---|---|
-| **Host** | ✅ | Icon, Label, Status-Badge, Tooltip |
-| **Service** | ✅ | Host-Name + Service-Name, Typ-Pill, Datalist-Autocomplete |
+| **Host** | ✅ | Icon, Label, Status-Badge, Tooltip, Label-Template mit Macros |
+| **Service** | ✅ | Host-Name + Service-Name, Typ-Pill, Datalist-Autocomplete, Label-Template |
 | **Hostgroup** | ✅ | Worst-State-Aggregation aller Hosts, Typ-Pill „hg" |
 | **Servicegroup** | ✅ | Typ-Pill „sg" |
 | **Map (nested)** | ✅ | Typ-Pill „map", klickbar → öffnet Untermap |
 | **Textbox** | ✅ | Freier Text, Schriftgröße/Farbe/Fett/Hintergrund |
-| **Linie** | ✅ | Stil/Farbe/Breite, Drag-Handles, Winkel-Slider, Statusfarbe |
+| **Linie** | ✅ | Stil/Farbe/Breite, Drag-Handles, Winkel-Slider, Statusfarbe, View-Mode-Aktionsmenü |
 | **Container** | ✅ | Bild-URL, resize-fähig |
 | **Gadget** | ✅ | Radial, Linear (H/V), Sparkline, Thermometer, Flow/Weather, Raw-Number |
+
+### Label-Template-System
+- **Nagios-Macros** – `$HOSTNAME$`, `$HOSTALIAS$`, `$HOSTSTATE$`, `$HOSTOUTPUT$`, `$SERVICEDESC$`, `$SERVICESTATE$`, `$SERVICEOUTPUT$`, `$MAPNAME$`
+- **Checkmk/Nagios-Labels** – `$LABEL:os$`, `$LABEL:location$`, `$LABEL:env$`, … (beliebiger Key)
+- **Datenquellen** – Livestatus: `custom_variables` → Labels; Checkmk REST API: `extensions.labels`
+- **Live-Aktualisierung** – Template wird bei jedem WebSocket-Status-Update neu aufgelöst
+- **Konfiguration** – Eigenschaften-Dialog im Edit-Mode; separates Feld für Template vs. statisches Label
 
 ---
 
@@ -211,7 +219,7 @@
 | M1 | **Suche/Filter-Sidebar** | Hosts/Services/Maps filtern, Volltextsuche |
 | M2 | **Map-Duplikat-Funktion** | Map klonen inkl. aller Objekte |
 | M3 | **SQLite statt JSON-Files** | SQLAlchemy, JSON als Fallback, Migration per Script |
-| M4 | **Label-Templates** | Konfigurierbar: `{name} – {output}`, `{status} seit {duration}` |
+| ~~M4~~ | ~~**Label-Templates**~~ | ✅ Nagios-Macros + Checkmk-Labels; Live-Auflösung per WS-Update |
 | M5 | **Downtime planen** | Direktaufruf Checkmk-API aus NagVis heraus |
 
 ### Nice-to-have / Langfristig
@@ -223,7 +231,7 @@
 | N4 | **Benachrichtigungen** | Browser-Push bei CRITICAL-Statuswechsel (Web Push API) |
 | N5 | **Historische Daten** | Verfügbarkeits-Diagramme via Checkmk REST-API |
 | N6 | ~~**Test-Coverage**~~ | ✅ `ws_manager.py` 89 %, `main.py` 76 % – Ziel ≥ 70 % erreicht |
-| N7 | **Map-Miniaturbilder** | Generierte Vorschaubilder in der Übersicht (canvas → PNG) |
+| ~~N7~~ | ~~**Map-Miniaturbilder**~~ | ✅ canvas → PNG, Upload, automatisch beim Schließen einer Map |
 | N8 | ~~**Audit-Log**~~ | ✅ JSONL-Log, Rotation, REST-API, UI-Dialog mit Filtern |
 
 ---
@@ -233,7 +241,7 @@
 ```
 Frontend-Shell      ████████████████████  100%
 Map-Verwaltung      ██████████████████░░   90%  (Auth fehlt)
-Objekt-Typen        ███████████████████░   95%
+Objekt-Typen        ████████████████████  100%  (Label-Templates, remove_ack, Linien-Aktionsmenü)
 Edit-Mode           ████████████████████  100%
 Live-Status         ██████████████████░░   90%  (Livestatus + Checkmk)
 Layer-System        ████████████████████  100%
@@ -244,4 +252,5 @@ Monitoring/Betrieb  ████████████████░░░░
 Backend API         █████████████████░░░   85%  (Auth, HTTPS offen)
 Docker/Helm         ██████████████████░░   90%
 Tests               ████████████████░░░░   80%  (ws_manager 89%, main 76%)
+GitHub Actions      ████████████████████  100%  (CI, Docker, MkDocs, Dependabot)
 ```

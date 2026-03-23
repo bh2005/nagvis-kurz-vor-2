@@ -15,6 +15,7 @@ Format changelog.txt:
 Neue Eintraege am Ende der Variablen TXT_ENTRIES / MD_ENTRIES hinzufuegen.
 """
 
+import re
 import sys
 from pathlib import Path
 
@@ -406,10 +407,38 @@ NagVis 2 - Changelog
                  GitHub-Link mit SVG-Icon, Changelog-Toggle-Button
                - js/ui-core.js: openAboutDlg() (async)
                  Laedt Version aus GET /api/v1/health
-                 Laedt changelog.txt als ArrayBuffer, dekodiert UTF-16
-                 Fallback auf /changelog.md bei Fehler
+                 Laedt Changelog via GET /api/v1/changelog (UTF-8)
                  Setzt Toggle-State bei jedem Oeffnen zurueck
                - window.openAboutDlg exportiert
+               Backend:
+               - api/router.py: GET /api/v1/changelog
+                 Liest changelog.txt (UTF-16) und liefert UTF-8 text/plain
+                 Fallback auf changelog.md
+
+[2026-03-23]   Feature: Label-Templates mit Nagios-Macros + Checkmk-Labels
+               Backend:
+               - livestatus/client.py: _parse_custom_variables()
+                 konvertiert Nagios custom_variables (_OS -> os)
+                 Livestatus-Query um custom_variables / host_custom_variables
+                 erweitert
+               - livestatus/client.py: labels-Feld in HostStatus +
+                 ServiceStatus + to_dict()
+               - checkmk/client.py: extensions.labels aus Checkmk REST API
+                 in labels-Feld uebernommen (host_labels als Fallback)
+               - api/router.py: label_template in ObjectProps (PATCH-Endpoint)
+               Frontend:
+               - nodes.js: resolveMacros(template, obj, status)
+                 $HOSTNAME$, $HOSTALIAS$, $HOSTSTATE$, $HOSTOUTPUT$
+                 $SERVICEDESC$, $SERVICESTATE$, $SERVICEOUTPUT$
+                 $LABEL:key$, $MAPNAME$
+               - nodes.js: _nodeLabel(obj, status) - Template hat Vorrang
+                 vor statischem Label
+               - nodes.js: _applyLabelTemplate(el, obj, status) -
+                 aktualisiert DOM bei jedem WS-Status-Update
+               - nodes.js: applyStatuses() ruft _applyLabelTemplate auf
+                 wenn data-label-template gesetzt
+               - nodes.js: Props-Dialog mit Template-Eingabe und
+                 Macro-Referenz-Uebersicht
 """
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -602,10 +631,31 @@ MD = """\
   Beschreibung, GitHub-Link mit SVG-Icon, Changelog-Toggle-Button
 - `js/ui-core.js`: `openAboutDlg()` (async)
   - Lädt Version aus `GET /api/v1/health`
-  - Lädt `changelog.txt` als `ArrayBuffer`, dekodiert mit `TextDecoder('utf-16')`
-  - Fallback auf `/changelog.md` bei Fehler
+  - Lädt Changelog via `GET /api/v1/changelog` (UTF-8, kein ArrayBuffer-Trick mehr)
   - Setzt Toggle-State bei jedem Öffnen zurück
 - `window.openAboutDlg` exportiert
+
+**Backend**
+- `api/router.py`: `GET /api/v1/changelog` — liest `changelog.txt` (UTF-16) und gibt `text/plain; charset=utf-8` zurück; Fallback auf `changelog.md`
+
+### Feature: Label-Templates mit Nagios-Macros + Checkmk-Labels ✅
+
+**Backend**
+- `livestatus/client.py`: `_parse_custom_variables()` — konvertiert Nagios Custom-Variables (`_OS` → `os`);
+  Livestatus-Query um `custom_variables` / `host_custom_variables` erweitert
+- `livestatus/client.py`: `labels`-Feld in `HostStatus` + `ServiceStatus` + `to_dict()`
+- `checkmk/client.py`: `extensions.labels` aus Checkmk REST API übernommen (`host_labels` als Fallback)
+- `api/router.py`: `label_template: Optional[str]` in `ObjectProps` (PATCH-Endpoint)
+
+**Frontend**
+- `js/nodes.js`: `resolveMacros(template, obj, status)` — löst auf:
+  `$HOSTNAME$`, `$HOSTALIAS$`, `$HOSTSTATE$`, `$HOSTOUTPUT$`,
+  `$SERVICEDESC$`, `$SERVICESTATE$`, `$SERVICEOUTPUT$`,
+  `$LABEL:key$` (Checkmk-Labels / Custom-Variables), `$MAPNAME$`
+- `js/nodes.js`: `_nodeLabel(obj, status)` — Template hat Vorrang vor statischem Label
+- `js/nodes.js`: `_applyLabelTemplate(el, obj, status)` — aktualisiert DOM bei jedem WS-Status-Update
+- `js/nodes.js`: `applyStatuses()` — ruft `_applyLabelTemplate` auf wenn `data-label-template` gesetzt
+- `js/nodes.js`: Props-Dialog mit Template-Eingabefeld und Macro-Referenz-Übersicht
 
 ---
 
@@ -717,13 +767,51 @@ MD = """\
 """
 
 
+SEP_TXT = '─' * 60
+
+
+def _build_txt(src: str) -> str:
+    """
+    Kehrt die Eintragsreihenfolge um (neueste zuerst) und
+    fuegt zwischen jedem Eintrag eine Trennlinie ein.
+    Die Quell-Variable bleibt chronologisch – einfach unten anhaengen.
+    """
+    # Header bis zum ersten Eintrag abtrennen
+    m = re.search(r'\n\[\d{4}-\d{2}-\d{2}\]', src)
+    if not m:
+        return src
+    header = src[:m.start()].rstrip()
+    body   = src[m.start() + 1:]          # fuehrendes \n weglassen
+    # Jeden Eintrag am Zeilenanfang [YYYY-MM-DD] trennen
+    entries = re.split(r'\n(?=\[\d{4}-\d{2}-\d{2}\])', body)
+    entries = [e.strip() for e in entries if e.strip()]
+    entries.reverse()
+    return header + '\n\n' + ('\n' + SEP_TXT + '\n\n').join(entries) + '\n'
+
+
+def _build_md(src: str) -> str:
+    """
+    Kehrt die Datumsblock-Reihenfolge um (neueste zuerst) und
+    trennt Bloecke mit '---'.
+    """
+    m = re.search(r'\n## \[\d{4}-\d{2}-\d{2}\]', src)
+    if not m:
+        return src
+    header = src[:m.start()].rstrip()
+    body   = src[m.start() + 1:]
+    blocks = re.split(r'\n(?=## \[\d{4}-\d{2}-\d{2}\])', body)
+    blocks = [b.strip() for b in blocks if b.strip()]
+    blocks.reverse()
+    return header + '\n\n' + '\n\n---\n\n'.join(blocks) + '\n'
+
+
 def main():
-    # changelog.txt als UTF-16 mit BOM
-    TXT_PATH.write_bytes(TXT.encode('utf-16'))
+    # changelog.txt als UTF-16 mit BOM (neueste zuerst)
+    TXT_PATH.write_bytes(_build_txt(TXT).encode('utf-16'))
     print(f'changelog.txt geschrieben ({TXT_PATH})')
 
-    # changelog.md als UTF-8
-    MD_PATH.write_text(MD, encoding='utf-8')
+    # changelog.md als UTF-8 (neueste zuerst)
+    MD_PATH.write_text(_build_md(MD), encoding='utf-8')
     print(f'changelog.md  geschrieben ({MD_PATH})')
 
 

@@ -5,6 +5,57 @@
 // Gadget-Konfigurations-Dialog, Resize/Iconset/Layer-Dialoge.
 'use strict';
 
+// ═══════════════════════════════════════════════════════════════════════
+//  LABEL-TEMPLATE / MACRO-RESOLVER
+// ═══════════════════════════════════════════════════════════════════════
+
+/**
+ * Löst Nagios-Macros + Checkmk-Labels in einem Template-String auf.
+ *
+ * Unterstützte Macros:
+ *   $HOSTNAME$        – Host-Name
+ *   $HOSTALIAS$       – Alias des Hosts
+ *   $HOSTSTATE$       – UP / DOWN / UNREACHABLE / OK / WARNING / CRITICAL
+ *   $HOSTOUTPUT$      – Plugin-Ausgabe des Hosts
+ *   $SERVICEDESC$     – Service-Beschreibung
+ *   $SERVICESTATE$    – OK / WARNING / CRITICAL / UNKNOWN
+ *   $SERVICEOUTPUT$   – Plugin-Ausgabe des Services
+ *   $LABEL:key$       – Checkmk-Label / Nagios-Custom-Variable (lowercase key)
+ *   $MAPNAME$         – ID der aktiven Map
+ *
+ * @param {string} template   - z.B. "$HOSTNAME$ ($HOSTSTATE$)"
+ * @param {object} obj        - Map-Objekt (hat .type, .name, .host_name, ...)
+ * @param {object} status     - Status-Dict aus hostCache / serviceCache
+ * @returns {string}
+ */
+function resolveMacros(template, obj, status) {
+  if (!template) return obj.label || obj.name || '';
+  const s = status || {};
+  return template.replace(/\$([A-Z_]+(?::[^$]+)?)\$/g, (match, macro) => {
+    if (macro.startsWith('LABEL:')) {
+      const key = macro.slice(6).toLowerCase();
+      return s.labels?.[key] ?? '';
+    }
+    switch (macro) {
+      case 'HOSTNAME':      return s.name        || obj.host_name || obj.name || '';
+      case 'HOSTALIAS':     return s.alias       || '';
+      case 'HOSTSTATE':     return s.state_label || '';
+      case 'HOSTOUTPUT':    return s.output      || '';
+      case 'SERVICEDESC':   return s.description || obj.name || '';
+      case 'SERVICESTATE':  return s.state_label || '';
+      case 'SERVICEOUTPUT': return s.output      || '';
+      case 'MAPNAME':       return window.activeMapId || '';
+      default:              return match; // unbekannte Macros unveraendert lassen
+    }
+  });
+}
+
+/** Berechnet den anzuzeigenden Label-Text für einen Node. */
+function _nodeLabel(obj, status) {
+  if (obj.label_template) return resolveMacros(obj.label_template, obj, status);
+  return obj.label || obj.name || '';
+}
+
 //  NODE RENDERING
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -35,12 +86,13 @@ function _renderMonitoringNode(obj) {
   const shapeSvg = ICONSET_SHAPE[iconset] ?? ICONSET_SHAPE.std_small;
 
   const el = document.createElement('div');
-  el.id               = `nv2-${obj.object_id}`;
-  el.className        = 'nv2-node nv2-unknown';
-  el.dataset.objectId = obj.object_id;
-  el.dataset.name     = obj.type === 'service' ? `${obj.host_name}::${obj.name}` : obj.name;
-  el.dataset.type     = obj.type;
-  el.dataset.iconset  = iconset;
+  el.id                    = `nv2-${obj.object_id}`;
+  el.className             = 'nv2-node nv2-unknown';
+  el.dataset.objectId      = obj.object_id;
+  el.dataset.name          = obj.type === 'service' ? `${obj.host_name}::${obj.name}` : obj.name;
+  el.dataset.type          = obj.type;
+  el.dataset.iconset       = iconset;
+  el.dataset.labelTemplate = obj.label_template || '';
   el.style.left       = `${obj.x}%`;
   el.style.top        = `${obj.y}%`;
   el.style.setProperty('--node-size', `${size}px`);
@@ -56,8 +108,8 @@ function _renderMonitoringNode(obj) {
       <img class="nv2-icon-shape" src="${svgToDataUri(shapeSvg)}" alt="" width="${size}" height="${size}" style="position:absolute;inset:0;pointer-events:none">
       <span class="nv2-badge" aria-label="UNKNOWN">?</span>
     </div>
-    <div class="nv2-label" title="${esc(obj.label || obj.name)}"
-         style="${obj.show_label === false ? 'display:none' : ''}">${esc(obj.label || obj.name)}</div>`;
+    <div class="nv2-label" title="${esc(_nodeLabel(obj, null))}"
+         style="${obj.show_label === false ? 'display:none' : ''}">${esc(_nodeLabel(obj, null))}</div>`;
 
   el.addEventListener('mouseenter', () => showTooltip(el, obj));
   el.addEventListener('mouseleave', hideTooltip);
@@ -72,7 +124,10 @@ function _renderMonitoringNode(obj) {
 
   const cacheKey = obj.type === 'service' ? `${obj.host_name}::${obj.name}` : obj.name;
   const cached   = hostCache[cacheKey];
-  if (cached) applyNodeStatus(el, cached.state_label, cached.acknowledged, cached.in_downtime);
+  if (cached) {
+    applyNodeStatus(el, cached.state_label, cached.acknowledged, cached.in_downtime);
+    if (obj.label_template) _applyLabelTemplate(el, obj, cached);
+  }
 
   return el;
 }
@@ -137,16 +192,38 @@ function _renderContainer(obj) {
   return el;
 }
 
+/** Aktualisiert das Label eines Nodes wenn ein label_template gesetzt ist. */
+function _applyLabelTemplate(el, obj, status) {
+  const tmpl = el.dataset.labelTemplate || obj?.label_template;
+  if (!tmpl) return;
+  const labelEl = el.querySelector('.nv2-label');
+  if (!labelEl) return;
+  const text = resolveMacros(tmpl, obj || {}, status);
+  labelEl.textContent = text;
+  labelEl.title       = text;
+}
+
 function applyStatuses(hosts, services) {
   for (const h of hosts) {
     hostCache[h.name] = h;
-    document.querySelectorAll(`[data-name="${esc(h.name)}"]`).forEach(el =>
-      applyNodeStatus(el, h.state_label, h.acknowledged, h.in_downtime));
+    document.querySelectorAll(`[data-name="${esc(h.name)}"]`).forEach(el => {
+      applyNodeStatus(el, h.state_label, h.acknowledged, h.in_downtime);
+      if (el.dataset.labelTemplate) {
+        const obj = activeMapCfg?.objects?.find(o => o.object_id === el.dataset.objectId);
+        _applyLabelTemplate(el, obj, h);
+      }
+    });
   }
   for (const s of services) {
     const key = `${s.host_name}::${s.description}`;
-    document.querySelectorAll(`[data-name="${esc(key)}"]`).forEach(el =>
-      applyNodeStatus(el, s.state_label, s.acknowledged, s.in_downtime));
+    hostCache[key] = s;
+    document.querySelectorAll(`[data-name="${esc(key)}"]`).forEach(el => {
+      applyNodeStatus(el, s.state_label, s.acknowledged, s.in_downtime);
+      if (el.dataset.labelTemplate) {
+        const obj = activeMapCfg?.objects?.find(o => o.object_id === el.dataset.objectId);
+        _applyLabelTemplate(el, obj, s);
+      }
+    });
     if (s.host_name && s.description) {
       if (!serviceCache[s.host_name]) serviceCache[s.host_name] = [];
       if (!serviceCache[s.host_name].includes(s.description))
@@ -2029,7 +2106,19 @@ async function openNodePropsDialog(el, obj) {
         <datalist id="np-hosts-dl">${hostOptions}</datalist>
       `}
       <label class="f-label" style="margin-top:8px">
-        Label <span style="color:var(--text-dim);font-weight:400">(Anzeigename, leer = Name)</span>
+        Label-Template
+        <span style="color:var(--text-dim);font-weight:400">(leer = statisches Label)</span>
+      </label>
+      <input class="f-input" id="np-label-tmpl" type="text"
+             value="${esc(obj.label_template ?? '')}"
+             placeholder="z.B. $HOSTNAME$ ($HOSTSTATE$)">
+      <div style="font-size:11px;color:var(--text-dim);margin-top:4px;line-height:1.5">
+        Macros: <code>$HOSTNAME$</code> <code>$HOSTALIAS$</code> <code>$HOSTSTATE$</code>
+        <code>$HOSTOUTPUT$</code> <code>$SERVICEDESC$</code> <code>$SERVICESTATE$</code>
+        <code>$SERVICEOUTPUT$</code> <code>$LABEL:key$</code>
+      </div>
+      <label class="f-label" style="margin-top:8px">
+        Statisches Label <span style="color:var(--text-dim);font-weight:400">(ignoriert wenn Template gesetzt)</span>
       </label>
       <input class="f-input" id="np-label" type="text"
              value="${esc(obj.label ?? '')}" placeholder="${esc(obj.name ?? '')}">
@@ -2053,6 +2142,7 @@ async function openNodePropsDialog(el, obj) {
 
   const inName      = dlg.querySelector('#np-name');
   const inHost      = isService ? dlg.querySelector('#np-host') : null;
+  const inLabelTmpl = dlg.querySelector('#np-label-tmpl');
   const inLabel     = dlg.querySelector('#np-label');
   const inShowLabel = dlg.querySelector('#np-show-label');
 
@@ -2060,23 +2150,33 @@ async function openNodePropsDialog(el, obj) {
   dlg.querySelector('#np-ok').onclick = async () => {
     const newName      = inName.value.trim();
     const newHost      = inHost?.value.trim() ?? null;
-    const newLabel     = inLabel.value.trim() || null;
+    const newLabelTmpl = inLabelTmpl.value.trim() || null;
+    const newLabel     = newLabelTmpl ? null : (inLabel.value.trim() || null);
     const newShowLabel = inShowLabel.checked;
     if (!newName) return;
 
-    const patch = { name: newName, label: newLabel, show_label: newShowLabel };
+    const patch = { name: newName, label: newLabel, label_template: newLabelTmpl, show_label: newShowLabel };
     if (isService) patch.host_name = newHost;
 
-    obj.name       = newName;
-    obj.label      = newLabel;
-    obj.show_label = newShowLabel;
+    obj.name           = newName;
+    obj.label          = newLabel;
+    obj.label_template = newLabelTmpl;
+    obj.show_label     = newShowLabel;
     if (isService) obj.host_name = newHost;
 
-    el.dataset.name = isService ? `${newHost}::${newName}` : newName;
+    el.dataset.name          = isService ? `${newHost}::${newName}` : newName;
+    el.dataset.labelTemplate = newLabelTmpl || '';
+
     const labelEl = el.querySelector('.nv2-label');
     if (labelEl) {
-      labelEl.textContent    = newLabel || newName;
-      labelEl.style.display  = newShowLabel ? '' : 'none';
+      const cacheKey = isService ? `${newHost}::${newName}` : newName;
+      const status   = hostCache[cacheKey];
+      const text     = newLabelTmpl
+        ? resolveMacros(newLabelTmpl, obj, status)
+        : (newLabel || newName);
+      labelEl.textContent   = text;
+      labelEl.title         = text;
+      labelEl.style.display = newShowLabel ? '' : 'none';
     }
 
     dlg.remove();

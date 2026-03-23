@@ -2,6 +2,120 @@
 
 ---
 
+## [2026-03-17]
+
+- Projekt-Grundstruktur angelegt
+- WebSocket-Grundgerüst, Docker-Vorbereitung
+- README erstellt
+
+---
+
+## [2026-03-18]
+
+- `nginx.conf` (Development, WSL-kompatibel)
+- API-Grundgerüst und Error-Handling
+- Help-System vorbereitet
+
+---
+
+---
+
+## [2026-03-19]
+
+- UX-Aufgaben dokumentiert (Host-Anzeige, Sprachunterstützung)
+- `todo-liste.md` aktualisiert
+
+---
+
+---
+
+## [2026-03-20]
+
+### Burger-Menü: Log-Viewer & Download
+- „Log anzeigen": Modal-Dialog mit gefilterbarer Log-Tabelle
+- „Log herunterladen": `nagvis2.log` als Plaintext-Download
+
+**Backend**
+- `core/logging_setup.py`: In-Memory-Ringpuffer (`_RingBufferHandler`) — letzte 1000 Zeilen (`LOG_BUFFER_LINES` konfigurierbar)
+- `GET /api/logs`: Parameter `lines` (1–2000), `level`, `download`
+
+**Frontend**
+- `dlg-log`: Zeilen-Selector, Level-Dropdown, Freitext-Filter
+- `openLogViewer()` / `loadLog()` / `downloadLog()` in `ui-core.js`
+
+### Prometheus-Monitoring & Kubernetes-Betrieb
+
+**Backend**
+- NEU: `core/metrics.py` — alle Prometheus-Metriken
+  (`nagvis2_http_requests_total`, `nagvis2_http_request_duration_seconds`,
+  `nagvis2_ws_connections`, `nagvis2_backend_reachable`, ...)
+- NEU: `core/logging_setup.py` — strukturiertes Logging
+  (`LOG_FORMAT=json` → python-json-logger; `LOG_FORMAT=text` → Standard)
+- `main.py`: `GET /metrics`, `GET /health/live`, `GET /health/ready`, HTTP-Middleware
+- `ws/manager.py`: Poll-Dauer und Fehler instrumentiert
+- `requirements.txt`: `prometheus-client>=0.20.0`, `python-json-logger>=2.0.0`
+
+**Helm-Chart**
+- NEU: `helm/nagvis2/` — vollständiger Helm-Chart
+  (Ingress, PVC, HPA, ServiceMonitor konfigurierbar; disabled by default)
+
+### favicon.svg hinzugefügt
+- NagVis-Hexagon-Logo als SVG (dunkler Hintergrund, Cyan-Akzente)
+- `favicon.ico` 404 behoben
+
+### Rechtsklick-Menü auf Map-Karten
+- Kontextmenü per Rechtsklick: Öffnen, Umbenennen, Canvas-Format, Exportieren, Löschen
+- Menü-Position am Viewport-Rand eingeklemmt
+
+### OSM / Weltkarte
+- Canvas-Modus `osm`: interaktive OpenStreetMap via Leaflet.js 1.9.4
+- Nodes als Custom-HTML-Marker (`x` = Breitengrad, `y` = Längengrad)
+- Drag & Drop im Edit-Mode mit automatischer API-Persistierung
+- Tile-Server konfigurierbar; Kartenposition automatisch gespeichert
+- `osm.js`: neues Frontend-Modul (`window.NV2_OSM`)
+- Dokumentation: `docs/osm-guide.md`
+
+### Perfdata-Parsing: Gadgets zeigen Live-Metrikwerte
+**Backend**
+- NEU: `core/perfdata.py` — Nagios/Checkmk Perfdata-Parser
+- `livestatus/client.py`: `perf_data`-Feld ergänzt
+- `ws/demo_data.py`: 5 Demo-Services mit Perfdata
+
+**Frontend**
+- `state.js`: `window.perfdataCache`
+- `nodes.js`: `_applyGadgetPerfdata()`, Gadget-Dialog mit `perf_label`-Feld
+
+### Gadget-Parameter-UI erweitert
+- Linear: Orientierung konfigurierbar (Horizontal / Vertikal)
+- Sparkline: Datenpunkt-Anzahl konfigurierbar (5–100)
+- Raw-Number: Nachkommastellen-Feld (0–6)
+- Preview-Bug behoben
+
+### Multi-Select für Nodes im Edit-Mode
+- Klick / Shift+Klick / Lasso-Selektion
+- Gruppen-Drag, Gruppen-Löschen (Rechtsklick / Delete)
+- `selectedNodes` (`window.Set`) in `state.js`
+
+### Kiosk-Modus: Zoom/Pan-Fix für SVG-Linien
+- `#nv2-lines-svg` verbleibt in `#map-canvas-wrapper` — DOM-Move entfernt
+
+### Demo-Features Map & Auto-Fallback
+- `data/maps/demo-features.json`: Demo-Map mit 14 Objekten
+- `detectDemoMode`: öffnet demo-features wenn kein Backend erreichbar
+
+### Backend-Management-UI
+- `openBackendMgmtDlg()`: Backends verwalten, hinzufügen, testen
+- `POST /api/backends/probe`
+
+### Checkmk REST API Connector
+- `checkmk/client.py`: async HTTP-Client für Checkmk REST API v1.0
+- `connectors/registry.py`: Unified Backend Registry
+- `data/backends.json` für Persistenz
+
+---
+
+---
+
 ## [2026-03-23]
 
 ### Bugfix: Merge-Konflikte behoben
@@ -184,115 +298,30 @@
   Beschreibung, GitHub-Link mit SVG-Icon, Changelog-Toggle-Button
 - `js/ui-core.js`: `openAboutDlg()` (async)
   - Lädt Version aus `GET /api/v1/health`
-  - Lädt `changelog.txt` als `ArrayBuffer`, dekodiert mit `TextDecoder('utf-16')`
-  - Fallback auf `/changelog.md` bei Fehler
+  - Lädt Changelog via `GET /api/v1/changelog` (UTF-8, kein ArrayBuffer-Trick mehr)
   - Setzt Toggle-State bei jedem Öffnen zurück
 - `window.openAboutDlg` exportiert
 
----
+**Backend**
+- `api/router.py`: `GET /api/v1/changelog` — liest `changelog.txt` (UTF-16) und gibt `text/plain; charset=utf-8` zurück; Fallback auf `changelog.md`
 
-## [2026-03-20]
-
-### Burger-Menü: Log-Viewer & Download
-- „Log anzeigen": Modal-Dialog mit gefilterbarer Log-Tabelle
-- „Log herunterladen": `nagvis2.log` als Plaintext-Download
+### Feature: Label-Templates mit Nagios-Macros + Checkmk-Labels ✅
 
 **Backend**
-- `core/logging_setup.py`: In-Memory-Ringpuffer (`_RingBufferHandler`) — letzte 1000 Zeilen (`LOG_BUFFER_LINES` konfigurierbar)
-- `GET /api/logs`: Parameter `lines` (1–2000), `level`, `download`
+- `livestatus/client.py`: `_parse_custom_variables()` — konvertiert Nagios Custom-Variables (`_OS` → `os`);
+  Livestatus-Query um `custom_variables` / `host_custom_variables` erweitert
+- `livestatus/client.py`: `labels`-Feld in `HostStatus` + `ServiceStatus` + `to_dict()`
+- `checkmk/client.py`: `extensions.labels` aus Checkmk REST API übernommen (`host_labels` als Fallback)
+- `api/router.py`: `label_template: Optional[str]` in `ObjectProps` (PATCH-Endpoint)
 
 **Frontend**
-- `dlg-log`: Zeilen-Selector, Level-Dropdown, Freitext-Filter
-- `openLogViewer()` / `loadLog()` / `downloadLog()` in `ui-core.js`
-
-### Prometheus-Monitoring & Kubernetes-Betrieb
-
-**Backend**
-- NEU: `core/metrics.py` — alle Prometheus-Metriken
-  (`nagvis2_http_requests_total`, `nagvis2_http_request_duration_seconds`,
-  `nagvis2_ws_connections`, `nagvis2_backend_reachable`, ...)
-- NEU: `core/logging_setup.py` — strukturiertes Logging
-  (`LOG_FORMAT=json` → python-json-logger; `LOG_FORMAT=text` → Standard)
-- `main.py`: `GET /metrics`, `GET /health/live`, `GET /health/ready`, HTTP-Middleware
-- `ws/manager.py`: Poll-Dauer und Fehler instrumentiert
-- `requirements.txt`: `prometheus-client>=0.20.0`, `python-json-logger>=2.0.0`
-
-**Helm-Chart**
-- NEU: `helm/nagvis2/` — vollständiger Helm-Chart
-  (Ingress, PVC, HPA, ServiceMonitor konfigurierbar; disabled by default)
-
-### favicon.svg hinzugefügt
-- NagVis-Hexagon-Logo als SVG (dunkler Hintergrund, Cyan-Akzente)
-- `favicon.ico` 404 behoben
-
-### Rechtsklick-Menü auf Map-Karten
-- Kontextmenü per Rechtsklick: Öffnen, Umbenennen, Canvas-Format, Exportieren, Löschen
-- Menü-Position am Viewport-Rand eingeklemmt
-
-### OSM / Weltkarte
-- Canvas-Modus `osm`: interaktive OpenStreetMap via Leaflet.js 1.9.4
-- Nodes als Custom-HTML-Marker (`x` = Breitengrad, `y` = Längengrad)
-- Drag & Drop im Edit-Mode mit automatischer API-Persistierung
-- Tile-Server konfigurierbar; Kartenposition automatisch gespeichert
-- `osm.js`: neues Frontend-Modul (`window.NV2_OSM`)
-- Dokumentation: `docs/osm-guide.md`
-
-### Perfdata-Parsing: Gadgets zeigen Live-Metrikwerte
-**Backend**
-- NEU: `core/perfdata.py` — Nagios/Checkmk Perfdata-Parser
-- `livestatus/client.py`: `perf_data`-Feld ergänzt
-- `ws/demo_data.py`: 5 Demo-Services mit Perfdata
-
-**Frontend**
-- `state.js`: `window.perfdataCache`
-- `nodes.js`: `_applyGadgetPerfdata()`, Gadget-Dialog mit `perf_label`-Feld
-
-### Gadget-Parameter-UI erweitert
-- Linear: Orientierung konfigurierbar (Horizontal / Vertikal)
-- Sparkline: Datenpunkt-Anzahl konfigurierbar (5–100)
-- Raw-Number: Nachkommastellen-Feld (0–6)
-- Preview-Bug behoben
-
-### Multi-Select für Nodes im Edit-Mode
-- Klick / Shift+Klick / Lasso-Selektion
-- Gruppen-Drag, Gruppen-Löschen (Rechtsklick / Delete)
-- `selectedNodes` (`window.Set`) in `state.js`
-
-### Kiosk-Modus: Zoom/Pan-Fix für SVG-Linien
-- `#nv2-lines-svg` verbleibt in `#map-canvas-wrapper` — DOM-Move entfernt
-
-### Demo-Features Map & Auto-Fallback
-- `data/maps/demo-features.json`: Demo-Map mit 14 Objekten
-- `detectDemoMode`: öffnet demo-features wenn kein Backend erreichbar
-
-### Backend-Management-UI
-- `openBackendMgmtDlg()`: Backends verwalten, hinzufügen, testen
-- `POST /api/backends/probe`
-
-### Checkmk REST API Connector
-- `checkmk/client.py`: async HTTP-Client für Checkmk REST API v1.0
-- `connectors/registry.py`: Unified Backend Registry
-- `data/backends.json` für Persistenz
+- `js/nodes.js`: `resolveMacros(template, obj, status)` — löst auf:
+  `$HOSTNAME$`, `$HOSTALIAS$`, `$HOSTSTATE$`, `$HOSTOUTPUT$`,
+  `$SERVICEDESC$`, `$SERVICESTATE$`, `$SERVICEOUTPUT$`,
+  `$LABEL:key$` (Checkmk-Labels / Custom-Variables), `$MAPNAME$`
+- `js/nodes.js`: `_nodeLabel(obj, status)` — Template hat Vorrang vor statischem Label
+- `js/nodes.js`: `_applyLabelTemplate(el, obj, status)` — aktualisiert DOM bei jedem WS-Status-Update
+- `js/nodes.js`: `applyStatuses()` — ruft `_applyLabelTemplate` auf wenn `data-label-template` gesetzt
+- `js/nodes.js`: Props-Dialog mit Template-Eingabefeld und Macro-Referenz-Übersicht
 
 ---
-
-## [2026-03-19]
-
-- UX-Aufgaben dokumentiert (Host-Anzeige, Sprachunterstützung)
-- `todo-liste.md` aktualisiert
-
----
-
-## [2026-03-18]
-
-- `nginx.conf` (Development, WSL-kompatibel)
-- API-Grundgerüst und Error-Handling
-- Help-System vorbereitet
-
----
-
-## [2026-03-17]
-
-- Projekt-Grundstruktur angelegt
-- WebSocket-Grundgerüst, Docker-Vorbereitung
-- README erstellt

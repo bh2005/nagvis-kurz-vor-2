@@ -69,7 +69,8 @@ NagVis 2 visualisiert den Status deiner Monitoring-Umgebung (Nagios / Checkmk / 
 | ⚡ Aktionen konfigurieren | URL-Templates für Monitoring-Aktionen |
 | ⚙ Einstellungen | Theme, Sidebar, Kiosk-Optionen |
 | ☰ Hilfe | Handbücher (öffnen im neuen Fenster) |
-| </> Swagger UI | REST-API-Dokumentation (nur im Debug-Modus) |
+| </> Swagger UI | REST-API-Dokumentation (`/api/v1/docs`) |
+| ℹ Über NagVis 2 | Version, GitHub-Link, Changelog-Viewer |
 
 ---
 
@@ -167,8 +168,39 @@ Rechtsklick auf ein Objekt im Edit-Mode:
 Über **⚙ Eigenschaften** im Kontext-Menü:
 - **Name** – Hostname, Hostgruppen-Name oder Map-ID (mit Autocomplete aus Livestatus)
 - **Hostname + Service-Name** – bei Services
-- **Label** – Anzeigename unter dem Icon (leer = Name wird verwendet)
+- **Label-Template** – dynamische Beschriftung mit Nagios-Macros und Checkmk-Labels (siehe unten)
+- **Statisches Label** – fester Anzeigename; wird ignoriert wenn ein Template gesetzt ist
 - **Label anzeigen** – Checkbox zum Ein-/Ausblenden des Labels
+
+### Label-Templates
+
+Nodes können dynamische Beschriftungen erhalten, die bei jedem Status-Update neu aufgelöst werden.
+
+**Verfügbare Macros:**
+
+| Macro | Wert |
+|---|---|
+| `$HOSTNAME$` | Host-Name |
+| `$HOSTALIAS$` | Alias des Hosts |
+| `$HOSTSTATE$` | `UP` / `DOWN` / `UNREACHABLE` |
+| `$HOSTOUTPUT$` | Plugin-Ausgabe des Hosts |
+| `$SERVICEDESC$` | Service-Beschreibung |
+| `$SERVICESTATE$` | `OK` / `WARNING` / `CRITICAL` / `UNKNOWN` |
+| `$SERVICEOUTPUT$` | Plugin-Ausgabe des Services |
+| `$LABEL:key$` | Checkmk-Label oder Nagios-Custom-Variable (lowercase) |
+| `$MAPNAME$` | ID der aktiven Map |
+
+**Beispiele:**
+
+```
+$HOSTNAME$ ($HOSTSTATE$)          → "webserver-01 (DOWN)"
+$HOSTALIAS$                       → "Webserver Hamburg"
+$LABEL:os$ / $LABEL:location$     → "linux / hamburg"
+$LABEL:env$ – $HOSTNAME$          → "production – webserver-01"
+$SERVICESTATE$: $SERVICEOUTPUT$   → "CRITICAL: HTTP timeout after 30s"
+```
+
+**Checkmk-Labels** werden automatisch aus `extensions.labels` der Checkmk REST API bzw. aus `custom_variables` (Livestatus) importiert. Der führende Unterstrich wird entfernt: `_OS` → `$LABEL:os$`.
 
 ### Canvas Rechtsklick-Menü
 
