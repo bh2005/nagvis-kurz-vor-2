@@ -33,7 +33,7 @@ python main.py
 ```
 
 Das Frontend wird automatisch unter `http://localhost:8008/` ausgeliefert.
-API-Dokumentation (nur im Debug-Modus): `http://localhost:8008/api/docs`
+API-Dokumentation (Swagger): `http://localhost:8008/api/v1/docs`
 
 ---
 
@@ -436,27 +436,25 @@ Alle Hilfe-Links öffnen in einem neuen Fenster/Tab.
 | Verbindungen | `/help/help/connections/` |
 | Dashboard | `/help/help/dashboard/` |
 | Migration | `/help/help/migrate/` |
-| Swagger UI | `/api/docs` (nur `DEBUG=true`) |
+| Swagger UI | `/api/v1/docs` |
 
 ---
 
 ## API-Dokumentation (Swagger)
 
-Swagger UI ist nur im Debug-Modus aktiv:
+Swagger UI ist immer verfügbar unter:
 
-```env
-DEBUG=true
+```
+http://localhost:8008/api/v1/docs
 ```
 
-Erreichbar unter: `http://localhost:8008/api/docs`
-
-Für Produktiv-Deployments `DEBUG=false` setzen.
+`DEBUG=true` aktiviert zusätzlich den Auto-Reload des Backends.
 
 ---
 
 ## Produktions-Empfehlungen
 
-- `DEBUG=false` setzen (deaktiviert Swagger UI und Auto-Reload)
+- `DEBUG=false` setzen (deaktiviert Auto-Reload; Swagger UI bleibt verfügbar)
 - `ENVIRONMENT=production` setzen
 - nginx als Reverse Proxy verwenden (TLS-Terminierung, Security-Header)
 - `CORS_ORIGINS` auf tatsächliche Domains einschränken

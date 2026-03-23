@@ -340,6 +340,62 @@ NagVis 2 - Changelog
                - app.js: Theme beim Start aus loadUserSettings().theme
                - index.html FOUC-Snippet: liest nv2-user-settings.theme
                Standard: Dark-Theme + Sidebar ausgeklappt + Uebersicht
+
+[2026-03-23]   Feature: Objekt-Typen 100% – remove_ack + Linien-Aktionsmenue
+               Backend:
+               - core/livestatus.py: remove_host_ack() -> REMOVE_HOST_ACKNOWLEDGEMENT
+               - core/livestatus.py: remove_service_ack() -> REMOVE_SVC_ACKNOWLEDGEMENT
+               - api/router.py: remove_ack-Handler (Host + Service)
+               - api/router.py: GET /api/v1/hosts fuer Autocomplete-Datalist
+               Frontend:
+               - nodes.js: openNodePropsDialog() async; befuellt Datalist aus
+                 GET /api/hosts nach Dialog-Oeffnen (nicht nur WS-Cache)
+               - nodes.js: showLineViewContextMenu() – neues View-Mode-Kontextmenue
+                 auf einfachen Linien und Weathermap-Linien
+                 Zeigt ACK / Bestätigung aufheben / Wartung / Reschedule
+                 fuer host_from und host_to
+
+[2026-03-23]   Feature: GitHub Actions – CI, Docker, MkDocs, Dependabot
+               CI (.github/workflows/ci.yml):
+               - pytest + Coverage auf Python 3.11 / 3.12 / 3.13
+               - --cov-fail-under=70 (schlaegt fehl wenn Coverage < 70%)
+               - Coverage-XML als Artifact; PR-Kommentar auf 3.13
+               - Trigger: push/PR auf main wenn backend/** geaendert
+               Docker (.github/workflows/docker.yml):
+               - docker/build-push-action: Multi-Platform (amd64 + arm64)
+               - Tags: latest / main / semver (v1.2.3 -> 1.2.3, 1.2, latest)
+               - workflow_run-Trigger: laeuft nur wenn CI gruen ist
+               - BuildKit-Cache via GitHub Actions Cache
+               MkDocs (.github/workflows/docs.yml):
+               - mkdocs gh-deploy -> gh-pages Branch
+               - concurrency: pages (Cancel-in-Progress)
+               - Trigger: push auf docs/** oder mkdocs.yml
+               Dependabot (.github/dependabot.yml):
+               - pip: wöchentlich montags 07:00 Berlin
+                 Gruppen: fastapi-stack, test-tools, observability
+               - github-actions: wöchentlich montags 07:00 Berlin
+
+[2026-03-23]   Feature: API-Versionierung /api/v1/
+               Backend:
+               - api/router.py: prefix /api -> /api/v1
+               - api/auth_router.py: prefix /api/auth -> /api/v1/auth
+               - main.py: 308-Redirect /api/* -> /api/v1/* (Rueckwaertskompatibilitaet)
+               Frontend:
+               - ws-client.js: api() normalisiert /api/ -> /api/v1/ vor fetch()
+                 Demo-Mode-Handler unveraendert (treffen nie das Backend)
+               - auth.js: alle direkten fetch()-Aufrufe auf /api/v1/ aktualisiert
+
+[2026-03-23]   Feature: Swagger immer verfuegbar (nicht mehr DEBUG-abhaengig)
+               - backend/main.py: docs_url="/api/v1/docs" ohne DEBUG-Bedingung
+               - frontend/index.html: Swagger-Button oeffnet /api/v1/docs
+               - docs/admin-guide.md: Hinweis auf DEBUG-Pflicht entfernt
+               - README.md: URL-Tabelle aktualisiert
+               DEBUG=true steuert jetzt nur noch Auto-Reload
+
+[2026-03-23]   Codebase-Statistik in README.md
+               - Neue Sektion "Codebase-Statistik"
+               - 101 Quelldateien / 21.798 Zeilen (ohne venv, pycache, help-Build)
+               - Anteil: Python 37%, JS 33%, Markdown 11%, CSS 7%, HTML 5%
 """
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -467,6 +523,62 @@ MD = """\
 - `js/app.js`: Theme beim Start aus `loadUserSettings().theme` (Standard: `'dark'`)
 - `index.html` FOUC-Snippet: liest `nv2-user-settings.theme`
 - Erstbesuch / Inkognito → immer: **Dark-Theme + Sidebar ausgeklappt + Übersicht**
+
+### Feature: Objekt-Typen 100 % ✅ – remove_ack + Linien-Aktionsmenü
+
+**Backend**
+- `core/livestatus.py`: `remove_host_ack()` → `REMOVE_HOST_ACKNOWLEDGEMENT`
+- `core/livestatus.py`: `remove_service_ack()` → `REMOVE_SVC_ACKNOWLEDGEMENT`
+- `api/router.py`: `remove_ack`-Handler (Host + Service)
+- `api/router.py`: `GET /api/v1/hosts` — vollständige Host-Liste für Autocomplete
+
+**Frontend**
+- `js/nodes.js`: `openNodePropsDialog()` async — befüllt Datalist nach Dialog-Öffnen aus `GET /api/hosts` (nicht mehr nur WS-Cache)
+- `js/nodes.js`: `showLineViewContextMenu()` — View-Mode-Kontextmenü auf einfachen Linien und Weathermap-Linien; zeigt ACK / Bestätigung aufheben / Wartung / Reschedule für `host_from` und `host_to`
+
+### Feature: GitHub Actions – CI, Docker, MkDocs, Dependabot ✅
+
+**CI** (`.github/workflows/ci.yml`)
+- pytest + Coverage auf Python 3.11 / 3.12 / 3.13; `--cov-fail-under=70`
+- Coverage-XML als Artifact; PR-Kommentar (nur 3.13)
+- Trigger: push/PR auf `main` wenn `backend/**` geändert
+
+**Docker** (`.github/workflows/docker.yml`)
+- Multi-Platform Build (`linux/amd64` + `linux/arm64`); Push zu Docker Hub
+- Tags: `latest` / `main` / SemVer (`v1.2.3` → `1.2.3`, `1.2`, `latest`)
+- `workflow_run`-Trigger: läuft nur wenn CI grün ist
+- BuildKit-Cache via GitHub Actions Cache
+
+**MkDocs → GitHub Pages** (`.github/workflows/docs.yml`)
+- `mkdocs gh-deploy` → `gh-pages` Branch; `concurrency: pages`
+- Trigger: push auf `docs/**` oder `mkdocs.yml`
+
+**Dependabot** (`.github/dependabot.yml`)
+- `pip`: wöchentlich montags 07:00 Berlin; Gruppen `fastapi-stack`, `test-tools`, `observability`
+- `github-actions`: wöchentlich montags 07:00 Berlin
+
+### Feature: API-Versionierung `/api/v1/` ✅
+
+**Backend**
+- `api/router.py`: `prefix="/api"` → `"/api/v1"`
+- `api/auth_router.py`: `prefix="/api/auth"` → `"/api/v1/auth"`
+- `main.py`: `308 Permanent Redirect` `/api/*` → `/api/v1/*` für Rückwärtskompatibilität
+
+**Frontend**
+- `js/ws-client.js`: `api()` normalisiert `/api/` → `/api/v1/` vor `fetch()` — Demo-Mode-Handler unverändert
+- `js/auth.js`: alle direkten `fetch()`-Aufrufe auf `/api/v1/` aktualisiert (8 Stellen)
+
+### Feature: Swagger immer verfügbar ✅
+- `backend/main.py`: `docs_url="/api/v1/docs"` — keine `DEBUG`-Bedingung mehr
+- `frontend/index.html`: Swagger-Button öffnet `/api/v1/docs`
+- `docs/admin-guide.md`: Hinweis auf `DEBUG=true`-Pflicht entfernt, URL aktualisiert
+- `README.md`: URL-Tabelle aktualisiert
+- `DEBUG=true` steuert jetzt nur noch Auto-Reload
+
+### Codebase-Statistik in README.md
+- Neue Sektion „Codebase-Statistik": 101 Quelldateien / 21 798 Zeilen
+- Anteil: Python 37 %, JavaScript 33 %, Markdown 11 %, CSS 7 %, HTML 5 %
+- Basis: ohne `venv/`, `__pycache__/`, `frontend/help/` (Build-Output)
 
 ---
 

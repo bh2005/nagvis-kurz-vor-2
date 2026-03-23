@@ -337,6 +337,10 @@ async function api(path, method = 'GET', body = null) {
   }
 
   try {
+    // /api/ → /api/v1/ (Versionspräfix; Demo-Mode nutzt weiterhin /api/)
+    if (path.startsWith('/api/') && !path.startsWith('/api/v1/')) {
+      path = '/api/v1/' + path.slice(5);
+    }
     const opts = { method, headers:{} };
     if (body) { opts.body = JSON.stringify(body); opts.headers['Content-Type'] = 'application/json'; }
     // Bearer-Token injizieren wenn vorhanden
