@@ -2,19 +2,6 @@
 
 Diese Datei wurde aus dem Git-Verlauf erstellt (Commits für `beta/nagvis2`).
 
-## 2026-03-20
-### Feature
-- Prometheus `/metrics`-Endpoint: HTTP-Request-Counter/-Histogramm, WebSocket-Verbindungszähler, Backend-Erreichbarkeit, Poll-Dauer/-Fehler, Map-/Objekt-Zähler
-- Strukturiertes JSON-Logging via `python-json-logger` (steuerbar per `LOG_FORMAT=json|text`)
-- Kubernetes Liveness-Probe (`GET /health/live`) und Readiness-Probe (`GET /health/ready`)
-- Helm-Chart `helm/nagvis2/`: Deployment, Service, Ingress, PVC, HPA, ServiceMonitor (Prometheus Operator), ConfigMap für Env-Vars
-- OSM / Weltkarte: neuer Canvas-Modus via Leaflet.js (OpenStreetMap-Tiles, Marker-Drag, konfigurierbarer Tile-Server)
-- Rechtsklick-Kontextmenü auf Map-Karten in der Übersicht (Canvas-Format ändern, Karte öffnen)
-- favicon.svg hinzugefügt (NagVis-Hexagon-Logo)
-
-### Other
-- `requirements.txt`: `prometheus-client>=0.20.0` und `python-json-logger>=2.0.0` ergänzt
-
 ## 2026-03-19
 ### Feature
 - `fa8155f` Add UX tasks for host display and language support

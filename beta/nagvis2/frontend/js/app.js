@@ -47,9 +47,34 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btn-zoom-in') ?.addEventListener('click', () => NV2_ZOOM.zoomIn());
   document.getElementById('btn-zoom-out')?.addEventListener('click', () => NV2_ZOOM.zoomOut());
 
+  // Auth initialisieren – zeigt Login-Overlay wenn AUTH_ENABLED=true und kein Token
+  await nv2Auth.init();
+
   await detectDemoMode();
   await loadMaps();
+
+  // ── URL-Routing: Hash beim Start auswerten ──────────────────────────
+  _routeFromHash();
+
+  // Browser Zurück/Vor
+  window.addEventListener('popstate', e => {
+    if (e.state?.mapId) {
+      openMap(e.state.mapId, { skipHistory: true });
+    } else {
+      showOverview({ skipHistory: true });
+    }
+  });
 
   pollHealth();
   setInterval(pollHealth, 30_000);
 });
+
+function _routeFromHash() {
+  const hash  = location.hash; // z.B. "#/map/datacenter-hh"
+  const match = hash.match(/^#\/map\/(.+)$/);
+  if (match) {
+    const mapId = decodeURIComponent(match[1]);
+    openMap(mapId, { skipHistory: true });
+  }
+  // kein Match → Overview bleibt (default)
+}
