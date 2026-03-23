@@ -4,6 +4,7 @@ NagVis 2 – FastAPI Backend
 
 import time
 import logging
+import logging.handlers
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -243,7 +244,8 @@ async def health_compat():
 #  Static Files
 # ══════════════════════════════════════════════════════════════════════
 
-app.mount("/backgrounds", StaticFiles(directory=str(settings.BG_DIR)), name="backgrounds")
+app.mount("/backgrounds", StaticFiles(directory=str(settings.BG_DIR)),   name="backgrounds")
+app.mount("/thumbnails",  StaticFiles(directory=str(settings.THUMBS_DIR)), name="thumbnails")
 
 _frontend_dir = settings.BASE_DIR.parent / "frontend"
 if _frontend_dir.exists():

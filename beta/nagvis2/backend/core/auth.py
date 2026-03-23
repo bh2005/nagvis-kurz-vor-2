@@ -291,10 +291,17 @@ def get_auth_manager() -> AuthManager:
     return _auth_manager
 
 
+_ANON_ADMIN = AuthUser(username="admin", role="admin", token_id="anon", expires_at=0)
+
+
 def require_auth(
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
 ) -> AuthUser:
-    """Dependency: authentifiziert, jede Rolle."""
+    """Dependency: authentifiziert, jede Rolle.
+    Wenn AUTH_ENABLED=false: gibt anonymen Admin-User zurück (offener Betrieb)."""
+    from core.config import settings
+    if not settings.AUTH_ENABLED:
+        return _ANON_ADMIN
     am = get_auth_manager()
     if not credentials:
         raise HTTPException(

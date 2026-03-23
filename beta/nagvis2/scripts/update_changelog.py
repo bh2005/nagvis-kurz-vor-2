@@ -232,6 +232,75 @@ NagVis 2 - Changelog
                - package.json: backend:start --port 8008
                - helm/nagvis2/values.yaml + deployment.yaml: port 8008
                - docs/admin-guide.md, api-reference.md, README.md aktualisiert
+
+[2026-03-23]   Map-Miniaturbilder (Thumbnails) in der Uebersicht
+               Backend:
+               - core/config.py: THUMBS_DIR = data/thumbnails
+               - core/storage.py: list_maps() liefert 'thumbnail'-Feld
+                 (URL /thumbnails/{id}.png wenn Datei existiert)
+               - core/storage.py: delete_map() loescht auch Thumbnail
+               - api/router.py: POST /api/maps/{id}/thumbnail (PNG-Upload)
+               - api/router.py: DELETE /api/maps/{id}/thumbnail
+               - main.py: /thumbnails/ als StaticFiles gemountet
+               Frontend:
+               - map-core.js: _thumbHtml() - Thumbnail > Hintergrundbild >
+                 OSM-Placeholder > Gitternetz-Placeholder
+               - map-core.js: _captureThumbnail() - liest Node-Positionen
+                 synchron aus dem DOM (vor Canvas-Verstecken)
+               - map-core.js: _buildAndUploadThumb() - zeichnet 320x180 Canvas:
+                 Hintergrundfarbe, Gitternetz, Hintergrundbild, Nodes als
+                 farbige Punkte mit Glow-Effekt; laedt PNG hoch
+               - map-core.js: showOverview() ruft _captureThumbnail() auf
+               - css/styles.css: .ov-thumb, .ov-thumb-ico, .ov-thumb-grid
+
+[2026-03-23]   Bugfix: Auth-Bypass-Fix (AUTH_ENABLED=false)
+               - backend/core/auth.py: _ANON_ADMIN-Singleton; require_auth
+                 gibt diesen zurueck wenn AUTH_ENABLED=false
+               - frontend/js/auth.js: currentUser = { username:'admin',
+                 role:'admin' } wenn Auth deaktiviert; Benutzerverwaltungs-UI
+                 erscheint korrekt
+
+[2026-03-23]   Feature: OSM Cluster-Bubbles
+               - frontend/index.html: Leaflet.markercluster v1.5.3 (CDN)
+               - js/osm.js: _clusterGroup = L.markerClusterGroup(...)
+                 Bubble-Farbe = schlechtester Status der Kind-Marker
+                 (_STATE_RANK: up/ok/warning/unknown/critical)
+                 Edit-Mode deaktiviert Clustering fuer Drag-Unterstuetzung
+
+[2026-03-23]   Bugfix: Thumbnail-Timing-Problem behoben
+               - frontend/js/map-core.js: nach erfolgreichem Upload wird
+                 .ov-thumb-DOM direkt aktualisiert (kein Map-Listen-Reload)
+
+[2026-03-23]   Feature: Audit-Log (N8) - abgeschlossen
+               Backend:
+               - NEU: core/audit.py - append-only JSONL-Log in data/audit.jsonl
+                 audit_log(request, action, **details) schreibt Eintraege
+                 read_audit(limit, map_id, action, user) - gefiltert neueste zuerst
+                 _maybe_rotate: Rotation ab 10.000 Eintraegen (20% Aelteste weg)
+                 User aus Bearer-Token oder X-NV2-User-Header (Fallback: system)
+               - api/router.py: alle mutierenden Endpunkte schreiben Audit
+               - api/auth_router.py: user.create/role_change/password_change/delete
+               - NEU: GET /api/audit?limit=&map_id=&action=&user=
+               Frontend:
+               - index.html: Audit-Log-Button im Burger-Menue + dlg-audit Dialog
+               - js/auth.js: nv2AuditOpen(), nv2AuditLoad() mit Filtern
+               - js/ws-client.js: api() sendet X-NV2-User-Header
+               - css/styles.css: Audit-Tabellen-Stile
+
+[2026-03-23]   Feature: Test-Coverage (N6) - Ziel >= 70% erreicht
+               - backend/pyproject.toml (NEU): pytest-Konfiguration
+               - backend/requirements-dev.txt (NEU): pytest, pytest-asyncio,
+                 pytest-cov, anyio
+               - backend/tests/conftest.py (NEU): data_dirs + client Fixtures
+               - backend/tests/test_ws_manager.py: 25 Tests
+               - backend/tests/test_api_maps.py: 34 Tests
+               - backend/tests/test_auth.py: 17 Tests
+               - backend/tests/test_audit.py: 13 Tests
+               - backend/tests/test_storage.py: 25 Tests
+               - backend/tests/test_perfdata.py: 18 Tests
+               Ergebnis: 137 Tests, alle gruen
+               ws/manager.py: 89%, main.py: 76% (Ziel >= 70% erreicht)
+               - backend/main.py: import logging.handlers ergaenzt
 """
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -276,6 +345,60 @@ MD = """\
 - `package.json`: `backend:start --port 8008`
 - `helm/nagvis2/`: `values.yaml` + `deployment.yaml` auf Port 8008
 - `docs/admin-guide.md`, `api-reference.md`, `README.md` aktualisiert
+
+### Map-Miniaturbilder (Thumbnails) in der Übersicht
+
+**Backend**
+- `core/config.py`: `THUMBS_DIR = data/thumbnails`
+- `core/storage.py`: `list_maps()` liefert `thumbnail`-Feld (URL `/thumbnails/{id}.png` wenn Datei existiert)
+- `core/storage.py`: `delete_map()` löscht auch Thumbnail-Datei
+- `api/router.py`: `POST /api/maps/{id}/thumbnail` (PNG/JPEG/WebP Upload)
+- `api/router.py`: `DELETE /api/maps/{id}/thumbnail`
+- `main.py`: `/thumbnails/` als `StaticFiles` gemountet
+
+**Frontend**
+- `map-core.js`: `_thumbHtml()` — Thumbnail > Hintergrundbild > OSM-Placeholder > Gitternetz-Placeholder
+- `map-core.js`: `_captureThumbnail()` — liest Node-Positionen synchron aus DOM (vor Canvas-Verstecken)
+- `map-core.js`: `_buildAndUploadThumb()` — zeichnet 320×180 Canvas (Hintergrundfarbe, Gitternetz,
+  Hintergrundbild, Nodes als farbige Punkte mit Glow); lädt PNG hoch
+- `map-core.js`: `showOverview()` ruft `_captureThumbnail()` automatisch auf
+- `css/styles.css`: `.ov-thumb`, `.ov-thumb-ico`, `.ov-thumb-grid`
+
+### Bugfix: Auth-Bypass (AUTH_ENABLED=false)
+- `backend/core/auth.py`: `_ANON_ADMIN`-Singleton — `require_auth` gibt diesen zurück wenn `AUTH_ENABLED=false`
+- `frontend/js/auth.js`: `currentUser = { username:'admin', role:'admin' }` wenn Auth deaktiviert → Benutzerverwaltungs-UI erscheint korrekt
+
+### Feature: OSM Cluster-Bubbles ✅
+- `frontend/index.html`: Leaflet.markercluster v1.5.3 (CDN, CSS + JS)
+- `js/osm.js`: `_clusterGroup = L.markerClusterGroup(...)` — Bubble-Farbe zeigt schlechtesten Status der Kind-Marker; Edit-Mode deaktiviert Clustering für Drag-Support
+
+### Bugfix: Thumbnail-Timing-Problem
+- `frontend/js/map-core.js`: nach erfolgreichem Upload wird `.ov-thumb`-DOM direkt aktualisiert (kein Map-Listen-Reload nötig)
+
+### Feature: Audit-Log (N8) ✅
+**Backend**
+- NEU: `core/audit.py` — append-only JSONL-Log in `data/audit.jsonl`
+  - `audit_log(request, action, **details)` — schreibt Eintrag mit Timestamp, User, Action, Details
+  - `read_audit(limit, map_id, action, user)` — filterbares Lesen, neueste zuerst
+  - `_maybe_rotate` — Rotation ab 10.000 Einträgen (20 % älteste gelöscht)
+  - User aus Bearer-Token oder `X-NV2-User`-Header, Fallback `"system"`
+- `api/router.py`: alle mutierenden Endpunkte schreiben Audit-Einträge
+- `api/auth_router.py`: `user.create`, `user.role_change`, `user.password_change`, `user.delete`
+- NEU: `GET /api/audit?limit=&map_id=&action=&user=`
+
+**Frontend**
+- `index.html`: „📜 Audit-Log"-Button im Burger-Menü + `<div id="dlg-audit">`
+- `js/auth.js`: `nv2AuditOpen()`, `nv2AuditLoad()` mit Filterfeldern
+- `js/ws-client.js`: `api()` sendet `X-NV2-User`-Header
+- `css/styles.css`: Audit-Tabellen-Stile
+
+### Feature: Test-Coverage (N6) ✅ — Ziel ≥ 70 % erreicht
+- `backend/pyproject.toml` (NEU): pytest-Konfiguration (`asyncio_mode = "auto"`)
+- `backend/requirements-dev.txt` (NEU): pytest, pytest-asyncio, pytest-cov, anyio
+- `backend/tests/conftest.py` (NEU): `data_dirs` + `client` Fixtures mit vollständiger Isolation
+- Neue Test-Dateien: `test_ws_manager.py` (25), `test_api_maps.py` (34), `test_auth.py` (17), `test_audit.py` (13), `test_storage.py` (25), `test_perfdata.py` (18)
+- **137 Tests, alle grün** — `ws/manager.py` **89 %**, `main.py` **76 %**
+- `backend/main.py`: `import logging.handlers` ergänzt (fehlte → 34 Test-Fehler)
 
 ---
 

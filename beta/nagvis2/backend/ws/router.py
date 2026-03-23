@@ -11,7 +11,6 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from core.config import settings
 from core.storage import get_map
-from core import livestatus
 from ws.manager import manager, start_poller
 
 ws_router = APIRouter()
@@ -27,10 +26,11 @@ async def ws_map(websocket: WebSocket, map_id: str):
     manager.connect(map_id, websocket)
 
     from ws.demo_data import DEMO_STATUS, DEMO_SERVICES
-    is_demo_map = (map_id == "demo-features")
+    from connectors.registry import registry
 
     async def _send_snapshot():
-        if settings.DEMO_MODE or is_demo_map:
+        # Demo-Modus: kein Backend konfiguriert ODER DEMO_MODE Flag ODER demo-features Map
+        if settings.DEMO_MODE or registry.is_empty() or map_id == "demo-features":
             await websocket.send_text(json.dumps({
                 "event":    "snapshot",
                 "ts":       time.time(),
@@ -39,15 +39,15 @@ async def ws_map(websocket: WebSocket, map_id: str):
             }))
         else:
             t0       = time.time()
-            hosts    = await livestatus.get_hosts()
-            services = await livestatus.get_services()
+            hosts    = await registry.get_all_hosts()
+            services = await registry.get_all_services()
             elapsed  = int((time.time() - t0) * 1000)
             await websocket.send_text(json.dumps({
                 "event":    "snapshot",
                 "ts":       time.time(),
                 "elapsed":  elapsed,
-                "hosts":    hosts,
-                "services": services,
+                "hosts":    [h.to_dict() for h in hosts],
+                "services": [s.to_dict() for s in services],
             }))
 
     try:

@@ -57,12 +57,31 @@ function renderMapsSnapin(maps) {
   });
 }
 
+// ── Vorschaubild-HTML für eine Map-Karte ──────────────────────────────
+function _thumbHtml(m) {
+  // Thumbnail (generiertes Vorschaubild) hat Vorrang vor Hintergrundbild
+  const imgUrl = m.thumbnail || m.background;
+  if (imgUrl) {
+    // Cache-Buster damit neu generierte Thumbnails sofort erscheinen
+    const src = imgUrl + (imgUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
+    return `<div class="ov-thumb" style="background-image:url('${src}')"></div>`;
+  }
+  // Placeholder je nach Canvas-Modus
+  const mode = m.canvas?.mode ?? 'free';
+  if (mode === 'osm') {
+    return `<div class="ov-thumb"><span class="ov-thumb-ico">🗺</span></div>`;
+  }
+  // Free / Ratio / Fixed: Gitternetz-Placeholder
+  return `<div class="ov-thumb"><div class="ov-thumb-grid"></div></div>`;
+}
+
 function renderOverview(maps) {
   const grid = document.getElementById('ov-grid');
 
   const cards = maps.map(m => `
     <div class="ov-card" data-map-id="${esc(m.id)}" data-title="${esc(m.title)}"
          data-canvas="${esc(JSON.stringify(m.canvas ?? {}))}">
+      ${_thumbHtml(m)}
       <div class="ov-card-header">
         <div class="ov-card-title">${esc(m.title)}</div>
         <button class="ov-card-menu-btn" data-map-id="${esc(m.id)}"
@@ -221,7 +240,112 @@ async function openMap(mapId, { skipHistory = false } = {}) {
   }
 }
 
+// ── Map-Thumbnail generieren und hochladen ─────────────────────────────
+// Wird synchron aufgerufen bevor Canvas versteckt wird – liest DOM-Positionen
+// sofort, führt den async Upload danach im Hintergrund durch.
+function _captureThumbnail(mapId) {
+  if (!mapId || !activeMapCfg) return;
+  // OSM-Modus: Leaflet-Canvas nicht trivial erfassbar → überspringen
+  if (activeMapCfg.canvas?.mode === 'osm') return;
+
+  const canvasEl = document.getElementById('nv2-canvas');
+  if (!canvasEl) return;
+  const canvasRect = canvasEl.getBoundingClientRect();
+  if (!canvasRect.width || !canvasRect.height) return;
+
+  // Node-Positionen + Status synchron lesen (DOM noch sichtbar)
+  const nodes = [];
+  document.querySelectorAll('#map-canvas-wrapper .nv2-node').forEach(node => {
+    const r  = node.getBoundingClientRect();
+    const nx = (r.left + r.width  / 2 - canvasRect.left) / canvasRect.width;
+    const ny = (r.top  + r.height / 2 - canvasRect.top)  / canvasRect.height;
+    if (nx < 0 || nx > 1 || ny < 0 || ny > 1) return; // außerhalb Canvas
+    let status = 'unknown';
+    if      (node.classList.contains('nv2-ok'))       status = 'ok';
+    else if (node.classList.contains('nv2-warning'))  status = 'warning';
+    else if (node.classList.contains('nv2-critical')) status = 'critical';
+    else if (node.classList.contains('nv2-down'))     status = 'down';
+    nodes.push({ nx, ny, status });
+  });
+
+  const bg = activeMapCfg.background ?? null;
+  _buildAndUploadThumb(mapId, bg, nodes);
+}
+
+async function _buildAndUploadThumb(mapId, bg, nodes) {
+  const W = 320, H = 180;
+  const offscreen = document.createElement('canvas');
+  offscreen.width = W; offscreen.height = H;
+  const ctx = offscreen.getContext('2d');
+
+  // Hintergrundfarbe (CSS-Variable auslesen)
+  const bgColor = getComputedStyle(document.documentElement)
+    .getPropertyValue('--canvas-bg').trim() || '#1a1a2e';
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, W, H);
+
+  // Gitternetz (wie #map-area::before)
+  const gridColor = getComputedStyle(document.documentElement)
+    .getPropertyValue('--canvas-grid').trim() || 'rgba(255,255,255,0.05)';
+  ctx.strokeStyle = gridColor;
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x <= W; x += 14) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y <= H; y += 14) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+  // Hintergrundbild laden falls vorhanden
+  if (bg) {
+    await new Promise(resolve => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload  = () => { ctx.drawImage(img, 0, 0, W, H); resolve(); };
+      img.onerror = resolve;
+      img.src = bg;
+    });
+  }
+
+  // Nodes als farbige Punkte mit Glow
+  const STATUS_COLORS = {
+    ok: '#4caf50', warning: '#ff9800', critical: '#f44336',
+    down: '#f44336', unknown: '#78909c',
+  };
+  nodes.forEach(({ nx, ny, status }) => {
+    const x = nx * W, y = ny * H;
+    const color = STATUS_COLORS[status] || '#78909c';
+    ctx.shadowColor = color;
+    ctx.shadowBlur  = 8;
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  });
+
+  offscreen.toBlob(async blob => {
+    if (!blob) return;
+    const fd = new FormData();
+    fd.append('file', blob, 'thumbnail.png');
+    try {
+      const r = await fetch(`/api/maps/${mapId}/thumbnail`, { method: 'POST', body: fd });
+      if (!r.ok) return;
+      const data = await r.json();
+      const thumbUrl = data.url;
+      if (!thumbUrl) return;
+      // Karte in der Übersicht sofort aktualisieren (kein Reload nötig)
+      const card = document.querySelector(`.ov-card[data-map-id="${mapId}"]`);
+      if (!card) return;
+      const thumbEl = card.querySelector('.ov-thumb');
+      if (!thumbEl) return;
+      const src = thumbUrl + '?t=' + Date.now();
+      thumbEl.style.backgroundImage = `url('${src}')`;
+      thumbEl.innerHTML = '';  // Placeholder-Inhalt (Grid/Icon) entfernen
+    } catch { /* best-effort */ }
+  }, 'image/png');
+}
+
 function showOverview({ skipHistory = false } = {}) {
+  // Thumbnail erfassen bevor Canvas versteckt wird
+  if (activeMapId) _captureThumbnail(activeMapId);
+
   if (!skipHistory) history.pushState(null, '', '#/');
   document.getElementById('app')?.classList.remove('map-open');
   document.getElementById('app')?.classList.remove('sidebar-expanded');

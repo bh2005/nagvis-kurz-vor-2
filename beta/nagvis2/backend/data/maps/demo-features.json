@@ -30,8 +30,8 @@
       "type": "service",
       "name": "HTTP Response Time",
       "host_name": "srv-web-01",
-      "x": 15.0,
-      "y": 35.0,
+      "x": 38.05,
+      "y": 46.51,
       "iconset": "default",
       "label": "HTTP (CRITICAL)"
     },
@@ -142,8 +142,8 @@
     {
       "object_id": "gadget::memory-01",
       "type": "gadget",
-      "x": 45,
-      "y": 55,
+      "x": 37.65,
+      "y": 55.24,
       "gadget_config": {
         "type": "linear",
         "metric": "RAM",
@@ -193,8 +193,8 @@
     {
       "object_id": "gadget::flow-01",
       "type": "gadget",
-      "x": 50,
-      "y": 72,
+      "x": 36.93,
+      "y": 69.62,
       "gadget_config": {
         "type": "weather",
         "metric": "Backbone",

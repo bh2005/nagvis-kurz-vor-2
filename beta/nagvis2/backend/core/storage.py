@@ -51,13 +51,16 @@ def list_maps() -> list[dict]:
     for p in sorted(settings.MAPS_DIR.glob("*.json")):
         data = _read_json(p)
         if data:
+            mid = data.get("id", p.stem)
+            thumb_path = settings.THUMBS_DIR / f"{mid}.png"
             maps.append({
-                "id":           data.get("id", p.stem),
+                "id":           mid,
                 "title":        data.get("title", p.stem),
                 "object_count": len(data.get("objects", [])),
                 "parent_map":   data.get("parent_map"),
                 "canvas":       data.get("canvas", {"mode": "free"}),
                 "background":   data.get("background"),
+                "thumbnail":    f"/thumbnails/{mid}.png" if thumb_path.exists() else None,
             })
     return maps
 
@@ -104,6 +107,10 @@ def delete_map(map_id: str) -> bool:
             bg = settings.BG_DIR / f"{map_id}.{ext}"
             if bg.exists():
                 bg.unlink()
+        # Thumbnail löschen falls vorhanden
+        thumb = settings.THUMBS_DIR / f"{map_id}.png"
+        if thumb.exists():
+            thumb.unlink()
         return True
     return False
 

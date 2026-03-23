@@ -29,6 +29,7 @@ class Settings:
     DATA_DIR: Path       = BASE_DIR / "data"
     MAPS_DIR: Path       = DATA_DIR / "maps"
     BG_DIR: Path         = DATA_DIR / "backgrounds"
+    THUMBS_DIR: Path     = DATA_DIR / "thumbnails"
     KIOSK_DIR: Path      = DATA_DIR / "kiosk"
 
     # ── Livestatus ──────────────────────────────────────────────────────
@@ -49,7 +50,7 @@ class Settings:
     NAGVIS_SECRET: str = os.getenv("NAGVIS_SECRET", "")  # JWT-Signing-Key
 
     def ensure_dirs(self):
-        for d in [self.DATA_DIR, self.MAPS_DIR, self.BG_DIR, self.KIOSK_DIR]:
+        for d in [self.DATA_DIR, self.MAPS_DIR, self.BG_DIR, self.THUMBS_DIR, self.KIOSK_DIR]:
             d.mkdir(parents=True, exist_ok=True)
 
     @property

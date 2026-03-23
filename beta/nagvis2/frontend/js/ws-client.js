@@ -342,6 +342,9 @@ async function api(path, method = 'GET', body = null) {
     // Bearer-Token injizieren wenn vorhanden
     const _token = window.nv2Auth?.getToken?.();
     if (_token) opts.headers['Authorization'] = `Bearer ${_token}`;
+    // Benutzername für Audit-Log (auch wenn Auth deaktiviert)
+    const _user = window.nv2Auth?.currentUser?.username;
+    if (_user) opts.headers['X-NV2-User'] = _user;
     const r = await fetch(path, opts);
     // 401 → Auth-Handler aufrufen
     if (r.status === 401) { window.nv2Auth?.handleUnauthorized?.(); return null; }

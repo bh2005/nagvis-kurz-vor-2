@@ -8,6 +8,11 @@
       "port": 6557,
       "timeout": 10.0,
       "enabled": true
+    },
+    {
+      "backend_id": "demo",
+      "type": "demo",
+      "enabled": true
     }
   ]
 }

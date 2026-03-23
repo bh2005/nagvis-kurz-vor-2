@@ -20,6 +20,8 @@ from typing import Literal, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from fastapi import Request
+
 from core.auth import (
     AuthUser,
     get_auth_manager,
@@ -27,6 +29,7 @@ from core.auth import (
     require_admin,
     ROLE_RANK,
 )
+from core.audit import audit_log
 from core.config import settings
 from core.users import get_user_manager
 
@@ -112,6 +115,7 @@ async def list_users(_: AuthUser = Depends(require_admin)):
 @auth_router.post("/users", status_code=201)
 async def create_user(
     body: CreateUserRequest,
+    request: Request,
     _: AuthUser = Depends(require_admin),
 ):
     """Neuen Benutzer anlegen (admin only)."""
@@ -122,6 +126,7 @@ async def create_user(
     ok = get_user_manager().create_user(body.username.strip(), body.password, body.role)
     if not ok:
         raise HTTPException(409, detail=f"Benutzer '{body.username}' existiert bereits")
+    audit_log(request, "user.create", username=body.username, role=body.role)
     return {"ok": True, "username": body.username, "role": body.role}
 
 
@@ -129,25 +134,28 @@ async def create_user(
 async def patch_user(
     username: str,
     body: PatchUserRequest,
+    request: Request,
     current_user: AuthUser = Depends(require_admin),
 ):
     """Rolle oder Passwort eines Benutzers ändern (admin only)."""
     um = get_user_manager()
     if not um.exists(username):
         raise HTTPException(404, detail=f"Benutzer '{username}' nicht gefunden")
-    # Admins dürfen sich nicht selbst degradieren
     if username == current_user.username and body.role and body.role != "admin":
         raise HTTPException(400, detail="Admins können sich selbst nicht degradieren")
     if body.role:
         um.change_role(username, body.role)
+        audit_log(request, "user.role_change", username=username, new_role=body.role)
     if body.password:
         um.change_password(username, body.password)
+        audit_log(request, "user.password_change", username=username)
     return {"ok": True}
 
 
 @auth_router.delete("/users/{username}")
 async def delete_user(
     username: str,
+    request: Request,
     current_user: AuthUser = Depends(require_admin),
 ):
     """Benutzer löschen (admin only)."""
@@ -156,4 +164,5 @@ async def delete_user(
     ok = get_user_manager().delete_user(username)
     if not ok:
         raise HTTPException(404, detail=f"Benutzer '{username}' nicht gefunden")
+    audit_log(request, "user.delete", username=username)
     return {"ok": True}
