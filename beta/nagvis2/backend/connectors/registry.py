@@ -1,7 +1,7 @@
 """
 connectors/registry.py
 ======================
-Unified Backend Registry – verwaltet Livestatus-, Checkmk- und Demo-Backends.
+Unified Backend Registry – verwaltet Livestatus-, Checkmk-, Icinga2- und Demo-Backends.
 
 Persistenz:  data/backends.json
 Laufzeit:    add_backend() / remove_backend() / toggle_backend() wirken sofort
@@ -10,6 +10,8 @@ Unterstützte Backend-Typen:
   "livestatus_tcp"   – Livestatus via TCP (remote/distributed)
   "livestatus_unix"  – Livestatus via Unix-Socket (lokal / OMD)
   "checkmk"          – Checkmk REST API v1.0
+  "icinga2"          – Icinga2 REST API v1
+  "zabbix"           – Zabbix JSON-RPC API (6.0+ empfohlen)
   "demo"             – Statische Demo-Daten ohne Verbindung
 
 Singleton-Instanz:
@@ -30,11 +32,13 @@ from livestatus.client import (
     ServiceStatus,
 )
 from checkmk.client import CheckmkClient, CheckmkConfig
+from icinga2.client import Icinga2Client, Icinga2Config
 from connectors.demo_client import DemoClient, DemoConfig
+from zabbix.client import ZabbixClient, ZabbixConfig
 
 log = logging.getLogger("nagvis.registry")
 
-AnyClient = Union[LivestatusClient, CheckmkClient, DemoClient]
+AnyClient = Union[LivestatusClient, CheckmkClient, Icinga2Client, ZabbixClient, DemoClient]
 
 
 class UnifiedRegistry:
@@ -109,6 +113,31 @@ class UnifiedRegistry:
                 "verify_ssl": c.verify_ssl,
                 "enabled":    c.enabled,
             }
+        if isinstance(client, Icinga2Client):
+            c = client.cfg
+            return {
+                "backend_id": c.backend_id,
+                "type":       "icinga2",
+                "base_url":   c.base_url,
+                "username":   c.username,
+                "password":   c.password,
+                "timeout":    c.timeout,
+                "verify_ssl": c.verify_ssl,
+                "enabled":    c.enabled,
+            }
+        if isinstance(client, ZabbixClient):
+            c = client.cfg
+            return {
+                "backend_id": c.backend_id,
+                "type":       "zabbix",
+                "url":        c.url,
+                "token":      c.token,
+                "username":   c.username,
+                "password":   c.password,
+                "timeout":    c.timeout,
+                "verify_ssl": c.verify_ssl,
+                "enabled":    c.enabled,
+            }
         if isinstance(client, DemoClient):
             c = client.cfg
             return {
@@ -132,6 +161,27 @@ class UnifiedRegistry:
                     base_url   = entry.get("base_url", ""),
                     username   = entry.get("username", "automation"),
                     secret     = entry.get("secret", ""),
+                    timeout    = float(entry.get("timeout", 15.0)),
+                    verify_ssl = bool(entry.get("verify_ssl", True)),
+                    enabled    = bool(entry.get("enabled", True)),
+                ))
+            elif t == "icinga2":
+                return Icinga2Client(Icinga2Config(
+                    backend_id = entry["backend_id"],
+                    base_url   = entry.get("base_url", "https://localhost:5665/v1"),
+                    username   = entry.get("username", "nagvis2"),
+                    password   = entry.get("password", ""),
+                    timeout    = float(entry.get("timeout", 15.0)),
+                    verify_ssl = bool(entry.get("verify_ssl", False)),
+                    enabled    = bool(entry.get("enabled", True)),
+                ))
+            elif t == "zabbix":
+                return ZabbixClient(ZabbixConfig(
+                    backend_id = entry["backend_id"],
+                    url        = entry.get("url", "https://zabbix.example.com"),
+                    token      = entry.get("token", ""),
+                    username   = entry.get("username", "Admin"),
+                    password   = entry.get("password", ""),
                     timeout    = float(entry.get("timeout", 15.0)),
                     verify_ssl = bool(entry.get("verify_ssl", True)),
                     enabled    = bool(entry.get("enabled", True)),
@@ -380,6 +430,24 @@ class UnifiedRegistry:
                 "type":       "checkmk",
                 "address":    c.base_url,
                 "username":   c.username,
+                "enabled":    True,
+            }
+        if isinstance(client, Icinga2Client):
+            c = client.cfg
+            return {
+                "backend_id": c.backend_id,
+                "type":       "icinga2",
+                "address":    c.base_url,
+                "username":   c.username,
+                "enabled":    True,
+            }
+        if isinstance(client, ZabbixClient):
+            c = client.cfg
+            return {
+                "backend_id": c.backend_id,
+                "type":       "zabbix",
+                "address":    c.url,
+                "username":   c.username if not c.token else "(API-Token)",
                 "enabled":    True,
             }
         if isinstance(client, DemoClient):

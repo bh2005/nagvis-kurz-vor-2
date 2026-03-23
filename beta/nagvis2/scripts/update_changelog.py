@@ -439,6 +439,46 @@ NagVis 2 - Changelog
                  wenn data-label-template gesetzt
                - nodes.js: Props-Dialog mit Template-Eingabe und
                  Macro-Referenz-Uebersicht
+
+[2026-03-23]   Feature: Icinga2 REST API Connector
+               Backend:
+               - icinga2/__init__.py: neues Python-Package
+               - icinga2/client.py: Icinga2Client + Icinga2Config
+                 GET /v1/objects/hosts|services|hostgroups (via POST +
+                 X-HTTP-Method-Override: GET); Basic Auth
+                 HostStatus: available->state, vars->labels
+                 ServiceStatus: state, perf_data (Liste->String)
+                 Aktionen: acknowledge, remove_ack, schedule_downtime,
+                 reschedule_check, ping (GET /v1)
+               - connectors/registry.py: Icinga2Client in AnyClient,
+                 _make_client(), _raw_from_client(), _client_info()
+               Frontend:
+               - map-core.js: Icinga2 REST API im Typ-Dropdown
+               - map-core.js: bm-fields-icinga2 (URL, User, Passwort,
+                 SSL-Checkbox; verify_ssl=false als Default)
+               - map-core.js: _bmUpdateFields(), _bmBuildEntry(),
+                 _bmClearForm(), _bmEditLoad() fuer icinga2 erweitert
+
+[2026-03-23]   Feature: Zabbix JSON-RPC Connector
+               Backend:
+               - zabbix/__init__.py: neues Python-Package
+               - zabbix/client.py: ZabbixClient + ZabbixConfig
+                 JSON-RPC 2.0 via POST /api_jsonrpc.php
+                 Auth: Bearer-Token (Zabbix 6.0+) oder user.login
+                 host.get: available->state, maintenance_status->in_downtime
+                 problem.get: severity->state, tags->labels
+                 hostgroup.get: Gruppen mit Host-Mitgliedern
+                 Wartung: maintenance.create (Host-Level)
+                 ACK: event.acknowledge (action=6: ack+message)
+                 ping: apiinfo.version (kein Auth noetig)
+               - connectors/registry.py: ZabbixClient in AnyClient,
+                 _make_client(), _raw_from_client(), _client_info()
+               Frontend:
+               - map-core.js: Zabbix JSON-RPC API im Typ-Dropdown
+               - map-core.js: bm-fields-zabbix (URL, API-Token,
+                 User/Passwort-Fallback, SSL-Checkbox)
+               - map-core.js: _bmUpdateFields(), _bmBuildEntry(),
+                 _bmClearForm(), _bmEditLoad() fuer zabbix erweitert
 """
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -656,6 +696,46 @@ MD = """\
 - `js/nodes.js`: `_applyLabelTemplate(el, obj, status)` — aktualisiert DOM bei jedem WS-Status-Update
 - `js/nodes.js`: `applyStatuses()` — ruft `_applyLabelTemplate` auf wenn `data-label-template` gesetzt
 - `js/nodes.js`: Props-Dialog mit Template-Eingabefeld und Macro-Referenz-Übersicht
+
+### Feature: Icinga2 REST API Connector ✅
+
+**Backend**
+- `icinga2/__init__.py`: neues Python-Package
+- `icinga2/client.py`: `Icinga2Client` + `Icinga2Config`
+  - `GET /v1/objects/hosts|services|hostgroups` (via `POST` + `X-HTTP-Method-Override: GET`)
+  - Basic Auth; `verify_ssl=False` als Default (selbstsignierte Zertifikate)
+  - `HostStatus`: `available` → state, `vars.*` → labels
+  - `ServiceStatus`: state, `perf_data` (Liste → String), labels
+  - Aktionen: `acknowledge_host/service`, `remove_host/service_ack`,
+    `schedule_host/service_downtime`, `reschedule_check`, `ping`
+- `connectors/registry.py`: `Icinga2Client` in `AnyClient`, `_make_client()`,
+  `_raw_from_client()`, `_client_info()`
+
+**Frontend**
+- `map-core.js`: „Icinga2 REST API" im Typ-Dropdown
+- `map-core.js`: `bm-fields-icinga2` (URL, Benutzer, Passwort, SSL-Checkbox)
+- `map-core.js`: `_bmUpdateFields()`, `_bmBuildEntry()`, `_bmClearForm()`, `_bmEditLoad()` erweitert
+
+### Feature: Zabbix JSON-RPC Connector ✅
+
+**Backend**
+- `zabbix/__init__.py`: neues Python-Package
+- `zabbix/client.py`: `ZabbixClient` + `ZabbixConfig`
+  - JSON-RPC 2.0 via `POST /api_jsonrpc.php`
+  - Auth: Bearer-Token (Zabbix 6.0+) oder `user.login` (Fallback)
+  - `host.get`: `available` → state, `maintenance_status` → in_downtime, Tags → labels
+  - `problem.get`: `severity` → state (0–2=WARNING, 3–5=CRITICAL), Tags → labels
+  - `hostgroup.get`: Gruppen mit Host-Mitgliedern
+  - Wartung: `maintenance.create` (Host-Level; Zabbix kennt keine Service-Downtimes)
+  - ACK: `event.acknowledge` (action=6: acknowledge + message)
+  - `ping`: `apiinfo.version` (kein Auth erforderlich)
+- `connectors/registry.py`: `ZabbixClient` in `AnyClient`, `_make_client()`,
+  `_raw_from_client()`, `_client_info()`
+
+**Frontend**
+- `map-core.js`: „Zabbix JSON-RPC API" im Typ-Dropdown
+- `map-core.js`: `bm-fields-zabbix` (URL, API-Token, Benutzer/Passwort-Fallback, SSL-Checkbox)
+- `map-core.js`: `_bmUpdateFields()`, `_bmBuildEntry()`, `_bmClearForm()`, `_bmEditLoad()` erweitert
 
 ---
 
