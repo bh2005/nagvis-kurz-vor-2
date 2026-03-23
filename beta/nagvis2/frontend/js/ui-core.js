@@ -465,19 +465,11 @@ async function openAboutDlg() {
       if (!clLoaded) {
         view.textContent = 'Lade …';
         try {
-          const r = await fetch('/changelog.txt');
-          // changelog.txt ist UTF-16 → als ArrayBuffer lesen und dekodieren
-          const buf  = await r.arrayBuffer();
-          const text = new TextDecoder('utf-16').decode(buf);
-          view.textContent = text;
+          const r = await fetch('/api/v1/changelog');
+          if (!r.ok) throw new Error(r.status);
+          view.textContent = await r.text();
         } catch {
-          try {
-            // Fallback: changelog.md (UTF-8)
-            const r = await fetch('/changelog.md');
-            view.textContent = await r.text();
-          } catch {
-            view.textContent = 'Changelog konnte nicht geladen werden.';
-          }
+          view.textContent = 'Changelog konnte nicht geladen werden.';
         }
         clLoaded = true;
       }
