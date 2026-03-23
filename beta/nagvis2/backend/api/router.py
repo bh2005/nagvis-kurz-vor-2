@@ -98,13 +98,39 @@ class ObjectProps(BaseModel):
     y2: Optional[float] = None
 
 class ActionRequest(BaseModel):
-    action: str           # "ack_host" | "ack_service" | "downtime_host" | "reschedule"
-    host_name: str
+    action: str                        # "downtime_host" | "downtime_service" | "schedule_downtime"
+                                       # | "ack_host" | "ack_service" | "reschedule"
+    # Canonical field names
+    host_name:    str      = ""
     service_name: Optional[str] = None
-    comment: Optional[str] = "NagVis 2"
-    author: Optional[str] = "nagvis2"
-    start_time: Optional[int] = None
-    end_time: Optional[int] = None
+    start_time:   Optional[int] = None
+    end_time:     Optional[int] = None
+    # Frontend-Aliases (ältere Aufrufe)
+    hostname:     Optional[str] = None
+    service:      Optional[str] = None
+    start:        Optional[int] = None
+    end:          Optional[int] = None
+    # Gemeinsam
+    comment:     Optional[str] = "NagVis 2"
+    author:      Optional[str] = "nagvis2"
+    child_hosts: bool = False
+    type:        Optional[str] = None  # "host" | "service" – von Frontend mitgeschickt
+
+    @property
+    def eff_host(self) -> str:
+        return self.host_name or self.hostname or ""
+
+    @property
+    def eff_service(self) -> Optional[str]:
+        return self.service_name or self.service
+
+    @property
+    def eff_start(self) -> Optional[int]:
+        return self.start_time or self.start
+
+    @property
+    def eff_end(self) -> Optional[int]:
+        return self.end_time or self.end
 
 class BackendCreate(BaseModel):
     backend_id:  str
@@ -122,6 +148,9 @@ class BackendCreate(BaseModel):
     # Gemeinsam
     timeout:     Optional[float] = None
     enabled:     bool = True
+
+class BackendEnabledUpdate(BaseModel):
+    enabled: bool
 
 class KioskUser(BaseModel):
     label: str
@@ -427,34 +456,75 @@ async def api_action(body: ActionRequest):
     if settings.DEMO_MODE:
         return {"status": "ok", "demo": True}
 
-    ok = False
+    ok  = False
     now = int(time.time())
+    host    = body.eff_host
+    svc     = body.eff_service
+    comment = body.comment or "NagVis 2"
+    author  = body.author  or "nagvis2"
+
+    if not host:
+        raise HTTPException(400, "host_name fehlt")
 
     if body.action == "ack_host":
-        ok = await livestatus.acknowledge_host(
-            body.host_name, body.comment or "", body.author or "nagvis2")
+        ok = await livestatus.acknowledge_host(host, comment, author)
 
     elif body.action == "ack_service":
-        if not body.service_name:
+        if not svc:
             raise HTTPException(400, "service_name erforderlich")
-        ok = await livestatus.acknowledge_service(
-            body.host_name, body.service_name, body.comment or "", body.author or "nagvis2")
+        ok = await livestatus.acknowledge_service(host, svc, comment, author)
 
-    elif body.action == "downtime_host":
-        start = body.start_time or now
-        end   = body.end_time   or (now + 3600)
-        ok = await livestatus.schedule_host_downtime(
-            body.host_name, start, end, body.comment or "", body.author or "nagvis2")
+    elif body.action in ("downtime_host", "schedule_downtime") and not svc and body.type != "service":
+        # Host-Downtime (auch via Registry für Checkmk-Backends)
+        start = body.eff_start or now
+        end   = body.eff_end   or (now + 3600)
+        ok = await registry.schedule_downtime(
+            host, start, end, comment, author,
+            service_name=None, child_hosts=body.child_hosts,
+        )
+        if not ok:
+            # Fallback auf direkten Livestatus
+            ok = await livestatus.schedule_host_downtime(host, start, end, comment, author)
+
+    elif body.action in ("downtime_service", "schedule_downtime") and (svc or body.type == "service"):
+        if not svc:
+            raise HTTPException(400, "service_name erforderlich für Service-Downtime")
+        start = body.eff_start or now
+        end   = body.eff_end   or (now + 3600)
+        ok = await registry.schedule_downtime(
+            host, start, end, comment, author, service_name=svc,
+        )
+        if not ok:
+            ok = await livestatus.schedule_service_downtime(host, svc, start, end, comment, author)
 
     elif body.action == "reschedule":
-        ok = await livestatus.reschedule_host_check(body.host_name)
+        ok = await livestatus.reschedule_host_check(host)
 
     else:
         raise HTTPException(400, f"Unbekannte Aktion: {body.action}")
 
     if not ok:
-        raise HTTPException(502, "Livestatus-Kommando fehlgeschlagen")
+        raise HTTPException(502, "Aktion fehlgeschlagen – Backend nicht erreichbar?")
     return {"status": "ok"}
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  Hostgruppen
+# ══════════════════════════════════════════════════════════════════════
+
+@api_router.get("/hostgroups")
+async def api_hostgroups():
+    """
+    Alle Hostgruppen mit Mitgliederliste.
+    Gibt [] zurück wenn kein Backend erreichbar oder DEMO_MODE aktiv.
+    """
+    if settings.DEMO_MODE:
+        return []
+    # Registry zuerst (Checkmk + Livestatus), Fallback auf direkten Livestatus
+    result = await registry.get_all_hostgroups()
+    if not result:
+        result = await livestatus.get_hostgroups()
+    return result
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -519,11 +589,41 @@ async def api_add_backend(body: BackendCreate):
     return registry.get_backend_info(backend_id)
 
 
+@api_router.get("/backends/{backend_id}")
+async def api_get_backend(backend_id: str):
+    cfg = registry.get_raw_config(backend_id)
+    if not cfg:
+        raise HTTPException(404, f"Backend '{backend_id}' nicht gefunden")
+    return cfg
+
+
+@api_router.patch("/backends/{backend_id}", status_code=200)
+async def api_update_backend(backend_id: str, body: BackendCreate):
+    if not registry.get_backend_info(backend_id):
+        raise HTTPException(404, f"Backend '{backend_id}' nicht gefunden")
+    registry.remove_backend(backend_id)
+    entry = body.model_dump(exclude_none=True)
+    try:
+        new_id = registry.add_backend(entry)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return registry.get_backend_info(new_id)
+
+
 @api_router.delete("/backends/{backend_id}")
 async def api_remove_backend(backend_id: str):
     if not registry.remove_backend(backend_id):
         raise HTTPException(404, f"Backend '{backend_id}' nicht gefunden")
     return {"deleted": backend_id}
+
+
+@api_router.put("/backends/{backend_id}/enabled", status_code=200)
+async def api_toggle_backend(backend_id: str, body: BackendEnabledUpdate):
+    """Aktiviert oder deaktiviert ein Backend ohne es zu entfernen."""
+    ok = registry.toggle_backend(backend_id, body.enabled)
+    if not ok:
+        raise HTTPException(404, f"Backend '{backend_id}' nicht gefunden")
+    return {"backend_id": backend_id, "enabled": body.enabled}
 
 
 @api_router.post("/backends/{backend_id}/test")
@@ -547,6 +647,7 @@ async def api_kiosk_resolve(token: str = Query(...)):
 
 
 # ══════════════════════════════════════════════════════════════════════
+<<<<<<< HEAD
 #  System-Log
 # ══════════════════════════════════════════════════════════════════════
 
@@ -575,3 +676,56 @@ async def api_get_logs(
         )
 
     return {"lines": log_lines, "total": len(log_lines), "buffered": len(get_log_lines())}
+=======
+#  System-Logs
+# ══════════════════════════════════════════════════════════════════════
+
+_NGINX_PATHS = {
+    "nginx_access": [
+        "/var/log/nginx/access.log",
+        "/var/log/nginx/nagvis2-access.log",
+    ],
+    "nginx_error": [
+        "/var/log/nginx/error.log",
+        "/var/log/nginx/nagvis2-error.log",
+    ],
+}
+
+
+def _tail_file(path: str, lines: int) -> list[str]:
+    """Letzte N Zeilen einer Datei lesen (effizient via seek)."""
+    p = Path(path)
+    if not p.exists():
+        return []
+    try:
+        with open(p, "rb") as f:
+            f.seek(0, 2)
+            size = f.tell()
+            buf  = min(size, lines * 200)
+            f.seek(max(0, size - buf))
+            raw  = f.read().decode("utf-8", errors="replace")
+        all_lines = raw.splitlines()
+        return all_lines[-lines:]
+    except Exception as e:
+        return [f"[Lesefehler: {e}]"]
+
+
+@api_router.get("/logs")
+async def api_logs(
+    source: str = Query("app", description="app | nginx_access | nginx_error"),
+    lines:  int = Query(200, ge=10, le=2000),
+):
+    if source == "app":
+        log_path = str(settings.DATA_DIR / "nagvis2.log")
+        result   = _tail_file(log_path, lines)
+        return {"source": source, "path": log_path, "lines": result}
+
+    if source in _NGINX_PATHS:
+        for candidate in _NGINX_PATHS[source]:
+            content = _tail_file(candidate, lines)
+            if content:
+                return {"source": source, "path": candidate, "lines": content}
+        return {"source": source, "path": None, "lines": ["[Nginx-Log nicht gefunden]"]}
+
+    raise HTTPException(400, f"Unbekannte Log-Quelle: {source}")
+>>>>>>> 069f706b9f472e5c070fd976710890e94095f3d4

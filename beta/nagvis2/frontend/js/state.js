@@ -24,6 +24,8 @@ window.perfdataCache = {};     // "hostname::service_desc" → { metric: {value,
 window.eventLog      = [];
 window.activeSnapin  = null;
 window.currentTheme  = 'dark';
+window.mapStatusCache  = {};   // mapId → { ok, warn, crit, unkn } – befüllt von applyStatuses()
+window.hostgroupCache  = {};   // groupName → [host_name, …]  – befüllt von loadHostgroups()
 
 // ── Kiosk-Rotations-System ──────────────────────────────────────────────
 window._kioskUsers    = [];
