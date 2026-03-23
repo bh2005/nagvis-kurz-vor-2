@@ -83,8 +83,8 @@ Alternativ Checkmk REST API als Backend konfigurieren: Burger-Menü → **⚙ Ba
 | URL | Inhalt |
 |---|---|
 | `http://localhost:8008/help/` | Integriertes Benutzer- und Admin-Handbuch (MkDocs) |
-| `http://localhost:8008/api/docs` | Swagger UI (nur wenn `DEBUG=true`) |
-| `http://localhost:8008/api/health` | System-Status + Backend-Erreichbarkeit |
+| `http://localhost:8008/api/v1/docs` | Swagger UI (immer verfügbar) |
+| `http://localhost:8008/api/v1/health` | System-Status + Backend-Erreichbarkeit |
 
 ---
 

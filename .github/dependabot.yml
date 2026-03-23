@@ -1,0 +1,50 @@
+version: 2
+
+updates:
+  # Python – backend/requirements.txt + requirements-dev.txt
+  - package-ecosystem: pip
+    directory: /beta/nagvis2/backend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: Europe/Berlin
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - python
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # FastAPI + Pydantic gemeinsam updaten (oft gegenseitig abhängig)
+      fastapi-stack:
+        patterns:
+          - "fastapi"
+          - "pydantic*"
+          - "uvicorn*"
+          - "python-multipart"
+      # Test-Tools zusammenfassen
+      test-tools:
+        patterns:
+          - "pytest*"
+          - "anyio*"
+      # Monitoring
+      observability:
+        patterns:
+          - "prometheus-client"
+          - "python-json-logger"
+
+  # GitHub Actions – alle Workflow-Dateien
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: Europe/Berlin
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - github-actions
+    commit-message:
+      prefix: "chore(actions)"

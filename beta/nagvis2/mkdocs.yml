@@ -1,8 +1,11 @@
 site_name: NagVis 2 Help
 site_description: NagVis 2 Bedienungsanleitung & Referenz
 site_author: NagVis 2 Team
+site_url: https://bh2005.github.io/nagvis-kurz-vor-2/
 
 docs_dir: docs
+# Lokaler Build (mkdocs build) → frontend/help/   (von FastAPI ausgeliefert)
+# GitHub Pages (mkdocs gh-deploy) → gh-pages Branch (automatisch)
 site_dir: frontend/help
 
 theme:

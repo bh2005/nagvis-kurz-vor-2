@@ -104,7 +104,7 @@ app = FastAPI(
     title="NagVis 2",
     version="2.0-beta",
     lifespan=lifespan,
-    docs_url="/api/docs" if settings.DEBUG else None,
+    docs_url="/api/v1/docs",
     redoc_url=None,
 )
 
@@ -152,6 +152,22 @@ from ws.router       import ws_router
 app.include_router(auth_router)
 app.include_router(api_router)
 app.include_router(ws_router)
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  Rückwärts-Kompatibilität: /api/* → /api/v1/*
+#  Externe Tools (Prometheus-Scraper, Scripts) die noch /api/ nutzen
+#  erhalten einen 308 Permanent Redirect.
+# ══════════════════════════════════════════════════════════════════════
+
+from fastapi.responses import RedirectResponse
+
+@app.api_route("/api/{rest_of_path:path}",
+               methods=["GET","POST","PUT","PATCH","DELETE"],
+               include_in_schema=False)
+async def api_compat_redirect(rest_of_path: str):
+    """308 Permanent Redirect von /api/* auf /api/v1/*."""
+    return RedirectResponse(url=f"/api/v1/{rest_of_path}", status_code=308)
 
 
 # ══════════════════════════════════════════════════════════════════════

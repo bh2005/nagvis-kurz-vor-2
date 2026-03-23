@@ -4,15 +4,15 @@ NagVis 2 – Auth Router
 
 Endpunkte
 ---------
-POST  /api/auth/login              – Username + Passwort → JWT
-GET   /api/auth/me                 – Aktuell eingeloggter User
-POST  /api/auth/logout             – Aktuelles Token widerrufen
-GET   /api/auth/config             – Gibt { auth_enabled } zurück (kein Auth nötig)
+POST  /api/v1/auth/login              – Username + Passwort → JWT
+GET   /api/v1/auth/me                 – Aktuell eingeloggter User
+POST  /api/v1/auth/logout             – Aktuelles Token widerrufen
+GET   /api/v1/auth/config             – Gibt { auth_enabled } zurück (kein Auth nötig)
 
-GET   /api/auth/users              – Alle lokalen User (admin)
-POST  /api/auth/users              – Neuen User anlegen (admin)
-PATCH /api/auth/users/{username}   – Rolle / Passwort ändern (admin)
-DELETE /api/auth/users/{username}  – User löschen (admin)
+GET   /api/v1/auth/users              – Alle lokalen User (admin)
+POST  /api/v1/auth/users              – Neuen User anlegen (admin)
+PATCH /api/v1/auth/users/{username}   – Rolle / Passwort ändern (admin)
+DELETE /api/v1/auth/users/{username}  – User löschen (admin)
 """
 
 from typing import Literal, Optional
@@ -33,7 +33,7 @@ from core.audit import audit_log
 from core.config import settings
 from core.users import get_user_manager
 
-auth_router = APIRouter(prefix="/api/auth", tags=["auth"])
+auth_router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 
 # ── Pydantic-Modelle ───────────────────────────────────────────────────────────

@@ -29,7 +29,7 @@ from core.audit import audit_log, read_audit
 from connectors.registry import registry
 from ws.manager import manager as ws_manager
 
-api_router = APIRouter(prefix="/api", tags=["api"])
+api_router = APIRouter(prefix="/api/v1", tags=["api"])
 
 
 # ══════════════════════════════════════════════════════════════════════

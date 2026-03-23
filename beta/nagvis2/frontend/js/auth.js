@@ -44,7 +44,7 @@ window.nv2Auth = {
   async init() {
     // Prüfen ob Auth serverseitig aktiviert ist
     try {
-      const r    = await fetch('/api/auth/config');
+      const r    = await fetch('/api/v1/auth/config');
       const data = await r.json();
       this.enabled = !!data.auth_enabled;
     } catch {
@@ -82,7 +82,7 @@ window.nv2Auth = {
     const token = this.getToken();
     if (token) {
       try {
-        await fetch('/api/auth/logout', {
+        await fetch('/api/v1/auth/logout', {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -155,7 +155,7 @@ async function _doLogin() {
   if (errEl) errEl.textContent = '';
 
   try {
-    const r = await fetch('/api/auth/login', {
+    const r = await fetch('/api/v1/auth/login', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ username, password }),
@@ -183,7 +183,7 @@ window.nv2DoLogin = _doLogin;
 
 async function _verifyToken(token) {
   try {
-    const r = await fetch('/api/auth/me', {
+    const r = await fetch('/api/v1/auth/me', {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!r.ok) return false;
@@ -245,7 +245,7 @@ async function _renderUserMgmt() {
   body.innerHTML = '<div style="color:var(--text-dim);font-size:12px">Lade…</div>';
 
   try {
-    const r = await fetch('/api/auth/users', {
+    const r = await fetch('/api/v1/auth/users', {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!r.ok) { body.innerHTML = '<div style="color:var(--err)">Kein Zugriff.</div>'; return; }
@@ -288,7 +288,7 @@ window.nv2AuthCreateUser = async function() {
   if (!username || !password) { alert('Name und Passwort erforderlich.'); return; }
 
   const token = nv2Auth.getToken();
-  const r = await fetch('/api/auth/users', {
+  const r = await fetch('/api/v1/auth/users', {
     method:  'POST',
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body:    JSON.stringify({ username, password, role }),
@@ -353,7 +353,7 @@ window.nv2LogLoad = async function() {
 
   const token = nv2Auth.getToken();
   try {
-    const r = await fetch(`/api/logs?source=${source}&lines=${lines}`, {
+    const r = await fetch(`/api/v1/logs?source=${source}&lines=${lines}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!r.ok) {
@@ -421,7 +421,7 @@ window.nv2AuditLoad = async function() {
 
   try {
     const token = nv2Auth.getToken();
-    const r = await fetch(`/api/audit?${params}`, {
+    const r = await fetch(`/api/v1/audit?${params}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!r.ok) {
