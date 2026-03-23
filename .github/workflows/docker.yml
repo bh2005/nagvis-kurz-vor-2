@@ -1,27 +1,23 @@
 name: Docker – Build & Push
 
 on:
-  push:
-    branches: [main]
-    tags: ["v*.*.*"]
-    paths:
-      - "beta/nagvis2/backend/**"
-      - "beta/nagvis2/frontend/**"
-      - ".github/workflows/docker.yml"
-  workflow_run:
-    workflows: ["CI – Tests & Coverage"]
-    branches: [main]
-    types: [completed]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image-Tag (z.B. v2.0.0 oder latest)"
+        required: false
+        default: "latest"
 
-# Nur wenn CI grün ist (bei workflow_run-Trigger)
-# Bei direktem push/tag läuft der Job sofort – CI muss separat grün sein
+# Manuell ausführen: Actions → Docker – Build & Push → Run workflow
+# Voraussetzung: Secrets DOCKERHUB_USERNAME + DOCKERHUB_TOKEN in Repository-Settings
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-push:
     name: Build & Push zu Docker Hub
     runs-on: ubuntu-latest
-    if: >
-      github.event_name != 'workflow_run' ||
-      github.event.workflow_run.conclusion == 'success'
 
     permissions:
       contents: read
