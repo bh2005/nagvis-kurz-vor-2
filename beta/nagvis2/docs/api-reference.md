@@ -1,14 +1,16 @@
 # NagVis 2 – API-Referenz
 
-Basis-URL: `http://<host>:<port>/api`
+Basis-URL: `http://<host>:<port>/api/v1`
 
-Interaktive Dokumentation (nur `DEBUG=true`): `http://localhost:8008/api/docs`
+Interaktive Dokumentation (immer verfügbar): `http://localhost:8008/api/v1/docs`
+
+> Rückwärtskompatibilität: Anfragen an `/api/*` werden per **308 Permanent Redirect** auf `/api/v1/*` weitergeleitet (inkl. Query-Parameter und HTTP-Methode).
 
 ---
 
 ## Health
 
-### GET /api/health
+### GET /api/v1/health
 
 Systemstatus, Livestatus-Verbindung und alle konfigurierten Backends prüfen.
 
@@ -37,11 +39,23 @@ Systemstatus, Livestatus-Verbindung und alle konfigurierten Backends prüfen.
 
 Das Feld `reachable` zeigt an, ob das Backend beim letzten Ping erreichbar war.
 
+Die Status-Objekte enthalten ab Version 2.0-beta auch das Feld `labels` (Dict), das Checkmk-Labels bzw. Nagios-Custom-Variables enthält.
+
+---
+
+## Changelog
+
+### GET /api/v1/changelog
+
+Liefert den Changelog als UTF-8 Plaintext (Quelle: `changelog.txt` oder `changelog.md`).
+
+**Antwort:** `text/plain; charset=utf-8`
+
 ---
 
 ## Backends
 
-### GET /api/backends
+### GET /api/v1/backends
 
 Alle konfigurierten Backends auflisten (inkl. Erreichbarkeitsstatus).
 
@@ -68,7 +82,7 @@ Alle konfigurierten Backends auflisten (inkl. Erreichbarkeitsstatus).
 
 ---
 
-### POST /api/backends
+### POST /api/v1/backends
 
 Neues Backend hinzufügen.
 
@@ -106,7 +120,7 @@ Neues Backend hinzufügen.
 
 ---
 
-### DELETE /api/backends/{backend_id}
+### DELETE /api/v1/backends/{backend_id}
 
 Backend löschen.
 
@@ -117,7 +131,7 @@ Backend löschen.
 
 ---
 
-### POST /api/backends/probe
+### POST /api/v1/backends/probe
 
 Verbindung testen **ohne** das Backend zu speichern.
 
@@ -137,7 +151,7 @@ Verbindung testen **ohne** das Backend zu speichern.
 
 ## Maps
 
-### GET /api/maps
+### GET /api/v1/maps
 
 Alle Maps auflisten.
 
@@ -157,7 +171,7 @@ Alle Maps auflisten.
 
 ---
 
-### POST /api/maps
+### POST /api/v1/maps
 
 Neue Map erstellen.
 
@@ -176,7 +190,7 @@ Neue Map erstellen.
 
 ---
 
-### GET /api/maps/{map_id}
+### GET /api/v1/maps/{map_id}
 
 Map mit allen Objekten laden.
 
@@ -194,7 +208,7 @@ Map mit allen Objekten laden.
 
 ---
 
-### DELETE /api/maps/{map_id}
+### DELETE /api/v1/maps/{map_id}
 
 Map und zugehöriges Hintergrundbild löschen.
 
@@ -205,7 +219,7 @@ Map und zugehöriges Hintergrundbild löschen.
 
 ---
 
-### PUT /api/maps/{map_id}/title
+### PUT /api/v1/maps/{map_id}/title
 
 Map umbenennen.
 
@@ -213,7 +227,7 @@ Map umbenennen.
 
 ---
 
-### PUT /api/maps/{map_id}/parent
+### PUT /api/v1/maps/{map_id}/parent
 
 Parent-Map setzen.
 
@@ -221,7 +235,7 @@ Parent-Map setzen.
 
 ---
 
-### PUT /api/maps/{map_id}/canvas
+### PUT /api/v1/maps/{map_id}/canvas
 
 Canvas-Konfiguration setzen.
 
@@ -237,7 +251,7 @@ Canvas `overflow`-Werte: `clamp` (Standard) | `free`
 
 ---
 
-### POST /api/maps/{map_id}/background
+### POST /api/v1/maps/{map_id}/background
 
 Hintergrundbild hochladen (multipart/form-data).
 
@@ -250,7 +264,7 @@ Hintergrundbild hochladen (multipart/form-data).
 
 ---
 
-### GET /api/maps/{map_id}/export
+### GET /api/v1/maps/{map_id}/export
 
 Map als ZIP-Archiv herunterladen.
 
@@ -261,7 +275,7 @@ ZIP enthält:
 
 ---
 
-### POST /api/maps/import
+### POST /api/v1/maps/import
 
 Map aus ZIP-Archiv importieren.
 
@@ -284,7 +298,7 @@ Map aus ZIP-Archiv importieren.
 
 ---
 
-### POST /api/migrate
+### POST /api/v1/migrate
 
 NagVis-1 `.cfg`-Datei importieren.
 
@@ -325,7 +339,7 @@ Objekte werden immer im Kontext einer Map verwaltet.
 
 ---
 
-### POST /api/maps/{map_id}/objects
+### POST /api/v1/maps/{map_id}/objects
 
 Neues Objekt anlegen.
 
@@ -383,7 +397,7 @@ Neues Objekt anlegen.
 
 ---
 
-### PATCH /api/maps/{map_id}/objects/{object_id}/pos
+### PATCH /api/v1/maps/{map_id}/objects/{object_id}/pos
 
 Position eines Objekts aktualisieren (z.B. nach Drag & Drop).
 
@@ -399,7 +413,7 @@ Bei Linien zusätzlich:
 
 ---
 
-### PATCH /api/maps/{map_id}/objects/{object_id}/props
+### PATCH /api/v1/maps/{map_id}/objects/{object_id}/props
 
 Eigenschaften eines Objekts aktualisieren.
 
@@ -407,6 +421,7 @@ Eigenschaften eines Objekts aktualisieren.
 ```json
 {
   "label": "Neuer Anzeigename",
+  "label_template": "$HOSTNAME$ ($HOSTSTATE$)",
   "show_label": true,
   "size": 48,
   "iconset": "server",
@@ -426,7 +441,7 @@ Eigenschaften eines Objekts aktualisieren.
 
 ---
 
-### DELETE /api/maps/{map_id}/objects/{object_id}
+### DELETE /api/v1/maps/{map_id}/objects/{object_id}
 
 Objekt aus der Map entfernen.
 
@@ -439,7 +454,7 @@ Objekt aus der Map entfernen.
 
 ## Aktionen
 
-### POST /api/actions
+### POST /api/v1/actions
 
 Monitoring-Aktion via Livestatus ausführen.
 
@@ -476,13 +491,13 @@ Im Demo-Modus:
 
 ## Kiosk-User
 
-### GET /api/kiosk-users
+### GET /api/v1/kiosk-users
 
 Alle Kiosk-User auflisten.
 
 ---
 
-### POST /api/kiosk-users
+### POST /api/v1/kiosk-users
 
 Neuen Kiosk-User anlegen.
 
@@ -500,7 +515,7 @@ Neuen Kiosk-User anlegen.
 
 ---
 
-### PUT /api/kiosk-users/{uid}
+### PUT /api/v1/kiosk-users/{uid}
 
 Kiosk-User aktualisieren (alle Felder optional).
 
@@ -514,13 +529,13 @@ Kiosk-User aktualisieren (alle Felder optional).
 
 ---
 
-### DELETE /api/kiosk-users/{uid}
+### DELETE /api/v1/kiosk-users/{uid}
 
 Kiosk-User löschen (Token wird ungültig).
 
 ---
 
-### GET /api/kiosk-users/resolve?token={token}
+### GET /api/v1/kiosk-users/resolve?token={token}
 
 Token zu Kiosk-User auflösen (kein Auth erforderlich – für Kiosk-Browser).
 

@@ -166,6 +166,9 @@ class CheckmkClient:
             if not name:
                 continue
             state = _parse_host_state(ext.get("state", 3))
+            # Checkmk-Labels: {"os": "linux", "location": "hamburg"}
+            raw_labels = ext.get("labels") or item.get("extensions", {}).get("labels") or {}
+            labels = {str(k).lower(): str(v) for k, v in raw_labels.items()}
             result.append(HostStatus(
                 name              = name,
                 alias             = ext.get("alias", name),
@@ -180,6 +183,7 @@ class CheckmkClient:
                 num_services_crit = int(ext.get("num_services_crit",  0) or 0),
                 num_services_unkn = int(ext.get("num_services_unkn",  0) or 0),
                 backend_id        = self.cfg.backend_id,
+                labels            = labels,
             ))
         log.debug("get_hosts: %d from '%s'", len(result), self.cfg.backend_id)
         return result
@@ -198,6 +202,9 @@ class CheckmkClient:
             if not host or not desc:
                 continue
             state = _parse_svc_state(ext.get("state", 3))
+            # Service-Labels aus Checkmk (host_labels oder service_labels)
+            raw_labels = ext.get("labels") or ext.get("host_labels") or {}
+            labels = {str(k).lower(): str(v) for k, v in raw_labels.items()}
             result.append(ServiceStatus(
                 host_name     = host,
                 description   = desc,
@@ -209,6 +216,7 @@ class CheckmkClient:
                 in_downtime   = bool(ext.get("in_downtime", False)),
                 perf_data     = ext.get("perf_data") or ext.get("performance_data", ""),
                 backend_id    = self.cfg.backend_id,
+                labels        = labels,
             ))
         log.debug("get_services: %d from '%s'", len(result), self.cfg.backend_id)
         return result

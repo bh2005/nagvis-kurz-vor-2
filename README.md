@@ -12,14 +12,16 @@ Eine komplette Neuentwicklung von NagVis mit FastAPI-Backend, WebSocket-Livestat
 |---|---|
 | **Echtzeit-Updates** | WebSocket-Livestatus, automatischer Reconnect, Offline-Banner |
 | **Edit-Mode** | Drag & Drop, Multi-Select (Lasso + Shift+Klick), Gruppen-Drag, Layer-System |
+| **Label-Templates** | Nagios-Macros (`$HOSTNAME$`, `$HOSTSTATE$`, …) + Checkmk-Labels (`$LABEL:os$`) als Node-Beschriftung |
 | **Gadgets** | Radial, Linear (H/V), Sparkline, Thermometer, Flow/Weather, Raw-Number |
 | **Perfdata** | Nagios/Checkmk Performance-Daten automatisch in Gadgets eingespeist |
 | **Weathermap-Linien** | Statusfarbe, Bandbreiten-Labels, bidirektionale Pfeile |
 | **Multi-Backend** | Livestatus TCP/Unix + Checkmk REST API gemischt, Hot-Add ohne Neustart |
 | **Kiosk-Modus** | Token-URL, automatische Map-Rotation, Vollbild mit Zoom/Pan |
+| **API-Versionierung** | Alle Endpunkte unter `/api/v1/`; 308-Redirect für Rückwärtskompatibilität |
 | **Help-System** | Integriertes MkDocs-Hilfe-System unter `/help/` |
 | **Docker** | `docker compose up --build` — fertig |
-| **Theme** | Dark / Light, responsiv |
+| **Theme** | Dark / Light, Standard: Dark + Sidebar ausgeklappt |
 
 ---
 
@@ -83,8 +85,8 @@ Alternativ Checkmk REST API als Backend konfigurieren: Burger-Menü → **⚙ Ba
 | URL | Inhalt |
 |---|---|
 | `http://localhost:8008/help/` | Integriertes Benutzer- und Admin-Handbuch (MkDocs) |
-| `http://localhost:8008/api/docs` | Swagger UI (nur wenn `DEBUG=true`) |
-| `http://localhost:8008/api/health` | System-Status + Backend-Erreichbarkeit |
+| `http://localhost:8008/api/v1/docs` | Swagger UI (immer verfügbar) |
+| `http://localhost:8008/api/v1/health` | System-Status + Backend-Erreichbarkeit |
 
 ---
 

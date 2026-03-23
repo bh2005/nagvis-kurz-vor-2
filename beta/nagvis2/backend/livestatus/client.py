@@ -40,7 +40,7 @@ import asyncio
 import json
 import logging
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import IntEnum
 from typing import Any
 
@@ -68,6 +68,20 @@ HOST_STATE_SEVERITY    = {0: 0, 1: 2, 2: 1}        # UP < UNREACHABLE < DOWN
 SERVICE_STATE_SEVERITY = {0: 0, 1: 1, 2: 3, 3: 2}  # OK < WARN < UNKN < CRIT
 
 
+# ── Hilfsfunktionen ──────────────────────────────────────────────────────────
+
+def _parse_custom_variables(raw) -> dict:
+    """
+    Konvertiert Livestatus custom_variables in ein normalisiertes Label-Dict.
+    Livestatus liefert ein Dict wie {"_OS": "linux", "_LOCATION": "hamburg"}.
+    Der führende Unterstrich und Großschreibung werden entfernt:
+      "_OS" → "os", "_LOCATION" → "location"
+    """
+    if not isinstance(raw, dict):
+        return {}
+    return {k.lstrip("_").lower(): str(v) for k, v in raw.items() if v != ""}
+
+
 # ── Datenklassen ─────────────────────────────────────────────────────────────
 
 @dataclass
@@ -92,11 +106,12 @@ class HostStatus:
     last_check:        int
     acknowledged:      bool
     in_downtime:       bool
-    num_services_ok:   int = 0
-    num_services_warn: int = 0
-    num_services_crit: int = 0
-    num_services_unkn: int = 0
-    backend_id:        str = "default"
+    num_services_ok:   int  = 0
+    num_services_warn: int  = 0
+    num_services_crit: int  = 0
+    num_services_unkn: int  = 0
+    backend_id:        str  = "default"
+    labels:            dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return {
@@ -114,6 +129,7 @@ class HostStatus:
             "services_crit": self.num_services_crit,
             "services_unkn": self.num_services_unkn,
             "backend_id":    self.backend_id,
+            "labels":        self.labels,
         }
 
 
@@ -127,8 +143,9 @@ class ServiceStatus:
     last_check:    int
     acknowledged:  bool
     in_downtime:   bool
-    perf_data:     str = ""       # raw Nagios perfdata string
-    backend_id:    str = "default"
+    perf_data:     str  = ""    # raw Nagios perfdata string
+    backend_id:    str  = "default"
+    labels:        dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         from core.perfdata import parse_perfdata
@@ -144,6 +161,7 @@ class ServiceStatus:
             "in_downtime":  self.in_downtime,
             "perfdata":     parse_perfdata(self.perf_data),
             "backend_id":   self.backend_id,
+            "labels":       self.labels,
         }
 
 
@@ -259,7 +277,7 @@ class LivestatusClient:
             "Columns: name alias state plugin_output last_check "
             "acknowledged scheduled_downtime_depth "
             "num_services_ok num_services_warn "
-            "num_services_crit num_services_unknown\n"
+            "num_services_crit num_services_unknown custom_variables\n"
         )
         if host_filter:
             q += host_filter + "\n"
@@ -269,7 +287,8 @@ class LivestatusClient:
         for r in rows:
             (name, alias, state, output, last_check,
              ack, downtime_depth,
-             svc_ok, svc_warn, svc_crit, svc_unkn) = r
+             svc_ok, svc_warn, svc_crit, svc_unkn, custom_vars) = r
+            labels = _parse_custom_variables(custom_vars)
             result.append(HostStatus(
                 name              = name,
                 alias             = alias or name,
@@ -284,6 +303,7 @@ class LivestatusClient:
                 num_services_crit = svc_crit,
                 num_services_unkn = svc_unkn,
                 backend_id        = self.cfg.backend_id,
+                labels            = labels,
             ))
 
         log.debug("get_hosts: %d from '%s'", len(result), self.cfg.backend_id)
@@ -298,7 +318,8 @@ class LivestatusClient:
         q = (
             "GET services\n"
             "Columns: host_name description state plugin_output last_check "
-            "acknowledged scheduled_downtime_depth perf_data\n"
+            "acknowledged scheduled_downtime_depth perf_data "
+            "host_custom_variables\n"
         )
         if host_name:
             q += f"Filter: host_name = {host_name}\n"
@@ -308,7 +329,8 @@ class LivestatusClient:
         rows = await self.query(q)
         result = []
         for r in rows:
-            host, desc, state, output, last_check, ack, downtime, perf_data = r
+            host, desc, state, output, last_check, ack, downtime, perf_data, custom_vars = r
+            labels = _parse_custom_variables(custom_vars)
             result.append(ServiceStatus(
                 host_name     = host,
                 description   = desc,
@@ -320,6 +342,7 @@ class LivestatusClient:
                 in_downtime   = downtime > 0,
                 perf_data     = perf_data or "",
                 backend_id    = self.cfg.backend_id,
+                labels        = labels,
             ))
         return result
 
