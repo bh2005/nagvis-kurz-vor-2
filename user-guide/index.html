@@ -371,6 +371,34 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#backends-konfigurieren" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backends konfigurieren
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Backends konfigurieren">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#burger-menu-backends-verwalten" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Burger-Menü → ⚙ Backends verwalten
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#maps" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1279,6 +1307,34 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#backends-konfigurieren" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backends konfigurieren
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Backends konfigurieren">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#burger-menu-backends-verwalten" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Burger-Menü → ⚙ Backends verwalten
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#maps" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1768,7 +1824,7 @@
 
 <h1 id="nagvis-2-benutzer-handbuch">NagVis 2 – Benutzer-Handbuch</h1>
 <h2 id="ubersicht">Übersicht</h2>
-<p>NagVis 2 visualisiert den Status deiner Monitoring-Umgebung (Nagios / Checkmk / Icinga) auf interaktiven Karten. Nodes auf der Karte zeigen den aktuellen Status von Hosts, Services, Hostgruppen und mehr in Echtzeit via WebSocket.</p>
+<p>NagVis 2 visualisiert den Status deiner Monitoring-Umgebung (Nagios / Checkmk / Icinga2 / Zabbix) auf interaktiven Karten. Nodes auf der Karte zeigen den aktuellen Status von Hosts, Services, Hostgruppen und mehr in Echtzeit via WebSocket.</p>
 <hr />
 <h2 id="oberflache">Oberfläche</h2>
 <pre><code>┌─────────────┬──────────────────────────────────────────┐
@@ -1935,6 +1991,54 @@
 </tr>
 </tbody>
 </table>
+<hr />
+<h2 id="backends-konfigurieren">Backends konfigurieren</h2>
+<h3 id="burger-menu-backends-verwalten">Burger-Menü → ⚙ Backends verwalten</h3>
+<p>Öffnet den Backend-Verwaltungs-Dialog. Hier können Monitoring-Backends hinzugefügt, getestet, aktiviert/deaktiviert und entfernt werden.</p>
+<p><strong>Unterstützte Backend-Typen:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Typ</th>
+<th>Beschreibung</th>
+<th>Felder</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Checkmk REST API</strong></td>
+<td>Checkmk REST API v1.0</td>
+<td>Base-URL, Automation-User, Secret/Token, SSL</td>
+</tr>
+<tr>
+<td><strong>Icinga2 REST API</strong></td>
+<td>Icinga2 REST API v1 (Basic Auth)</td>
+<td>Base-URL, API-Benutzer, Passwort, SSL (Standard: aus)</td>
+</tr>
+<tr>
+<td><strong>Zabbix JSON-RPC</strong></td>
+<td>Zabbix 6.0+ (Bearer-Token) oder älter (Login)</td>
+<td>URL, API-Token (bevorzugt) oder Benutzer + Passwort, SSL</td>
+</tr>
+<tr>
+<td><strong>Livestatus TCP</strong></td>
+<td>Nagios/Checkmk via TCP-Verbindung</td>
+<td>Host/IP, Port (Standard: 6557)</td>
+</tr>
+<tr>
+<td><strong>Livestatus Unix</strong></td>
+<td>Nagios/Checkmk via Unix-Socket (lokal/OMD)</td>
+<td>Socket-Pfad</td>
+</tr>
+<tr>
+<td><strong>Demo</strong></td>
+<td>Statische Musterdaten, keine Verbindung nötig</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Verbindungstest:</strong> Der Button <strong>🔌 Testen</strong> prüft die Verbindung ohne das Backend zu speichern.</p>
+<p><strong>Mehrere Backends</strong> können gleichzeitig aktiv sein. Hosts werden dedupliziert (gleichnamige Hosts aus verschiedenen Backends erscheinen nur einmal).</p>
 <hr />
 <h2 id="maps">Maps</h2>
 <h3 id="map-erstellen">Map erstellen</h3>
@@ -2156,7 +2260,11 @@ $LABEL:os$ / $LABEL:location$     → &quot;linux / hamburg&quot;
 $LABEL:env$ – $HOSTNAME$          → &quot;production – webserver-01&quot;
 $SERVICESTATE$: $SERVICEOUTPUT$   → &quot;CRITICAL: HTTP timeout after 30s&quot;
 </code></pre>
-<p><strong>Checkmk-Labels</strong> werden automatisch aus <code>extensions.labels</code> der Checkmk REST API bzw. aus <code>custom_variables</code> (Livestatus) importiert. Der führende Unterstrich wird entfernt: <code>_OS</code> → <code>$LABEL:os$</code>.</p>
+<p>Labels werden je nach Backend-Typ automatisch importiert:
+- <strong>Checkmk</strong>: <code>extensions.labels</code> aus der REST API
+- <strong>Livestatus/Nagios</strong>: <code>custom_variables</code> (führender <code>_</code> wird entfernt: <code>_OS</code> → <code>$LABEL:os$</code>)
+- <strong>Icinga2</strong>: <code>vars.*</code> (Custom-Variables)
+- <strong>Zabbix</strong>: Host- und Problem-Tags (<code>{tag, value}</code>)</p>
 <h3 id="canvas-rechtsklick-menu">Canvas Rechtsklick-Menü</h3>
 <p>Rechtsklick auf freie Fläche im Edit-Mode:</p>
 <table>

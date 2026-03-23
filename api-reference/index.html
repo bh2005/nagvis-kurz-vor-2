@@ -1666,7 +1666,11 @@
 }
 </code></pre>
 <p>Das Feld <code>reachable</code> zeigt an, ob das Backend beim letzten Ping erreichbar war.</p>
-<p>Die Status-Objekte enthalten ab Version 2.0-beta auch das Feld <code>labels</code> (Dict), das Checkmk-Labels bzw. Nagios-Custom-Variables enthält.</p>
+<p>Die Status-Objekte enthalten das Feld <code>labels</code> (Dict) mit backend-spezifischen Labels:
+- <strong>Checkmk</strong>: <code>extensions.labels</code> aus der REST API
+- <strong>Livestatus/Nagios</strong>: <code>custom_variables</code> (z. B. <code>_OS</code> → <code>os</code>)
+- <strong>Icinga2</strong>: <code>vars.*</code> (Custom-Variables)
+- <strong>Zabbix</strong>: Host/Problem-Tags als <code>{tag: value}</code> Dict</p>
 <hr />
 <h2 id="changelog">Changelog</h2>
 <h3 id="get-apiv1changelog">GET /api/v1/changelog</h3>
@@ -1715,11 +1719,31 @@
 </code></pre>
 <p><strong>Body (Checkmk REST API):</strong></p>
 <pre><code class="language-json">{
-  &quot;type&quot;: &quot;checkmk_rest&quot;,
-  &quot;label&quot;: &quot;Checkmk Production&quot;,
-  &quot;url&quot;: &quot;http://checkmk:5000/mysite&quot;,
+  &quot;type&quot;: &quot;checkmk&quot;,
+  &quot;backend_id&quot;: &quot;checkmk-prod&quot;,
+  &quot;base_url&quot;: &quot;https://monitoring.example.com/mysite/check_mk/api/1.0&quot;,
   &quot;username&quot;: &quot;automation&quot;,
-  &quot;password&quot;: &quot;secret&quot;
+  &quot;secret&quot;: &quot;automation-secret&quot;,
+  &quot;verify_ssl&quot;: true
+}
+</code></pre>
+<p><strong>Body (Icinga2 REST API):</strong></p>
+<pre><code class="language-json">{
+  &quot;type&quot;: &quot;icinga2&quot;,
+  &quot;backend_id&quot;: &quot;icinga2-prod&quot;,
+  &quot;base_url&quot;: &quot;https://icinga2.example.com:5665/v1&quot;,
+  &quot;username&quot;: &quot;nagvis2&quot;,
+  &quot;password&quot;: &quot;geheimes-passwort&quot;,
+  &quot;verify_ssl&quot;: false
+}
+</code></pre>
+<p><strong>Body (Zabbix JSON-RPC):</strong></p>
+<pre><code class="language-json">{
+  &quot;type&quot;: &quot;zabbix&quot;,
+  &quot;backend_id&quot;: &quot;zabbix-prod&quot;,
+  &quot;url&quot;: &quot;https://zabbix.example.com&quot;,
+  &quot;token&quot;: &quot;abc123...&quot;,
+  &quot;verify_ssl&quot;: true
 }
 </code></pre>
 <p><strong>Antwort:</strong> <code>201 Created</code> mit Backend-Objekt inkl. generierter <code>backend_id</code></p>
