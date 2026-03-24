@@ -34,6 +34,8 @@ Asynchroner Status-Poller mit verbesserter Diff-Logik und Force-Refresh.
    Damit kann der Browser einen separaten Downtime-Banner rendern.
 """
 
+from __future__ import annotations
+
 import asyncio
 import logging
 import time

@@ -30,6 +30,8 @@ Icinga2 API-Benutzer anlegen (Beispiel /etc/icinga2/conf.d/api-users.conf):
   }
 """
 
+from __future__ import annotations
+
 import logging
 import time
 from dataclasses import dataclass, field

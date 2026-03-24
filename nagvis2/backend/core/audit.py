@@ -15,6 +15,8 @@ Verwendung in Routen:
     audit_log(request, "map.create", map_id=new_id, title=body.title)
 """
 
+from __future__ import annotations
+
 import json
 import logging
 import time
