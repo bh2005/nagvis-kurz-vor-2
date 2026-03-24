@@ -12,6 +12,7 @@ Unterstützte Backend-Typen:
   "checkmk"          – Checkmk REST API v1.0
   "icinga2"          – Icinga2 REST API v1
   "zabbix"           – Zabbix JSON-RPC API (6.0+ empfohlen)
+  "prometheus"       – Prometheus / VictoriaMetrics HTTP API
   "demo"             – Statische Demo-Daten ohne Verbindung
 
 Singleton-Instanz:
@@ -35,10 +36,11 @@ from checkmk.client import CheckmkClient, CheckmkConfig
 from icinga2.client import Icinga2Client, Icinga2Config
 from connectors.demo_client import DemoClient, DemoConfig
 from zabbix.client import ZabbixClient, ZabbixConfig
+from prometheus.client import PrometheusClient, PrometheusConfig
 
 log = logging.getLogger("nagvis.registry")
 
-AnyClient = Union[LivestatusClient, CheckmkClient, Icinga2Client, ZabbixClient, DemoClient]
+AnyClient = Union[LivestatusClient, CheckmkClient, Icinga2Client, ZabbixClient, PrometheusClient, DemoClient]
 
 
 class UnifiedRegistry:
@@ -138,6 +140,20 @@ class UnifiedRegistry:
                 "verify_ssl": c.verify_ssl,
                 "enabled":    c.enabled,
             }
+        if isinstance(client, PrometheusClient):
+            c = client.cfg
+            return {
+                "backend_id": c.backend_id,
+                "type":       "prometheus",
+                "url":        c.url,
+                "token":      c.token,
+                "username":   c.username,
+                "password":   c.password,
+                "host_label": c.host_label,
+                "timeout":    c.timeout,
+                "verify_ssl": c.verify_ssl,
+                "enabled":    c.enabled,
+            }
         if isinstance(client, DemoClient):
             c = client.cfg
             return {
@@ -182,6 +198,18 @@ class UnifiedRegistry:
                     token      = entry.get("token", ""),
                     username   = entry.get("username", "Admin"),
                     password   = entry.get("password", ""),
+                    timeout    = float(entry.get("timeout", 15.0)),
+                    verify_ssl = bool(entry.get("verify_ssl", True)),
+                    enabled    = bool(entry.get("enabled", True)),
+                ))
+            elif t == "prometheus":
+                return PrometheusClient(PrometheusConfig(
+                    backend_id = entry["backend_id"],
+                    url        = entry.get("url", "http://prometheus:9090"),
+                    token      = entry.get("token", ""),
+                    username   = entry.get("username", ""),
+                    password   = entry.get("password", ""),
+                    host_label = entry.get("host_label", "instance"),
                     timeout    = float(entry.get("timeout", 15.0)),
                     verify_ssl = bool(entry.get("verify_ssl", True)),
                     enabled    = bool(entry.get("enabled", True)),
@@ -476,6 +504,15 @@ class UnifiedRegistry:
                 "type":       "zabbix",
                 "address":    c.url,
                 "username":   c.username if not c.token else "(API-Token)",
+                "enabled":    True,
+            }
+        if isinstance(client, PrometheusClient):
+            c = client.cfg
+            return {
+                "backend_id": c.backend_id,
+                "type":       "prometheus",
+                "address":    c.url,
+                "username":   c.username if not c.token else "(Bearer Token)",
                 "enabled":    True,
             }
         if isinstance(client, DemoClient):
