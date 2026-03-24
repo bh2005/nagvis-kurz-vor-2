@@ -642,6 +642,39 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#checkmk-rest-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Checkmk REST API
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#zabbix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Zabbix
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#icinga2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Icinga2
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#backend-persistenz" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1672,6 +1705,39 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#checkmk-rest-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Checkmk REST API
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#zabbix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Zabbix
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#icinga2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Icinga2
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#backend-persistenz" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2083,8 +2149,16 @@
 <td>24.x / 2.x</td>
 </tr>
 <tr>
-<td>Nagios / Checkmk / Icinga</td>
+<td>Nagios / Checkmk</td>
 <td>mit Livestatus-Modul oder Checkmk REST API</td>
+</tr>
+<tr>
+<td>Zabbix</td>
+<td>6.0+ (empfohlen), 5.x mit Username/Password</td>
+</tr>
+<tr>
+<td>Icinga2</td>
+<td>2.11+ mit aktivierter REST API</td>
 </tr>
 </tbody>
 </table>
@@ -2577,6 +2651,10 @@ GET /api/logs?lines=1000&amp;download=true
     │   └── logging_setup.py ← Log-Format (text/json), In-Memory-Ringpuffer
     ├── checkmk/
     │   └── client.py        ← Checkmk REST API Client
+    ├── zabbix/
+    │   └── client.py        ← Zabbix JSON-RPC API Client
+    ├── icinga2/
+    │   └── client.py        ← Icinga2 REST API Client
     ├── connectors/
     │   └── registry.py      ← Unified Backend Registry
     ├── api/
@@ -2639,8 +2717,233 @@ GET /api/logs?lines=1000&amp;download=true
 <td><strong>Livestatus Unix</strong></td>
 <td>Socket-Pfad (z.B. <code>/omd/sites/mysite/tmp/run/live</code>)</td>
 </tr>
+<tr>
+<td><strong>Zabbix</strong></td>
+<td>URL (z.B. <code>https://zabbix.example.com</code>), API-Token (Zabbix 6.0+) oder Username/Password</td>
+</tr>
+<tr>
+<td><strong>Icinga2</strong></td>
+<td>URL (z.B. <code>https://icinga2:5665/v1</code>), API-User + Passwort</td>
+</tr>
 </tbody>
 </table>
+<h3 id="checkmk-rest-api">Checkmk REST API</h3>
+<p><strong>Voraussetzungen:</strong>
+- Checkmk 2.0+ (Raw, Free oder Enterprise Edition)
+- Automation-User unter <em>Setup → Users → Automation user</em> angelegt</p>
+<p><strong>Konfigurationsparameter:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Beispiel</th>
+<th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>url</code></td>
+<td><code>http://checkmk:5000/mysite/check_mk/api/1.0</code></td>
+<td>REST-API-Basis-URL (inkl. Site-Name)</td>
+</tr>
+<tr>
+<td><code>username</code></td>
+<td><code>automation</code></td>
+<td>Automation-User-Name</td>
+</tr>
+<tr>
+<td><code>secret</code></td>
+<td><code>abc123xyz...</code></td>
+<td>Automation-Secret (aus Checkmk-UI kopieren)</td>
+</tr>
+<tr>
+<td><code>verify_ssl</code></td>
+<td><code>true</code></td>
+<td>TLS-Zertifikat prüfen (bei Self-Signed: <code>false</code>)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Automation-User anlegen (Checkmk UI):</strong></p>
+<pre><code>Setup → Users → Add user
+→ Automation user aktivieren
+→ Secret kopieren und in NagVis 2 eintragen
+</code></pre>
+<hr />
+<h3 id="zabbix">Zabbix</h3>
+<p><strong>Voraussetzungen:</strong>
+- Zabbix 6.0+ (empfohlen; Zabbix 5.x mit Username/Passwort möglich)
+- API-Token unter <em>User Settings → API tokens</em> erstellt</p>
+<p><strong>Konfigurationsparameter:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Beispiel</th>
+<th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>url</code></td>
+<td><code>https://zabbix.example.com</code></td>
+<td>Zabbix-Frontend-URL (ohne <code>/api_jsonrpc.php</code>)</td>
+</tr>
+<tr>
+<td><code>token</code></td>
+<td><code>abc123...</code></td>
+<td>API-Token (Zabbix 6.0+, bevorzugt)</td>
+</tr>
+<tr>
+<td><code>username</code></td>
+<td><code>Admin</code></td>
+<td>Fallback-Login (nur ohne Token, Zabbix 5.x)</td>
+</tr>
+<tr>
+<td><code>password</code></td>
+<td><code>geheim</code></td>
+<td>Fallback-Passwort</td>
+</tr>
+<tr>
+<td><code>verify_ssl</code></td>
+<td><code>true</code></td>
+<td>TLS-Zertifikat prüfen</td>
+</tr>
+</tbody>
+</table>
+<p><strong>API-Token anlegen (Zabbix 6.0+):</strong></p>
+<pre><code>User Settings → API tokens → Create API token
+→ User-Rolle mit Read-Zugriff auf gewünschte Hosts/Gruppen
+</code></pre>
+<p><strong>Konzept-Mapping Zabbix → NagVis 2:</strong></p>
+<table>
+<thead>
+<tr>
+<th>NagVis 2</th>
+<th>Zabbix</th>
+<th>Hinweis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hosts</td>
+<td><code>host.get</code></td>
+<td><code>available</code>: 1=UP, 2=DOWN, 0=UNREACHABLE</td>
+</tr>
+<tr>
+<td>Services</td>
+<td><code>problem.get</code></td>
+<td>Aktive Trigger-Auslösungen</td>
+</tr>
+<tr>
+<td>Hostgruppen</td>
+<td><code>hostgroup.get</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Schweregrad-Mapping:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Zabbix Severity</th>
+<th>NagVis 2 State</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0 Not classified, 1 Information, 2 Warning</td>
+<td>WARNING</td>
+</tr>
+<tr>
+<td>3 Average, 4 High, 5 Disaster</td>
+<td>CRITICAL</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="icinga2">Icinga2</h3>
+<p><strong>Voraussetzungen:</strong>
+- Icinga2 2.11+
+- Icinga2 REST API aktiviert (<code>icinga2 api setup</code>)
+- API-Benutzer in <code>/etc/icinga2/conf.d/api-users.conf</code> angelegt</p>
+<p><strong>Konfigurationsparameter:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Beispiel</th>
+<th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>base_url</code></td>
+<td><code>https://icinga2.example.com:5665/v1</code></td>
+<td>REST-API-URL (Port 5665)</td>
+</tr>
+<tr>
+<td><code>username</code></td>
+<td><code>nagvis2</code></td>
+<td>API-Benutzer-Name</td>
+</tr>
+<tr>
+<td><code>password</code></td>
+<td><code>geheim</code></td>
+<td>API-Benutzer-Passwort</td>
+</tr>
+<tr>
+<td><code>verify_ssl</code></td>
+<td><code>false</code></td>
+<td>TLS prüfen (Icinga2 nutzt oft Self-Signed-Certs)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>API-Benutzer anlegen</strong> (<code>/etc/icinga2/conf.d/api-users.conf</code>):</p>
+<pre><code>object ApiUser &quot;nagvis2&quot; {
+  password = &quot;geheimes-passwort&quot;
+  permissions = [
+    &quot;objects/query/Host&quot;,
+    &quot;objects/query/Service&quot;,
+    &quot;objects/query/HostGroup&quot;,
+    &quot;actions/acknowledge-problem&quot;,
+    &quot;actions/remove-acknowledgement&quot;,
+    &quot;actions/schedule-downtime&quot;,
+    &quot;actions/reschedule-check&quot;
+  ]
+}
+</code></pre>
+<p>Nach der Änderung Icinga2 neu laden:</p>
+<pre><code class="language-bash">systemctl reload icinga2
+</code></pre>
+<p><strong>Konzept-Mapping Icinga2 → NagVis 2:</strong></p>
+<table>
+<thead>
+<tr>
+<th>NagVis 2</th>
+<th>Icinga2 Endpoint</th>
+<th>Hinweis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hosts</td>
+<td><code>GET /v1/objects/hosts</code></td>
+<td>state: 0=UP, 1=DOWN, 2=UNREACHABLE</td>
+</tr>
+<tr>
+<td>Services</td>
+<td><code>GET /v1/objects/services</code></td>
+<td>state: 0=OK, 1=WARNING, 2=CRITICAL, 3=UNKNOWN</td>
+</tr>
+<tr>
+<td>Hostgruppen</td>
+<td><code>GET /v1/objects/hostgroups</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Icinga2 Custom-Vars (<code>host.vars.*</code>) werden automatisch als Labels übernommen (nur einfache Datentypen: String, Zahl, Bool).</p>
+<hr />
 <h3 id="backend-persistenz">Backend-Persistenz</h3>
 <p>Konfigurierte Backends werden in <code>data/backends.json</code> gespeichert — kein Neustart erforderlich.</p>
 <p>Beim ersten Start werden <code>LIVESTATUS_*</code>-Umgebungsvariablen automatisch als „default"-Backend importiert (Rückwärtskompatibilität zu bestehenden Deployments).</p>
