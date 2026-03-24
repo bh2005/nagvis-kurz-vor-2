@@ -281,3 +281,190 @@ class TestAuditApi:
         r = client.get("/api/audit?action=map.delete")
         entries = r.json()
         assert any(e["map_id"] == "del-aud" for e in entries)
+
+
+# ── Clone Map API ─────────────────────────────────────────────────────────────
+
+class TestCloneMapApi:
+    @pytest.fixture(autouse=True)
+    def _create_map(self, client):
+        client.post("/api/maps", json={"title": "Original", "map_id": "orig"})
+        # Add one object
+        client.post("/api/maps/orig/objects",
+                    json={"type": "host", "x": 10.0, "y": 20.0, "name": "h1"})
+
+    def test_clone_returns_201(self, client):
+        r = client.post("/api/maps/orig/clone", json={"title": "Copy"})
+        assert r.status_code == 201
+        data = r.json()
+        assert data["title"] == "Copy"
+        assert data["id"] == "copy"
+
+    def test_clone_copies_objects(self, client):
+        r = client.post("/api/maps/orig/clone", json={"title": "Clone2"})
+        assert r.status_code == 201
+        assert r.json()["object_count"] == 1
+
+    def test_clone_nonexistent_returns_404(self, client):
+        r = client.post("/api/maps/ghost/clone", json={"title": "X"})
+        assert r.status_code == 404
+
+    def test_clone_collision_avoidance(self, client):
+        client.post("/api/maps/orig/clone", json={"title": "Copy"})
+        r = client.post("/api/maps/orig/clone", json={"title": "Copy"})
+        assert r.status_code == 201
+        assert r.json()["id"] == "copy-1"
+
+    def test_clone_appears_in_map_list(self, client):
+        client.post("/api/maps/orig/clone", json={"title": "Listed Clone"})
+        maps = client.get("/api/maps").json()
+        ids = {m["id"] for m in maps}
+        assert "listed-clone" in ids
+
+    def test_clone_resets_parent_map(self, client):
+        # Set parent on orig first
+        client.post("/api/maps", json={"title": "Parent", "map_id": "par"})
+        client.put("/api/maps/orig/parent", json={"parent_map": "par"})
+        r = client.post("/api/maps/orig/clone", json={"title": "Orphan"})
+        assert r.json().get("parent_map") is None
+
+
+# ── Thumbnail API ─────────────────────────────────────────────────────────────
+
+class TestThumbnailApi:
+    @pytest.fixture(autouse=True)
+    def _create_map(self, client):
+        client.post("/api/maps", json={"title": "Thumb Map", "map_id": "tmap"})
+
+    _PNG = (
+        b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01'
+        b'\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00'
+        b'\x00\x0cIDATx\x9cc\xf8\x0f\x00\x00\x01\x01\x00\x05\x18'
+        b'\xd8N\x00\x00\x00\x00IEND\xaeB`\x82'
+    )
+
+    def test_upload_thumbnail(self, client):
+        r = client.post(
+            "/api/maps/tmap/thumbnail",
+            files={"file": ("thumb.png", io.BytesIO(self._PNG), "image/png")},
+        )
+        assert r.status_code == 200
+        assert r.json()["url"].endswith("tmap.png")
+
+    def test_upload_thumbnail_invalid_type(self, client):
+        r = client.post(
+            "/api/maps/tmap/thumbnail",
+            files={"file": ("thumb.pdf", b"PDFDATA", "application/pdf")},
+        )
+        assert r.status_code == 400
+
+    def test_upload_thumbnail_map_not_found(self, client):
+        r = client.post(
+            "/api/maps/ghost/thumbnail",
+            files={"file": ("thumb.png", io.BytesIO(self._PNG), "image/png")},
+        )
+        assert r.status_code == 404
+
+    def test_delete_thumbnail(self, client):
+        # Upload first
+        client.post(
+            "/api/maps/tmap/thumbnail",
+            files={"file": ("thumb.png", io.BytesIO(self._PNG), "image/png")},
+        )
+        r = client.delete("/api/maps/tmap/thumbnail")
+        assert r.status_code == 200
+        assert r.json()["ok"] is True
+
+    def test_delete_thumbnail_nonexistent_ok(self, client):
+        # Deleting when no thumbnail exists should still return ok
+        r = client.delete("/api/maps/tmap/thumbnail")
+        assert r.status_code == 200
+
+
+# ── Changelog Endpoint ────────────────────────────────────────────────────────
+
+class TestChangelogEndpoint:
+    def test_changelog_returns_200_or_404(self, client):
+        r = client.get("/api/changelog")
+        # Either changelog file exists (200) or not (404) — both are valid
+        assert r.status_code in (200, 404)
+
+
+# ── Misc Endpoints ────────────────────────────────────────────────────────────
+
+class TestMiscEndpoints:
+    def test_hosts_returns_list(self, client):
+        r = client.get("/api/hosts")
+        assert r.status_code == 200
+        assert isinstance(r.json(), list)
+
+    def test_hostgroups_returns_list(self, client):
+        r = client.get("/api/hostgroups")
+        assert r.status_code == 200
+        assert isinstance(r.json(), list)
+
+    def test_logs_endpoint(self, client):
+        r = client.get("/api/logs")
+        assert r.status_code == 200
+        data = r.json()
+        assert "lines" in data
+
+    def test_logs_download(self, client):
+        r = client.get("/api/logs?download=true")
+        assert r.status_code == 200
+        assert "text/plain" in r.headers["content-type"]
+
+    def test_logs_level_filter(self, client):
+        r = client.get("/api/logs?level=ERROR")
+        assert r.status_code == 200
+
+    def test_set_parent_not_found(self, client):
+        r = client.put("/api/maps/ghost/parent", json={"parent_map": None})
+        assert r.status_code == 404
+
+    def test_set_canvas_not_found(self, client):
+        r = client.put("/api/maps/ghost/canvas", json={"mode": "free"})
+        assert r.status_code == 404
+
+    def test_kiosk_list_empty(self, client):
+        r = client.get("/api/kiosk-users")
+        assert r.status_code == 200
+        assert r.json() == []
+
+    def test_kiosk_create_and_get(self, client):
+        r = client.post("/api/kiosk-users",
+                        json={"label": "Lobby", "maps": ["m1"], "interval": 60})
+        assert r.status_code == 201
+        data = r.json()
+        assert data["label"] == "Lobby"
+
+    def test_kiosk_update(self, client):
+        ku = client.post("/api/kiosk-users",
+                         json={"label": "Old", "maps": []}).json()
+        uid = ku["id"]
+        r = client.put(f"/api/kiosk-users/{uid}", json={"label": "New"})
+        assert r.status_code == 200
+        assert r.json()["label"] == "New"
+
+    def test_kiosk_delete(self, client):
+        ku = client.post("/api/kiosk-users",
+                         json={"label": "Gone", "maps": []}).json()
+        uid = ku["id"]
+        r = client.delete(f"/api/kiosk-users/{uid}")
+        assert r.status_code == 200
+
+    def test_kiosk_update_not_found(self, client):
+        r = client.put("/api/kiosk-users/ghost", json={"label": "X"})
+        assert r.status_code == 404
+
+    def test_kiosk_delete_not_found(self, client):
+        r = client.delete("/api/kiosk-users/ghost")
+        assert r.status_code == 404
+
+    def test_kiosk_resolve_invalid_token(self, client):
+        r = client.get("/api/kiosk-users/resolve?token=badtoken")
+        assert r.status_code == 404
+
+    def test_backends_list_empty(self, client):
+        r = client.get("/api/backends")
+        assert r.status_code == 200

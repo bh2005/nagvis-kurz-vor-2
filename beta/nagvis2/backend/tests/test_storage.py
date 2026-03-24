@@ -2,7 +2,7 @@
 
 import pytest
 from core.storage import (
-    create_map, get_map, list_maps, delete_map, update_map_field,
+    create_map, get_map, list_maps, delete_map, update_map_field, clone_map,
     add_object, update_object, delete_object,
     kiosk_create, kiosk_list, kiosk_update, kiosk_delete, kiosk_get_by_token,
     _slugify,
@@ -93,6 +93,48 @@ class TestMapCrud:
         canvas = {"mode": "osm", "lat": 51.0, "lng": 10.0, "zoom": 6}
         m = create_map("OSM", canvas=canvas)
         assert m["canvas"]["mode"] == "osm"
+
+
+# ── Clone Map ──────────────────────────────────────────────────────────────────
+
+class TestCloneMap:
+    def test_clone_creates_new_map(self, data_dirs):
+        create_map("Source", map_id="src")
+        clone = clone_map("src", "Cloned")
+        assert clone is not None
+        assert clone["id"] == "cloned"
+        assert clone["title"] == "Cloned"
+
+    def test_clone_deep_copies_objects(self, data_dirs):
+        create_map("With Objects", map_id="wo")
+        add_object("wo", {"type": "host", "x": 1, "y": 2, "name": "h"})
+        clone = clone_map("wo", "Clone With Objects")
+        assert len(clone["objects"]) == 1
+        # Mutating clone should not affect original
+        clone["objects"][0]["name"] = "modified"
+        orig = get_map("wo")
+        assert orig["objects"][0]["name"] == "h"
+
+    def test_clone_resets_parent_map(self, data_dirs):
+        create_map("Parent", map_id="par")
+        create_map("Child", map_id="child")
+        update_map_field("child", parent_map="par")
+        clone = clone_map("child", "Child Clone")
+        assert clone["parent_map"] is None
+
+    def test_clone_nonexistent_returns_none(self, data_dirs):
+        assert clone_map("no-such-map", "Whatever") is None
+
+    def test_clone_collision_avoidance(self, data_dirs):
+        create_map("Original", map_id="original")
+        create_map("Copy", map_id="copy")
+        clone = clone_map("original", "Copy")
+        assert clone["id"] == "copy-1"
+
+    def test_clone_is_persisted(self, data_dirs):
+        create_map("Persist", map_id="persist")
+        clone_map("persist", "Persisted Clone")
+        assert get_map("persisted-clone") is not None
 
 
 # ── Object CRUD ────────────────────────────────────────────────────────────────
