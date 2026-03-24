@@ -2259,7 +2259,7 @@ journalctl -u nagvis2 --since today   # Log von heute
 <h2 id="installation-manuell-ohne-script">Installation (manuell / ohne Script)</h2>
 <pre><code class="language-bash"># 1. Repository klonen
 git clone https://github.com/bh2005/nagvis-kurz-vor-2
-cd nagvis-kurz-vor-2/beta/nagvis2
+cd nagvis-kurz-vor-2/nagvis2
 
 # 2. Python-Umgebung anlegen
 cd backend
@@ -2279,7 +2279,7 @@ python main.py
 API-Dokumentation (Swagger): <code>http://localhost:8008/api/v1/docs</code></p>
 <hr />
 <h2 id="installation-docker">Installation (Docker)</h2>
-<pre><code class="language-bash">cd nagvis-kurz-vor-2/beta/nagvis2
+<pre><code class="language-bash">cd nagvis-kurz-vor-2/nagvis2
 
 # Alle Dienste starten
 docker-compose up --build -d
@@ -3135,7 +3135,7 @@ rta=1.234ms;3000;5000;0;
 <h2 id="hilfe-system-mkdocs">Hilfe-System (MkDocs)</h2>
 <p>Die integrierte Hilfe liegt unter <code>frontend/help/</code> und wird von FastAPI statisch ausgeliefert.</p>
 <h3 id="hilfe-neu-bauen">Hilfe neu bauen</h3>
-<pre><code class="language-bash">cd nagvis-kurz-vor-2/beta/nagvis2
+<pre><code class="language-bash">cd nagvis-kurz-vor-2/nagvis2
 pip install mkdocs-material
 mkdocs build
 # Ausgabe: frontend/help/
