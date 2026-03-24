@@ -637,6 +637,24 @@ NagVis 2 - Changelog
                  Voraussetzungen, Installation, Verwendung (omd start/stop nagvis2)
                  .env-Konfiguration fuer OMD-Betrieb, Deinstallation
 
+[2026-03-24]   Feature: Erweiterte Test-Coverage (Ziel >= 70%)
+               - tests/test_api_maps.py: 27 neue Tests
+                 TestCloneMapApi (6): clone 201, Kollision, Objekte, parent_map=None
+                 TestThumbnailApi (5): Upload PNG/JPEG, invalid type, 404, Delete
+                 TestChangelogEndpoint (1): GET /api/changelog
+                 TestMiscEndpoints (15): hosts, hostgroups, logs, kiosk CRUD,
+                 backends, parent/canvas 404
+               - tests/test_storage.py: TestCloneMap (6)
+                 clone_map: neuer Map, Deep-Copy, parent_map=None,
+                 nonexistent=None, Kollision, Persistenz
+               - tests/test_auth_router.py: NEU (22 Tests)
+                 AuthConfig, Login (valid/wrong pw/unknown),
+                 Me GET/PATCH (short pw -> 400), Refresh, Logout (Token revoke),
+                 UserCrud: list, create (dup 409, empty 400), patch role/pw,
+                 delete (self 400, ghost 404), admin-only check
+               Gesamt: 137 -> 192 Tests
+               Erwartete Coverage: >= 70%
+
 [2026-03-24]   Bugfix: GitHub Actions - Node 20 Deprecation
                - .github/workflows/ci.yml: FORCE_JAVASCRIPT_ACTIONS_TO_NODE24
                  entfernt (Node 24 ist jetzt Standard; Flag war temporaerer Opt-in)
@@ -1009,6 +1027,12 @@ MD = """\
 - `scripts/install-omd-hook.sh`: Hook-Installer — patcht `NAGVIS2_DIR`, setzt Eigentümer auf OMD-Site-User; `--uninstall` entfernt Hook
 - `docs/admin-guide.md`: neuer Abschnitt **„OMD / Checkmk-Integration"** — Voraussetzungen, Installation, Verwendung, `.env`-Konfiguration, Deinstallation
 
+### Feature: Erweiterte Test-Coverage – Ziel ≥ 70 % ✅
+- `tests/test_api_maps.py`: 27 neue Tests — `TestCloneMapApi` (6), `TestThumbnailApi` (5), `TestChangelogEndpoint`, `TestMiscEndpoints` (15: hosts, hostgroups, logs, Kiosk-CRUD, Backends, Parent/Canvas 404)
+- `tests/test_storage.py`: `TestCloneMap` (6) — `clone_map`: neuer Map, Deep-Copy, `parent_map=None`, nonexistent, Kollision, Persistenz
+- `tests/test_auth_router.py` (NEU, 22 Tests): AuthConfig, Login (valid/wrong/unknown), Me GET/PATCH (Short-PW → 400), Refresh, Logout (Token-Revoke), User-CRUD (list, create-dup 409, empty 400, patch role/pw, delete-self 400, delete-ghost 404, admin-only 403)
+- **Gesamt: 137 → 192 Tests · erwartete Coverage ≥ 70 %**
+
 ### Bugfix: GitHub Actions – Node 20 Deprecation
 - `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` aus allen 4 Workflows entfernt (`ci.yml`, `docker.yml`, `docs.yml`, `release.yml`)
 - Node 24 ist seit September 2025 der Standard — das temporäre Opt-in-Flag ist obsolet
@@ -1151,8 +1175,9 @@ def _build_txt(src: str) -> str:
 
 def _build_md(src: str) -> str:
     """
-    Kehrt die Datumsblock-Reihenfolge um (neueste zuerst) und
+    Sortiert Datumsblöcke absteigend (neueste zuerst) und
     trennt Bloecke mit '---'.
+    Reihenfolge der Blöcke in der Quellvariable spielt keine Rolle.
     """
     m = re.search(r'\n## \[\d{4}-\d{2}-\d{2}\]', src)
     if not m:
@@ -1161,7 +1186,12 @@ def _build_md(src: str) -> str:
     body   = src[m.start() + 1:]
     blocks = re.split(r'\n(?=## \[\d{4}-\d{2}-\d{2}\])', body)
     blocks = [b.strip() for b in blocks if b.strip()]
-    blocks.reverse()
+
+    def _date_key(block: str) -> str:
+        dm = re.match(r'## \[(\d{4}-\d{2}-\d{2})\]', block)
+        return dm.group(1) if dm else ''
+
+    blocks.sort(key=_date_key, reverse=True)   # neueste zuerst
     return header + '\n\n' + '\n\n---\n\n'.join(blocks) + '\n'
 
 
