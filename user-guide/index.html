@@ -454,6 +454,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#drawio-diagramsnet-import" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        draw.io / diagrams.net Import
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -648,6 +659,17 @@
     <span class="md-ellipsis">
       
         Gadget konfigurieren
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#graph-gadget-konfigurieren" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Graph-Gadget konfigurieren
       
     </span>
   </a>
@@ -1417,6 +1439,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#drawio-diagramsnet-import" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        draw.io / diagrams.net Import
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1611,6 +1644,17 @@
     <span class="md-ellipsis">
       
         Gadget konfigurieren
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#graph-gadget-konfigurieren" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Graph-Gadget konfigurieren
       
     </span>
   </a>
@@ -2048,6 +2092,11 @@
 <td>URL, API-Token (bevorzugt) oder Benutzer + Passwort, SSL</td>
 </tr>
 <tr>
+<td><strong>Prometheus / VictoriaMetrics</strong></td>
+<td>Prometheus HTTP API v1 — Targets als Hosts, Alerts als Services</td>
+<td>URL, Bearer Token oder Basic Auth, Host-Label, SSL</td>
+</tr>
+<tr>
 <td><strong>Livestatus TCP</strong></td>
 <td>Nagios/Checkmk via TCP-Verbindung</td>
 <td>Host/IP, Port (Standard: 6557)</td>
@@ -2123,9 +2172,42 @@
 </table>
 <h3 id="map-importieren-migrieren">Map importieren / migrieren</h3>
 <ul>
-<li><strong>ZIP-Import</strong> (NagVis-2-Format): Burger → 📥 Map importieren</li>
+<li><strong>ZIP-Import</strong> (NagVis-2-Format): Burger → 📥 Map importieren (.zip)</li>
+<li><strong>draw.io Import</strong> (.drawio / .xml): Burger → 🗂 draw.io importieren</li>
 <li><strong>NagVis-1-Migration</strong> (.cfg-Datei): Burger → ↑ NagVis 1 importieren</li>
 </ul>
+<h3 id="drawio-diagramsnet-import">draw.io / diagrams.net Import</h3>
+<p>Diagramme aus <a href="https://app.diagrams.net">draw.io</a> oder Visio-ähnlichen Tools können direkt als NagVis-Map importiert werden.</p>
+<p><strong>Ablauf:</strong>
+1. Burger-Menü → <strong>🗂 draw.io importieren (.drawio / .xml)</strong>
+2. Datei per Klick oder Drag &amp; Drop auswählen
+3. Optional: Titel anpassen
+4. Optional: <strong>„Shapes als Monitoring-Hosts anlegen"</strong> aktivieren — dann werden Shapes mit Label als <code>host</code>-Objekte statt Textboxen angelegt
+5. <strong>Importieren</strong> klicken → die neue Map öffnet sich automatisch</p>
+<p><strong>Was wird importiert:</strong></p>
+<table>
+<thead>
+<tr>
+<th>draw.io-Element</th>
+<th>NagVis-Objekt</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Shape / Rechteck / Ellipse (vertex)</td>
+<td>Textbox mit Label (Standard) oder Host</td>
+</tr>
+<tr>
+<td>Verbindung / Pfeil (edge)</td>
+<td>Linie (grau, solid, 2 px)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Hinweise:</strong>
+- Koordinaten werden automatisch normalisiert (draw.io-Pixel → 5–95 % Map-Koordinaten)
+- Komprimierte <code>.drawio</code>-Dateien (base64/deflate) werden automatisch dekomprimiert
+- Shapes ohne gültige Quelle/Ziel-Verbindung werden übersprungen (Warnung im Ergebnis)
+- Nach dem Import können alle Objekte im Edit-Mode weiter konfiguriert werden (Icons, Backend, Statusverknüpfung)</p>
 <hr />
 <h2 id="edit-mode">Edit-Mode</h2>
 <h3 id="aktivieren-deaktivieren">Aktivieren / Deaktivieren</h3>
@@ -2402,6 +2484,10 @@ Mit Option <strong>🌡 Weathermap</strong>: Linie färbt sich nach dem Status d
 <td>🔢 Raw-Number</td>
 <td>Numerischer Wert mit Divisor und Einheit</td>
 </tr>
+<tr>
+<td>📊 Graph / iframe</td>
+<td>Externe Grafik einbetten (Grafana, Checkmk, beliebige URL)</td>
+</tr>
 </tbody>
 </table>
 <h4 id="gadget-konfigurieren">Gadget konfigurieren</h4>
@@ -2476,6 +2562,68 @@ Mit Option <strong>🌡 Weathermap</strong>: Linie färbt sich nach dem Status d
 <p><strong>Perfdata-Vorrang:</strong> Wenn Host + Service gesetzt sind, werden <code>warn</code>/<code>crit</code>/<code>min</code>/<code>max</code> aus den Perfdata automatisch übernommen — eigene Werte im Dialog haben jedoch immer Vorrang.</p>
 </blockquote>
 <p>Die <strong>Live-Vorschau</strong> am unteren Dialogrand aktualisiert sich bei jeder Änderung sofort.</p>
+<h4 id="graph-gadget-konfigurieren">Graph-Gadget konfigurieren</h4>
+<p>Der Typ <strong>📊 Graph / iframe</strong> bettet externe Grafiken direkt auf der Map ein — ideal für Grafana-Panels oder Checkmk-Graphen.</p>
+<table>
+<thead>
+<tr>
+<th>Feld</th>
+<th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>URL</strong></td>
+<td>Vollständige URL des einzubettenden Inhalts</td>
+</tr>
+<tr>
+<td><strong>Einbettung</strong></td>
+<td><code>iframe</code> (Standard, interaktiv) oder <code>&lt;img&gt;</code> (nur Bild, z.B. für PNG-Render-APIs)</td>
+</tr>
+<tr>
+<td><strong>Breite / Höhe</strong></td>
+<td>Pixelgröße des eingebetteten Bereichs</td>
+</tr>
+<tr>
+<td><strong>Auto-Refresh</strong></td>
+<td>Intervall in Sekunden für automatisches Neu-Laden (0 = aus)</td>
+</tr>
+<tr>
+<td><strong>Titel</strong></td>
+<td>Beschriftung unter dem Gadget</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Beispiel-URLs:</strong></p>
+<table>
+<thead>
+<tr>
+<th>System</th>
+<th>URL-Muster</th>
+<th>Einbettung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Grafana Panel</td>
+<td><code>https://grafana.example.com/d-solo/ABC?panelId=5&amp;orgId=1</code></td>
+<td><code>iframe</code></td>
+</tr>
+<tr>
+<td>Grafana PNG</td>
+<td><code>https://grafana.example.com/render/d-solo/ABC?panelId=5&amp;width=400&amp;height=200</code></td>
+<td><code>img</code> + Refresh</td>
+</tr>
+<tr>
+<td>Checkmk Graph</td>
+<td><code>https://checkmk.example.com/site/check_mk/graph_image.py?host=srv1&amp;service=CPU</code></td>
+<td><code>img</code> + Refresh</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Tipp:</strong> Bei <code>&lt;img&gt;</code> mit Auto-Refresh wird ein <code>?_t=&lt;timestamp&gt;</code>-Parameter angehängt, um den Browser-Cache zu umgehen.</p>
+</blockquote>
 <hr />
 <h2 id="view-mode-aktionen-rechtsklick-auf-hostsservices">View-Mode Aktionen (Rechtsklick auf Hosts/Services)</h2>
 <p>Im normalen Anzeigemodus (kein Edit-Mode) öffnet Rechtsklick auf einen Host/Service ein Aktionsmenü:</p>

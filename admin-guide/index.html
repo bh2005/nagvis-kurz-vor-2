@@ -675,6 +675,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#prometheus-victoriametrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prometheus / VictoriaMetrics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#backend-persistenz" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1765,6 +1776,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#prometheus-victoriametrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prometheus / VictoriaMetrics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#backend-persistenz" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2752,6 +2774,10 @@ GET /api/logs?lines=1000&amp;download=true
 <td><strong>Icinga2</strong></td>
 <td>URL (z.B. <code>https://icinga2:5665/v1</code>), API-User + Passwort</td>
 </tr>
+<tr>
+<td><strong>Prometheus / VictoriaMetrics</strong></td>
+<td>URL (z.B. <code>http://prometheus:9090</code>), Bearer Token oder Basic Auth, Host-Label</td>
+</tr>
 </tbody>
 </table>
 <h3 id="checkmk-rest-api">Checkmk REST API</h3>
@@ -2970,6 +2996,87 @@ GET /api/logs?lines=1000&amp;download=true
 </tbody>
 </table>
 <p>Icinga2 Custom-Vars (<code>host.vars.*</code>) werden automatisch als Labels übernommen (nur einfache Datentypen: String, Zahl, Bool).</p>
+<hr />
+<h3 id="prometheus-victoriametrics">Prometheus / VictoriaMetrics</h3>
+<p><strong>Voraussetzungen:</strong>
+- Prometheus 2.x oder VictoriaMetrics (identische HTTP API)
+- Keine besondere Konfiguration erforderlich — NagVis 2 nutzt nur lesende API-Endpunkte</p>
+<p><strong>Konfigurationsparameter:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Beispiel</th>
+<th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>url</code></td>
+<td><code>http://prometheus:9090</code></td>
+<td>Prometheus-Basis-URL (ohne <code>/api/v1/</code>)</td>
+</tr>
+<tr>
+<td><code>token</code></td>
+<td><code>Bearer xyz...</code></td>
+<td>Bearer Token (optional, für gesicherte Instanzen)</td>
+</tr>
+<tr>
+<td><code>username</code> / <code>password</code></td>
+<td><code>user</code> / <code>pass</code></td>
+<td>Basic Auth (alternativ zu Bearer Token)</td>
+</tr>
+<tr>
+<td><code>host_label</code></td>
+<td><code>instance</code></td>
+<td>Welches Prometheus-Label als Host-Name verwendet wird (Standard: <code>instance</code>)</td>
+</tr>
+<tr>
+<td><code>timeout</code></td>
+<td><code>15</code></td>
+<td>HTTP-Timeout in Sekunden</td>
+</tr>
+<tr>
+<td><code>verify_ssl</code></td>
+<td><code>true</code></td>
+<td>TLS-Zertifikat prüfen</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Konzept-Mapping Prometheus → NagVis 2:</strong></p>
+<table>
+<thead>
+<tr>
+<th>NagVis 2</th>
+<th>Prometheus Endpoint</th>
+<th>Mapping</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hosts</td>
+<td><code>GET /api/v1/query?query=up</code></td>
+<td><code>up=1</code> → UP, <code>up=0</code> → DOWN; Label <code>host_label</code> → Host-Name</td>
+</tr>
+<tr>
+<td>Services</td>
+<td><code>GET /api/v1/alerts</code></td>
+<td><code>firing</code> + <code>severity=critical</code> → CRITICAL; <code>firing</code> + <code>warning/warn/info</code> → WARNING; <code>pending</code> → WARNING</td>
+</tr>
+<tr>
+<td>Hostgruppen</td>
+<td><code>GET /api/v1/query?query=up</code></td>
+<td><code>job</code>-Label gruppiert Targets</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Mehrere Jobs, gleicher Host-Name:</strong>
+Wenn derselbe <code>instance</code>-Wert in mehreren Jobs auftaucht, gewinnt der schlechteste Status (DOWN &gt; UP).</p>
+<p><strong>Wichtig:</strong> Prometheus ist <strong>read-only</strong> — ACK, Downtime und Reschedule sind nicht möglich. Entsprechende Aktionen im Kontextmenü werden ignoriert (mit Hinweis im Log).</p>
+<p><strong>VictoriaMetrics:</strong>
+VictoriaMetrics ist vollständig kompatibel — dieselbe API, kein Unterschied in der Konfiguration.</p>
+<p><strong>Verbindungstest:</strong>
+<code>GET /api/v1/status/buildinfo</code> — liefert die Prometheus-Version zurück (sichtbar im Backend-Test-Dialog).</p>
 <hr />
 <h3 id="backend-persistenz">Backend-Persistenz</h3>
 <p>Konfigurierte Backends werden in <code>data/backends.json</code> gespeichert — kein Neustart erforderlich.</p>
