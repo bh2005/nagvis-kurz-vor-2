@@ -98,6 +98,7 @@ function onWsMsg(ev) {
       if (ev.downtime_ended?.length)   showDowntimeBanner(ev.downtime_ended,   false);
       const n = (ev.hosts?.length ?? 0) + (ev.services?.length ?? 0);
       setStatusBar(`${fmt(ev.ts)} · ${n} Änderung${n !== 1 ? 'en' : ''} · ${ev.elapsed}ms`);
+      _checkCriticalNotify(ev.hosts ?? [], ev.services ?? []);
       break;
     }
 
@@ -142,6 +143,62 @@ function onWsMsg(ev) {
       showToast(`Backend: ${ev.message}`, 'error');
       break;
   }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════
+//  CRITICAL-BENACHRICHTIGUNGEN (Browser Push + Hinweiston)
+// ═══════════════════════════════════════════════════════════════════════
+
+let _lastNotifyTs = 0;  // Debounce: max. 1 Benachrichtigung alle 15 s
+
+function _checkCriticalNotify(hosts, services) {
+  const s = loadUserSettings();
+  if (!s.notifyOnCritical) return;
+
+  const critHosts = hosts.filter(h =>
+    h.state_label === 'DOWN' || h.state_label === 'CRITICAL' || h.state_label === 'UNREACHABLE'
+  );
+  const critSvcs = services.filter(sv =>
+    sv.state_label === 'CRITICAL'
+  );
+  const all = [...critHosts, ...critSvcs];
+  if (!all.length) return;
+
+  const now = Date.now();
+  if (now - _lastNotifyTs < 15_000) return;   // Debounce
+  _lastNotifyTs = now;
+
+  if (s.notifySound) _playCriticalSound();
+
+  if ('Notification' in window && Notification.permission === 'granted') {
+    const names = all.slice(0, 3).map(i => i.name || i.host_name).join(', ');
+    const more  = all.length > 3 ? ` (+${all.length - 3} weitere)` : '';
+    new Notification('⚠ NagVis 2 – CRITICAL', {
+      body:  names + more,
+      icon:  '/favicon.ico',
+      tag:   'nagvis2-critical',   // ersetzt vorherige Benachrichtigung
+      renotify: true,
+    });
+  }
+}
+
+function _playCriticalSound() {
+  try {
+    const ctx  = new (window.AudioContext || window.webkitAudioContext)();
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.setValueAtTime(440, ctx.currentTime + 0.15);
+    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.45);
+    osc.onended = () => ctx.close();
+  } catch (_) {}
 }
 
 

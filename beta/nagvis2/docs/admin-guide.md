@@ -6,7 +6,9 @@
 |---|---|
 | Python | 3.11 |
 | Docker / Docker Compose | 24.x / 2.x |
-| Nagios / Checkmk / Icinga | mit Livestatus-Modul oder Checkmk REST API |
+| Nagios / Checkmk | mit Livestatus-Modul oder Checkmk REST API |
+| Zabbix | 6.0+ (empfohlen), 5.x mit Username/Password |
+| Icinga2 | 2.11+ mit aktivierter REST API |
 
 ---
 
@@ -357,6 +359,10 @@ nagvis2/
     │   └── logging_setup.py ← Log-Format (text/json), In-Memory-Ringpuffer
     ├── checkmk/
     │   └── client.py        ← Checkmk REST API Client
+    ├── zabbix/
+    │   └── client.py        ← Zabbix JSON-RPC API Client
+    ├── icinga2/
+    │   └── client.py        ← Icinga2 REST API Client
     ├── connectors/
     │   └── registry.py      ← Unified Backend Registry
     ├── api/
@@ -395,6 +401,121 @@ Burger-Menü → **⚙ Backends verwalten**
 | **Checkmk REST API** | URL (z.B. `http://checkmk:5000/mysite/check_mk/api/1.0`), Automation-User, Secret |
 | **Livestatus TCP** | Host + Port (Standard: 6557) |
 | **Livestatus Unix** | Socket-Pfad (z.B. `/omd/sites/mysite/tmp/run/live`) |
+| **Zabbix** | URL (z.B. `https://zabbix.example.com`), API-Token (Zabbix 6.0+) oder Username/Password |
+| **Icinga2** | URL (z.B. `https://icinga2:5665/v1`), API-User + Passwort |
+
+### Checkmk REST API
+
+**Voraussetzungen:**
+- Checkmk 2.0+ (Raw, Free oder Enterprise Edition)
+- Automation-User unter *Setup → Users → Automation user* angelegt
+
+**Konfigurationsparameter:**
+
+| Parameter | Beispiel | Beschreibung |
+|---|---|---|
+| `url` | `http://checkmk:5000/mysite/check_mk/api/1.0` | REST-API-Basis-URL (inkl. Site-Name) |
+| `username` | `automation` | Automation-User-Name |
+| `secret` | `abc123xyz...` | Automation-Secret (aus Checkmk-UI kopieren) |
+| `verify_ssl` | `true` | TLS-Zertifikat prüfen (bei Self-Signed: `false`) |
+
+**Automation-User anlegen (Checkmk UI):**
+```
+Setup → Users → Add user
+→ Automation user aktivieren
+→ Secret kopieren und in NagVis 2 eintragen
+```
+
+---
+
+### Zabbix
+
+**Voraussetzungen:**
+- Zabbix 6.0+ (empfohlen; Zabbix 5.x mit Username/Passwort möglich)
+- API-Token unter *User Settings → API tokens* erstellt
+
+**Konfigurationsparameter:**
+
+| Parameter | Beispiel | Beschreibung |
+|---|---|---|
+| `url` | `https://zabbix.example.com` | Zabbix-Frontend-URL (ohne `/api_jsonrpc.php`) |
+| `token` | `abc123...` | API-Token (Zabbix 6.0+, bevorzugt) |
+| `username` | `Admin` | Fallback-Login (nur ohne Token, Zabbix 5.x) |
+| `password` | `geheim` | Fallback-Passwort |
+| `verify_ssl` | `true` | TLS-Zertifikat prüfen |
+
+**API-Token anlegen (Zabbix 6.0+):**
+```
+User Settings → API tokens → Create API token
+→ User-Rolle mit Read-Zugriff auf gewünschte Hosts/Gruppen
+```
+
+**Konzept-Mapping Zabbix → NagVis 2:**
+
+| NagVis 2 | Zabbix | Hinweis |
+|---|---|---|
+| Hosts | `host.get` | `available`: 1=UP, 2=DOWN, 0=UNREACHABLE |
+| Services | `problem.get` | Aktive Trigger-Auslösungen |
+| Hostgruppen | `hostgroup.get` | |
+
+**Schweregrad-Mapping:**
+
+| Zabbix Severity | NagVis 2 State |
+|---|---|
+| 0 Not classified, 1 Information, 2 Warning | WARNING |
+| 3 Average, 4 High, 5 Disaster | CRITICAL |
+
+---
+
+### Icinga2
+
+**Voraussetzungen:**
+- Icinga2 2.11+
+- Icinga2 REST API aktiviert (`icinga2 api setup`)
+- API-Benutzer in `/etc/icinga2/conf.d/api-users.conf` angelegt
+
+**Konfigurationsparameter:**
+
+| Parameter | Beispiel | Beschreibung |
+|---|---|---|
+| `base_url` | `https://icinga2.example.com:5665/v1` | REST-API-URL (Port 5665) |
+| `username` | `nagvis2` | API-Benutzer-Name |
+| `password` | `geheim` | API-Benutzer-Passwort |
+| `verify_ssl` | `false` | TLS prüfen (Icinga2 nutzt oft Self-Signed-Certs) |
+
+**API-Benutzer anlegen** (`/etc/icinga2/conf.d/api-users.conf`):
+
+```
+object ApiUser "nagvis2" {
+  password = "geheimes-passwort"
+  permissions = [
+    "objects/query/Host",
+    "objects/query/Service",
+    "objects/query/HostGroup",
+    "actions/acknowledge-problem",
+    "actions/remove-acknowledgement",
+    "actions/schedule-downtime",
+    "actions/reschedule-check"
+  ]
+}
+```
+
+Nach der Änderung Icinga2 neu laden:
+```bash
+systemctl reload icinga2
+```
+
+**Konzept-Mapping Icinga2 → NagVis 2:**
+
+| NagVis 2 | Icinga2 Endpoint | Hinweis |
+|---|---|---|
+| Hosts | `GET /v1/objects/hosts` | state: 0=UP, 1=DOWN, 2=UNREACHABLE |
+| Services | `GET /v1/objects/services` | state: 0=OK, 1=WARNING, 2=CRITICAL, 3=UNKNOWN |
+| Hostgruppen | `GET /v1/objects/hostgroups` | |
+
+Icinga2 Custom-Vars (`host.vars.*`) werden automatisch als Labels übernommen (nur einfache Datentypen: String, Zahl, Bool).
+
+---
 
 ### Backend-Persistenz
 

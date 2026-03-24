@@ -93,6 +93,7 @@ function _renderMonitoringNode(obj) {
   el.dataset.type          = obj.type;
   el.dataset.iconset       = iconset;
   el.dataset.labelTemplate = obj.label_template || '';
+  el.dataset.backendId     = obj.backend_id || '';
   el.style.left       = `${obj.x}%`;
   el.style.top        = `${obj.y}%`;
   el.style.setProperty('--node-size', `${size}px`);
@@ -123,7 +124,7 @@ function _renderMonitoringNode(obj) {
   getNodeContainer().appendChild(el);
 
   const cacheKey = obj.type === 'service' ? `${obj.host_name}::${obj.name}` : obj.name;
-  const cached   = hostCache[cacheKey];
+  const cached   = _resolveStatus(obj.backend_id || '', cacheKey);
   if (cached) {
     applyNodeStatus(el, cached.state_label, cached.acknowledged, cached.in_downtime);
     if (obj.label_template) _applyLabelTemplate(el, obj, cached);
@@ -203,10 +204,32 @@ function _applyLabelTemplate(el, obj, status) {
   labelEl.title       = text;
 }
 
+/**
+ * Liefert den Status-Eintrag für einen gegebenen Cache-Key.
+ * Wenn backend_id gesetzt ist, wird der backend-spezifische Cache bevorzugt;
+ * als Fallback dient der allgemeine hostCache (z.B. für ältere Map-Objekte ohne backend_id).
+ */
+function _resolveStatus(backendId, cacheKey) {
+  if (backendId) {
+    return (backendStatusCache[backendId] && backendStatusCache[backendId][cacheKey])
+      || hostCache[cacheKey];
+  }
+  return hostCache[cacheKey];
+}
+
 function applyStatuses(hosts, services) {
   for (const h of hosts) {
+    // Allgemeiner Cache (Fallback für Nodes ohne backend_id)
     hostCache[h.name] = h;
+    // Backend-spezifischer Cache
+    if (h._backend_id) {
+      if (!backendStatusCache[h._backend_id]) backendStatusCache[h._backend_id] = {};
+      backendStatusCache[h._backend_id][h.name] = h;
+    }
     document.querySelectorAll(`[data-name="${esc(h.name)}"]`).forEach(el => {
+      const elBid = el.dataset.backendId;
+      // Überspringen wenn Element einen anderen Backend-Filter hat
+      if (elBid && h._backend_id && elBid !== h._backend_id) return;
       applyNodeStatus(el, h.state_label, h.acknowledged, h.in_downtime);
       if (el.dataset.labelTemplate) {
         const obj = activeMapCfg?.objects?.find(o => o.object_id === el.dataset.objectId);
@@ -216,8 +239,16 @@ function applyStatuses(hosts, services) {
   }
   for (const s of services) {
     const key = `${s.host_name}::${s.description}`;
+    // Allgemeiner Cache
     hostCache[key] = s;
+    // Backend-spezifischer Cache
+    if (s._backend_id) {
+      if (!backendStatusCache[s._backend_id]) backendStatusCache[s._backend_id] = {};
+      backendStatusCache[s._backend_id][key] = s;
+    }
     document.querySelectorAll(`[data-name="${esc(key)}"]`).forEach(el => {
+      const elBid = el.dataset.backendId;
+      if (elBid && s._backend_id && elBid !== s._backend_id) return;
       applyNodeStatus(el, s.state_label, s.acknowledged, s.in_downtime);
       if (el.dataset.labelTemplate) {
         const obj = activeMapCfg?.objects?.find(o => o.object_id === el.dataset.objectId);
@@ -232,6 +263,7 @@ function applyStatuses(hosts, services) {
     // Perfdata cachen
     if (s.perfdata && Object.keys(s.perfdata).length) {
       perfdataCache[key] = s.perfdata;
+      if (s._backend_id) perfdataCache[`${s._backend_id}\x1e${key}`] = s.perfdata;
     }
   }
   _applyHostgroupStatuses();
@@ -267,6 +299,7 @@ function _applyHostgroupStatuses() {
 
   document.querySelectorAll('.nv2-node[data-type="hostgroup"]').forEach(el => {
     const groupName = el.dataset.name;
+    const elBid     = el.dataset.backendId;
     const members   = hostgroupCache[groupName];
     if (!members || !members.length) return;
 
@@ -276,7 +309,7 @@ function _applyHostgroupStatuses() {
     let anyDT      = false;
 
     for (const hname of members) {
-      const h = hostCache[hname];
+      const h = _resolveStatus(elBid, hname);
       if (!h) continue;
       const sev = HG_SEVERITY[h.state_label] ?? 0;
       if (sev > worstSev) { worstSev = sev; worstLabel = h.state_label; }
@@ -296,8 +329,9 @@ function _applyGadgetPerfdata() {
     const cfg = obj?.gadget_config;
     if (!cfg?.host_name || !cfg?.service_description) return;
 
-    const key = `${cfg.host_name}::${cfg.service_description}`;
-    const pd  = perfdataCache[key];
+    const key    = `${cfg.host_name}::${cfg.service_description}`;
+    const bidKey = obj.backend_id ? `${obj.backend_id}\x1e${key}` : null;
+    const pd     = (bidKey && perfdataCache[bidKey]) || perfdataCache[key];
     if (!pd) return;
 
     // Metrik suchen: perf_label → metric (case-insensitive) → erste Metrik
@@ -390,6 +424,15 @@ function openGadgetConfigDialog(el, obj) {
                  value="${esc(cfg.perf_label || '')}" list="gc-perf-label-list">
           <datalist id="gc-perf-label-list"></datalist>
         </div>
+        <div style="margin-top:6px">
+          <label class="f-label">
+            Datenquelle (Backend)
+            <span style="color:var(--text-dim);font-weight:400">(leer = erster Treffer)</span>
+          </label>
+          <select class="f-input" id="gc-backend-id">
+            <option value="">(beliebig – erster Treffer)</option>
+          </select>
+        </div>
       </div>
       <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-top:8px">
         <div>
@@ -465,6 +508,19 @@ function openGadgetConfigDialog(el, obj) {
 
   document.body.appendChild(dlg);
   dlg.addEventListener('click', e => { if (e.target === dlg) dlg.remove(); });
+
+  // Backend-Dropdown befüllen
+  const gcBackendSel = document.getElementById('gc-backend-id');
+  api('/api/backends').then(backends => {
+    if (!Array.isArray(backends)) return;
+    backends.forEach(b => {
+      const opt = document.createElement('option');
+      opt.value       = b.backend_id;
+      opt.textContent = b.label || b.backend_id;
+      gcBackendSel.appendChild(opt);
+    });
+    gcBackendSel.value = obj.backend_id || '';
+  }).catch(() => {});
 
   _gcUpdatePreview();
   _gcUpdatePerfLabels();
@@ -626,6 +682,7 @@ window._gcSave = async function(objectId) {
   const histPoints  = parseInt(document.getElementById('gc-history-points')?.value)  || 25;
   const valueOut    = parseFloat(document.getElementById('gc-value-out')?.value)    || value;
   const valueIn     = parseFloat(document.getElementById('gc-value-in')?.value)     || 0;
+  const backendId   = document.getElementById('gc-backend-id')?.value               || null;
 
   const newCfg = { type, metric, unit, min, max, warning, critical, value,
     ...(type === 'linear'    ? { orientation: orientation !== 'horizontal' ? orientation : undefined } : {}),
@@ -639,7 +696,7 @@ window._gcSave = async function(objectId) {
   };
 
   const objRef = activeMapCfg?.objects?.find(o => o.object_id === objectId);
-  if (objRef) { objRef.gadget_config = newCfg; objRef.size = size; objRef.label = metric; }
+  if (objRef) { objRef.gadget_config = newCfg; objRef.size = size; objRef.label = metric; objRef.backend_id = backendId; }
 
   const el = document.getElementById(`nv2-${objectId}`);
   if (el && typeof window._renderGadgetHTML === 'function') {
@@ -647,10 +704,11 @@ window._gcSave = async function(objectId) {
     el.style.transform       = `translate(-50%,-50%) scale(${size/100})`;
     el.style.transformOrigin = 'center center';
     el.dataset.gadgetType    = newCfg.type;
+    el.dataset.backendId     = backendId || '';
   }
 
   await api(`/api/maps/${activeMapId}/objects/${objectId}/props`, 'PATCH',
-    { gadget_config: newCfg, size, label: metric });
+    { gadget_config: newCfg, size, label: metric, backend_id: backendId });
 
   document.getElementById('dlg-gadget-cfg')?.remove();
   setStatusBar(`Gadget „${metric}" aktualisiert`);
@@ -2126,6 +2184,13 @@ async function openNodePropsDialog(el, obj) {
         <input type="checkbox" id="np-show-label" ${obj.show_label !== false ? 'checked' : ''}>
         Label anzeigen
       </label>
+      <label class="f-label" style="margin-top:8px">
+        Datenquelle (Backend)
+        <span style="color:var(--text-dim);font-weight:400">(leer = erster Treffer)</span>
+      </label>
+      <select class="f-input" id="np-backend-id">
+        <option value="">(beliebig – erster Treffer)</option>
+      </select>
       <div class="dlg-actions" style="margin-top:16px">
         <button class="btn-cancel" id="np-cancel">Abbrechen</button>
         <button class="btn-ok"     id="np-ok">Speichern</button>
@@ -2138,6 +2203,19 @@ async function openNodePropsDialog(el, obj) {
     if (!Array.isArray(names) || !names.length) return;
     const opts = names.map(n => `<option value="${esc(n)}">`).join('');
     dlg.querySelectorAll('datalist[id^="np-hosts-dl"]').forEach(dl => { dl.innerHTML = opts; });
+  }).catch(() => {});
+
+  // Backend-Dropdown befüllen
+  const selBackendEl = dlg.querySelector('#np-backend-id');
+  api('/api/backends').then(backends => {
+    if (!Array.isArray(backends)) return;
+    backends.forEach(b => {
+      const opt = document.createElement('option');
+      opt.value       = b.backend_id;
+      opt.textContent = b.label || b.backend_id;
+      selBackendEl.appendChild(opt);
+    });
+    selBackendEl.value = obj.backend_id || '';
   }).catch(() => {});
 
   const inName      = dlg.querySelector('#np-name');
@@ -2155,22 +2233,25 @@ async function openNodePropsDialog(el, obj) {
     const newShowLabel = inShowLabel.checked;
     if (!newName) return;
 
-    const patch = { name: newName, label: newLabel, label_template: newLabelTmpl, show_label: newShowLabel };
+    const newBackendId = dlg.querySelector('#np-backend-id').value || null;
+    const patch = { name: newName, label: newLabel, label_template: newLabelTmpl, show_label: newShowLabel, backend_id: newBackendId };
     if (isService) patch.host_name = newHost;
 
     obj.name           = newName;
     obj.label          = newLabel;
     obj.label_template = newLabelTmpl;
     obj.show_label     = newShowLabel;
+    obj.backend_id     = newBackendId;
     if (isService) obj.host_name = newHost;
 
     el.dataset.name          = isService ? `${newHost}::${newName}` : newName;
     el.dataset.labelTemplate = newLabelTmpl || '';
+    el.dataset.backendId     = newBackendId || '';
 
     const labelEl = el.querySelector('.nv2-label');
     if (labelEl) {
       const cacheKey = isService ? `${newHost}::${newName}` : newName;
-      const status   = hostCache[cacheKey];
+      const status   = _resolveStatus(newBackendId || '', cacheKey);
       const text     = newLabelTmpl
         ? resolveMacros(newLabelTmpl, obj, status)
         : (newLabel || newName);
