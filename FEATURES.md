@@ -185,6 +185,35 @@
 
 ---
 
+### Map-Verwaltung (Ergänzungen)
+- **Map-Duplikat** – Map klonen inkl. aller Objekte + Hintergrundbild; `POST /api/v1/maps/{id}/clone`; Burger-Menü + Rechtsklick-Kontextmenü
+
+---
+
+### User-Chip & Persönliche Einstellungen
+- **User-Chip Button** – klickbarer Button in der Topbar mit Dropdown-Menü:
+  - Header: Rollenicon + Username + Rolle
+  - ☀/☽ Theme wechseln (synchron mit Burger-Menü)
+  - ⚙ Einstellungen… (öffnet Einstellungs-Dialog)
+  - 🔑 Passwort ändern (nur `AUTH_ENABLED=true`)
+  - 👥 Benutzer verwalten (nur Admin + `AUTH_ENABLED=true`)
+  - ⏻ Abmelden (nur `AUTH_ENABLED=true`)
+- Außenklick schließt Dropdown; schließt Burger-Menü wenn Chip-Dropdown öffnet
+
+---
+
+### Distribution & Betrieb
+- **`install.sh`** – vollautomatisches Linux-Installationsskript
+  - System-User/Group `nagvis2`, venv, Berechtigungen (`data/` 750, `.env` 600)
+  - Systemd-Service mit Security-Hardening
+  - `--upgrade`: Backup + Code-Update ohne Datenverlust
+  - `--uninstall`: vollständige Deinstallation
+- **`build.sh`** – ZIP-Build-Skript: `nagvis2-<version>.zip` + SHA256
+- **GitHub Action `release.yml`** – automatisches Release bei `v*.*.*`-Tag:
+  Tests → ZIP → GitHub Release mit Assets + Changelog-Abschnitt
+
+---
+
 ### Monitoring & Betrieb
 - **Prometheus** – `GET /metrics` Scrape-Endpoint mit vollständigem Metrik-Set
   (`nagvis2_http_requests_total`, `_http_request_duration_seconds`, `_ws_connections`,
@@ -219,7 +248,7 @@
 | # | Feature | Beschreibung |
 |---|---|---|
 | M1 | **Suche/Filter-Sidebar** | Hosts/Services/Maps filtern, Volltextsuche |
-| M2 | **Map-Duplikat-Funktion** | Map klonen inkl. aller Objekte |
+| ~~M2~~ | ~~**Map-Duplikat-Funktion**~~ | ✅ Map klonen inkl. Objekten + Hintergrundbild; Burger + Rechtsklick |
 | M3 | **SQLite statt JSON-Files** | SQLAlchemy, JSON als Fallback, Migration per Script |
 | ~~M4~~ | ~~**Label-Templates**~~ | ✅ Nagios-Macros + Checkmk-Labels; Live-Auflösung per WS-Update |
 | M5 | **Downtime planen** | Direktaufruf Checkmk-API aus NagVis heraus |
@@ -242,11 +271,11 @@
 
 ```
 Frontend-Shell      ████████████████████  100%
-Map-Verwaltung      ████████████████████  100%
+Map-Verwaltung      ████████████████████  100%  (inkl. Duplikat/Clone)
 Objekt-Typen        ████████████████████  100%  (Label-Templates, remove_ack, Linien-Aktionsmenü)
 Edit-Mode           ████████████████████  100%
 Live-Status         ████████████████████  100%  (Livestatus, Checkmk, Icinga2, Zabbix)
-Authentifizierung   ████████████████████  100%  (JWT, Auto-Refresh, Rollen-UI, User-Mgmt)
+Authentifizierung   ████████████████████  100%  (JWT, Auto-Refresh, Rollen-UI, User-Mgmt, User-Chip)
 Layer-System        ████████████████████  100%
 Kiosk-Modus         ████████████████████  100%
 OSM / Weltkarte     ████████████████████  100%
@@ -255,5 +284,6 @@ Monitoring/Betrieb  ████████████████░░░░
 Backend API         ██████████████████░░   90%  (HTTPS offen)
 Docker/Helm         ██████████████████░░   90%
 Tests               ████████████████░░░░   80%  (ws_manager 89%, main 76%)
-GitHub Actions      ████████████████████  100%  (CI, Docker, MkDocs, Dependabot)
+Distribution        ████████████████████  100%  (install.sh, build.sh, GitHub Releases)
+GitHub Actions      ████████████████████  100%  (CI, Docker, MkDocs, Dependabot, Release)
 ```

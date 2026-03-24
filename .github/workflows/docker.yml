@@ -11,9 +11,6 @@ on:
 # Manuell ausführen: Actions → Docker – Build & Push → Run workflow
 # Voraussetzung: Secrets DOCKERHUB_USERNAME + DOCKERHUB_TOKEN in Repository-Settings
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   build-push:
     name: Build & Push zu Docker Hub

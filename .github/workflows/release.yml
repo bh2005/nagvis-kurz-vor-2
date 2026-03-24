@@ -21,7 +21,6 @@ on:
         options: ["true", "false"]
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   PYTHON_VERSION: "3.13"
 
 jobs:

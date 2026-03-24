@@ -4,6 +4,10 @@
 
 Eine komplette Neuentwicklung von NagVis mit FastAPI-Backend, WebSocket-Livestatus und einem Vanilla-JS-Frontend ohne Framework-Abhängigkeiten.
 
+[![CI](https://github.com/bh2005/nagvis-kurz-vor-2/actions/workflows/ci.yml/badge.svg)](https://github.com/bh2005/nagvis-kurz-vor-2/actions/workflows/ci.yml)
+[![Latest Release](https://img.shields.io/github/v/release/bh2005/nagvis-kurz-vor-2?label=Release)](https://github.com/bh2005/nagvis-kurz-vor-2/releases/latest)
+[![Changelog](https://img.shields.io/badge/Changelog-ansehen-blue)](beta/nagvis2/changelog.txt)
+
 ---
 
 ## Features
@@ -12,46 +16,55 @@ Eine komplette Neuentwicklung von NagVis mit FastAPI-Backend, WebSocket-Livestat
 |---|---|
 | **Echtzeit-Updates** | WebSocket-Livestatus, automatischer Reconnect, Offline-Banner |
 | **Edit-Mode** | Drag & Drop, Multi-Select (Lasso + Shift+Klick), Gruppen-Drag, Layer-System |
+| **Map-Duplikat** | Map klonen inkl. aller Objekte + Hintergrundbild (`POST /api/v1/maps/{id}/clone`) |
 | **Label-Templates** | Nagios-Macros (`$HOSTNAME$`, `$HOSTSTATE$`, …) + Checkmk-Labels (`$LABEL:os$`) als Node-Beschriftung |
 | **Gadgets** | Radial, Linear (H/V), Sparkline, Thermometer, Flow/Weather, Raw-Number |
 | **Perfdata** | Nagios/Checkmk Performance-Daten automatisch in Gadgets eingespeist |
 | **Weathermap-Linien** | Statusfarbe, Bandbreiten-Labels, bidirektionale Pfeile |
 | **Multi-Backend** | Livestatus, Checkmk REST API, **Icinga2 REST API**, **Zabbix JSON-RPC** gemischt, Hot-Add ohne Neustart |
+| **Authentifizierung** | JWT (7 Tage), Auto-Refresh, Login-Overlay, Rollen (viewer/editor/admin), Benutzer-Management |
+| **User-Chip** | Klickbarer Topbar-Button: Theme, Einstellungen, Passwort, Benutzerverwaltung, Logout |
 | **Kiosk-Modus** | Token-URL, automatische Map-Rotation, Vollbild mit Zoom/Pan |
 | **API-Versionierung** | Alle Endpunkte unter `/api/v1/`; 308-Redirect für Rückwärtskompatibilität |
 | **Help-System** | Integriertes MkDocs-Hilfe-System unter `/help/` |
 | **Docker** | `docker compose up --build` — fertig |
+| **Install-Script** | `install.sh` — vollautomatische Linux-Installation mit Systemd-Service |
 | **Theme** | Dark / Light, Standard: Dark + Sidebar ausgeklappt |
 
 ---
 
 ## Schnellstart
 
-### Docker (empfohlen)
+### Via Install-Script (empfohlen für Linux-Server)
+
+```bash
+# ZIP vom aktuellen Release herunterladen
+wget https://github.com/bh2005/nagvis-kurz-vor-2/releases/latest/download/nagvis2.zip
+
+# Installieren (legt Systemd-Service, User, venv an – setzt Berechtigungen)
+unzip nagvis2.zip && cd nagvis2
+sudo ./install.sh --auth-enabled
+
+# → http://<server>:8008
+```
+
+Alle Optionen: `sudo ./install.sh --help`
+
+### Docker
 
 ```bash
 cd beta/nagvis2
 docker compose up --build -d
+# → http://localhost:8008
 ```
 
-Öffne im Browser: **http://localhost:8080**
-
----
-
-### Manuell (ohne Docker)
+### Manuell (Entwicklung)
 
 ```bash
-# 1. Repository klonen
 git clone https://github.com/bh2005/nagvis-kurz-vor-2
-cd nagvis-kurz-vor-2/beta/nagvis2
-
-# 2. Python-Umgebung anlegen (WSL2 / Linux / macOS)
-cd backend
-python3 -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
+cd nagvis-kurz-vor-2/beta/nagvis2/backend
+python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-
-# 3. Backend starten
 python main.py
 # → http://localhost:8008
 ```
@@ -62,31 +75,40 @@ Das Frontend wird direkt von FastAPI unter `http://localhost:8008/` ausgeliefert
 
 ## Konfiguration (.env)
 
-Kopiere `.env.example` → `.env` im `backend/`-Verzeichnis und passe an:
+Kopiere `.env.example` → `.env` im `backend/`-Verzeichnis:
 
 ```env
-# Pflicht für Live-Betrieb
+# Backend
 LIVESTATUS_TYPE=tcp          # tcp | unix | auto | disabled
 LIVESTATUS_HOST=localhost
 LIVESTATUS_PORT=6557
 
-# Optional
-DEBUG=false                  # true = Swagger-Docs + Auto-Reload
-DEMO_MODE=false              # true = statische Testdaten
-WS_POLL_INTERVAL=10          # Sekunden zwischen Livestatus-Abfragen
+# Authentifizierung (optional)
+AUTH_ENABLED=false           # true = Login-Overlay + JWT
+NAGVIS_SECRET=<random>       # python3 -c "import secrets; print(secrets.token_hex(32))"
+
+# Sonstiges
+DEBUG=false
+DEMO_MODE=false
+WS_POLL_INTERVAL=10
 ```
 
-Alternativ Checkmk REST API als Backend konfigurieren: Burger-Menü → **⚙ Backends verwalten**.
+Alle Variablen: [`.env.example`](beta/nagvis2/.env.example) · Vollständige Doku: [`docs/admin-guide.md`](beta/nagvis2/docs/admin-guide.md)
+
+Backends über die UI konfigurieren: Burger-Menü → **⚙ Backends verwalten**.
 
 ---
 
-## Hilfe & API-Dokumentation
+## Hilfe & Dokumentation
 
-| URL | Inhalt |
+| Ressource | Inhalt |
 |---|---|
 | `http://localhost:8008/help/` | Integriertes Benutzer- und Admin-Handbuch (MkDocs) |
 | `http://localhost:8008/api/v1/docs` | Swagger UI (immer verfügbar) |
 | `http://localhost:8008/api/v1/health` | System-Status + Backend-Erreichbarkeit |
+| [Releases](https://github.com/bh2005/nagvis-kurz-vor-2/releases) | ZIP-Download + Release Notes |
+| [changelog.txt](beta/nagvis2/changelog.txt) | Vollständiger Änderungsverlauf |
+| [admin-guide.md](beta/nagvis2/docs/admin-guide.md) | Installation, Konfiguration, Auth |
 
 ---
 
@@ -94,26 +116,32 @@ Alternativ Checkmk REST API als Backend konfigurieren: Burger-Menü → **⚙ Ba
 
 ```
 nagvis2/
+├── install.sh                ← Linux-Installationsskript (Systemd, venv, Berechtigungen)
+├── build.sh                  ← ZIP-Build-Skript für Releases
+├── .env.example              ← Alle Konfigurationsvariablen mit Kommentaren
+├── docker-compose.yml
+├── nginx.conf
+├── mkdocs.yml
 ├── backend/
 │   ├── main.py
 │   ├── requirements.txt
 │   ├── Dockerfile
 │   ├── core/
 │   │   ├── config.py
-│   │   ├── storage.py
+│   │   ├── storage.py        ← Maps + clone_map()
+│   │   ├── auth.py           ← JWT, require_auth, require_admin
+│   │   ├── users.py          ← Benutzerverwaltung (bcrypt, data/users.json)
+│   │   ├── audit.py          ← Audit-Log (JSONL, Rotation)
 │   │   ├── perfdata.py       ← Nagios Perfdata-Parser
 │   │   ├── livestatus.py
-│   │   └── migrate.py
-│   ├── checkmk/
-│   │   └── client.py         ← Checkmk REST API Client
-│   ├── icinga2/
-│   │   └── client.py         ← Icinga2 REST API v1 Client
-│   ├── zabbix/
-│   │   └── client.py         ← Zabbix JSON-RPC Client
-│   ├── connectors/
-│   │   └── registry.py       ← Unified Backend Registry
+│   │   └── metrics.py        ← Prometheus-Metriken
+│   ├── checkmk/client.py     ← Checkmk REST API Client
+│   ├── icinga2/client.py     ← Icinga2 REST API v1 Client
+│   ├── zabbix/client.py      ← Zabbix JSON-RPC Client
+│   ├── connectors/registry.py← Unified Backend Registry
 │   ├── api/
-│   │   └── router.py
+│   │   ├── router.py         ← Maps, Objekte, Backends, Logs
+│   │   └── auth_router.py    ← Login, Refresh, User-CRUD
 │   └── ws/
 │       ├── manager.py
 │       ├── router.py
@@ -123,26 +151,22 @@ nagvis2/
 │   ├── css/styles.css
 │   ├── help/                 ← MkDocs-Output (mkdocs build)
 │   └── js/
-│       ├── constants.js
-│       ├── state.js
-│       ├── gadget-renderer.js
-│       ├── zoom_pan.js
-│       ├── ws-client.js
+│       ├── auth.js           ← Login-Overlay, JWT, User-Chip-Dropdown
+│       ├── map-core.js       ← Maps, Backends, Clone
 │       ├── nodes.js
-│       ├── map-core.js
 │       ├── ui-core.js
+│       ├── ws-client.js
 │       ├── kiosk.js
 │       └── app.js
-├── docs/                     ← MkDocs-Quelldateien
-├── data/                     ← Persistente Daten (auto-erstellt)
-│   ├── maps/
-│   ├── backgrounds/
-│   ├── backends.json
-│   └── kiosk_users.json
-├── mkdocs.yml
-├── nginx.conf
-├── docker-compose.yml
-└── .env.example
+├── docs/                     ← MkDocs-Quelldateien (admin-guide, user-guide, …)
+├── scripts/
+│   └── update_changelog.py  ← Changelog-Generator (TXT + MD)
+└── data/                     ← Persistente Daten (auto-erstellt)
+    ├── maps/
+    ├── backgrounds/
+    ├── users.json            ← Benutzerdaten (bcrypt-Hashes)
+    ├── backends.json
+    └── kiosk_users.json
 ```
 
 ---
@@ -186,3 +210,15 @@ Dieses Projekt steht unter der **MIT License** – siehe [LICENSE](LICENSE).
 **Projektstatus:** Beta (funktioniert stabil, aktive Weiterentwicklung)
 **Autor:** bh2005
 **Version:** 2.0 Beta (März 2026)
+
+---
+
+## Links
+
+| | |
+|---|---|
+| 🚀 [Aktuelles Release](https://github.com/bh2005/nagvis-kurz-vor-2/releases/latest) | ZIP-Download + SHA256 + Release Notes |
+| 📋 [Changelog](beta/nagvis2/changelog.txt) | Vollständiger Änderungsverlauf (UTF-16) |
+| 📖 [Changelog (Markdown)](beta/nagvis2/changelog.md) | Changelog als Markdown |
+| 📚 [Admin-Handbuch](beta/nagvis2/docs/admin-guide.md) | Installation, Konfiguration, Auth, Betrieb |
+| ✨ [Feature-Übersicht](FEATURES.md) | Was ist gebaut, was ist geplant |
