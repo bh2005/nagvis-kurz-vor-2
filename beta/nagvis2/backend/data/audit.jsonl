@@ -1,8 +1,0 @@
-{"ts": 1774255877, "user": "anonymous", "action": "map.background_upload", "map_id": "world", "details": {"filename": "download.svg"}}
-{"ts": 1774255890, "user": "admin", "action": "object.move", "map_id": "demo-features", "details": {"object_id": "service::srv-web-01::HTTP"}}
-{"ts": 1774255892, "user": "admin", "action": "object.move", "map_id": "demo-features", "details": {"object_id": "gadget::memory-01"}}
-{"ts": 1774255894, "user": "admin", "action": "object.move", "map_id": "demo-features", "details": {"object_id": "gadget::flow-01"}}
-{"ts": 1774257314, "user": "admin", "action": "object.create", "map_id": "world", "details": {"object_id": "host::rt-de-ks-01::df2acb", "type": "host", "name": "rt-de-ks-01"}}
-{"ts": 1774257397, "user": "admin", "action": "object.update", "map_id": "world", "details": {"object_id": "host::srv-web-01::54a9a8"}}
-{"ts": 1774258729, "user": "admin", "action": "map.parent_set", "map_id": "hallo-1", "details": {"parent": "demo-features"}}
-{"ts": 1774329745, "user": "anonymous", "action": "user.password_change", "map_id": "", "details": {"username": "admin"}}

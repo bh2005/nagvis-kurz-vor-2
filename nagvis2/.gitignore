@@ -1,0 +1,87 @@
+# =============================================
+# NagVis 2 – .gitignore (nagvis2)
+# =============================================
+
+# --- Python / FastAPI ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+pip-log.txt
+pip-delete-this-directory.txt
+*.egg-info/
+.installed.cfg
+*.egg
+
+# --- Virtual Environment ---
+.venv/
+venv/
+ENV/
+
+# --- Environment & Secrets ---
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# --- Data Directory (nur Struktur, keine Inhalte) ---
+data/maps/*
+data/backgrounds/*
+data/tokens.json
+!data/.gitkeep
+!data/maps/.gitkeep
+!data/backgrounds/.gitkeep
+
+# --- Logs & Temporary Files ---
+*.log
+logs/
+*.log.*
+temp/
+tmp/
+
+# --- Docker ---
+.dockerignore
+*.dockerfile.*
+docker-compose.override.yml
+
+# --- Frontend (auch wenn vanilla JS) ---
+frontend/node_modules/
+frontend/.npm/
+frontend/.yarn/
+frontend/.vite/
+frontend/dist/
+frontend/build/
+
+# --- Editor / IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.sublime-*
+
+# --- OS & Misc ---
+*.bak
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# --- Test & Coverage ---
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# --- GitHub / CI ---
+.github/backup/venv/

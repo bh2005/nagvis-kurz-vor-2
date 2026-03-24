@@ -1,0 +1,18 @@
+{
+  "backends": [
+    {
+      "backend_id": "default",
+      "type": "livestatus_tcp",
+      "socket_path": "/omd/sites/cmk/tmp/run/live",
+      "host": "localhost",
+      "port": 6557,
+      "timeout": 10.0,
+      "enabled": true
+    },
+    {
+      "backend_id": "demo",
+      "type": "demo",
+      "enabled": true
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+```
+nagvis2
+├── backend
+│   ├── __pycache__
+│   │   └── main.cpython-313.pyc
+│   ├── api
+│   ├── core
+│   ├── data
+│   │   ├── backgrounds
+│   │   ├── kiosk
+│   │   └── maps
+│   ├── livestatus
+│   │   ├── __init__.py
+│   │   └── client.py
+│   ├── ws
+│   ├── Dockerfile
+│   ├── help_router.py
+│   ├── main.py
+│   ├── notes.md
+│   └── requirements.txt
+├── data
+│   ├── backgrounds
+│   │   └── .gitkeep
+│   ├── maps
+│   │   ├── .gitkeep
+│   │   └── demo-features.json
+│   ├── .gitkeep
+│   └── tokens.json
+├── docs
+│   ├── admin-guide.md
+│   ├── api-reference.md
+│   ├── kiosk-guide.md
+│   ├── todo-liste.md
+│   └── user-guide.md
+├── frontend
+│   ├── assets
+│   ├── css
+│   │   └── styles.css
+│   ├── js
+│   │   ├── app.js
+│   │   ├── constants.js
+│   │   ├── gadget-renderer.js
+│   │   ├── kiosk.js
+│   │   ├── map-core.js
+│   │   ├── map-core.js.test
+│   │   ├── nodes.js
+│   │   ├── state.js
+│   │   ├── tour-core.js
+│   │   ├── ui-core.js
+│   │   ├── ws-client.js
+│   │   └── zoom_pan.js
+│   └── index.html
+├── help_content
+│   ├── canvas-modes.md
+│   ├── connections.md
+│   ├── dashboard.md
+│   ├── migrate.md
+│   └── zip-import.md
+├── .env.example
+├── .gitignore
+├── docker-compose.yml
+├── mime.types
+├── nginx.conf
+├── nginx.conf.prod
+└── README.md
+```

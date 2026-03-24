@@ -1,0 +1,52 @@
+# Root-level pyproject.toml – erlaubt `pytest` und `ruff` direkt aus dem
+# Projekt-Root zu starten ohne vorher `cd backend/` ausführen zu müssen.
+
+[tool.pytest.ini_options]
+testpaths     = ["backend/tests"]
+pythonpath    = ["backend"]
+asyncio_mode  = "auto"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.coverage.run]
+source = ["backend"]
+omit   = [
+    "backend/venv/*",
+    "backend/tests/*",
+    "*/site-packages/*",
+    # Netzwerk-Clients (erfordern echte Infrastruktur)
+    "backend/checkmk/*",
+    "backend/connectors/registry.py",
+    "backend/core/livestatus.py",
+    "backend/livestatus/*",
+    "backend/ws/router.py",
+    # Migration & Legacy
+    "backend/core/cfg_migration.py",
+    "backend/core/migrate.py",
+    # Module noch ohne Tests
+    "backend/core/map_exporter.py",
+    "backend/core/map_store.py",
+    "backend/core/poller.py",
+    "backend/core/ws_manager.py",
+    "backend/help_router.py",
+]
+
+[tool.coverage.report]
+fail_under   = 70
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length    = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP"]
+ignore = [
+    "E501",   # line too long – wird durch line-length gesteuert
+    "UP007",  # Optional[X] vs X | None – Stil-Präferenz
+]

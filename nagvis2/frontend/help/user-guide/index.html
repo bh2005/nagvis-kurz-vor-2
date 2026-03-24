@@ -1,0 +1,2551 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="NagVis 2 Bedienungsanleitung & Referenz">
+      
+      
+        <meta name="author" content="NagVis 2 Team">
+      
+      
+      
+        <link rel="prev" href="..">
+      
+      
+        <link rel="next" href="../admin-guide/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.5">
+    
+    
+      
+        <title>Benutzer - NagVis 2 Help</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/css/nagvis2-tokens.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#nagvis-2-benutzer-handbuch" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="NagVis 2 Help" class="md-header__button md-logo" aria-label="NagVis 2 Help" data-md-component="logo">
+      
+  <img src="../assets/images/nagvis2-logo.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            NagVis 2 Help
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Benutzer
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="NagVis 2 Help" class="md-nav__button md-logo" aria-label="NagVis 2 Help" data-md-component="logo">
+      
+  <img src="../assets/images/nagvis2-logo.svg" alt="logo">
+
+    </a>
+    NagVis 2 Help
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Benutzer
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Benutzer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#ubersicht" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Übersicht
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#oberflache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Oberfläche
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Oberfläche">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#topbar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Topbar
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sidebar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sidebar
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#snap-ins-rechte-seite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Snap-Ins (rechte Seite)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#burger-menu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Burger-Menü (☰)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#maps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Maps
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Maps">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#map-erstellen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Map erstellen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#map-offnen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Map öffnen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#map-verwalten" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Map verwalten
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#map-importieren-migrieren" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Map importieren / migrieren
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#edit-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Edit-Mode
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Edit-Mode">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#aktivieren-deaktivieren" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Aktivieren / Deaktivieren
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objekt-platzieren" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objekt platzieren
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objekt-verschieben" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objekt verschieben
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multi-select" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-Select
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objekt-kontext-menu-edit-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objekt-Kontext-Menü (Edit-Mode)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#eigenschaften-dialog-monitoring-nodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Eigenschaften-Dialog (Monitoring-Nodes)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#canvas-rechtsklick-menu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Canvas Rechtsklick-Menü
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#objekt-typen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objekt-Typen
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Objekt-Typen">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#host-service-hostgruppe-servicegruppe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Host / Service / Hostgruppe / Servicegruppe
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#map-nested" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Map (nested)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#textbox" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Textbox
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#linie" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Linie
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#container" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Container
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gadget" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gadget
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Gadget">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gadget-konfigurieren" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gadget konfigurieren
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#view-mode-aktionen-rechtsklick-auf-hostsservices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        View-Mode Aktionen (Rechtsklick auf Hosts/Services)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#zoom-pan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Zoom &amp; Pan
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tastaturkurzel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tastaturkürzel
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#status-anzeige" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status-Anzeige
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Status-Anzeige">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#verbindungspunkt-topbar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verbindungspunkt (Topbar)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#offline-banner" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Offline-Banner
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#demo-modus-banner" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Demo-Modus-Banner
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#toast-benachrichtigungen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Toast-Benachrichtigungen
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layer-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer-System
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Layer-System">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#layer-panel-sidebar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer-Panel (Sidebar)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#layer-zuweisen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer zuweisen
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#map-hierarchie" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Map-Hierarchie
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Map-Hierarchie">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sidebar_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sidebar
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ubersicht-kachelansicht" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Übersicht (Kachelansicht)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#topbar-navigation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Topbar-Navigation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parent-map-setzen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parent-Map setzen
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#benutzereinstellungen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Benutzereinstellungen
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../admin-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kiosk-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kiosk
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hilfe
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Hilfe
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../help/canvas-modes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Canvas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../help/connections/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Verbindungen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../help/dashboard/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dashboard
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../help/migrate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../help/zip-import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ZIP Import
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../osm-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OSM / Weltkarte
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../todo-liste/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ToDo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#ubersicht" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Übersicht
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#oberflache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Oberfläche
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Oberfläche">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#topbar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Topbar
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sidebar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sidebar
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#snap-ins-rechte-seite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Snap-Ins (rechte Seite)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#burger-menu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Burger-Menü (☰)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#maps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Maps
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Maps">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#map-erstellen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Map erstellen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#map-offnen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Map öffnen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#map-verwalten" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Map verwalten
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#map-importieren-migrieren" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Map importieren / migrieren
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#edit-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Edit-Mode
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Edit-Mode">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#aktivieren-deaktivieren" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Aktivieren / Deaktivieren
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objekt-platzieren" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objekt platzieren
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objekt-verschieben" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objekt verschieben
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multi-select" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-Select
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objekt-kontext-menu-edit-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objekt-Kontext-Menü (Edit-Mode)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#eigenschaften-dialog-monitoring-nodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Eigenschaften-Dialog (Monitoring-Nodes)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#canvas-rechtsklick-menu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Canvas Rechtsklick-Menü
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#objekt-typen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objekt-Typen
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Objekt-Typen">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#host-service-hostgruppe-servicegruppe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Host / Service / Hostgruppe / Servicegruppe
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#map-nested" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Map (nested)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#textbox" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Textbox
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#linie" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Linie
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#container" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Container
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gadget" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gadget
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Gadget">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gadget-konfigurieren" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gadget konfigurieren
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#view-mode-aktionen-rechtsklick-auf-hostsservices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        View-Mode Aktionen (Rechtsklick auf Hosts/Services)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#zoom-pan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Zoom &amp; Pan
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tastaturkurzel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tastaturkürzel
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#status-anzeige" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status-Anzeige
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Status-Anzeige">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#verbindungspunkt-topbar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verbindungspunkt (Topbar)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#offline-banner" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Offline-Banner
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#demo-modus-banner" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Demo-Modus-Banner
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#toast-benachrichtigungen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Toast-Benachrichtigungen
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layer-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer-System
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Layer-System">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#layer-panel-sidebar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer-Panel (Sidebar)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#layer-zuweisen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer zuweisen
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#map-hierarchie" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Map-Hierarchie
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Map-Hierarchie">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sidebar_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sidebar
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ubersicht-kachelansicht" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Übersicht (Kachelansicht)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#topbar-navigation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Topbar-Navigation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parent-map-setzen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parent-Map setzen
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#benutzereinstellungen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Benutzereinstellungen
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="nagvis-2-benutzer-handbuch">NagVis 2 – Benutzer-Handbuch</h1>
+<h2 id="ubersicht">Übersicht</h2>
+<p>NagVis 2 visualisiert den Status deiner Monitoring-Umgebung (Nagios / Checkmk / Icinga) auf interaktiven Karten. Nodes auf der Karte zeigen den aktuellen Status von Hosts, Services, Hostgruppen und mehr in Echtzeit via WebSocket.</p>
+<hr />
+<h2 id="oberflache">Oberfläche</h2>
+<pre><code>┌─────────────┬──────────────────────────────────────────┐
+│             │  Topbar (Logo · Status · Zoom · Menü)     │
+│  Sidebar    ├──────────────────────────────────────────┤
+│             │                                           │
+│  Navigation │            Map-Canvas                     │
+│  Maps       │         (Nodes / Objekte)                 │
+│             │                                           │
+│             ├──────────────────────────────────────────┤
+│             │  Snap-Ins: Maps | Hosts | Events          │
+└─────────────┴──────────────────────────────────────────┘
+</code></pre>
+<h3 id="topbar">Topbar</h3>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>Funktion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Logo</td>
+<td>Zurück zur Übersicht</td>
+</tr>
+<tr>
+<td>Verbindungspunkt</td>
+<td>Grün = Livestatus verbunden</td>
+</tr>
+<tr>
+<td>Map-Titel / Untertitel</td>
+<td>Name und Objekt-Anzahl der aktiven Map</td>
+</tr>
+<tr>
+<td><strong>Navigation</strong></td>
+<td>Bei Kind-Map: <code>↑ Eltern-Map</code> als Link; bei Root-Map: <code>↳ Kind1</code> <code>↳ Kind2</code> als Chips</td>
+</tr>
+<tr>
+<td>Pills (●OK ●WARN ●CRIT)</td>
+<td>Schnellübersicht aller Hosts</td>
+</tr>
+<tr>
+<td>Zoom-Buttons (+ −)</td>
+<td>Canvas vergrößern/verkleinern</td>
+</tr>
+<tr>
+<td>Burger-Menü (☰)</td>
+<td>Alle Funktionen</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sidebar">Sidebar</h3>
+<ul>
+<li><strong>Übersicht</strong> – zeigt alle Maps als Kachelansicht</li>
+<li><strong>Maps-Liste</strong> – direkter Zugriff auf einzelne Maps; Root-Maps oben, Kind-Maps darunter eingerückt (↳)</li>
+<li><strong>Farbpunkte</strong> – zeigen den schlechtesten Status der jeweiligen Map</li>
+<li><strong>Layer-Panel</strong> – erscheint beim Öffnen einer Map; Layer ein-/ausblenden, umbenennen, per Drag umsortieren und löschen</li>
+<li>Sidebar ein-/ausklappen: Taste <strong>B</strong> oder Button unten links</li>
+</ul>
+<h3 id="snap-ins-rechte-seite">Snap-Ins (rechte Seite)</h3>
+<table>
+<thead>
+<tr>
+<th>Tab</th>
+<th>Inhalt</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Maps</td>
+<td>Schnellnavigation zu allen Maps</td>
+</tr>
+<tr>
+<td>Hosts</td>
+<td>Live-Liste aller Hosts mit Status</td>
+</tr>
+<tr>
+<td>Events</td>
+<td>Stream von Statusänderungen</td>
+</tr>
+</tbody>
+</table>
+<h3 id="burger-menu">Burger-Menü (☰)</h3>
+<table>
+<thead>
+<tr>
+<th>Eintrag</th>
+<th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>＋ Neue Map erstellen</td>
+<td>Neue Map anlegen</td>
+</tr>
+<tr>
+<td>✏ Bearbeiten / Fertig</td>
+<td>Edit-Mode umschalten</td>
+</tr>
+<tr>
+<td>🖼 Hintergrund hochladen</td>
+<td>Hintergrundbild für aktive Map</td>
+</tr>
+<tr>
+<td>✎ Umbenennen</td>
+<td>Titel der aktiven Map ändern</td>
+</tr>
+<tr>
+<td>🗺 Parent-Map setzen</td>
+<td>Map in Hierarchie einordnen</td>
+</tr>
+<tr>
+<td>⊡ Canvas-Format ändern</td>
+<td>Format + Node-Verhalten anpassen</td>
+</tr>
+<tr>
+<td>📤 Map exportieren</td>
+<td>ZIP-Archiv herunterladen</td>
+</tr>
+<tr>
+<td>📥 Map importieren</td>
+<td>ZIP-Archiv einspielen</td>
+</tr>
+<tr>
+<td>↑ NagVis 1 importieren</td>
+<td>.cfg-Datei migrieren</td>
+</tr>
+<tr>
+<td>🗑 Map löschen</td>
+<td>Aktive Map dauerhaft löschen</td>
+</tr>
+<tr>
+<td>⛶ Kiosk / Vollbild</td>
+<td>Kiosk-Modus umschalten</td>
+</tr>
+<tr>
+<td>⬛ Kiosk-User verwalten</td>
+<td>Token-URLs für Displays anlegen</td>
+</tr>
+<tr>
+<td>⚙ Backends verwalten</td>
+<td>Monitoring-Backends konfigurieren</td>
+</tr>
+<tr>
+<td>⚡ Aktionen konfigurieren</td>
+<td>URL-Templates für Monitoring-Aktionen</td>
+</tr>
+<tr>
+<td>⚙ Einstellungen</td>
+<td>Theme, Sidebar, Kiosk-Optionen</td>
+</tr>
+<tr>
+<td>☰ Hilfe</td>
+<td>Handbücher (öffnen im neuen Fenster)</td>
+</tr>
+<tr>
+<td>&lt;/&gt; Swagger UI</td>
+<td>REST-API-Dokumentation (nur im Debug-Modus)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="maps">Maps</h2>
+<h3 id="map-erstellen">Map erstellen</h3>
+<ol>
+<li>Burger-Menü → <strong>＋ Neue Map erstellen</strong></li>
+<li>Titel eingeben (ID wird automatisch aus dem Titel abgeleitet)</li>
+<li>Canvas-Format wählen:</li>
+<li><strong>Frei</strong> – füllt das Fenster, responsiv</li>
+<li><strong>Seitenverhältnis</strong> – 16:9, 4:3, 21:9, etc.</li>
+<li><strong>Feste Auflösung</strong> – z.B. 1920×1080 px</li>
+<li><strong>Hintergrundbild</strong> – Canvas passt sich an das Bild an</li>
+</ol>
+<p>Die neue Map öffnet sich direkt im Edit-Mode.</p>
+<h3 id="map-offnen">Map öffnen</h3>
+<p>Klick auf den Map-Namen in der Sidebar oder in der Übersicht.</p>
+<h3 id="map-verwalten">Map verwalten</h3>
+<p>Über das <strong>Burger-Menü</strong> (☰) stehen folgende Aktionen für die aktive Map bereit:</p>
+<table>
+<thead>
+<tr>
+<th>Aktion</th>
+<th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>✏ Bearbeiten</td>
+<td>Edit-Mode aktivieren (Ctrl+E)</td>
+</tr>
+<tr>
+<td>🖼 Hintergrund hochladen</td>
+<td>PNG, JPG, SVG, WebP als Hintergrundbild</td>
+</tr>
+<tr>
+<td>✎ Umbenennen</td>
+<td>Titel der Map ändern</td>
+</tr>
+<tr>
+<td>🗺 Parent-Map setzen</td>
+<td>Map in Hierarchie einordnen</td>
+</tr>
+<tr>
+<td>⊡ Canvas-Format ändern</td>
+<td>Format nachträglich anpassen</td>
+</tr>
+<tr>
+<td>📤 Map exportieren</td>
+<td>ZIP-Archiv mit Map + Hintergrundbild</td>
+</tr>
+<tr>
+<td>🗑 Map löschen</td>
+<td>Map und Hintergrundbild dauerhaft löschen</td>
+</tr>
+</tbody>
+</table>
+<h3 id="map-importieren-migrieren">Map importieren / migrieren</h3>
+<ul>
+<li><strong>ZIP-Import</strong> (NagVis-2-Format): Burger → 📥 Map importieren</li>
+<li><strong>NagVis-1-Migration</strong> (.cfg-Datei): Burger → ↑ NagVis 1 importieren</li>
+</ul>
+<hr />
+<h2 id="edit-mode">Edit-Mode</h2>
+<h3 id="aktivieren-deaktivieren">Aktivieren / Deaktivieren</h3>
+<ul>
+<li>Taste <strong>Ctrl+E</strong></li>
+<li>Burger-Menü → ✏ Bearbeiten / Fertig</li>
+</ul>
+<p>Im Edit-Mode erscheint ein blauer Banner oben auf der Karte.</p>
+<h3 id="objekt-platzieren">Objekt platzieren</h3>
+<p><strong>Option A:</strong> Linksklick auf freie Canvas-Fläche → Dialog öffnet sich
+<strong>Option B:</strong> Rechtsklick auf freie Canvas-Fläche → Kontext-Menü → <strong>＋ Objekt hier platzieren</strong>
+<strong>Option C:</strong> Topbar-Button <strong>＋ Objekt</strong></p>
+<h3 id="objekt-verschieben">Objekt verschieben</h3>
+<p>Im Edit-Mode: Objekt per <strong>Drag &amp; Drop</strong> verschieben. Die Position wird automatisch gespeichert.</p>
+<blockquote>
+<p><strong>Hinweis:</strong> Standardmäßig bleiben Nodes innerhalb der Canvas-Fläche (0–100%).
+Dieses Verhalten kann unter <strong>Canvas-Format ändern → Node-Verhalten</strong> auf <strong>Frei</strong> umgestellt werden.</p>
+</blockquote>
+<h3 id="multi-select">Multi-Select</h3>
+<p>Mehrere Objekte gleichzeitig auswählen und bearbeiten:</p>
+<table>
+<thead>
+<tr>
+<th>Aktion</th>
+<th>Methode</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Einzelne Auswahl</td>
+<td>Klick auf ein Objekt (blauer Rahmen)</td>
+</tr>
+<tr>
+<td>Zur Auswahl hinzufügen</td>
+<td><strong>Shift+Klick</strong> auf weiteres Objekt</td>
+</tr>
+<tr>
+<td>Aus Auswahl entfernen</td>
+<td><strong>Shift+Klick</strong> auf bereits gewähltes Objekt</td>
+</tr>
+<tr>
+<td>Lasso-Auswahl</td>
+<td>Mousedown auf <strong>leerer Canvas-Fläche</strong> → Rechteck aufziehen</td>
+</tr>
+<tr>
+<td>Auswahl aufheben</td>
+<td><strong>Esc</strong> oder Klick auf leere Fläche</td>
+</tr>
+<tr>
+<td>Gruppe verschieben</td>
+<td>Beliebiges ausgewähltes Objekt ziehen – alle bewegen sich mit</td>
+</tr>
+<tr>
+<td>Gruppe löschen</td>
+<td><strong>Delete</strong> / <strong>Backspace</strong> oder Rechtsklick → Gruppe löschen</td>
+</tr>
+</tbody>
+</table>
+<h3 id="objekt-kontext-menu-edit-mode">Objekt-Kontext-Menü (Edit-Mode)</h3>
+<p>Rechtsklick auf ein Objekt im Edit-Mode:</p>
+<table>
+<thead>
+<tr>
+<th>Eintrag</th>
+<th>Verfügbar für</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⚙ Eigenschaften</td>
+<td>Host, Service, Hostgruppe, Servicegruppe, Map</td>
+</tr>
+<tr>
+<td>⤢ Größe ändern</td>
+<td>Alle außer Textbox, Gadget</td>
+</tr>
+<tr>
+<td>🖼 Iconset wechseln</td>
+<td>Host, Service, Hostgruppe, Servicegruppe, Map</td>
+</tr>
+<tr>
+<td>◫ Layer zuweisen</td>
+<td>Alle</td>
+</tr>
+<tr>
+<td>✏ Text bearbeiten</td>
+<td>Textbox</td>
+</tr>
+<tr>
+<td>⚙ Gadget konfigurieren</td>
+<td>Gadget</td>
+</tr>
+<tr>
+<td>🗑 Entfernen</td>
+<td>Alle</td>
+</tr>
+</tbody>
+</table>
+<h3 id="eigenschaften-dialog-monitoring-nodes">Eigenschaften-Dialog (Monitoring-Nodes)</h3>
+<p>Über <strong>⚙ Eigenschaften</strong> im Kontext-Menü:
+- <strong>Name</strong> – Hostname, Hostgruppen-Name oder Map-ID (mit Autocomplete aus Livestatus)
+- <strong>Hostname + Service-Name</strong> – bei Services
+- <strong>Label</strong> – Anzeigename unter dem Icon (leer = Name wird verwendet)
+- <strong>Label anzeigen</strong> – Checkbox zum Ein-/Ausblenden des Labels</p>
+<h3 id="canvas-rechtsklick-menu">Canvas Rechtsklick-Menü</h3>
+<p>Rechtsklick auf freie Fläche im Edit-Mode:</p>
+<table>
+<thead>
+<tr>
+<th>Eintrag</th>
+<th>Funktion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>＋ Objekt hier platzieren</td>
+<td>Dialog mit vorausgefüllter Position</td>
+</tr>
+<tr>
+<td>⊡ Canvas-Format ändern</td>
+<td>Canvas-Einstellungen öffnen</td>
+</tr>
+<tr>
+<td>🖼 Hintergrund hochladen</td>
+<td>Datei-Auswahl</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="objekt-typen">Objekt-Typen</h2>
+<h3 id="host-service-hostgruppe-servicegruppe">Host / Service / Hostgruppe / Servicegruppe</h3>
+<p>Zeigen den aktuellen Monitoring-Status mit farbigen Icons:</p>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Farbe</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>UP / OK</td>
+<td>Grün</td>
+</tr>
+<tr>
+<td>DOWN / CRITICAL</td>
+<td>Rot</td>
+</tr>
+<tr>
+<td>WARNING</td>
+<td>Gelb</td>
+</tr>
+<tr>
+<td>UNKNOWN / UNREACHABLE</td>
+<td>Orange</td>
+</tr>
+<tr>
+<td>ACK (bestätigt)</td>
+<td>Gedimmt + Häkchen</td>
+</tr>
+<tr>
+<td>Downtime</td>
+<td>Gedimmt + Schraubenschlüssel</td>
+</tr>
+</tbody>
+</table>
+<p>Verfügbare Iconsets: <code>std_small</code>, <code>server</code>, <code>router</code>, <code>switch</code>, <code>firewall</code>, <code>storage</code>, <code>database</code>, <code>ups</code>, <code>ap</code></p>
+<h3 id="map-nested">Map (nested)</h3>
+<p>Referenziert eine andere NagVis-2-Map. Der Status zeigt den schlechtesten Status aller Objekte auf der Ziel-Map.</p>
+<h3 id="textbox">Textbox</h3>
+<p>Beschriftungsfeld auf der Karte. Konfigurierbar: Text, Schriftgröße, Farbe, Hintergrund, Fettschrift, Link.</p>
+<h3 id="linie">Linie</h3>
+<p>Einfache Verbindungslinie zwischen zwei Punkten.
+Mit Option <strong>🌡 Weathermap</strong>: Linie färbt sich nach dem Status der verknüpften Hosts.</p>
+<h3 id="container">Container</h3>
+<p>Zeigt ein Bild (PNG, SVG) an einem festen Punkt auf der Karte.</p>
+<h3 id="gadget">Gadget</h3>
+<p>Visualisiert Metrikwerte grafisch — entweder als statischer Demo-Wert oder mit Live-Daten aus Performance-Daten (Perfdata).</p>
+<table>
+<thead>
+<tr>
+<th>Typ</th>
+<th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⏱ Radial</td>
+<td>Kreisförmige Anzeige (CPU, RAM, ...)</td>
+</tr>
+<tr>
+<td>▬ Linear Horizontal</td>
+<td>Balken von links nach rechts</td>
+</tr>
+<tr>
+<td>▬ Linear Vertikal</td>
+<td>Balken von unten nach oben</td>
+</tr>
+<tr>
+<td>〜 Sparkline</td>
+<td>Zeitverlauf-Kurve mit konfigurierbarer Datenpunkt-Anzahl</td>
+</tr>
+<tr>
+<td>🌡 Thermometer</td>
+<td>Temperatur / Füllstand</td>
+</tr>
+<tr>
+<td>→ Flow / Weather</td>
+<td>Uni- oder bidirektionale Durchflussanzeige</td>
+</tr>
+<tr>
+<td>🔢 Raw-Number</td>
+<td>Numerischer Wert mit Divisor und Einheit</td>
+</tr>
+</tbody>
+</table>
+<h4 id="gadget-konfigurieren">Gadget konfigurieren</h4>
+<p>Rechtsklick auf Gadget → <strong>⚙ Gadget konfigurieren</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Feld</th>
+<th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Anzeigetyp</strong></td>
+<td>Typ des Gadgets wählen</td>
+</tr>
+<tr>
+<td><strong>Host</strong></td>
+<td>Monitoring-Host (Autocomplete aus Live-Daten)</td>
+</tr>
+<tr>
+<td><strong>Service</strong></td>
+<td>Service-Description (Autocomplete)</td>
+</tr>
+<tr>
+<td><strong>Perfdata-Metrik</strong></td>
+<td>Perfdata-Schlüssel des Monitoring-Checks (z.B. <code>load1</code>, <code>mem_used_percent</code>)</td>
+</tr>
+<tr>
+<td><strong>Bezeichnung</strong></td>
+<td>Anzeige-Label unter dem Gadget</td>
+</tr>
+<tr>
+<td><strong>Einheit</strong></td>
+<td>Maßeinheit (z.B. <code>%</code>, <code>°C</code>, <code>Mbps</code>)</td>
+</tr>
+<tr>
+<td><strong>Min / Max</strong></td>
+<td>Skalierungsbereich</td>
+</tr>
+<tr>
+<td><strong>Warning / Critical</strong></td>
+<td>Schwellenwerte (Warn = gelb, Crit = rot)</td>
+</tr>
+<tr>
+<td><strong>Orientierung</strong></td>
+<td>Horizontal oder Vertikal (nur Linear)</td>
+</tr>
+<tr>
+<td><strong>Datenpunkte</strong></td>
+<td>Maximale History-Länge (nur Sparkline, 5–100)</td>
+</tr>
+<tr>
+<td><strong>Divisor / Anzeigeeinheit / Nachkommastellen</strong></td>
+<td>Wertumrechnung (nur Raw-Number)</td>
+</tr>
+<tr>
+<td><strong>Richtung</strong></td>
+<td>Ausgehend / Eingehend / Bidirektional (nur Flow)</td>
+</tr>
+<tr>
+<td><strong>Demo-Wert</strong></td>
+<td>Statischer Testwert wenn kein Host konfiguriert</td>
+</tr>
+<tr>
+<td><strong>Anzeigegröße</strong></td>
+<td>Skalierung des Gadgets (40–300%)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Perfdata-Vorrang:</strong> Wenn Host + Service gesetzt sind, werden <code>warn</code>/<code>crit</code>/<code>min</code>/<code>max</code> aus den Perfdata automatisch übernommen — eigene Werte im Dialog haben jedoch immer Vorrang.</p>
+</blockquote>
+<p>Die <strong>Live-Vorschau</strong> am unteren Dialogrand aktualisiert sich bei jeder Änderung sofort.</p>
+<hr />
+<h2 id="view-mode-aktionen-rechtsklick-auf-hostsservices">View-Mode Aktionen (Rechtsklick auf Hosts/Services)</h2>
+<p>Im normalen Anzeigemodus (kein Edit-Mode) öffnet Rechtsklick auf einen Host/Service ein Aktionsmenü:</p>
+<table>
+<thead>
+<tr>
+<th>Aktion</th>
+<th>Bedingung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🔍 Im Monitoring öffnen</td>
+<td>Monitoring-URL konfiguriert</td>
+</tr>
+<tr>
+<td>✔ Problem bestätigen (ACK)</td>
+<td>Status nicht OK, nicht bereits ACK</td>
+</tr>
+<tr>
+<td>✖ Bestätigung aufheben</td>
+<td>Bereits ACK</td>
+</tr>
+<tr>
+<td>🔧 Wartung einplanen</td>
+<td>Immer verfügbar</td>
+</tr>
+<tr>
+<td>↻ Check jetzt erzwingen</td>
+<td>Immer verfügbar</td>
+</tr>
+<tr>
+<td>🖥 SSH / 🌐 HTTP / 🔒 HTTPS</td>
+<td>Immer verfügbar</td>
+</tr>
+<tr>
+<td>📊 Grafana öffnen</td>
+<td>Grafana-URL konfiguriert</td>
+</tr>
+</tbody>
+</table>
+<p>Aktionen konfigurieren: Burger-Menü → ⚡ Aktionen konfigurieren</p>
+<hr />
+<h2 id="zoom-pan">Zoom &amp; Pan</h2>
+<table>
+<thead>
+<tr>
+<th>Aktion</th>
+<th>Methode</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Vergrößern</td>
+<td>Topbar <strong>＋</strong> oder Mausrad</td>
+</tr>
+<tr>
+<td>Verkleinern</td>
+<td>Topbar <strong>−</strong> oder Mausrad</td>
+</tr>
+<tr>
+<td>Schwenken</td>
+<td>Maus gedrückt halten + ziehen</td>
+</tr>
+<tr>
+<td>Zoom zurücksetzen</td>
+<td>Topbar <strong>⊙</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Zoom und Pan funktionieren identisch im normalen Modus und im Kiosk-Modus — alle Objekte (Nodes, SVG-Linien, Weathermap) werden gemeinsam transformiert.</p>
+<hr />
+<h2 id="tastaturkurzel">Tastaturkürzel</h2>
+<table>
+<thead>
+<tr>
+<th>Taste</th>
+<th>Funktion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>B</strong></td>
+<td>Sidebar ein-/ausklappen</td>
+</tr>
+<tr>
+<td><strong>Ctrl+E</strong></td>
+<td>Edit-Mode umschalten</td>
+</tr>
+<tr>
+<td><strong>R</strong></td>
+<td>Status-Refresh erzwingen</td>
+</tr>
+<tr>
+<td><strong>F11</strong></td>
+<td>Kiosk-Modus / Vollbild</td>
+</tr>
+<tr>
+<td><strong>Esc</strong></td>
+<td>Auswahl aufheben → Dialog schließen → Edit-Mode beenden</td>
+</tr>
+<tr>
+<td><strong>Shift+Klick</strong></td>
+<td>Node zur Multi-Selektion hinzufügen (Edit-Mode)</td>
+</tr>
+<tr>
+<td><strong>Delete</strong> / <strong>Backspace</strong></td>
+<td>Ausgewählte Nodes löschen (Edit-Mode)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="status-anzeige">Status-Anzeige</h2>
+<h3 id="verbindungspunkt-topbar">Verbindungspunkt (Topbar)</h3>
+<table>
+<thead>
+<tr>
+<th>Farbe</th>
+<th>Bedeutung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Grün</td>
+<td>Livestatus verbunden</td>
+</tr>
+<tr>
+<td>Grau</td>
+<td>Verbindung wird hergestellt</td>
+</tr>
+<tr>
+<td>Rot</td>
+<td>Getrennt</td>
+</tr>
+</tbody>
+</table>
+<h3 id="offline-banner">Offline-Banner</h3>
+<p>Wenn die WebSocket-Verbindung unterbrochen wird, erscheint ein roter Banner auf der Karte. Nodes werden gedimmt um anzuzeigen dass die Daten veraltet sein könnten. Der Banner verschwindet automatisch bei Wiederverbindung.</p>
+<h3 id="demo-modus-banner">Demo-Modus-Banner</h3>
+<p>Blauer Banner am unteren Bildschirmrand zeigt an, dass keine Live-Daten vorhanden sind. Die Demo-Map <strong>„NagVis 2 – Feature Demo"</strong> öffnet sich automatisch und zeigt alle Gadget-Typen mit Demo-Perfdata.</p>
+<h3 id="toast-benachrichtigungen">Toast-Benachrichtigungen</h3>
+<p>Kurze Statusmeldungen oben rechts:</p>
+<table>
+<thead>
+<tr>
+<th>Typ</th>
+<th>Farbe</th>
+<th>Beispiel</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OK</td>
+<td>Grün</td>
+<td>„Gadget CPU Load aktualisiert"</td>
+</tr>
+<tr>
+<td>Info</td>
+<td>Blau</td>
+<td>„Map gespeichert"</td>
+</tr>
+<tr>
+<td>Warning</td>
+<td>Gelb</td>
+<td>„Verbindung unterbrochen"</td>
+</tr>
+<tr>
+<td>Error</td>
+<td>Rot</td>
+<td>„Backend nicht erreichbar"</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="layer-system">Layer-System</h2>
+<p>Auf jeder Map können Objekte verschiedenen <strong>Layern</strong> zugewiesen werden, um Sichtbarkeit und Render-Reihenfolge zu steuern.</p>
+<h3 id="layer-panel-sidebar">Layer-Panel (Sidebar)</h3>
+<p>Das Layer-Panel erscheint in der Sidebar, sobald eine Map geöffnet wird. Pro Layer gibt es:</p>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>Funktion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⠿ Drag-Handle</td>
+<td>Layer per Drag &amp; Drop umsortieren → ändert den Z-Index aller zugehörigen Objekte</td>
+</tr>
+<tr>
+<td>👁 / 🚫 Checkbox</td>
+<td>Layer ein- oder ausblenden</td>
+</tr>
+<tr>
+<td>Name (Doppelklick)</td>
+<td>Layer umbenennen</td>
+</tr>
+<tr>
+<td>Z-Index-Anzeige</td>
+<td>Aktueller Z-Index (10, 20, 30, …)</td>
+</tr>
+<tr>
+<td>✕ Löschen</td>
+<td>Layer entfernen; Objekte werden auf Layer 0 verschoben (mit Bestätigung)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="layer-zuweisen">Layer zuweisen</h3>
+<p>Im Edit-Mode: Rechtsklick auf ein Objekt → <strong>◫ Layer zuweisen</strong> → vorhandenen Layer wählen oder neue Layer-ID + Name eingeben.</p>
+<hr />
+<h2 id="map-hierarchie">Map-Hierarchie</h2>
+<h3 id="sidebar_1">Sidebar</h3>
+<p>Root-Maps (keine übergeordnete Map) erscheinen direkt in der Liste. Kind-Maps sind eingerückt und mit einem <code>↳</code> markiert:</p>
+<pre><code>◉ Rechenzentrum Nord
+  ↳ Server-Raum A
+  ↳ Server-Raum B
+◉ Standort Frankfurt
+  ↳ DMZ
+</code></pre>
+<h3 id="ubersicht-kachelansicht">Übersicht (Kachelansicht)</h3>
+<p>Die Kacheln folgen derselben Reihenfolge. Kind-Karten haben einen dezenten linken Akzentbalken und zeigen den Titel der Eltern-Map an.</p>
+<h3 id="topbar-navigation">Topbar-Navigation</h3>
+<ul>
+<li><strong>Kind-Map geöffnet</strong> → <code>↑ Eltern-Map-Titel</code>-Button in der Topbar → Klick öffnet die Eltern-Map</li>
+<li><strong>Root-Map geöffnet</strong> → Kind-Map-Chips erscheinen in der Topbar → Klick öffnet die jeweilige Kind-Map</li>
+</ul>
+<h3 id="parent-map-setzen">Parent-Map setzen</h3>
+<p>Burger-Menü → <strong>🗺 Parent-Map setzen</strong> → gewünschte Root-Map wählen.</p>
+<hr />
+<h2 id="benutzereinstellungen">Benutzereinstellungen</h2>
+<p>Burger-Menü → ⚙ Einstellungen:</p>
+<ul>
+<li><strong>Erscheinungsbild</strong> – Dark / Light Theme (Standard: <strong>Dark</strong>)</li>
+<li><strong>Sidebar beim Start</strong> – ausgeklappt oder eingeklappt (Standard: <strong>ausgeklappt</strong>)</li>
+<li><strong>Kiosk-Modus</strong> – Sidebar/Topbar ausblenden, Auto-Refresh-Intervall (30s / 1min / 2min / 5min)</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "search.highlight", "search.suggest"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

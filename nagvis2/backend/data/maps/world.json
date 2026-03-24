@@ -1,0 +1,35 @@
+{
+  "id": "world",
+  "title": "world",
+  "canvas": {
+    "mode": "osm",
+    "overflow": "free",
+    "lat": 51,
+    "lng": 10,
+    "zoom": 6
+  },
+  "background": "/backgrounds/world.svg",
+  "parent_map": null,
+  "objects": [
+    {
+      "type": "host",
+      "x": 51.79163,
+      "y": 9.794312,
+      "name": "srv-web-01",
+      "iconset": "server",
+      "label": "srv-web-01",
+      "size": 32,
+      "object_id": "host::srv-web-01::54a9a8"
+    },
+    {
+      "type": "host",
+      "x": 51.30014,
+      "y": 9.482574,
+      "name": "rt-de-ks-01",
+      "iconset": "router",
+      "label": "rt-de-ks-01",
+      "size": 20,
+      "object_id": "host::rt-de-ks-01::df2acb"
+    }
+  ]
+}

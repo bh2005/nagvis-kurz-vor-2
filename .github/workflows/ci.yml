@@ -4,12 +4,12 @@ on:
   push:
     branches: [main]
     paths:
-      - "beta/nagvis2/backend/**"
+      - "nagvis2/backend/**"
       - ".github/workflows/ci.yml"
   pull_request:
     branches: [main]
     paths:
-      - "beta/nagvis2/backend/**"
+      - "nagvis2/backend/**"
       - ".github/workflows/ci.yml"
 
 jobs:
@@ -24,7 +24,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: beta/nagvis2/backend
+        working-directory: nagvis2/backend
 
     steps:
       - name: Checkout
@@ -35,7 +35,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
-          cache-dependency-path: beta/nagvis2/backend/requirements-dev.txt
+          cache-dependency-path: nagvis2/backend/requirements-dev.txt
 
       - name: Abhängigkeiten installieren
         run: pip install -r requirements-dev.txt
@@ -54,6 +54,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: beta/nagvis2/backend/coverage.xml
+          path: nagvis2/backend/coverage.xml
           retention-days: 14
 

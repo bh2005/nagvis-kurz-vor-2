@@ -3,7 +3,7 @@ version: 2
 updates:
   # Python – backend/requirements.txt + requirements-dev.txt
   - package-ecosystem: pip
-    directory: /beta/nagvis2/backend
+    directory: /nagvis2/backend
     schedule:
       interval: weekly
       day: monday

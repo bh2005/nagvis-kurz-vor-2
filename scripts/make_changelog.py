@@ -2,7 +2,7 @@
 import re
 from collections import defaultdict, OrderedDict
 
-path = Path('beta/nagvis2/changelog.txt')
+path = Path('nagvis2/changelog.txt')
 if not path.exists():
     raise SystemExit(f'Input file not found: {path}')
 
@@ -43,7 +43,7 @@ for e in entries:
 out = []
 out.append('# Changelog (automatisch erstellt)')
 out.append('')
-out.append('Diese Datei wurde aus dem Git-Verlauf erstellt (Commits für `beta/nagvis2`).')
+out.append('Diese Datei wurde aus dem Git-Verlauf erstellt (Commits für `nagvis2/`).')
 out.append('')
 for date, items in by_date.items():
     out.append(f'## {date}')
@@ -57,6 +57,6 @@ for date, items in by_date.items():
                 out.append(f'- `{e["sha"]}` {e["msg"]}')
             out.append('')
 
-out_path = Path('beta/nagvis2/changelog.md')
+out_path = Path('nagvis2/changelog.md')
 out_path.write_text('\n'.join(out), encoding='utf-8')
 print('Created', out_path)

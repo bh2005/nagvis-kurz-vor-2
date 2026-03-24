@@ -55,8 +55,8 @@ jobs:
       - name: Image bauen und pushen
         uses: docker/build-push-action@v5
         with:
-          context: beta/nagvis2/backend
-          file: beta/nagvis2/backend/Dockerfile
+          context: nagvis2/backend
+          file: nagvis2/backend/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
