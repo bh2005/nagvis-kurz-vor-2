@@ -56,7 +56,7 @@ jobs:
             org.opencontainers.image.licenses=MIT
 
       - name: Image bauen und pushen
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: nagvis2/backend
           file: nagvis2/backend/Dockerfile
