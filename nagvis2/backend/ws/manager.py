@@ -8,7 +8,7 @@ import json
 import logging
 import time
 from collections import defaultdict
-from typing import Dict, Set
+from typing import Dict, Optional, Set
 
 from fastapi import WebSocket
 from core.config import settings
@@ -61,7 +61,7 @@ manager = ConnectionManager()
 #  Status-Poller (läuft als Background-Task)
 # ══════════════════════════════════════════════════════════════════════
 
-_poller_task: asyncio.Task | None = None
+_poller_task: Optional[asyncio.Task] = None
 
 
 async def _poll_loop():
@@ -71,6 +71,7 @@ async def _poll_loop():
     interval     = settings.WS_POLL_INTERVAL
     last_hosts:    Dict[str, str] = {}   # "backend_id::name" → state_label
     last_services: Dict[str, str] = {}  # "backend_id::host::desc" → state_label
+    first_poll = True  # erster Durchlauf → alle Hosts senden, nicht nur geänderte
 
     while True:
         await asyncio.sleep(interval)
@@ -111,20 +112,24 @@ async def _poll_loop():
             elapsed_ms = int(elapsed * 1000)
 
             # Diff: geänderte Hosts (Key = "backend_id::name")
+            # Erster Durchlauf: alle Hosts senden damit backendStatusCache im
+            # Frontend auch für Hosts befüllt wird, die sich nie ändern.
             changed_hosts = []
             for h in hosts:
                 key = f"{h['_backend_id']}::{h['name']}"
-                if last_hosts.get(key) != h["state_label"]:
+                if first_poll or last_hosts.get(key) != h["state_label"]:
                     changed_hosts.append({**h, "change_type": "state_change"})
                 last_hosts[key] = h["state_label"]
 
-            # Diff: geänderte Services (Key = "backend_id::host::desc")
+            # Diff: geänderte Services
             changed_svcs = []
             for s in services:
                 key = f"{s['_backend_id']}::{s['host_name']}::{s['description']}"
-                if last_services.get(key) != s["state_label"]:
+                if first_poll or last_services.get(key) != s["state_label"]:
                     changed_svcs.append({**s, "change_type": "state_change"})
                 last_services[key] = s["state_label"]
+
+            first_poll = False
 
             if changed_hosts or changed_svcs:
                 await manager.broadcast_all({
