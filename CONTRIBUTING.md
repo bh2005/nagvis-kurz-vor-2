@@ -42,7 +42,7 @@ Das Projekt lebt von der Community – jeder Beitrag (Code, Docs, Bug-Reports, n
 
 ## Fragen?
 
-Einfach im Issue oder im Checkmk-Forum (Thread „NagVis 2 Beta“) fragen.  
+Einfach im Issue fragen.  
 Wir beißen nicht – versprochen! 🐍
 
 ---
