@@ -30,7 +30,7 @@ jobs:
   # Job 1: Tests (aus ci.yml wiederverwendet)
   # ────────────────────────────────────────────────────────────────────────────
   test:
-    name: Tests (Python ${{ env.PYTHON_VERSION }})
+    name: Tests (Python 3.13)
     runs-on: ubuntu-latest
     defaults:
       run:
