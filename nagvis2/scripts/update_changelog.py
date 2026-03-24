@@ -784,6 +784,18 @@ NagVis 2 - Changelog
                - Tests (pytest, Vitest, Playwright), Code-Konventionen, Release-Prozess
                - mkdocs.yml: dev-guide.md in Navigation eingetragen
 
+[2026-03-24]   Feature: F7 draw.io / diagrams.net Import
+               - backend/api/router.py: POST /api/maps/import-drawio Endpoint
+               - XML-Parser (ElementTree): Unterstuetzt .drawio und .xml-Format
+               - Komprimierter Inhalt wird automatisch dekodiert (URL-Decode + Base64 + raw-deflate)
+               - Vertices → Textboxen (Standard) oder Monitoring-Hosts (Checkbox)
+               - Edges / Verbindungen → NagVis-Linien mit Quell-/Zielkoordinaten
+               - Bounding-Box-Normalisierung: absolute Pixel → 5-95 % Map-Koordinaten
+               - Audit-Log-Eintrag bei jedem Import
+               - frontend/index.html: Burger-Menue-Eintrag + dlg-drawio-import Dialog
+               - map-core.js: dlgImportDrawio(), _drawioHandleFile(), confirmImportDrawio()
+               - Drag & Drop + Datei-Picker; Validierung: nur .drawio und .xml
+
 [2026-03-24]   Feature: F3 Custom Graph Gadget – Grafana & Checkmk Panels einbetten
                - gadget-renderer.js: neuer Gadget-Typ 'graph' (_graph()-Renderer)
                - Einbettung via <iframe> (Standard) oder <img> (fuer PNG-Render-APIs)
@@ -1202,6 +1214,23 @@ Einstellungen persistiert in `nv2-user-settings` (localStorage). Standard: deakt
 - Zabbix: Schweregrad-Mapping (Priority → WARNING/CRITICAL), Hinweis zu API-Token vs. user.login
 - Verzeichnisstruktur: `zabbix/` und `icinga2/` ergänzt
 - `docs/todo-liste.md`: bereinigt (erledigte Items als `[x]` markiert); neue Einträge: **DRAW.io-Import**, **BI-Visualisierung**
+
+### Feature: F7 draw.io / diagrams.net Import ✅
+
+**Backend**
+- `api/router.py`: `POST /api/maps/import-drawio` — neuer Endpunkt
+  - Parst `.drawio`- und `.xml`-Dateien via `xml.etree.ElementTree` (stdlib, keine Zusatz-Deps)
+  - `_drawio_find_model()`: findet `mxGraphModel` auch in komprimierten Diagrammen (URL-Decode → Base64 → raw-deflate via `zlib.decompress(raw, -15)`)
+  - Alle `vertex`-Zellen → `textbox` (Standard) oder `host` wenn `?as_hosts=true`
+  - Alle `edge`-Zellen → `line` (Quelle/Ziel über Cell-ID-Lookup)
+  - Bounding-Box-Normalisierung: absolute draw.io-Pixel werden auf 5–95 % Map-Koordinaten skaliert (Mittelpunkte der Shapes)
+  - Erstellt automatisch eine neue Map (`canvas: ratio 16:9`); gibt `{map_id, title, object_count, warnings}` zurück
+  - Robuste Fehlerbehandlung: ungültige Verbindungen werden einzeln übersprungen und als Warnung zurückgegeben
+  - Audit-Log-Eintrag (`map.import_drawio`)
+
+**Frontend**
+- `index.html`: Burger-Menü-Eintrag „🗂 draw.io importieren (.drawio / .xml)"; `dlg-drawio-import`-Dialog mit Drag & Drop, Titel-Feld, Checkbox „als Hosts anlegen", Ergebnis-Box
+- `map-core.js`: `dlgImportDrawio()` — Dialog öffnen, Datei-Input + Drop-Zone verdrahten; `_drawioHandleFile()` — Validierung, Dateiname als Titel-Vorschlag; `confirmImportDrawio()` — `FormData` POST zu `/api/maps/import-drawio`, Redirect zur neuen Map
 
 ### Feature: F3 Custom Graph Gadget – Grafana & Checkmk Panels einbetten ✅
 

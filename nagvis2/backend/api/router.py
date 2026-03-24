@@ -2,11 +2,15 @@
 NagVis 2 – API Router (vollständig)
 """
 
+import base64
 import io
 import re
 import json
 import time
 import uuid
+import urllib.parse
+import xml.etree.ElementTree as ET
+import zlib
 import zipfile
 import shutil
 from pathlib import Path
@@ -494,6 +498,169 @@ async def api_import_map(
         "bg_saved":     bg_saved,
         "warnings":     errors,
     }
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  draw.io / diagrams.net Import
+# ══════════════════════════════════════════════════════════════════════
+
+def _drawio_find_model(xml_root: ET.Element) -> ET.Element | None:
+    """Findet das mxGraphModel in einem draw.io-XML – auch wenn es komprimiert ist."""
+    if xml_root.tag == "mxGraphModel":
+        return xml_root
+    diag = xml_root.find(".//diagram")
+    if diag is None:
+        return None
+    model = diag.find("mxGraphModel")
+    if model is not None:
+        return model
+    # Komprimierter Inhalt: URL-Decode → Base64-Decode → raw-deflate
+    text = (diag.text or "").strip()
+    if not text:
+        return None
+    try:
+        raw       = base64.b64decode(urllib.parse.unquote(text))
+        xml_bytes = zlib.decompress(raw, -15)
+        return ET.fromstring(xml_bytes)
+    except Exception:
+        return None
+
+
+@api_router.post("/maps/import-drawio", status_code=201)
+async def api_import_drawio(
+    file:     UploadFile = File(...),
+    title:    str        = Query(""),
+    as_hosts: bool       = Query(False),
+    request:  Request    = None,
+):
+    """
+    Importiert eine draw.io / diagrams.net .drawio- oder .xml-Datei als neue NagVis-Map.
+    Vertices → textbox (oder host wenn as_hosts=True), Edges → line.
+    Koordinaten werden auf 5–95 % normalisiert.
+    """
+    content = await file.read()
+    try:
+        xml_root = ET.fromstring(content)
+    except ET.ParseError as exc:
+        raise HTTPException(400, f"Ungültiges XML: {exc}")
+
+    model = _drawio_find_model(xml_root)
+    if model is None:
+        raise HTTPException(400, "Kein gültiges draw.io-Diagramm gefunden (mxGraphModel nicht lesbar)")
+
+    root_el = model.find("root")
+    if root_el is None:
+        raise HTTPException(400, "Kein <root>-Element im Diagramm")
+
+    # Alle Zellen einlesen
+    cells: dict[str, dict] = {}
+    vertices: list[dict]   = []
+    edges:    list[dict]   = []
+
+    for cell in root_el.findall("mxCell"):
+        cid    = cell.get("id", "")
+        value  = cell.get("value", "")
+        is_vtx = cell.get("vertex") == "1"
+        is_edg = cell.get("edge")   == "1"
+        source = cell.get("source", "")
+        target = cell.get("target", "")
+
+        x = y = w = h = None
+        geo = cell.find("mxGeometry")
+        if geo is not None:
+            try:
+                x = float(geo.get("x", 0) or 0)
+                y = float(geo.get("y", 0) or 0)
+                w = float(geo.get("width",  60) or 60)
+                h = float(geo.get("height", 40) or 40)
+            except (TypeError, ValueError):
+                pass
+
+        info = dict(id=cid, value=value, x=x, y=y, w=w or 60, h=h or 40,
+                    source=source, target=target, is_vtx=is_vtx, is_edg=is_edg)
+        cells[cid] = info
+
+        if cid in ("0", "1"):
+            continue
+        if is_edg:
+            edges.append(info)
+        elif is_vtx and x is not None:
+            vertices.append(info)
+
+    if not vertices and not edges:
+        raise HTTPException(400, "Keine Shapes oder Verbindungen im Diagramm gefunden")
+
+    # Bounding-Box (Mittelpunkte) für Normalisierung
+    cx_list = [v["x"] + v["w"] / 2 for v in vertices]
+    cy_list = [v["y"] + v["h"] / 2 for v in vertices]
+    for e in edges:
+        for key in ("source", "target"):
+            c = cells.get(e[key])
+            if c and c.get("x") is not None:
+                cx_list.append(c["x"] + c["w"] / 2)
+                cy_list.append(c["y"] + c["h"] / 2)
+
+    if not cx_list:
+        raise HTTPException(400, "Keine verwertbaren Koordinaten gefunden")
+
+    margin         = 5.0
+    min_x, max_x   = min(cx_list), max(cx_list)
+    min_y, max_y   = min(cy_list), max(cy_list)
+    rx             = max_x - min_x or 1.0
+    ry             = max_y - min_y or 1.0
+    usable         = 100.0 - 2 * margin
+
+    def to_px(v: float) -> float: return round(margin + (v - min_x) / rx * usable, 2)
+    def to_py(v: float) -> float: return round(margin + (v - min_y) / ry * usable, 2)
+    def to_pw(v: float) -> float: return max(round(v / rx * usable, 2), 2.0)
+    def to_ph(v: float) -> float: return max(round(v / ry * usable, 2), 1.5)
+
+    # Map anlegen
+    raw_title = title.strip() or (
+        (file.filename or "drawio-import")
+        .replace(".drawio", "").replace(".xml", "")
+    )
+    new_map   = create_map({"title": raw_title, "canvas": {"mode": "ratio", "ratio": "16:9"}})
+    map_id    = new_map["id"]
+    warnings: list[str] = []
+    obj_count = 0
+
+    for v in vertices:
+        label = v["value"] or ""
+        cx    = to_px(v["x"] + v["w"] / 2)
+        cy    = to_py(v["y"] + v["h"] / 2)
+        if as_hosts:
+            obj: dict = {"type": "host", "x": cx, "y": cy,
+                         "name": label or "host", "label": label, "iconset": "std_small"}
+        else:
+            obj = {"type": "textbox", "x": cx, "y": cy,
+                   "text": label if label else "■",
+                   "w": to_pw(v["w"]), "h": to_ph(v["h"]), "font_size": 13}
+        try:
+            add_object(map_id, obj)
+            obj_count += 1
+        except Exception as exc:
+            warnings.append(f"Objekt '{label}' übersprungen: {exc}")
+
+    for e in edges:
+        src = cells.get(e["source"])
+        tgt = cells.get(e["target"])
+        if not src or src.get("x") is None or not tgt or tgt.get("x") is None:
+            warnings.append(f"Verbindung {e['id']} ohne gültige Quelle/Ziel übersprungen")
+            continue
+        try:
+            add_object(map_id, {
+                "type": "line",
+                "x":  to_px(src["x"] + src["w"] / 2), "y":  to_py(src["y"] + src["h"] / 2),
+                "x2": to_px(tgt["x"] + tgt["w"] / 2), "y2": to_py(tgt["y"] + tgt["h"] / 2),
+                "line_style": "solid", "line_width": 2, "color": "#64748b",
+            })
+            obj_count += 1
+        except Exception as exc:
+            warnings.append(f"Verbindung {e['id']} übersprungen: {exc}")
+
+    audit_log(request, "map.import_drawio", map_id=map_id, title=raw_title, object_count=obj_count)
+    return {"map_id": map_id, "title": raw_title, "object_count": obj_count, "warnings": warnings}
 
 
 # ══════════════════════════════════════════════════════════════════════

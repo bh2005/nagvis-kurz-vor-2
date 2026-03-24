@@ -231,6 +231,9 @@
         <button class="burger-item" id="btn-import-zip" onclick="dlgImportZip(); closeBurgerMenu()">
           <span class="burger-ico">📥</span> Map importieren (.zip)
         </button>
+        <button class="burger-item" id="btn-import-drawio" onclick="dlgImportDrawio(); closeBurgerMenu()">
+          <span class="burger-ico">🗂</span> draw.io importieren (.drawio / .xml)
+        </button>
         <div class="burger-divider"></div>
 
         <div class="burger-head">Benutzereinstellungen</div>
@@ -1028,6 +1031,51 @@
     <div class="dlg-actions" style="margin-top:14px">
       <button class="btn-cancel" onclick="closeDlg('dlg-zip-import')">Abbrechen</button>
       <button class="btn-ok" id="zip-btn-ok" onclick="confirmImportZip()" disabled>Importieren</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- OVERLAY – draw.io Import -->
+<div class="dlg-overlay" id="dlg-drawio-import">
+  <div class="dlg-box" style="width:480px">
+    <h3>draw.io / diagrams.net importieren</h3>
+
+    <label class="f-label">.drawio oder .xml Datei</label>
+    <div class="upload-box" id="drawio-drop-zone"
+         onclick="document.getElementById('drawio-file-input').click()"
+         style="padding:18px;text-align:center;cursor:pointer">
+      <div id="drawio-drop-label">🗂 .drawio / .xml-Datei wählen oder hier ablegen</div>
+    </div>
+    <input type="file" id="drawio-file-input" accept=".drawio,.xml" style="display:none">
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+      <div>
+        <label class="f-label" for="drawio-title">Map-Titel</label>
+        <input class="f-input" id="drawio-title" type="text" placeholder="(aus Dateiname)">
+      </div>
+      <div style="display:flex;align-items:flex-end;padding-bottom:2px">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px">
+          <input type="checkbox" id="drawio-as-hosts">
+          <span>Shapes als Monitoring-Hosts anlegen</span>
+        </label>
+      </div>
+    </div>
+
+    <div style="margin-top:8px;padding:8px 10px;background:var(--bg-base);border-radius:var(--r);
+                border:1px solid var(--border);font-size:11px;color:var(--text-dim)">
+      Shapes → Textboxen (oder Hosts), Verbindungen → Linien.<br>
+      Koordinaten werden automatisch auf die Map-Fläche normalisiert.
+    </div>
+
+    <div id="drawio-result" style="display:none;margin-top:10px;padding:10px;
+         background:var(--bg-base);border-radius:var(--r);font-size:11px;
+         font-family:var(--mono);max-height:140px;overflow-y:auto;
+         border:1px solid var(--border)"></div>
+
+    <div class="dlg-actions" style="margin-top:14px">
+      <button class="btn-cancel" onclick="closeDlg('dlg-drawio-import')">Abbrechen</button>
+      <button class="btn-ok" id="drawio-btn-ok" onclick="confirmImportDrawio()" disabled>Importieren</button>
     </div>
   </div>
 </div>

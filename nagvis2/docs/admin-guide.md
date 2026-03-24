@@ -403,6 +403,7 @@ Burger-Menü → **⚙ Backends verwalten**
 | **Livestatus Unix** | Socket-Pfad (z.B. `/omd/sites/mysite/tmp/run/live`) |
 | **Zabbix** | URL (z.B. `https://zabbix.example.com`), API-Token (Zabbix 6.0+) oder Username/Password |
 | **Icinga2** | URL (z.B. `https://icinga2:5665/v1`), API-User + Passwort |
+| **Prometheus / VictoriaMetrics** | URL (z.B. `http://prometheus:9090`), Bearer Token oder Basic Auth, Host-Label |
 
 ### Checkmk REST API
 
@@ -514,6 +515,44 @@ systemctl reload icinga2
 | Hostgruppen | `GET /v1/objects/hostgroups` | |
 
 Icinga2 Custom-Vars (`host.vars.*`) werden automatisch als Labels übernommen (nur einfache Datentypen: String, Zahl, Bool).
+
+---
+
+### Prometheus / VictoriaMetrics
+
+**Voraussetzungen:**
+- Prometheus 2.x oder VictoriaMetrics (identische HTTP API)
+- Keine besondere Konfiguration erforderlich — NagVis 2 nutzt nur lesende API-Endpunkte
+
+**Konfigurationsparameter:**
+
+| Parameter | Beispiel | Beschreibung |
+|---|---|---|
+| `url` | `http://prometheus:9090` | Prometheus-Basis-URL (ohne `/api/v1/`) |
+| `token` | `Bearer xyz...` | Bearer Token (optional, für gesicherte Instanzen) |
+| `username` / `password` | `user` / `pass` | Basic Auth (alternativ zu Bearer Token) |
+| `host_label` | `instance` | Welches Prometheus-Label als Host-Name verwendet wird (Standard: `instance`) |
+| `timeout` | `15` | HTTP-Timeout in Sekunden |
+| `verify_ssl` | `true` | TLS-Zertifikat prüfen |
+
+**Konzept-Mapping Prometheus → NagVis 2:**
+
+| NagVis 2 | Prometheus Endpoint | Mapping |
+|---|---|---|
+| Hosts | `GET /api/v1/query?query=up` | `up=1` → UP, `up=0` → DOWN; Label `host_label` → Host-Name |
+| Services | `GET /api/v1/alerts` | `firing` + `severity=critical` → CRITICAL; `firing` + `warning/warn/info` → WARNING; `pending` → WARNING |
+| Hostgruppen | `GET /api/v1/query?query=up` | `job`-Label gruppiert Targets |
+
+**Mehrere Jobs, gleicher Host-Name:**
+Wenn derselbe `instance`-Wert in mehreren Jobs auftaucht, gewinnt der schlechteste Status (DOWN > UP).
+
+**Wichtig:** Prometheus ist **read-only** — ACK, Downtime und Reschedule sind nicht möglich. Entsprechende Aktionen im Kontextmenü werden ignoriert (mit Hinweis im Log).
+
+**VictoriaMetrics:**
+VictoriaMetrics ist vollständig kompatibel — dieselbe API, kein Unterschied in der Konfiguration.
+
+**Verbindungstest:**
+`GET /api/v1/status/buildinfo` — liefert die Prometheus-Version zurück (sichtbar im Backend-Test-Dialog).
 
 ---
 
