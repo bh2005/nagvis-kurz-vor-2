@@ -62,6 +62,10 @@ function openBurgerMenu() {
   const label = document.getElementById('burger-theme-label');
   if (ico)   ico.textContent   = currentTheme === 'dark' ? '☀' : '☽';
   if (label) label.textContent = currentTheme === 'dark' ? 'Light-Theme' : 'Dark-Theme';
+  const ucdIco   = document.getElementById('ucd-theme-ico');
+  const ucdLabel = document.getElementById('ucd-theme-label');
+  if (ucdIco)   ucdIco.textContent   = currentTheme === 'dark' ? '☀' : '☽';
+  if (ucdLabel) ucdLabel.textContent = currentTheme === 'dark' ? 'Light-Theme' : 'Dark-Theme';
   document.getElementById('btn-menu').classList.add('on');
 }
 
@@ -83,6 +87,11 @@ function setTheme(theme, save = true) {
   const label = document.getElementById('burger-theme-label');
   if (ico)   ico.textContent   = theme === 'dark' ? '☀' : '☽';
   if (label) label.textContent = theme === 'dark' ? 'Light-Theme' : 'Dark-Theme';
+  // Chip-Dropdown synchron halten
+  const ucdIco   = document.getElementById('ucd-theme-ico');
+  const ucdLabel = document.getElementById('ucd-theme-label');
+  if (ucdIco)   ucdIco.textContent   = theme === 'dark' ? '☀' : '☽';
+  if (ucdLabel) ucdLabel.textContent = theme === 'dark' ? 'Light-Theme' : 'Dark-Theme';
   if (save) {
     const s = loadUserSettings();
     s.theme = theme;

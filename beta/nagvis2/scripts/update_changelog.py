@@ -479,6 +479,131 @@ NagVis 2 - Changelog
                  User/Passwort-Fallback, SSL-Checkbox)
                - map-core.js: _bmUpdateFields(), _bmBuildEntry(),
                  _bmClearForm(), _bmEditLoad() fuer zabbix erweitert
+
+[2026-03-24]   Bugfix: Poll-Loop Absturz 'expected string or bytes-like object'
+               - core/perfdata.py: parse_perfdata() prueft isinstance(raw, str)
+                 vor re.finditer(); gibt {} zurueck wenn kein String
+               - checkmk/client.py: _to_perf_str() stellt sicher dass
+                 performance_data (kann Dict sein) immer als "" uebergeben wird
+
+[2026-03-24]   Feature: Authentifizierung vollstaendig (P1)
+               Backend:
+               - api/auth_router.py: POST /api/v1/auth/refresh
+                 erstellt neues Token fuer eingeloggten User (7 Tage)
+               - api/auth_router.py: PATCH /api/v1/auth/me
+                 eigenes Passwort aendern (min. 6 Zeichen, jede Rolle)
+               Frontend:
+               - auth.js: Bugfix - nv2AuthChangeRole / nv2AuthChangePw /
+                 nv2AuthDeleteUser verwendeten /api/auth/ statt /api/v1/auth/
+               - auth.js: _scheduleRefresh() / _doRefresh()
+                 JWT-Ablaufdatum aus Payload lesen; 1 Tag vor Ablauf
+                 automatisch via POST /api/v1/auth/refresh erneuern
+               - auth.js: nv2AuthChangeOwnPw()
+                 eigenes Passwort aendern via PATCH /api/v1/auth/me
+               - auth.js: _applyRoleUI(role)
+                 editor-Pflicht: btn-new-map, btn-import-map/-zip, btn-edit
+                 admin-Pflicht: btn-delete-map, btn-backend-mgmt,
+                 btn-action-config, btn-kiosk-users
+               - index.html: IDs an Burger-Menu-Buttons ergaenzt
+               - index.html: Burger-Menu: Passwort-aendern-Button im
+                 Konto-Abschnitt (btn-change-own-pw)
+
+[2026-03-24]   Bugfix: Logout + Auth-UI-Sichtbarkeit
+               - auth.js: Logout-Button nur sichtbar wenn AUTH_ENABLED=true
+                 (bei deaktivierter Auth nach Reload sofort wieder Admin ->
+                 Logout waere sinnlos / verwirrend)
+               - auth.js: Benutzerverwaltung + Passwort-aendern bleiben
+                 auch bei AUTH_ENABLED=false sichtbar (Rolle=admin)
+               - auth.js: ucd-divider-auth korrekt ein-/ausgeblendet
+
+[2026-03-24]   Dokumentation: .env.example + admin-guide.md
+               - .env.example: komplett ueberarbeitet
+                 Fehlende Variablen ergaenzt: LIVESTATUS_TYPE/PATH/SITE,
+                 WS_POLL_INTERVAL, LOG_FORMAT/LEVEL/LOG_BUFFER_LINES
+                 AUTH_ENABLED + NAGVIS_SECRET (war faelschlich SECRET_KEY)
+                 Port korrigiert: 8000 -> 8008
+               - docs/admin-guide.md: neuer Abschnitt "Installation via
+                 Install-Script" (Schnellstart, Optionen, Berechtigungskonzept,
+                 Service-Befehle)
+               - docs/admin-guide.md: neuer Abschnitt "Authentifizierung &
+                 Benutzerverwaltung" (Modi, Aktivierung, Rollen, REST-API,
+                 users.json-Format)
+               - docs/admin-guide.md: Konfigurationstabelle um AUTH_ENABLED
+                 + NAGVIS_SECRET erweitert
+
+[2026-03-24]   Feature: install.sh - Bash-Installationsskript
+               - install.sh: vollstaendiges Install-Script fuer Linux
+                 Optionen: --zip, --install-dir, --user, --port,
+                 --auth-enabled, --no-systemd, --no-start, --upgrade,
+                 --uninstall
+               Schritte: Voraussetzungen pruefen (Python 3.11+, pip, unzip)
+                 System-User/Group 'nagvis2' anlegen
+                 ZIP entpacken oder Quellverzeichnis direkt nutzen
+                 Python venv erstellen + requirements.txt installieren
+                 data/-Unterverzeichnisse anlegen
+                 .env aus .env.example erstellen (NAGVIS_SECRET auto-generiert)
+                 Berechtigungen: Code root:nagvis2 755/644,
+                 data/ nagvis2:nagvis2 750, .env 600
+               Systemd: /etc/systemd/system/nagvis2.service
+                 Security-Hardening: NoNewPrivileges, PrivateTmp,
+                 ProtectSystem=strict, RestrictAddressFamilies
+               Upgrade: Backup data/ + .env vor Update, danach wiederherstellen
+               Uninstall: Service + Dateien + User entfernen
+
+[2026-03-24]   Feature: build.sh - Build-Skript fuer ZIP-Distribution
+               - build.sh: erstellt nagvis2-<version>.zip + .sha256
+                 Optionen: --version, --out, --no-docs
+                 Version aus changelog.txt oder git describe
+               Inkludiert: frontend/, backend/ (ohne venv/data/__pycache__),
+                 docs/, helm/, scripts/, install.sh, .env.example,
+                 docker-compose.yml, nginx.conf*, mkdocs.yml, README,
+                 changelog*, FEATURES.md
+               Baut MkDocs-Hilfe vor dem Packen (falls mkdocs vorhanden)
+               ZIP-Wurzel immer nagvis2/ -> install.sh erkennt Struktur auto.
+
+[2026-03-24]   Feature: GitHub Action - Automatische Releases
+               - .github/workflows/release.yml: NEU
+                 Trigger: Git-Tag v*.*.* oder manuell (workflow_dispatch)
+               Job 1 (test): pytest laeuft, Release schlaegt fehl wenn rot
+               Job 2 (build): MkDocs + build.sh -> ZIP als Artifact
+               Job 3 (release): GitHub Release mit ZIP + SHA256 als Assets
+                 Release-Notes aus changelog.md automatisch extrahiert
+                 Install-Befehl direkt im Release-Body
+                 Pre-Release-Flag: automatisch wenn Tag alpha/beta/rc enthaelt
+
+[2026-03-24]   Feature: M2 Map-Duplikat
+               Backend:
+               - core/storage.py: clone_map(source_id, new_title)
+                 Deep-Copy der Map-JSON, neue slugifizierte ID
+                 (Kollisions-Vermeidung mit Zaehler-Suffix)
+                 parent_map = None im Klon; Hintergrundbild wird mitkopiert
+               - api/router.py: MapCloneRequest (Pydantic)
+               - api/router.py: POST /api/v1/maps/{id}/clone (status 201)
+                 Audit-Log-Eintrag map.clone
+               Frontend:
+               - map-core.js: cloneActiveMap() - prompt fuer neuen Namen,
+                 Default "<Titel> - Kopie"; ruft cloneMap() auf
+               - map-core.js: cloneMap(mapId, newTitle) - POST /clone,
+                 loadMaps() nach Erfolg (Sidebar + Uebersicht aktualisiert)
+               - index.html: Burger-Menue -> Aktive Map: "Map duplizieren"
+                 (btn-clone-map) vor "Map exportieren"
+               - map-core.js: Uebersicht-Kontextmenue: "Duplizieren"-Eintrag
+
+[2026-03-24]   Feature: User-Chip als klickbarer Button mit Dropdown
+               - index.html: #nv2-user-chip: <span> -> <button class=user-chip-btn>
+                 in <div id=user-chip-wrap> (position:relative)
+               Dropdown #user-chip-dropdown:
+                 Header: Rollenicon + Username + Rolle
+                 Immer: Theme-Toggle (Icon + Label synchron mit Burger-Menue)
+                 Immer: Einstellungen... (oeffnet dlg-user-settings)
+                 Auth-only: Passwort aendern, Benutzer verwalten (admin),
+                 Abmelden (nur AUTH_ENABLED=true)
+               - auth.js: _updateAuthUI() verdrahtet alle Dropdown-Elemente
+               - auth.js: toggleUserChip() / closeUserChip()
+                 schliesst Burger-Menue wenn Chip-Dropdown aufgeht
+               - auth.js: Aussenklick schliesst Dropdown
+               - ui-core.js: setTheme() aktualisiert auch ucd-theme-ico/label
+               - css/styles.css: .user-chip-btn + :hover-Stil
 """
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -736,6 +861,83 @@ MD = """\
 - `map-core.js`: „Zabbix JSON-RPC API" im Typ-Dropdown
 - `map-core.js`: `bm-fields-zabbix` (URL, API-Token, Benutzer/Passwort-Fallback, SSL-Checkbox)
 - `map-core.js`: `_bmUpdateFields()`, `_bmBuildEntry()`, `_bmClearForm()`, `_bmEditLoad()` erweitert
+
+---
+
+## [2026-03-24]
+
+### Bugfix: Poll-Loop Absturz `expected string or bytes-like object, got 'dict'`
+- `core/perfdata.py`: `parse_perfdata()` prüft `isinstance(raw, str)` vor `re.finditer()` → gibt `{}` zurück wenn kein String übergeben wird
+- `checkmk/client.py`: Neue Hilfsfunktion `_to_perf_str()` — stellt sicher dass `performance_data` (Checkmk REST API kann Dict liefern) immer als `""` weitergegeben wird
+
+### Feature: Authentifizierung vollständig ✅
+
+**Backend**
+- `api/auth_router.py`: `POST /api/v1/auth/refresh` — gibt neues Token (7 Tage) für eingeloggten User zurück
+- `api/auth_router.py`: `PATCH /api/v1/auth/me` — eigenes Passwort ändern (mind. 6 Zeichen, jede Rolle)
+
+**Frontend**
+- `auth.js`: **Bugfix** — `nv2AuthChangeRole()`, `nv2AuthChangePw()`, `nv2AuthDeleteUser()` verwendeten `/api/auth/` statt `/api/v1/auth/` → 404-Fehler
+- `auth.js`: `_scheduleRefresh()` / `_doRefresh()` — JWT-Ablaufdatum aus Payload lesen; 1 Tag vor Ablauf automatisch via `POST /api/v1/auth/refresh` erneuern; wird nach Login + Init gestartet
+- `auth.js`: `nv2AuthChangeOwnPw()` — eigenes Passwort ändern via `PATCH /api/v1/auth/me`
+- `auth.js`: `_applyRoleUI(role)` — blendet UI-Elemente nach Rolle aus:
+  - Editor-Pflicht: Neue Map, Map importieren, Edit-Mode
+  - Admin-Pflicht: Backends, Aktionen, Kiosk-User, Map löschen
+- `index.html`: IDs `btn-new-map`, `btn-import-map`, `btn-import-zip`, `btn-backend-mgmt`, `btn-kiosk-users`, `btn-action-config` an Burger-Menü-Buttons ergänzt
+- `index.html`: Burger-Menü „Konto"-Abschnitt: Button „🔑 Passwort ändern" (`btn-change-own-pw`)
+
+### Bugfix: Logout + Auth-UI-Sichtbarkeit
+- `auth.js`: Logout-Button nur sichtbar wenn `AUTH_ENABLED=true` (bei deaktivierter Auth nach Reload sofort wieder Admin → Logout wäre sinnlos/verwirrend)
+- `auth.js`: Benutzerverwaltung + Passwort ändern bleiben auch bei `AUTH_ENABLED=false` sichtbar (Rolle=admin)
+
+### Dokumentation: `.env.example` + `admin-guide.md`
+
+- `.env.example`: komplett überarbeitet — fehlende Variablen ergänzt (`LIVESTATUS_TYPE/PATH/SITE`, `WS_POLL_INTERVAL`, `LOG_FORMAT/LEVEL/LOG_BUFFER_LINES`, `NAGVIS_SECRET`); Port korrigiert 8000 → 8008; falscher `SECRET_KEY` durch `NAGVIS_SECRET` ersetzt
+- `docs/admin-guide.md`: neuer Abschnitt **„Installation via Install-Script"** (Schnellstart, alle Optionen, Berechtigungskonzept, Service-Befehle)
+- `docs/admin-guide.md`: neuer Abschnitt **„Authentifizierung & Benutzerverwaltung"** (Modi-Tabelle, Aktivierung, Rollen, REST-API-Beispiele, `users.json`-Format)
+- `docs/admin-guide.md`: Konfigurationstabelle um `AUTH_ENABLED` + `NAGVIS_SECRET` erweitert
+
+### Feature: `install.sh` – Bash-Installationsskript ✅
+- Optionen: `--zip`, `--install-dir`, `--user`, `--port`, `--auth-enabled`, `--no-systemd`, `--no-start`, `--upgrade`, `--uninstall`
+- System-User/Group `nagvis2` anlegen, venv erstellen, `requirements.txt` installieren
+- `NAGVIS_SECRET` wird automatisch generiert (`secrets.token_hex(32)`)
+- Berechtigungen: Code `root:nagvis2 755/644` · `data/` `nagvis2:nagvis2 750` · `.env` `600`
+- Systemd-Service mit Security-Hardening (`NoNewPrivileges`, `PrivateTmp`, `ProtectSystem=strict`)
+- Upgrade-Modus: `data/` + `.env` vor Update sichern, danach wiederherstellen
+
+### Feature: `build.sh` – Build-Skript für ZIP-Distribution ✅
+- Erstellt `nagvis2-<version>.zip` + `.sha256`; Version aus `changelog.txt` oder `git describe`
+- Schließt aus: `venv/`, `data/`, `__pycache__/`, `*.pyc`, `.env`, `.coverage`
+- Baut MkDocs-Hilfe vor dem Packen; ZIP-Wurzel immer `nagvis2/`
+
+### Feature: GitHub Action – Automatische Releases ✅
+- `.github/workflows/release.yml`: Trigger auf `v*.*.*`-Tags + manuell
+- Job 1: pytest (Release schlägt fehl wenn Tests rot)
+- Job 2: MkDocs + `build.sh` → ZIP als Artifact
+- Job 3: GitHub Release mit ZIP + SHA256, Release-Notes aus `changelog.md`, Install-Befehl im Body
+
+### Feature: M2 Map-Duplikat ✅
+
+**Backend**
+- `core/storage.py`: `clone_map(source_id, new_title)` — Deep-Copy, neue slugifizierte ID (Kollisionsvermeidung), `parent_map=None`, Hintergrundbild wird mitkopiert
+- `api/router.py`: `POST /api/v1/maps/{id}/clone` (201) mit Audit-Log `map.clone`
+
+**Frontend**
+- `map-core.js`: `cloneActiveMap()` — prompt für neuen Namen, Default „\<Titel\> – Kopie"
+- `map-core.js`: `cloneMap(mapId, newTitle)` — POST `/clone`, `loadMaps()` danach
+- `index.html`: Burger-Menü → Aktive Map: **⧉ Map duplizieren** (`btn-clone-map`)
+- `map-core.js`: Übersicht-Rechtsklickmenü: „Duplizieren"-Eintrag
+
+### Feature: User-Chip als klickbarer Button mit Dropdown ✅
+- `index.html`: `#nv2-user-chip` `<span>` → `<button class="user-chip-btn">` in `<div id="user-chip-wrap">`
+- Dropdown `#user-chip-dropdown`:
+  - Header: Rollenicon + Username + Rolle (immer)
+  - ☀/☽ Theme wechseln (immer, synchron mit Burger-Menü)
+  - ⚙ Einstellungen… → `dlg-user-settings` (immer)
+  - 🔑 Passwort ändern / 👥 Benutzer verwalten (Admin) / ⏻ Abmelden — nur `AUTH_ENABLED=true`
+- `auth.js`: `toggleUserChip()` / `closeUserChip()` / Außenklick-Listener
+- `ui-core.js`: `setTheme()` aktualisiert `ucd-theme-ico` + `ucd-theme-label` synchron
+- `css/styles.css`: `.user-chip-btn` + `:hover`
 
 ---
 

@@ -211,7 +211,7 @@
 ### Hohe Priorität
 | # | Feature | Beschreibung |
 |---|---|---|
-| P1 | **Authentifizierung** | Login-UI, JWT, Token-Refresh, Benutzer-Management |
+| ~~P1~~ | ~~**Authentifizierung**~~ | ✅ Login-UI, JWT (7 Tage), Auto-Refresh, Benutzer-Management, Rollen-UI, eigenes Passwort |
 | P2 | **HTTPS / TLS** | nginx Reverse-Proxy-Konfiguration für Produktion |
 | P3 | **Systemd / OMD-Hook** | uvicorn als Dienst, automatischer Start mit OMD-Site |
 
@@ -242,16 +242,17 @@
 
 ```
 Frontend-Shell      ████████████████████  100%
-Map-Verwaltung      ██████████████████░░   90%  (Auth fehlt)
+Map-Verwaltung      ████████████████████  100%
 Objekt-Typen        ████████████████████  100%  (Label-Templates, remove_ack, Linien-Aktionsmenü)
 Edit-Mode           ████████████████████  100%
-Live-Status         ██████████████████░░   90%  (Livestatus + Checkmk)
+Live-Status         ████████████████████  100%  (Livestatus, Checkmk, Icinga2, Zabbix)
+Authentifizierung   ████████████████████  100%  (JWT, Auto-Refresh, Rollen-UI, User-Mgmt)
 Layer-System        ████████████████████  100%
 Kiosk-Modus         ████████████████████  100%
 OSM / Weltkarte     ████████████████████  100%
 Gadget-System       ████████████████████  100%
 Monitoring/Betrieb  ████████████████░░░░   80%  (Systemd/OMD offen)
-Backend API         █████████████████░░░   85%  (Auth, HTTPS offen)
+Backend API         ██████████████████░░   90%  (HTTPS offen)
 Docker/Helm         ██████████████████░░   90%
 Tests               ████████████████░░░░   80%  (ws_manager 89%, main 76%)
 GitHub Actions      ████████████████████  100%  (CI, Docker, MkDocs, Dependabot)

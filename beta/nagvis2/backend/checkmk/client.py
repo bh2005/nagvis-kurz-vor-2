@@ -63,6 +63,16 @@ def _parse_svc_state(val) -> int:
     return 3
 
 
+def _to_perf_str(val) -> str:
+    """Stellt sicher, dass perf_data immer ein String ist.
+    Checkmk REST API kann performance_data als Dict oder String liefern."""
+    if val is None:
+        return ""
+    if isinstance(val, str):
+        return val
+    return ""   # Dict/Liste → leer; parse_perfdata kann das nicht verwenden
+
+
 def _parse_timestamp(val) -> int:
     """Konvertiert ISO-String oder Unix-Timestamp (int/float) auf int."""
     if not val:
@@ -214,7 +224,7 @@ class CheckmkClient:
                 last_check    = _parse_timestamp(ext.get("last_check")),
                 acknowledged  = bool(ext.get("acknowledged", False)),
                 in_downtime   = bool(ext.get("in_downtime", False)),
-                perf_data     = ext.get("perf_data") or ext.get("performance_data", ""),
+                perf_data     = _to_perf_str(ext.get("perf_data") or ext.get("performance_data")),
                 backend_id    = self.cfg.backend_id,
                 labels        = labels,
             ))

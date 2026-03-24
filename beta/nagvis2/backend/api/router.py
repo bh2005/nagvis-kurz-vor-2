@@ -20,7 +20,7 @@ from fastapi import Request
 
 from core.config import settings
 from core.storage import (
-    list_maps, get_map, create_map, delete_map, update_map_field,
+    list_maps, get_map, create_map, delete_map, update_map_field, clone_map,
     add_object, update_object, delete_object,
     kiosk_list, kiosk_create, kiosk_update, kiosk_delete, kiosk_get_by_token,
 )
@@ -46,6 +46,9 @@ class MapTitleUpdate(BaseModel):
 
 class MapParentUpdate(BaseModel):
     parent_map: Optional[str] = None
+
+class MapCloneRequest(BaseModel):
+    title: str
 
 class ObjectCreate(BaseModel):
     type: str
@@ -273,6 +276,16 @@ async def api_set_canvas(map_id: str, body: dict = Body(...), request: Request =
     audit_log(request, "map.canvas_update", map_id=map_id, mode=body.get("mode"))
     await ws_manager.broadcast(map_id, {"event": "map_reloaded", "map_id": map_id})
     return {"id": map_id, "canvas": data["canvas"]}
+
+
+@api_router.post("/maps/{map_id}/clone", status_code=201)
+async def api_clone_map(map_id: str, body: MapCloneRequest, request: Request):
+    """Klont eine Map inkl. aller Objekte und ggf. Hintergrundbild."""
+    if not get_map(map_id):
+        raise HTTPException(404, f"Map '{map_id}' nicht gefunden")
+    new_map = clone_map(map_id, body.title)
+    audit_log(request, "map.clone", map_id=map_id, new_map_id=new_map["id"], title=body.title)
+    return {**new_map, "object_count": len(new_map.get("objects", []))}
 
 
 # ══════════════════════════════════════════════════════════════════════

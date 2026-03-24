@@ -65,6 +65,8 @@ def parse_perfdata(raw: str) -> dict[str, dict]:
     Liefert {} bei leerem oder ungültigem Input.
     """
     result: dict[str, dict] = {}
+    if not isinstance(raw, str):
+        return result
     for m in _PERF_RE.finditer(raw or ""):
         label = m.group(1) or m.group(2) or ""
         if not label:

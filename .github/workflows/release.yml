@@ -1,0 +1,204 @@
+name: Release – ZIP bauen & GitHub Release erstellen
+
+# Trigger: Git-Tag der Form v1.2.3
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]*"
+
+  # Manuell anstoßen (z.B. für Pre-Release)
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version (z.B. v2.1.0)"
+        required: true
+        default: "v2.0.0-beta"
+      prerelease:
+        description: "Pre-Release?"
+        required: false
+        default: "true"
+        type: choice
+        options: ["true", "false"]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  PYTHON_VERSION: "3.13"
+
+jobs:
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # Job 1: Tests (aus ci.yml wiederverwendet)
+  # ────────────────────────────────────────────────────────────────────────────
+  test:
+    name: Tests (Python ${{ env.PYTHON_VERSION }})
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: beta/nagvis2/backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python einrichten
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: beta/nagvis2/backend/requirements-dev.txt
+
+      - name: Abhängigkeiten installieren
+        run: pip install -r requirements-dev.txt
+
+      - name: Tests ausführen
+        run: pytest -v --tb=short
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # Job 2: ZIP bauen
+  # ────────────────────────────────────────────────────────────────────────────
+  build:
+    name: ZIP bauen
+    runs-on: ubuntu-latest
+    needs: test
+
+    outputs:
+      version:  ${{ steps.version.outputs.version }}
+      zip_name: ${{ steps.version.outputs.zip_name }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # vollständige History für git describe
+
+      - name: Python einrichten (für mkdocs)
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: beta/nagvis2/backend/requirements.txt
+
+      - name: MkDocs installieren
+        run: pip install mkdocs-material
+
+      - name: Version ermitteln
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          # Führendes 'v' für Dateinamen entfernen
+          VERSION_CLEAN="${VERSION#v}"
+          echo "version=$VERSION"              >> "$GITHUB_OUTPUT"
+          echo "zip_name=nagvis2-${VERSION_CLEAN}.zip" >> "$GITHUB_OUTPUT"
+          echo "Baue Version: $VERSION"
+
+      - name: MkDocs-Hilfe bauen
+        working-directory: beta/nagvis2
+        run: mkdocs build --quiet
+
+      - name: ZIP erstellen
+        working-directory: beta/nagvis2
+        run: |
+          bash build.sh --version "${{ steps.version.outputs.version }}" --out /tmp/dist --no-docs
+          ls -lh /tmp/dist/
+
+      - name: ZIP als Artifact hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: nagvis2-zip
+          path: |
+            /tmp/dist/${{ steps.version.outputs.zip_name }}
+            /tmp/dist/${{ steps.version.outputs.zip_name }}.sha256
+          retention-days: 7
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # Job 3: GitHub Release erstellen
+  # ────────────────────────────────────────────────────────────────────────────
+  release:
+    name: GitHub Release
+    runs-on: ubuntu-latest
+    needs: build
+
+    permissions:
+      contents: write   # Release + Assets anlegen
+
+    steps:
+      - name: Checkout (für Changelog)
+        uses: actions/checkout@v4
+
+      - name: ZIP-Artifact herunterladen
+        uses: actions/download-artifact@v4
+        with:
+          name: nagvis2-zip
+          path: /tmp/dist
+
+      - name: Changelog-Abschnitt für diese Version extrahieren
+        id: changelog
+        run: |
+          VERSION="${{ needs.build.outputs.version }}"
+          VERSION_CLEAN="${VERSION#v}"
+          CHANGELOG="beta/nagvis2/changelog.md"
+
+          # Abschnitt zwischen dieser und der nächsten Version extrahieren
+          if [[ -f "$CHANGELOG" ]]; then
+            NOTES=$(awk "/^## \[?[Vv]?${VERSION_CLEAN//./\\.}/,/^## \[?[Vv]?[0-9]/" "$CHANGELOG" \
+                    | head -n -1 | tail -n +2)
+          fi
+          if [[ -z "${NOTES:-}" ]]; then
+            NOTES="Siehe [changelog.md](https://github.com/${{ github.repository }}/blob/main/beta/nagvis2/changelog.md) für Details."
+          fi
+
+          # Multiline in GITHUB_OUTPUT schreiben
+          {
+            echo "notes<<CHANGELOG_EOF"
+            echo "$NOTES"
+            echo "CHANGELOG_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Ist Pre-Release?
+        id: prerelease
+        run: |
+          VERSION="${{ needs.build.outputs.version }}"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "is_pre=${{ github.event.inputs.prerelease }}" >> "$GITHUB_OUTPUT"
+          elif [[ "$VERSION" =~ (alpha|beta|rc|dev) ]]; then
+            echo "is_pre=true"  >> "$GITHUB_OUTPUT"
+          else
+            echo "is_pre=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: GitHub Release erstellen
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name:   ${{ needs.build.outputs.version }}
+          name:       "NagVis 2 ${{ needs.build.outputs.version }}"
+          prerelease: ${{ steps.prerelease.outputs.is_pre }}
+          body: |
+            ## NagVis 2 ${{ needs.build.outputs.version }}
+
+            ${{ steps.changelog.outputs.notes }}
+
+            ---
+
+            ### Installation
+
+            ```bash
+            # ZIP herunterladen
+            wget https://github.com/${{ github.repository }}/releases/download/${{ needs.build.outputs.version }}/${{ needs.build.outputs.zip_name }}
+
+            # Prüfsumme verifizieren
+            sha256sum -c ${{ needs.build.outputs.zip_name }}.sha256
+
+            # Installieren
+            unzip ${{ needs.build.outputs.zip_name }}
+            cd nagvis2
+            sudo ./install.sh --auth-enabled
+            ```
+
+            Vollständige Dokumentation: [`docs/admin-guide.md`](https://github.com/${{ github.repository }}/blob/main/beta/nagvis2/docs/admin-guide.md)
+
+          files: |
+            /tmp/dist/${{ needs.build.outputs.zip_name }}
+            /tmp/dist/${{ needs.build.outputs.zip_name }}.sha256
