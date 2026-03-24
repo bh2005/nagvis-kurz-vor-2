@@ -1,0 +1,2165 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="NagVis 2 Bedienungsanleitung & Referenz">
+      
+      
+        <meta name="author" content="NagVis 2 Team">
+      
+      
+        <link rel="canonical" href="https://bh2005.github.io/nagvis-kurz-vor-2/dev-guide/">
+      
+      
+        <link rel="prev" href="../admin-guide/">
+      
+      
+        <link rel="next" href="../api-reference/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Entwickler - NagVis 2 Help</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/css/nagvis2-tokens.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#nagvis-2-developer-guide" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="NagVis 2 Help" class="md-header__button md-logo" aria-label="NagVis 2 Help" data-md-component="logo">
+      
+  <img src="../assets/images/nagvis2-logo.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            NagVis 2 Help
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Entwickler
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="NagVis 2 Help" class="md-nav__button md-logo" aria-label="NagVis 2 Help" data-md-component="logo">
+      
+  <img src="../assets/images/nagvis2-logo.svg" alt="logo">
+
+    </a>
+    NagVis 2 Help
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Benutzer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../admin-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Entwickler
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Entwickler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#inhaltsverzeichnis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inhaltsverzeichnis
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-stack-abhangigkeiten" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Stack &amp; Abhängigkeiten
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-lokales-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Lokales Setup
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Lokales Setup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#voraussetzungen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Voraussetzungen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mit-docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mit Docker
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-projektstruktur" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Projektstruktur
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-backend-architektur" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Backend-Architektur
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Backend-Architektur">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#request-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Request-Flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#websocket-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WebSocket-Flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#konfiguration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Konfiguration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#datenpersistenz" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Datenpersistenz
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-frontend-architektur" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Frontend-Architektur
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Frontend-Architektur">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#warum-kein-framework" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Warum kein Framework?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#script-ladereihenfolge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Script-Ladereihenfolge
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#globale-variablen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Globale Variablen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#api-wrapper" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        api()-Wrapper
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#demo-modus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Demo-Modus
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-neuen-backend-connector-hinzufugen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Neuen Backend-Connector hinzufügen
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Neuen Backend-Connector hinzufügen">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#schritt-1-client-implementieren" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schritt 1: Client implementieren
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schritt-2-registry-einbinden" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schritt 2: Registry einbinden
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schritt-3-frontend-map-corejs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schritt 3: Frontend (map-core.js)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schritt-4-docstring-in-admin-guidemd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schritt 4: Docstring in admin-guide.md
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-neuen-api-endpoint-hinzufugen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Neuen API-Endpoint hinzufügen
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-neuen-frontend-dialog-hinzufugen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Neuen Frontend-Dialog hinzufügen
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Neuen Frontend-Dialog hinzufügen">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#html-indexhtml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTML (index.html)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#javascript-zb-in-ui-corejs-oder-nodesjs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JavaScript (z.B. in ui-core.js oder nodes.js)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hilfsfunktionen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hilfsfunktionen
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Tests
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. Tests">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#backend-pytest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backend (pytest)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#frontend-unit-tests-vitest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend Unit-Tests (Vitest)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#frontend-e2e-playwright" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend E2E (Playwright)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ci" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CI
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-code-konventionen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Code-Konventionen
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="10. Code-Konventionen">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#python" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Python
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#javascript" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JavaScript
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#git" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Git
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-release-prozess" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Release-Prozess
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kiosk-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kiosk
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hilfe
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Hilfe
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../help/canvas-modes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Canvas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../help/connections/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Verbindungen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../help/dashboard/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dashboard
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../help/migrate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../help/zip-import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ZIP Import
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../osm-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OSM / Weltkarte
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../todo-liste/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ToDo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#inhaltsverzeichnis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inhaltsverzeichnis
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-stack-abhangigkeiten" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Stack &amp; Abhängigkeiten
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-lokales-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Lokales Setup
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Lokales Setup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#voraussetzungen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Voraussetzungen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mit-docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mit Docker
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-projektstruktur" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Projektstruktur
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-backend-architektur" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Backend-Architektur
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Backend-Architektur">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#request-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Request-Flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#websocket-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WebSocket-Flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#konfiguration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Konfiguration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#datenpersistenz" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Datenpersistenz
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-frontend-architektur" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Frontend-Architektur
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Frontend-Architektur">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#warum-kein-framework" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Warum kein Framework?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#script-ladereihenfolge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Script-Ladereihenfolge
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#globale-variablen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Globale Variablen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#api-wrapper" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        api()-Wrapper
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#demo-modus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Demo-Modus
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-neuen-backend-connector-hinzufugen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Neuen Backend-Connector hinzufügen
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Neuen Backend-Connector hinzufügen">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#schritt-1-client-implementieren" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schritt 1: Client implementieren
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schritt-2-registry-einbinden" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schritt 2: Registry einbinden
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schritt-3-frontend-map-corejs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schritt 3: Frontend (map-core.js)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schritt-4-docstring-in-admin-guidemd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schritt 4: Docstring in admin-guide.md
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-neuen-api-endpoint-hinzufugen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Neuen API-Endpoint hinzufügen
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-neuen-frontend-dialog-hinzufugen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Neuen Frontend-Dialog hinzufügen
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Neuen Frontend-Dialog hinzufügen">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#html-indexhtml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTML (index.html)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#javascript-zb-in-ui-corejs-oder-nodesjs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JavaScript (z.B. in ui-core.js oder nodes.js)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hilfsfunktionen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hilfsfunktionen
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Tests
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. Tests">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#backend-pytest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backend (pytest)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#frontend-unit-tests-vitest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend Unit-Tests (Vitest)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#frontend-e2e-playwright" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend E2E (Playwright)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ci" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CI
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-code-konventionen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Code-Konventionen
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="10. Code-Konventionen">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#python" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Python
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#javascript" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JavaScript
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#git" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Git
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-release-prozess" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Release-Prozess
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="nagvis-2-developer-guide">NagVis 2 – Developer Guide</h1>
+<p>Dieses Dokument beschreibt Architektur, lokales Setup und alles was man braucht um Features beizutragen oder das Projekt zu erweitern.</p>
+<hr />
+<h2 id="inhaltsverzeichnis">Inhaltsverzeichnis</h2>
+<ol>
+<li><a href="#1-stack--abhängigkeiten">Stack &amp; Abhängigkeiten</a></li>
+<li><a href="#2-lokales-setup">Lokales Setup</a></li>
+<li><a href="#3-projektstruktur">Projektstruktur</a></li>
+<li><a href="#4-backend-architektur">Backend-Architektur</a></li>
+<li><a href="#5-frontend-architektur">Frontend-Architektur</a></li>
+<li><a href="#6-neuen-backend-connector-hinzufügen">Neuen Backend-Connector hinzufügen</a></li>
+<li><a href="#7-neuen-api-endpoint-hinzufügen">Neuen API-Endpoint hinzufügen</a></li>
+<li><a href="#8-neuen-frontend-dialog-hinzufügen">Neuen Frontend-Dialog hinzufügen</a></li>
+<li><a href="#9-tests">Tests</a></li>
+<li><a href="#10-code-konventionen">Code-Konventionen</a></li>
+<li><a href="#11-release-prozess">Release-Prozess</a></li>
+</ol>
+<hr />
+<h2 id="1-stack-abhangigkeiten">1. Stack &amp; Abhängigkeiten</h2>
+<table>
+<thead>
+<tr>
+<th>Schicht</th>
+<th>Technologie</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Backend</td>
+<td>Python 3.11+, FastAPI, Uvicorn, httpx</td>
+</tr>
+<tr>
+<td>WebSocket</td>
+<td>FastAPI WebSocket, asyncio</td>
+</tr>
+<tr>
+<td>Frontend</td>
+<td>Vanilla JS (kein Framework), keine Build-Tools</td>
+</tr>
+<tr>
+<td>Daten</td>
+<td>JSON-Files in <code>data/</code> (kein DB-Server nötig)</td>
+</tr>
+<tr>
+<td>Docs</td>
+<td>MkDocs + Material Theme</td>
+</tr>
+<tr>
+<td>Tests</td>
+<td>pytest (Backend), Vitest + Playwright (Frontend)</td>
+</tr>
+<tr>
+<td>CI</td>
+<td>GitHub Actions</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Keine Build-Tools im Frontend</strong> — alle <code>.js</code>-Dateien werden direkt als <code>&lt;script&gt;</code>-Tags eingebunden. Kein Webpack, kein Vite, kein TypeScript-Compiler.</p>
+<hr />
+<h2 id="2-lokales-setup">2. Lokales Setup</h2>
+<h3 id="voraussetzungen">Voraussetzungen</h3>
+<ul>
+<li>Python 3.11+</li>
+<li>Git</li>
+</ul>
+<h3 id="setup">Setup</h3>
+<pre><code class="language-bash">git clone https://github.com/bh2005/nagvis-kurz-vor-2
+cd nagvis-kurz-vor-2/nagvis2/backend
+
+# Virtuelle Umgebung
+python3 -m venv venv
+source venv/bin/activate          # Windows: venv\Scripts\activate
+
+# Abhängigkeiten
+pip install -r requirements-dev.txt
+
+# Konfiguration (optional – Demo-Modus geht ohne .env)
+cp .env.example .env
+# Datei anpassen (LIVESTATUS_HOST, AUTH_ENABLED, ...)
+
+# Starten
+python main.py
+# → http://localhost:8008
+</code></pre>
+<p>Im <strong>Demo-Modus</strong> (kein Monitoring-Backend nötig):</p>
+<pre><code class="language-bash">DEMO_MODE=true python main.py
+</code></pre>
+<h3 id="mit-docker">Mit Docker</h3>
+<pre><code class="language-bash">cd nagvis-kurz-vor-2/nagvis2
+docker compose up --build
+# → http://localhost:8008
+</code></pre>
+<hr />
+<h2 id="3-projektstruktur">3. Projektstruktur</h2>
+<pre><code>nagvis2/
+├── backend/
+│   ├── main.py                   ← FastAPI App, Startup, StaticFiles
+│   ├── requirements.txt          ← Produktions-Abhängigkeiten
+│   ├── requirements-dev.txt      ← + pytest, httpx[async], ruff
+│   ├── .env.example
+│   ├── Dockerfile
+│   │
+│   ├── core/
+│   │   ├── config.py             ← Settings via pydantic-settings (.env)
+│   │   ├── storage.py            ← Map CRUD, clone_map()
+│   │   ├── auth.py               ← JWT, require_auth, require_admin
+│   │   ├── users.py              ← Benutzerverwaltung (bcrypt, users.json)
+│   │   ├── audit.py              ← Audit-Log (JSONL, Rotation)
+│   │   ├── perfdata.py           ← Nagios Perfdata-Parser
+│   │   ├── livestatus.py         ← Livestatus TCP/Unix Client
+│   │   ├── logging_setup.py      ← Strukturiertes Logging, In-Memory-Buffer
+│   │   └── metrics.py            ← Prometheus-Metriken
+│   │
+│   ├── checkmk/client.py         ← Checkmk REST API v1.0
+│   ├── icinga2/client.py         ← Icinga2 REST API v1
+│   ├── zabbix/client.py          ← Zabbix JSON-RPC API
+│   ├── prometheus/client.py      ← Prometheus / VictoriaMetrics HTTP API
+│   │
+│   ├── connectors/
+│   │   ├── registry.py           ← Unified Backend Registry (Singleton)
+│   │   └── demo_client.py        ← Demo-Client mit statischen Testdaten
+│   │
+│   ├── api/
+│   │   ├── router.py             ← Maps, Objekte, Backends, Logs, Aktionen
+│   │   └── auth_router.py        ← Login, Refresh, User-CRUD
+│   │
+│   ├── ws/
+│   │   ├── manager.py            ← WebSocket-Verbindungsverwaltung
+│   │   ├── router.py             ← WS-Endpoint /ws/map/{map_id}
+│   │   └── demo_data.py          ← Statische Demo-Daten für Demo-Modus
+│   │
+│   └── tests/
+│       ├── conftest.py
+│       ├── test_storage.py
+│       ├── test_auth.py
+│       └── test_api.py
+│
+├── frontend/
+│   ├── index.html                ← Einzige HTML-Datei; lädt alle JS + CSS
+│   ├── css/styles.css
+│   └── js/
+│       ├── gadget-renderer.js    ← Gadget-Rendering (NICHT ANFASSEN)
+│       ├── zoom_pan.js           ← Zoom/Pan-Modul (NICHT ANFASSEN)
+│       ├── constants.js          ← STATE_CLS, ICON_SVG, svgToDataUri, iconSrc
+│       ├── state.js              ← Alle globalen Laufzeit-Variablen
+│       ├── ui-core.js            ← Theme, Dialoge, Benutzereinstellungen
+│       ├── ws-client.js          ← WebSocket, api()-Wrapper, Demo-Mode-Handler
+│       ├── nodes.js              ← Node-Rendering, Edit-Mode, Gadgets
+│       ├── map-core.js           ← Map-Verwaltung, Backend-Dialog, Export
+│       ├── kiosk.js              ← Kiosk-Modus, Token-Login, Map-Rotation
+│       └── app.js                ← DOMContentLoaded – bindet alles zusammen
+│
+├── docs/                         ← MkDocs-Quelldateien
+│   ├── admin-guide.md
+│   ├── user-guide.md
+│   ├── dev-guide.md              ← diese Datei
+│   ├── api-reference.md
+│   ├── kiosk-guide.md
+│   └── osm-guide.md
+│
+├── scripts/
+│   └── update_changelog.py       ← Changelog-Generator (TXT UTF-16 + MD)
+│
+├── data/                         ← Persistente Daten (auto-erstellt, in .gitignore)
+│   ├── maps/
+│   ├── backgrounds/
+│   ├── backends.json
+│   └── users.json
+│
+├── docker-compose.yml
+├── nginx.conf
+├── mkdocs.yml
+├── build.sh
+└── install.sh
+</code></pre>
+<hr />
+<h2 id="4-backend-architektur">4. Backend-Architektur</h2>
+<h3 id="request-flow">Request-Flow</h3>
+<pre><code>Browser → FastAPI (main.py)
+           ├── /api/v1/*   → api/router.py      (Maps, Backends, Aktionen)
+           ├── /api/v1/auth/* → api/auth_router.py
+           ├── /ws/map/{id}  → ws/router.py      (WebSocket)
+           ├── /metrics      → metrics.py
+           └── /*            → StaticFiles → frontend/
+</code></pre>
+<h3 id="websocket-flow">WebSocket-Flow</h3>
+<pre><code>ws/router.py → ws/manager.py → poll_loop()
+                                  └── registry.get_all_hosts_tagged()
+                                      registry.get_all_services_tagged()
+                                      → broadcast status_update an alle Clients
+</code></pre>
+<p>Der Poll-Loop läuft als Background-Task, <code>WS_POLL_INTERVAL</code> (Standard: 10s) konfigurierbar.</p>
+<h3 id="konfiguration">Konfiguration</h3>
+<p>Alle Einstellungen via <code>core/config.py</code> (pydantic-settings, liest <code>.env</code>):</p>
+<pre><code class="language-python">from core.config import settings
+settings.DATA_DIR          # Path zu data/
+settings.AUTH_ENABLED      # bool
+settings.DEMO_MODE         # bool
+settings.WS_POLL_INTERVAL  # int (Sekunden)
+</code></pre>
+<h3 id="datenpersistenz">Datenpersistenz</h3>
+<p>Maps werden als JSON in <code>data/maps/&lt;id&gt;.json</code> gespeichert. Kein ORM, kein DB-Server.
+<code>core/storage.py</code> bietet: <code>load_map()</code>, <code>save_map()</code>, <code>list_maps()</code>, <code>delete_map()</code>, <code>clone_map()</code>.</p>
+<hr />
+<h2 id="5-frontend-architektur">5. Frontend-Architektur</h2>
+<h3 id="warum-kein-framework">Warum kein Framework?</h3>
+<p>Bewusste Entscheidung: keine Build-Tools, kein npm für den Produktivbetrieb. Das Frontend läuft direkt aus dem Repository-Verzeichnis ohne Compilation.</p>
+<h3 id="script-ladereihenfolge">Script-Ladereihenfolge</h3>
+<p>Die Reihenfolge in <code>index.html</code> ist strikt einzuhalten:</p>
+<pre><code class="language-html">&lt;script src=&quot;js/gadget-renderer.js&quot;&gt;&lt;/script&gt;  &lt;!-- 1. Gadget-Renderer (extern) --&gt;
+&lt;script src=&quot;js/zoom_pan.js&quot;&gt;&lt;/script&gt;          &lt;!-- 2. Zoom/Pan (extern) --&gt;
+&lt;script src=&quot;js/constants.js&quot;&gt;&lt;/script&gt;         &lt;!-- 3. Konstanten --&gt;
+&lt;script src=&quot;js/state.js&quot;&gt;&lt;/script&gt;             &lt;!-- 4. Globaler State --&gt;
+&lt;script src=&quot;js/ui-core.js&quot;&gt;&lt;/script&gt;           &lt;!-- 5. UI-Grundfunktionen --&gt;
+&lt;script src=&quot;js/ws-client.js&quot;&gt;&lt;/script&gt;         &lt;!-- 6. WebSocket + api() --&gt;
+&lt;script src=&quot;js/nodes.js&quot;&gt;&lt;/script&gt;             &lt;!-- 7. Node-Rendering --&gt;
+&lt;script src=&quot;js/map-core.js&quot;&gt;&lt;/script&gt;          &lt;!-- 8. Map-Verwaltung --&gt;
+&lt;script src=&quot;js/kiosk.js&quot;&gt;&lt;/script&gt;             &lt;!-- 9. Kiosk-Modus --&gt;
+&lt;script src=&quot;js/app.js&quot;&gt;&lt;/script&gt;               &lt;!-- 10. Init (ZULETZT) --&gt;
+</code></pre>
+<h3 id="globale-variablen">Globale Variablen</h3>
+<p><strong>Kritisch:</strong> <code>let</code> in einem <code>&lt;script&gt;</code>-Block ist <strong>nicht</strong> in anderen Dateien sichtbar. Alle öffentlichen Funktionen und Variablen müssen als <code>window.xyz = ...</code> gesetzt werden.</p>
+<pre><code class="language-javascript">// FALSCH – nicht sichtbar in anderen Dateien:
+let activeMapId = null;
+
+// RICHTIG:
+window.activeMapId = null;
+</code></pre>
+<h3 id="api-wrapper">api()-Wrapper</h3>
+<p>Alle REST-Calls über den <code>api()</code>-Wrapper aus <code>ws-client.js</code>:</p>
+<pre><code class="language-javascript">// GET
+const data = await api('/api/maps');
+
+// POST mit Body
+const result = await api('/api/maps', 'POST', { title: 'Neue Map' });
+
+// PATCH
+await api(`/api/maps/${id}/objects/${oid}/props`, 'PATCH', { name: 'Server1' });
+</code></pre>
+<p>Gibt bei Fehler <code>null</code> zurück (kein throw). Im Demo-Modus werden alle Schreiboperationen über Handler in <code>ws-client.js</code> auf localStorage umgeleitet.</p>
+<h3 id="demo-modus">Demo-Modus</h3>
+<p><code>detectDemoMode()</code> in <code>ws-client.js</code> versucht <code>GET /api/health</code>. Schlägt das nach 600ms fehl, wird <code>window.DEMO_MODE = true</code> gesetzt. Alle <code>api()</code>-Aufrufe gehen dann gegen localStorage-Handler statt gegen den echten Backend.</p>
+<hr />
+<h2 id="6-neuen-backend-connector-hinzufugen">6. Neuen Backend-Connector hinzufügen</h2>
+<p>Am Beispiel eines neuen Connectors für "MyMonitoring":</p>
+<h3 id="schritt-1-client-implementieren">Schritt 1: Client implementieren</h3>
+<p>Neue Datei <code>backend/mymonitoring/__init__.py</code> (leer) und <code>backend/mymonitoring/client.py</code>:</p>
+<pre><code class="language-python">from dataclasses import dataclass
+from livestatus.client import BackendHealth, HostStatus, ServiceStatus
+
+@dataclass
+class MyMonitoringConfig:
+    backend_id: str   = &quot;mymon-default&quot;
+    url:        str   = &quot;http://mymon:8080&quot;
+    token:      str   = &quot;&quot;
+    timeout:    float = 15.0
+    verify_ssl: bool  = True
+    enabled:    bool  = True
+
+class MyMonitoringClient:
+    def __init__(self, config: MyMonitoringConfig):
+        self.cfg = config
+
+    async def get_hosts(self) -&gt; list[HostStatus]: ...
+    async def get_services(self) -&gt; list[ServiceStatus]: ...
+    async def get_hostgroups(self) -&gt; list[dict]: ...
+    async def acknowledge_host(self, ...) -&gt; bool: ...
+    async def acknowledge_service(self, ...) -&gt; bool: ...
+    async def schedule_host_downtime(self, ...) -&gt; bool: ...
+    async def schedule_service_downtime(self, ...) -&gt; bool: ...
+    async def ping(self) -&gt; BackendHealth: ...
+</code></pre>
+<p><strong>Interface-Pflicht:</strong> Alle 8 Methoden müssen implementiert sein (NotImplemented-Backends können <code>return False</code> / <code>return []</code> zurückgeben).</p>
+<h3 id="schritt-2-registry-einbinden">Schritt 2: Registry einbinden</h3>
+<p>In <code>backend/connectors/registry.py</code> 4 Stellen ergänzen:</p>
+<pre><code class="language-python"># 1. Import
+from mymonitoring.client import MyMonitoringClient, MyMonitoringConfig
+
+# 2. AnyClient Union
+AnyClient = Union[..., MyMonitoringClient, DemoClient]
+
+# 3. _raw_from_client() – neuen isinstance-Block
+if isinstance(client, MyMonitoringClient):
+    c = client.cfg
+    return { &quot;backend_id&quot;: c.backend_id, &quot;type&quot;: &quot;mymonitoring&quot;, &quot;url&quot;: c.url, ... }
+
+# 4. _make_client() – neuen elif-Block
+elif t == &quot;mymonitoring&quot;:
+    return MyMonitoringClient(MyMonitoringConfig(
+        backend_id = entry[&quot;backend_id&quot;],
+        url        = entry.get(&quot;url&quot;, &quot;&quot;),
+        ...
+    ))
+
+# 5. _client_info() – neuen isinstance-Block
+if isinstance(client, MyMonitoringClient):
+    return { &quot;backend_id&quot;: ..., &quot;type&quot;: &quot;mymonitoring&quot;, &quot;address&quot;: ..., &quot;enabled&quot;: True }
+</code></pre>
+<h3 id="schritt-3-frontend-map-corejs">Schritt 3: Frontend (map-core.js)</h3>
+<p>4 Stellen in <code>frontend/js/map-core.js</code>:</p>
+<pre><code class="language-javascript">// 1. &lt;option&gt; im Typ-Dropdown hinzufügen
+&lt;option value=&quot;mymonitoring&quot;&gt;MyMonitoring API&lt;/option&gt;
+
+// 2. HTML-Felder (neues &lt;div id=&quot;bm-fields-mymonitoring&quot;&gt;)
+
+// 3. _bmUpdateFields() – display-Zeile ergänzen
+document.getElementById('bm-fields-mymonitoring').style.display = t === 'mymonitoring' ? '' : 'none';
+
+// 4. _bmBuildEntry() – neues if-Block
+if (type === 'mymonitoring') {
+    const url = document.getElementById('bm-mym-url')?.value.trim();
+    return { ...base, url, token: ..., verify_ssl: ... };
+}
+
+// 5. _bmClearForm() – neue IDs in die Array aufnehmen
+// 6. _bmEditLoad() – neue set()-Aufrufe
+</code></pre>
+<h3 id="schritt-4-docstring-in-admin-guidemd">Schritt 4: Docstring in admin-guide.md</h3>
+<p>Neuen Abschnitt unter "Konfiguration → Backends" hinzufügen.</p>
+<hr />
+<h2 id="7-neuen-api-endpoint-hinzufugen">7. Neuen API-Endpoint hinzufügen</h2>
+<p>Alle Endpoints in <code>backend/api/router.py</code> (oder <code>auth_router.py</code> für Auth).</p>
+<pre><code class="language-python">@router.get(&quot;/maps/{map_id}/myfeature&quot;)
+async def get_my_feature(map_id: str, user=Depends(require_auth)):
+    # Implementierung
+    return {&quot;result&quot;: &quot;...&quot;}
+</code></pre>
+<p>Versionierung: alle Endpoints laufen unter <code>/api/v1/</code>. In <code>main.py</code> ist der Router mit <code>prefix="/api/v1"</code> eingebunden. Ein 308-Redirect von <code>/api/</code> auf <code>/api/v1/</code> ist für Rückwärtskompatibilität aktiv.</p>
+<p><strong>Demo-Mode:</strong> Falls der Endpoint schreibt oder liest aus dem Dateisystem, einen entsprechenden Handler in <code>ws-client.js</code> unter <code>DEMO_HANDLERS</code> ergänzen:</p>
+<pre><code class="language-javascript">const DEMO_HANDLERS = {
+  'POST /api/maps': async (body) =&gt; { /* localStorage */ },
+  'GET /api/maps/myfeature': async () =&gt; { /* statische Daten */ },
+};
+</code></pre>
+<hr />
+<h2 id="8-neuen-frontend-dialog-hinzufugen">8. Neuen Frontend-Dialog hinzufügen</h2>
+<h3 id="html-indexhtml">HTML (index.html)</h3>
+<pre><code class="language-html">&lt;div id=&quot;dlg-my-dialog&quot; class=&quot;dlg&quot; style=&quot;display:none&quot;&gt;
+  &lt;div class=&quot;dlg-head&quot;&gt;
+    &lt;span&gt;Mein Dialog&lt;/span&gt;
+    &lt;button class=&quot;dlg-close&quot; onclick=&quot;closeDlg('dlg-my-dialog')&quot;&gt;✕&lt;/button&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;dlg-body&quot;&gt;
+    &lt;!-- Inhalt --&gt;
+    &lt;label class=&quot;f-label&quot;&gt;Name&lt;/label&gt;
+    &lt;input class=&quot;f-input&quot; id=&quot;my-input&quot; type=&quot;text&quot;&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;dlg-foot&quot;&gt;
+    &lt;button class=&quot;btn-cancel&quot; onclick=&quot;closeDlg('dlg-my-dialog')&quot;&gt;Abbrechen&lt;/button&gt;
+    &lt;button class=&quot;btn-primary&quot; onclick=&quot;myDialogSave()&quot;&gt;Speichern&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+</code></pre>
+<h3 id="javascript-zb-in-ui-corejs-oder-nodesjs">JavaScript (z.B. in ui-core.js oder nodes.js)</h3>
+<pre><code class="language-javascript">function openMyDialog(data) {
+  document.getElementById('my-input').value = data?.name || '';
+  openDlg('dlg-my-dialog');
+}
+
+async function myDialogSave() {
+  const name = document.getElementById('my-input').value.trim();
+  const result = await api('/api/myendpoint', 'POST', { name });
+  if (result !== null) {
+    closeDlg('dlg-my-dialog');
+    showToast('Gespeichert', 'ok');
+  }
+}
+
+// Am Ende der Datei exportieren:
+window.openMyDialog  = openMyDialog;
+window.myDialogSave  = myDialogSave;
+</code></pre>
+<h3 id="hilfsfunktionen">Hilfsfunktionen</h3>
+<table>
+<thead>
+<tr>
+<th>Funktion</th>
+<th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>openDlg(id)</code></td>
+<td>Dialog öffnen (zentriert, Overlay)</td>
+</tr>
+<tr>
+<td><code>closeDlg(id)</code></td>
+<td>Dialog schließen</td>
+</tr>
+<tr>
+<td><code>showToast(msg, type)</code></td>
+<td>Toast-Nachricht (<code>'ok'</code>, <code>'warn'</code>, <code>'error'</code>)</td>
+</tr>
+<tr>
+<td><code>esc(s)</code></td>
+<td>HTML-Escaping für dynamische Strings im DOM</td>
+</tr>
+<tr>
+<td><code>api(path, method, body)</code></td>
+<td>REST-Call, gibt <code>null</code> bei Fehler</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="9-tests">9. Tests</h2>
+<h3 id="backend-pytest">Backend (pytest)</h3>
+<pre><code class="language-bash">cd nagvis-kurz-vor-2/nagvis2/backend
+pytest -v
+pytest --cov=. --cov-report=term-missing    # mit Coverage
+pytest tests/test_api.py -k &quot;test_maps&quot;     # einzelne Tests
+</code></pre>
+<p>Konfiguration in <code>pyproject.toml</code> (Projekt-Root):</p>
+<pre><code class="language-toml">[tool.pytest.ini_options]
+testpaths   = [&quot;backend/tests&quot;]
+pythonpath  = [&quot;backend&quot;]
+</code></pre>
+<h3 id="frontend-unit-tests-vitest">Frontend Unit-Tests (Vitest)</h3>
+<pre><code class="language-bash">cd nagvis-kurz-vor-2/nagvis2
+npm test:unit
+npm test:unit:watch    # watch mode
+npm test:unit:cov      # mit Coverage
+</code></pre>
+<p>Tests liegen in <code>frontend/tests/unit/</code>. Da kein ESM, werden JS-Dateien via <code>readFileSync</code> + indirektem <code>eval()</code> in jsdom geladen.</p>
+<h3 id="frontend-e2e-playwright">Frontend E2E (Playwright)</h3>
+<pre><code class="language-bash">npm test:e2e           # startet Backend automatisch (DEMO_MODE=true)
+npm test:e2e:ui        # Playwright UI-Modus
+npx playwright install chromium   # Einmalig: Browser-Binary installieren
+</code></pre>
+<p>Tests liegen in <code>frontend/tests/e2e/</code>.</p>
+<h3 id="ci">CI</h3>
+<p>GitHub Actions führt bei jedem Push auf <code>main</code> und bei PRs automatisch <code>pytest</code> aus (<code>.github/workflows/ci.yml</code>). Coverage-Schwellwert: 70%.</p>
+<hr />
+<h2 id="10-code-konventionen">10. Code-Konventionen</h2>
+<h3 id="python">Python</h3>
+<ul>
+<li><strong>Formatter/Linter:</strong> <code>ruff</code> (konfiguriert in <code>pyproject.toml</code>)</li>
+<li><strong>Python-Version:</strong> 3.11+ (Type Hints: <code>str | None</code>, kein <code>Optional</code>)</li>
+<li><strong>Async:</strong> Alle I/O-Operationen müssen <code>async</code>/<code>await</code> verwenden</li>
+<li><strong>Logging:</strong> <code>log = logging.getLogger("nagvis.&lt;modulname&gt;")</code>, kein <code>print()</code></li>
+<li><strong>Fehlerbehandlung:</strong> Exceptions fangen, loggen, sinnvollen Fallback zurückgeben — kein blindes <code>raise</code></li>
+</ul>
+<pre><code class="language-bash"># Linting + Formatierung
+ruff check backend/
+ruff format backend/
+</code></pre>
+<h3 id="javascript">JavaScript</h3>
+<ul>
+<li><strong>Kein Framework, kein TypeScript</strong></li>
+<li><strong><code>'use strict';</code></strong> am Anfang jeder Datei</li>
+<li><strong>Globale Exports immer via <code>window.xyz = xyz</code></strong> am Dateiende</li>
+<li><strong><code>esc(s)</code></strong> für alle dynamischen HTML-Strings (XSS-Schutz)</li>
+<li><strong>Kein <code>console.log</code> im Commit</strong> — stattdessen kommentieren oder entfernen</li>
+<li><strong>Kommentare</strong> nur wo die Logik nicht selbsterklärend ist</li>
+</ul>
+<h3 id="git">Git</h3>
+<ul>
+<li><strong>Commit-Messages:</strong> <code>&lt;typ&gt;: &lt;Was wurde geändert&gt;</code> (feat, fix, docs, refactor, chore)</li>
+<li><strong>Branches:</strong> Feature-Branches von <code>main</code>, PR → <code>main</code></li>
+<li><strong>Changelog:</strong> <code>scripts/update_changelog.py</code> nach jedem bedeutenden Feature/Fix ausführen</li>
+</ul>
+<hr />
+<h2 id="11-release-prozess">11. Release-Prozess</h2>
+<pre><code class="language-bash"># 1. Changelog aktualisieren
+python scripts/update_changelog.py
+
+# 2. Testen
+cd backend &amp;&amp; pytest -v
+
+# 3. Tag setzen (triggert GitHub Action release.yml)
+git tag v2.1.0
+git push origin v2.1.0
+
+# GitHub Action erledigt automatisch:
+# - Tests (Release schlägt fehl wenn rot)
+# - mkdocs build
+# - build.sh → ZIP + SHA256
+# - GitHub Release mit Release-Notes aus changelog.md
+</code></pre>
+<p>Der manuelle Release via <code>workflow_dispatch</code> ist ebenfalls möglich (Actions → Release → Run workflow).</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "search.highlight", "search.suggest"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
