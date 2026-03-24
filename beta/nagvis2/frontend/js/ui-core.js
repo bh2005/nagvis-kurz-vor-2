@@ -217,7 +217,8 @@ window.closeSnapin  = closeSnapin;
 window.USER_SETTINGS_KEY = 'nv2-user-settings';
 
 function defaultUserSettings() {
-  return { theme:'dark', sidebarDefault:'expanded', kioskHideSidebar:false, kioskHideTopbar:false, kioskAutoRefresh:true, kioskInterval:60 };
+  return { theme:'dark', sidebarDefault:'expanded', kioskHideSidebar:false, kioskHideTopbar:false, kioskAutoRefresh:true, kioskInterval:60,
+           notifyOnCritical:false, notifySound:true };
 }
 
 function loadUserSettings() {
@@ -226,6 +227,7 @@ function loadUserSettings() {
 }
 
 function saveUserSettings() {
+  const notifyEnabled = document.getElementById('us-notify-critical')?.checked ?? false;
   const s = {
     theme:            currentTheme,
     sidebarDefault:   document.getElementById('us-sidebar-default')?.value    ?? 'expanded',
@@ -233,7 +235,13 @@ function saveUserSettings() {
     kioskHideTopbar:  document.getElementById('us-kiosk-hide-topbar')?.checked  ?? false,
     kioskAutoRefresh: document.getElementById('us-kiosk-auto-refresh')?.checked ?? true,
     kioskInterval:    parseInt(document.getElementById('us-kiosk-interval')?.value ?? '60'),
+    notifyOnCritical: notifyEnabled,
+    notifySound:      document.getElementById('us-notify-sound')?.checked ?? true,
   };
+  // Berechtigung anfragen wenn gerade aktiviert
+  if (notifyEnabled && Notification.permission === 'default') {
+    Notification.requestPermission().then(_updateNotifyStatus);
+  }
   localStorage.setItem(USER_SETTINGS_KEY, JSON.stringify(s));
   closeDlg('dlg-user-settings');
 }
@@ -246,8 +254,37 @@ function openUserSettingsDlg() {
   const kht = document.getElementById('us-kiosk-hide-topbar');  if (kht) kht.checked = s.kioskHideTopbar;
   const kar = document.getElementById('us-kiosk-auto-refresh'); if (kar) kar.checked = s.kioskAutoRefresh;
   const ki  = document.getElementById('us-kiosk-interval');     if (ki)  ki.value    = String(s.kioskInterval);
+  const nc  = document.getElementById('us-notify-critical');    if (nc)  nc.checked  = s.notifyOnCritical;
+  const ns  = document.getElementById('us-notify-sound');       if (ns)  ns.checked  = s.notifySound;
+  _updateNotifyStatus();
   openDlg('dlg-user-settings');
 }
+
+function _updateNotifyStatus() {
+  const el = document.getElementById('us-notify-status');
+  if (!el) return;
+  if (!('Notification' in window)) {
+    el.textContent = '⚠ Dieser Browser unterstützt keine Benachrichtigungen.';
+    el.style.color = 'var(--warn)';
+    return;
+  }
+  const perm = Notification.permission;
+  if (perm === 'granted') {
+    el.textContent = '✔ Berechtigung erteilt';
+    el.style.color = 'var(--ok)';
+  } else if (perm === 'denied') {
+    el.textContent = '✖ Berechtigung verweigert – in Browser-Einstellungen freigeben';
+    el.style.color = 'var(--crit)';
+  } else {
+    el.textContent = 'Berechtigung noch nicht erteilt – oben auf „Erlauben" klicken';
+    el.style.color = 'var(--text-dim)';
+  }
+}
+
+window._requestNotifyPermission = function() {
+  if (!('Notification' in window)) return;
+  Notification.requestPermission().then(_updateNotifyStatus);
+};
 
 function updateThemeChips() {
   document.getElementById('theme-chip-dark') ?.classList.toggle('active', currentTheme === 'dark');
@@ -353,9 +390,11 @@ window.toggleBurgerMenu    = toggleBurgerMenu;
 window.closeBurgerMenu     = closeBurgerMenu;
 window.toggleSnapin        = toggleSnapin;
 window.closeSnapin         = closeSnapin;
-window.openUserSettingsDlg = openUserSettingsDlg;
-window.saveUserSettings    = saveUserSettings;
-window.updateThemeChips    = updateThemeChips;
+window.openUserSettingsDlg   = openUserSettingsDlg;
+window.saveUserSettings      = saveUserSettings;
+window.updateThemeChips      = updateThemeChips;
+window._updateNotifyStatus   = _updateNotifyStatus;
+window.loadUserSettings      = loadUserSettings;
 window.openDlg  = id => document.getElementById(id)?.classList.add('show');
 window.closeDlg = id => {
   document.getElementById(id)?.classList.remove('show');

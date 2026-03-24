@@ -918,6 +918,21 @@
       </div>
     </div>
 
+    <div class="f-row" style="margin-top:12px">
+      <label class="f-label">Benachrichtigungen</label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--text-mid)">
+        <input type="checkbox" id="us-notify-critical"> Bei CRITICAL / DOWN Browser-Benachrichtigung anzeigen
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--text-mid);margin-top:6px">
+        <input type="checkbox" id="us-notify-sound" checked> Hinweiston abspielen
+      </label>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+        <button class="btn-secondary" style="font-size:11px;padding:4px 10px"
+                onclick="_requestNotifyPermission()">🔔 Berechtigung erteilen</button>
+        <span id="us-notify-status" style="font-size:11px;color:var(--text-dim)"></span>
+      </div>
+    </div>
+
     <div class="dlg-actions" style="margin-top:16px">
       <button class="btn-cancel" onclick="closeDlg('dlg-user-settings')">Abbrechen</button>
       <button class="btn-ok"     onclick="saveUserSettings()">Speichern</button>

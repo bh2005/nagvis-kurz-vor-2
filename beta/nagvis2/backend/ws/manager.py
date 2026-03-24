@@ -69,8 +69,8 @@ async def _poll_loop():
     from connectors.registry import registry
 
     interval     = settings.WS_POLL_INTERVAL
-    last_hosts:   Dict[str, str] = {}   # name → state_label
-    last_services: Dict[str, str] = {}  # "host::desc" → state_label
+    last_hosts:    Dict[str, str] = {}   # "backend_id::name" → state_label
+    last_services: Dict[str, str] = {}  # "backend_id::host::desc" → state_label
 
     while True:
         await asyncio.sleep(interval)
@@ -86,17 +86,19 @@ async def _poll_loop():
             if settings.DEMO_MODE or registry.is_empty():
                 # Demo-Modus: periodisch Demo-Daten pushen (simuliert Live-Updates)
                 from ws.demo_data import DEMO_STATUS, DEMO_SERVICES
+                demo_hosts = [{**h, "_backend_id": "demo"} for h in DEMO_STATUS]
+                demo_svcs  = [{**s, "_backend_id": "demo"} for s in DEMO_SERVICES]
                 await manager.broadcast_all({
                     "event":    "status_update",
                     "ts":       t0,
                     "elapsed":  0,
-                    "hosts":    DEMO_STATUS,
-                    "services": DEMO_SERVICES,
+                    "hosts":    demo_hosts,
+                    "services": demo_svcs,
                 })
                 continue
 
-            hosts    = await registry.get_all_hosts()
-            services = await registry.get_all_services()
+            hosts    = await registry.get_all_hosts_tagged()
+            services = await registry.get_all_services_tagged()
             elapsed  = time.time() - t0
 
             # Prometheus: Poll-Dauer messen
@@ -108,23 +110,21 @@ async def _poll_loop():
 
             elapsed_ms = int(elapsed * 1000)
 
-            # Diff: geänderte Hosts
+            # Diff: geänderte Hosts (Key = "backend_id::name")
             changed_hosts = []
             for h in hosts:
-                d   = h.to_dict()
-                key = d["name"]
-                if last_hosts.get(key) != d["state_label"]:
-                    changed_hosts.append({**d, "change_type": "state_change"})
-                last_hosts[key] = d["state_label"]
+                key = f"{h['_backend_id']}::{h['name']}"
+                if last_hosts.get(key) != h["state_label"]:
+                    changed_hosts.append({**h, "change_type": "state_change"})
+                last_hosts[key] = h["state_label"]
 
-            # Diff: geänderte Services
+            # Diff: geänderte Services (Key = "backend_id::host::desc")
             changed_svcs = []
             for s in services:
-                d   = s.to_dict()
-                key = f"{d['host_name']}::{d['description']}"
-                if last_services.get(key) != d["state_label"]:
-                    changed_svcs.append({**d, "change_type": "state_change"})
-                last_services[key] = d["state_label"]
+                key = f"{s['_backend_id']}::{s['host_name']}::{s['description']}"
+                if last_services.get(key) != s["state_label"]:
+                    changed_svcs.append({**s, "change_type": "state_change"})
+                last_services[key] = s["state_label"]
 
             if changed_hosts or changed_svcs:
                 await manager.broadcast_all({

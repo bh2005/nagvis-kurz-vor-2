@@ -169,6 +169,7 @@
 - Dark/Light Theme-Chips (visuell) – **Standard: Dark**
 - Sidebar-Startzustand (Expanded/Collapsed) – **Standard: Expanded**
 - Kiosk-Optionen (Sidebar, Topbar, Auto-Refresh, Intervall)
+- **Browser-Benachrichtigungen** – Web Push API bei CRITICAL/DOWN; Hinweiston via Web Audio API (Square-Wave, kein externer Asset); in Benutzereinstellungen an/abschaltbar; Debounce 15 s; Berechtigung-Button mit Live-Statusanzeige
 - Persistenz via `nv2-user-settings` in localStorage (einzige Quelle; `nv2-theme` / `nv2-sidebar` entfernt)
 
 ---
@@ -182,6 +183,7 @@
 - **Persistenz** – `data/backends.json`, LIVESTATUS_* Env-Vars werden auto-importiert
 - **Backend-Management-UI** – Burger-Menü → Backends verwalten (hinzufügen, testen, entfernen)
 - **Probe-Endpoint** – Verbindungstest ohne permanenten Eintrag (`POST /api/backends/probe`)
+- **`backend_id` pro Node** – Jeder Node (Host, Service, Hostgroup, Gadget) kann an ein bestimmtes Backend gebunden werden; `server01` in Checkmk und `server01` in Zabbix koexistieren ohne Konflikt; auswählbar im Eigenschaften-Dialog; rückwärtskompatibel (leer = erster Treffer)
 
 ---
 
@@ -259,7 +261,7 @@
 | N1 | **Mehrsprachigkeit (i18n)** | DE/EN via JSON-Dictionary |
 | N2 | **Map-Vorlagen** | Vordefinierte Layouts (Stern, Hierarchie, Rechenzentrum) |
 | N3 | **Mobile-Ansicht** | Touch-Events für Drag, Pinch-Zoom, responsive Breakpoints |
-| N4 | **Benachrichtigungen** | Browser-Push bei CRITICAL-Statuswechsel (Web Push API) |
+| ~~N4~~ | ~~**Benachrichtigungen**~~ | ✅ Browser-Push + Hinweiston bei CRITICAL/DOWN; in Benutzereinstellungen an/abschaltbar |
 | N5 | **Historische Daten** | Verfügbarkeits-Diagramme via Checkmk REST-API |
 | N6 | ~~**Test-Coverage**~~ | ✅ `ws_manager.py` 89 %, `main.py` 76 % – Ziel ≥ 70 % erreicht |
 | ~~N7~~ | ~~**Map-Miniaturbilder**~~ | ✅ canvas → PNG, Upload, automatisch beim Schließen einer Map |

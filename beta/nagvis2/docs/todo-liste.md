@@ -1,66 +1,14 @@
 # NagVis 2 – Todo-Liste
 
-## Authentifizierung
-
-- [ ] Login-UI im Frontend (Formular, Token-Handling)
-- [ ] Backend-Endpoints mit JWT absichern (`core/auth.py` existiert, aber kein Endpoint ist geschützt)
-- [ ] Token-Refresh-Logik
-- [ ] Logout-Funktion im Burger-Menü
-- [ ] Kiosk-Token-URLs bleiben ohne Auth (kein Login erforderlich)
-
----
-
-## OSM / Weltkarte
-
-- [x] Neuer Canvas-Modus `osm` (OpenStreetMap via Leaflet.js)
-- [x] Leaflet.js ins Frontend integrieren (CDN)
-- [x] Koordinatenformat für OSM-Nodes: lat/lng statt x%/y%
-- [x] Nodes auf der Karte per Drag & Drop verschieben (Leaflet-Marker)
-- [x] Tile-Server konfigurierbar machen (OpenStreetMap, eigener Tile-Server)
-- [x] Canvas-Modus-Dialog um `osm`-Option erweitern
-- [x] Zoom/Pan-Logik von Leaflet übernehmen (ersetzt eigenes zoom_pan.js für diesen Modus)
-- [x] Backend: lat/lng in Map-Objekt-Koordinaten speichern (x=lat, y=lng – kein Umbau nötig)
-- [x] Dokumentation: `docs/osm-guide.md` erstellt
-
----
-
-## Checkmk REST API (Alternative zu Livestatus)
-
-- [x] Checkmk REST API Connector in `checkmk/client.py` implementiert
-- [x] Unified Backend Registry in `connectors/registry.py` (Livestatus + Checkmk gemischt)
-- [x] Backends werden in `data/backends.json` persistiert (kein Neustart nötig)
-- [x] LIVESTATUS_* Umgebungsvariablen werden beim ersten Start auto-importiert (Rückwärtskompatibilität)
-- [x] Host- und Service-Status über REST API abrufbar (state ab Checkmk 2.2+)
-- [x] Health-Check-Endpoint zeigt alle konfigurierten Backends
-- [x] REST-API für Backend-Management: `GET/POST/DELETE /api/backends`, `POST /api/backends/{id}/test`
-- [ ] Autocomplete im Eigenschaften-Dialog aus Checkmk-Daten befüllen
-- [ ] Dokumentation: Admin-Guide um Checkmk/Multi-Backend-Abschnitt erweitern
-
----
-
-## Gadget-Konfiguration
-
-- [x] UI für Gadget-Parameter im Eigenschaften-Dialog
-  - Radial: min/max, Einheit, Warning/Critical-Schwellen
-  - Linear: min/max, Einheit, Orientierung (Horizontal/Vertikal)
-  - Sparkline: Datenpunkt-Anzahl konfigurierbar (5–100)
-  - Thermometer: min/max, Einheit, Warning/Critical
-  - Flow/Weather: Richtung (aus/ein/bidirektional)
-  - Raw-Number: Divisor, Anzeigeeinheit, Nachkommastellen
-- [x] Gadget-Vorschau im Konfigurationsdialog
-- [x] Metrikwerte aus Livestatus/Checkmk in Gadgets einspeisen (Perfdata-Parsing)
-- [x] Gadget-Werte im WebSocket-Snapshot mitliefern
-
----
-
 ## UX / Frontend
 
 - [x] Multi-Select: mehrere Nodes gleichzeitig auswählen und verschieben (Shift+Klick oder Lasso)
 - [x] Multi-Select: Delete/Backspace zum Löschen aller ausgewählten Nodes
-- [x] Multi-Select: Escape hebt Selektion auf (vor anderen Escape-Aktionen)
-- [x] Map-Miniaturbilder in der Übersicht (OffscreenCanvas, POST/DELETE `/api/maps/{id}/thumbnail`; Timing-Fix: DOM direkt nach Upload aktualisiert)
+- [x] Multi-Select: Escape hebt Selektion auf
+- [x] Map-Miniaturbilder in der Übersicht (OffscreenCanvas, POST/DELETE `/api/maps/{id}/thumbnail`)
+- [x] Objekt-Reihenfolge: Layer per Drag & Drop umsortieren (zIndex), Layer löschen
+- [x] Browser-Benachrichtigungen bei CRITICAL/DOWN (Web Push API + Hinweiston via Web Audio API, in Benutzereinstellungen an/abschaltbar)
 - [ ] Undo/Redo für Positionsänderungen (Ctrl+Z / Ctrl+Y)
-- [x] Objekt-Reihenfolge ändern: Layer per Drag & Drop umsortieren (zIndex), Layer löschen
 - [ ] Suche/Filter in der Sidebar (Maps und Hosts durchsuchen)
 - [ ] Favoriten: bestimmte Maps als Favoriten markieren
 - [ ] Map-Minimap / Übersichtsfenster bei großen Karten
@@ -68,70 +16,89 @@
 
 ---
 
-## Backend / API
+## Datenquellen & Import
 
-- [ ] Bulk-Operationen: mehrere Objekte in einem Request anlegen/verschieben/löschen
-- [ ] Map-Duplikat-Funktion: bestehende Map klonen
-- [ ] Objekt-Kopieren zwischen Maps
-- [ ] API-Versionierung (z.B. `/api/v1/`)
-- [ ] Rate-Limiting für Action-Endpoints (ACK, Downtime)
-- [x] Audit-Log: wer hat was wann geändert (`core/audit.py`, `GET /api/audit`, UI-Dialog)
+- [ ] **Import von DRAW.io Diagrammen** – `.drawio`/`.xml`-Dateien als Grundlage für Maps importieren; Nodes aus Shape-Bibliothek zu NagVis-Objekten mappen
+- [ ] **Visualisierung von BI (Business Intelligence)** – BI-Aggregationen aus Checkmk als eigenen Node-Typ darstellen; Status aus Checkmk BI REST API abrufen
 
 ---
 
-## Monitoring / Betrieb
+## Backend / API
+
+- [x] Bulk-Operationen: mehrere Objekte in einem Request anlegen/verschieben/löschen → PATCH `/api/maps/{id}/objects/bulk`
+- [x] Map-Duplikat-Funktion: Map klonen (POST `/api/maps/{id}/clone`)
+- [x] Audit-Log: wer hat was wann geändert (`core/audit.py`, `GET /api/audit`, UI-Dialog)
+- [ ] Objekt-Kopieren zwischen Maps
+- [ ] API-Versionierung (z.B. `/api/v1/`)
+- [ ] Rate-Limiting für Action-Endpoints (ACK, Downtime)
+- [ ] SQLite statt JSON-Files (SQLAlchemy, Migration per Script)
+
+---
+
+## Multi-Backend
+
+- [x] Checkmk REST API Connector (`checkmk/client.py`)
+- [x] Icinga2 REST API Connector (`icinga2/client.py`)
+- [x] Zabbix JSON-RPC Connector (`zabbix/client.py`)
+- [x] Unified Backend Registry (`connectors/registry.py`)
+- [x] Backend-Management-UI (Burger-Menü → Backends verwalten)
+- [x] `_backend_id`-Tag in WS-Status-Broadcasts → backend-spezifische Statusauflösung
+- [x] Node-Eigenschaft `backend_id`: Datenquelle pro Node explizit wählbar (Host/Service/Gruppe/Gadget)
+
+---
+
+## Authentifizierung
+
+- [x] Login-UI im Frontend (Formular, Token-Handling)
+- [x] Backend-Endpoints mit JWT absichern
+- [x] Token-Refresh-Logik (Auto-Refresh 1 Tag vor Ablauf)
+- [x] Logout-Funktion im Burger-Menü
+- [x] Kiosk-Token-URLs bleiben ohne Auth
+
+---
+
+## Monitoring & Betrieb
 
 - [x] Prometheus-Metriken-Endpoint (`/metrics`)
-- [x] Strukturiertes Logging (JSON-Format) für Produktionsbetrieb (`LOG_FORMAT=json`)
-- [x] Liveness- und Readiness-Probes für Kubernetes (`/health/live`, `/health/ready`)
-- [x] Helm-Chart für Kubernetes-Deployment (`helm/nagvis2/`)
-- [x] Dockerfile + docker-compose.yml auf Port 8008 und WORKDIR /app/backend umgestellt
+- [x] Strukturiertes Logging (JSON-Format) für Produktionsbetrieb
+- [x] Liveness- und Readiness-Probes für Kubernetes
+- [x] Helm-Chart für Kubernetes-Deployment
+- [x] HTTPS/TLS (`nginx.conf.prod`, `scripts/setup-tls.sh`)
+- [x] OMD/Checkmk-Hook (`omd/nagvis2`, `scripts/install-omd-hook.sh`)
 - [ ] Docker-Image auf Docker Hub veröffentlichen
 
 ---
 
 ## Dokumentation
 
-- [x] `docs/osm-guide.md` — Weltkarte-Feature
+- [x] `docs/admin-guide.md` (inkl. Zabbix, Icinga2, Multi-Backend)
+- [x] `docs/user-guide.md`
+- [x] `docs/kiosk-guide.md`
+- [x] `docs/api-reference.md`
+- [x] `docs/osm-guide.md`
 - [ ] `docs/dev-guide.md` — Entwickler-Handbuch (Architektur, lokales Setup, wie man neue Features baut)
-- [x] README.md aktualisieren (Port 8008, Docker-Anleitung)
-- [x] FEATURES.md aktualisieren (erledigte Features markiert)
-- [x] CHANGELOG.md + changelog.txt anlegen (script: `scripts/update_changelog.py`)
 
 ---
 
-## Erledigt ✅
+## Nice-to-have / Langfristig
 
-- [x] OSM Cluster-Bubbles: Leaflet.markercluster, Worst-State-Farbe, Edit-Mode deaktiviert Clustering
-- [x] Sidebar Map-Hierarchie: Root-Maps oben, Kind-Maps eingerückt (↳), `_sortMapsHierarchically()`
-- [x] Übersicht Map-Hierarchie: gleiche Sortierung, Kind-Karten mit Akzentbalken + Eltern-Titel
-- [x] Topbar-Navigation: Kind-Map → ↑ Eltern-Link; Root-Map → ↳ Kind-Chips
-- [x] Standard-Defaults: Dark-Theme + Sidebar ausgeklappt (über `nv2-user-settings`, nicht separate Keys)
-- [x] Layer: Drag-to-Reorder (zIndex), Löschen mit Objekt-Migration auf Layer 0
-- [x] Test-Coverage: 137 Tests, ws/manager.py 89 %, main.py 76 % (Ziel ≥ 70 % erreicht)
-- [x] `api/router.py` vollständig implementiert (Objekte CRUD, Background-Upload, Actions)
-- [x] WebSocket-Broadcasts für Objektänderungen (`object_added`, `object_updated`, `object_removed`, `map_reloaded`)
-- [x] Script-Pfade in `index.html` korrigiert (`src/` → `js/`)
-- [x] Frontend-Pfad in `main.py` korrigiert
-- [x] Canvas-Overflow-Option (clamp vs. frei) in Map-Eigenschaften
-- [x] Rechtsklick-Kontextmenü auf freier Canvas-Fläche im Edit-Mode
-- [x] Position (x%/y%) aus Node-Tooltip entfernt
-- [x] Label ein-/ausblenden im Eigenschaften-Dialog
-- [x] Toast-Benachrichtigungssystem (ok / warn / error / info)
-- [x] Offline-Banner + Node-Dimming bei WS-Verbindungsabbruch
-- [x] Dokumentation: `docs/admin-guide.md`
-- [x] Dokumentation: `docs/user-guide.md`
-- [x] Dokumentation: `docs/kiosk-guide.md` (ersetzt altes kiosk-integration.md)
-- [x] Dokumentation: `docs/api-reference.md`
-- [x] Altes `docs/kiosk-integration.md` gelöscht
-- [x] Checkmk REST API Connector (`checkmk/client.py`)
-- [x] Unified Backend Registry (`connectors/registry.py`) – Livestatus + Checkmk mixed
-- [x] Backend-Management API (`GET/POST/DELETE /api/backends`, Test-Endpoint)
-- [x] `httpx` zu requirements.txt hinzugefügt
-- [x] Health-Endpoint: `reachable`-Feld pro Backend (Frontend-Fallback auf Demo-Map)
-- [x] Demo-Features Map (`data/maps/demo-features.json`) – immer DEMO_STATUS über WS
-- [x] Kiosk-Modus: Zoom/Pan-Fix für SVG-Linien und Weathermap-Linien
-- [x] Gadget-Konfigurations-Dialog: Host-Feld als Text-Input mit Datalist-Autocomplete
-- [x] Burger-Menü: Hilfe-Links öffnen in neuem Fenster + Swagger-Link
-- [x] mkdocs.yml: site_dir auf `frontend/help/` korrigiert
-- [x] Dokumentation: user-guide.md, admin-guide.md, kiosk-guide.md, api-reference.md aktualisiert
+- [ ] Mehrsprachigkeit (DE/EN via JSON-Dictionary)
+- [ ] Map-Vorlagen (Stern, Hierarchie, Rechenzentrum)
+- [ ] Mobile-Ansicht (Touch-Events, Pinch-Zoom, responsive Breakpoints)
+- [ ] Historische Daten / Verfügbarkeitsdiagramme (Checkmk REST API)
+
+---
+
+## Feature-Ideen (Backlog)
+
+| # | Feature | Nutzen | Aufwand |
+|---|---|---|---|
+| F1 | **Checkmk BI & Event Console Widgets** | BI-Aggregate und Event-Console-Filter direkt als Gadget auf der Map anzeigen | Mittel |
+| F2 | **Checkmk Topology-Import** | Hosts + Verbindungen automatisch aus Checkmk Topology übernehmen (kein manuelles Platzieren) | Hoch |
+| F3 | **Custom Graph Gadget** | Checkmk-Graphen (RRDtool) oder Grafana-Panels direkt in die Map einbetten (`<iframe>` oder PNG-URL) | Niedrig |
+| F4 | **Auto-Layout (Graphviz / Force-Directed)** | „Arrange selected hosts"-Button — Nodes automatisch anordnen; Graphviz DOT oder D3 Force-Simulation | Mittel |
+| F5 | **Prometheus & VictoriaMetrics Connector** | Metrics-Backends für Hybrid-Umgebungen; PromQL-Ergebnis als Gadget-Wert | Mittel |
+| F6 | **Versioned Maps + Git-Integration** | Maps in einem Git-Repository speichern und versionieren; Diff-Ansicht, Rollback | Mittel |
+| F7 | **DRAW.io Import** | `.drawio`/`.xml`-Dateien als Map-Grundlage importieren; Shapes zu NagVis-Objekten mappen | Mittel |
+| F8 | **Visualisierung von BI (Business Intelligence)** | BI-Aggregationen aus Checkmk als eigenen Node-Typ; Status via Checkmk BI REST API | Mittel |
+| F9 | **3D Maps** | Räumliche Darstellung (z.B. Über- und Untertage im Bergbau); Godot-Engine als Renderer-Backend oder WebGL-Szene | Sehr hoch |

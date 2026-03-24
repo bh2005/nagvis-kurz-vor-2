@@ -107,6 +107,48 @@
 - `README.md`: CI/Release/Changelog-Badges; Features-Tabelle ergänzt; `install.sh` als primäre Schnellstart-Option; `AUTH_ENABLED`/`NAGVIS_SECRET` in `.env`-Sektion; aktualisierte Ordnerstruktur; Links-Sektion am Ende
 - `FEATURES.md`: P2 + P3 als ✅ markiert; Fortschritts-Balken auf 100 % (Monitoring/Betrieb, Backend API)
 
+### Feature: `backend_id` pro Node – Datenquelle explizit wählbar ✅
+
+**Problem:** Derselbe Hostname (z.B. `server01`) kann gleichzeitig in Checkmk, Zabbix, Icinga2 und mehreren Checkmk-Instanzen existieren. Bisher gewann immer der erste Treffer.
+
+**Backend**
+- `connectors/registry.py`: `get_all_hosts_tagged()` + `get_all_services_tagged()` — liefern alle Einträge aller Backends mit `_backend_id`-Feld (keine Deduplizierung)
+- `ws/manager.py`: nutzt `*_tagged()`-Methoden; Diff-Keys sind jetzt `"backend_id::name"` statt `"name"`; Demo-Modus erhält `_backend_id: "demo"`
+- `api/router.py`: `backend_id: Optional[str]` in `ObjectCreate` und `ObjectProps`
+
+**Frontend**
+- `state.js`: `window.backendStatusCache = {}` (backend_id → {cacheKey: statusDict}); `window.backendList = []`
+- `nodes.js`: `_resolveStatus(backendId, cacheKey)` — sucht zuerst in `backendStatusCache[backendId]`, Fallback `hostCache`
+- `nodes.js`: `_renderMonitoringNode()` setzt `el.dataset.backendId = obj.backend_id || ''`
+- `nodes.js`: `applyStatuses()` befüllt `backendStatusCache`; filtert DOM-Updates nach `backendId`; speichert Perfdata unter `"backend_idhost::service"`
+- `nodes.js`: `openNodePropsDialog()` — `<select id="np-backend-id">` mit `(beliebig)` + allen konfigurierten Backends; befüllt via `GET /api/backends`; `backend_id` im PATCH-Payload; `el.dataset.backendId` nach Speichern gesetzt
+- `nodes.js`: `openGadgetConfigDialog()` + `_gcSave()` — analoges Dropdown für Gadgets
+- `gadget-renderer.js`: `createGadget()` setzt `el.dataset.backendId = obj.backend_id || ''`
+
+Rückwärtskompatibel: Nodes ohne `backend_id` nutzen `hostCache` wie bisher.
+
+### Feature: Browser-Benachrichtigungen + Hinweiston bei CRITICAL (N4) ✅
+
+**Frontend**
+- `js/ws-client.js`: `_checkCriticalNotify(hosts, services)` — nach jedem `status_update`-Event; filtert `DOWN`/`CRITICAL`/`UNREACHABLE`-Hosts und `CRITICAL`-Services; **Debounce: max. 1 Benachrichtigung alle 15 s**
+- `js/ws-client.js`: `_playCriticalSound()` — Web Audio API, Square-Wave-Oszillator (880 → 440 Hz, 0,45 s); kein externer Asset
+- `js/ws-client.js`: Browser `Notification` API mit `tag='nagvis2-critical'` (ersetzt vorherige) + `renotify=true`
+- `js/ui-core.js`: `defaultUserSettings()` um `notifyOnCritical: false` + `notifySound: true` erweitert
+- `js/ui-core.js`: `saveUserSettings()` liest neue Checkboxen; fordert Berechtigung automatisch an wenn Benachrichtigungen gerade aktiviert werden
+- `js/ui-core.js`: `_updateNotifyStatus()` — zeigt Berechtigungsstatus (✔ erteilt / ✖ verweigert / ausstehend) mit Farbcodierung
+- `js/ui-core.js`: `_requestNotifyPermission()` — manueller Berechtigung-Button
+- `index.html`: dlg-user-settings — neue Sektion **„Benachrichtigungen"**: Checkbox „Bei CRITICAL/DOWN Browser-Benachrichtigung anzeigen", Checkbox „Hinweiston abspielen", Button „🔔 Berechtigung erteilen" + Statusanzeige
+
+Einstellungen persistiert in `nv2-user-settings` (localStorage). Standard: deaktiviert.
+
+### Dokumentation: `admin-guide.md` um Zabbix + Icinga2 erweitert ✅
+- Voraussetzungen-Tabelle: Zabbix 6.0+ und Icinga2 2.11+ ergänzt
+- Neue Unterabschnitte: **Checkmk REST API**, **Zabbix**, **Icinga2** (je: Parameter-Tabelle, Einrichtungsanleitung, Konzept-Mapping)
+- Icinga2: vollständige `ApiUser`-Konfiguration mit allen erforderlichen Permissions
+- Zabbix: Schweregrad-Mapping (Priority → WARNING/CRITICAL), Hinweis zu API-Token vs. user.login
+- Verzeichnisstruktur: `zabbix/` und `icinga2/` ergänzt
+- `docs/todo-liste.md`: bereinigt (erledigte Items als `[x]` markiert); neue Einträge: **DRAW.io-Import**, **BI-Visualisierung**
+
 ---
 
 ---

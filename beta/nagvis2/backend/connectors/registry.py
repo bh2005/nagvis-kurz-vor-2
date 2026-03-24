@@ -242,6 +242,34 @@ class UnifiedRegistry:
         """Services aller Backends."""
         return await self._gather_services()
 
+    async def get_all_hosts_tagged(self) -> list[dict]:
+        """Alle Hosts aller Backends als Dicts mit _backend_id-Tag (keine Deduplizierung)."""
+        async def safe(bid: str, client: AnyClient):
+            try:
+                hosts = await client.get_hosts()
+                return [{**h.to_dict(), "_backend_id": bid} for h in hosts]
+            except Exception as e:
+                log.error("Backend '%s' get_hosts fehlgeschlagen: %s", bid, e)
+                return []
+        results = await asyncio.gather(
+            *[safe(bid, c) for bid, c in self._clients.items()]
+        )
+        return [item for sub in results for item in sub]
+
+    async def get_all_services_tagged(self) -> list[dict]:
+        """Alle Services aller Backends als Dicts mit _backend_id-Tag."""
+        async def safe(bid: str, client: AnyClient):
+            try:
+                svcs = await client.get_services()
+                return [{**s.to_dict(), "_backend_id": bid} for s in svcs]
+            except Exception as e:
+                log.error("Backend '%s' get_services fehlgeschlagen: %s", bid, e)
+                return []
+        results = await asyncio.gather(
+            *[safe(bid, c) for bid, c in self._clients.items()]
+        )
+        return [item for sub in results for item in sub]
+
     async def health(self) -> list[dict]:
         """Ping alle aktiven Backends parallel."""
         async def safe_ping(client: AnyClient):

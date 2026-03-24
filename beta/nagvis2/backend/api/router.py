@@ -56,6 +56,7 @@ class ObjectCreate(BaseModel):
     y: float
     name: Optional[str] = None
     host_name: Optional[str] = None
+    backend_id: Optional[str] = None
     iconset: Optional[str] = "std_small"
     label: Optional[str] = None
     size: Optional[int] = None
@@ -86,6 +87,7 @@ class ObjectProps(BaseModel):
     size: Optional[int] = None
     iconset: Optional[str] = None
     layer: Optional[int] = None
+    backend_id: Optional[str] = None
     gadget_config: Optional[dict] = None
     text: Optional[str] = None
     font_size: Optional[int] = None

@@ -7,6 +7,7 @@ window.createGadget = function(obj) {
   el.dataset.objectId = obj.object_id;
   el.dataset.type     = obj.type; // immer 'gadget'
   el.dataset.gadgetType = obj.gadget_config?.type || 'radial';
+  el.dataset.backendId  = obj.backend_id || '';
 
   const cfg  = obj.gadget_config || { type:'radial', value:0, min:0, max:100, unit:'%', warning:70, critical:90 };
   const size = obj.size ?? 100;
