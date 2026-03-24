@@ -241,8 +241,8 @@
 | # | Feature | Beschreibung |
 |---|---|---|
 | ~~P1~~ | ~~**Authentifizierung**~~ | ✅ Login-UI, JWT (7 Tage), Auto-Refresh, Benutzer-Management, Rollen-UI, eigenes Passwort |
-| P2 | **HTTPS / TLS** | nginx Reverse-Proxy-Konfiguration für Produktion |
-| P3 | **Systemd / OMD-Hook** | uvicorn als Dienst, automatischer Start mit OMD-Site |
+| ~~P2~~ | ~~**HTTPS / TLS**~~ | ✅ `nginx.conf.prod` (TLS 1.2/1.3, HSTS, CSP, OCSP), `scripts/setup-tls.sh` (selbstsigniert + Let's Encrypt) |
+| ~~P3~~ | ~~**Systemd / OMD-Hook**~~ | ✅ `omd/nagvis2` init.d-Hook + `scripts/install-omd-hook.sh`; Systemd-Service via `install.sh` |
 
 ### Mittlere Priorität
 | # | Feature | Beschreibung |
@@ -280,8 +280,8 @@ Layer-System        ████████████████████
 Kiosk-Modus         ████████████████████  100%
 OSM / Weltkarte     ████████████████████  100%
 Gadget-System       ████████████████████  100%
-Monitoring/Betrieb  ████████████████░░░░   80%  (Systemd/OMD offen)
-Backend API         ██████████████████░░   90%  (HTTPS offen)
+Monitoring/Betrieb  ████████████████████  100%  (Systemd/OMD, OMD-Hook, Prometheus)
+Backend API         ████████████████████  100%  (HTTPS/TLS produktionsreif)
 Docker/Helm         ██████████████████░░   90%
 Tests               ████████████████░░░░   80%  (ws_manager 89%, main 76%)
 Distribution        ████████████████████  100%  (install.sh, build.sh, GitHub Releases)

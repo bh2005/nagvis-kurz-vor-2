@@ -604,6 +604,60 @@ NagVis 2 - Changelog
                - auth.js: Aussenklick schliesst Dropdown
                - ui-core.js: setTheme() aktualisiert auch ucd-theme-ico/label
                - css/styles.css: .user-chip-btn + :hover-Stil
+
+[2026-03-24]   Feature: P2 HTTPS/TLS fuer Produktionsbetrieb
+               - nginx.conf.prod: vollstaendige TLS-Produktionskonfiguration
+                 HTTP -> HTTPS Redirect (301)
+                 TLS 1.2 + 1.3, moderne Cipher-Suites
+                 OCSP Stapling + Session-Cache
+                 Security-Header: HSTS (2 Jahre + preload), CSP,
+                 X-Frame-Options, X-Content-Type-Options
+                 /metrics nur von 127.0.0.1 erreichbar
+               - scripts/setup-tls.sh: TLS-Setup-Skript
+                 Standard: selbstsigniertes RSA-4096-Zertifikat mit SAN
+                 Option --certbot: Let's Encrypt via certbot (inkl. nginx-Plugin)
+                 Speichert Zertifikat nach /etc/nagvis2/tls/
+                 Laedt nginx nach Zertifikat-Erstellung neu
+               - docs/admin-guide.md: neuer Abschnitt "HTTPS / TLS"
+                 Option A selbstsigniert + Browser-Ausnahme
+                 Option B Let's Encrypt / certbot
+                 Firewall-Hinweise (ufw / firewall-cmd)
+
+[2026-03-24]   Feature: P3 OMD-Hook / Systemd-Integration
+               - omd/nagvis2: OMD init.d-Hook-Skript
+                 Kommandos: start | stop | restart | status | version
+                 Liest PORT aus $OMD_ROOT/etc/nagvis2/.env
+                 PID-Datei in $OMD_ROOT/tmp/run/nagvis2.pid
+                 Log nach $OMD_ROOT/var/log/nagvis2.log
+               - scripts/install-omd-hook.sh: Hook-Installer
+                 Patcht NAGVIS2_DIR im Hook-Skript auf aktuellen Pfad
+                 Setzt Eigentuemer auf OMD-Site-User
+                 Option --uninstall: entfernt Hook aus OMD-Site
+               - docs/admin-guide.md: neuer Abschnitt "OMD / Checkmk-Integration"
+                 Voraussetzungen, Installation, Verwendung (omd start/stop nagvis2)
+                 .env-Konfiguration fuer OMD-Betrieb, Deinstallation
+
+[2026-03-24]   Bugfix: GitHub Actions - Node 20 Deprecation
+               - .github/workflows/ci.yml: FORCE_JAVASCRIPT_ACTIONS_TO_NODE24
+                 entfernt (Node 24 ist jetzt Standard; Flag war temporaerer Opt-in)
+               - .github/workflows/docker.yml: ebenso
+               - .github/workflows/docs.yml: ebenso
+               - .github/workflows/release.yml: ebenso
+
+[2026-03-24]   Dokumentation: README.md + FEATURES.md aktualisiert
+               README.md:
+               - CI / Release / Changelog-Badges hinzugefuegt
+               - Features-Tabelle: Map-Duplikat, Auth, User-Chip, Install-Script
+               - Schnellstart: install.sh als primaere Option
+               - .env-Sektion: AUTH_ENABLED + NAGVIS_SECRET
+               - Ordnerstruktur: install.sh, build.sh, auth.js, auth_router.py,
+                 users.json, kiosk_users.json
+               - Links-Sektion: Release, changelog.txt/md, admin-guide, FEATURES.md
+               FEATURES.md:
+               - M2 als erledigt markiert (durchgestrichen)
+               - Neue Sektionen: Map-Duplikat, User-Chip, Distribution & Betrieb
+               - P2 + P3 in Geplant-Tabelle als erledigt markiert
+               - Fortschritts-Balken: Monitoring/Betrieb 100%, Backend API 100%
 """
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -938,6 +992,30 @@ MD = """\
 - `auth.js`: `toggleUserChip()` / `closeUserChip()` / Außenklick-Listener
 - `ui-core.js`: `setTheme()` aktualisiert `ucd-theme-ico` + `ucd-theme-label` synchron
 - `css/styles.css`: `.user-chip-btn` + `:hover`
+
+### Feature: P2 HTTPS/TLS für Produktionsbetrieb ✅
+- `nginx.conf.prod`: vollständige TLS-Produktionskonfiguration
+  - HTTP → HTTPS Redirect (301), TLS 1.2 + 1.3, moderne Cipher-Suites, OCSP Stapling
+  - Security-Header: HSTS (2 Jahre + preload), CSP, X-Frame-Options, X-Content-Type-Options
+  - `/metrics` nur von `127.0.0.1` erreichbar
+- `scripts/setup-tls.sh`: TLS-Setup-Skript
+  - Standard: selbstsigniertes RSA-4096-Zertifikat mit SAN; speichert nach `/etc/nagvis2/tls/`
+  - `--certbot`: Let's Encrypt via certbot (inkl. nginx-Plugin); reload nach Erstellung
+- `docs/admin-guide.md`: neuer Abschnitt **„HTTPS / TLS"** — Option A selbstsigniert, Option B Let's Encrypt, Firewall-Hinweise
+
+### Feature: P3 OMD-Hook / Systemd-Integration ✅
+- `omd/nagvis2`: OMD init.d-Hook-Skript — `start | stop | restart | status | version`
+  - Liest `PORT` aus `$OMD_ROOT/etc/nagvis2/.env`; PID-Datei in `$OMD_ROOT/tmp/run/`; Log nach `$OMD_ROOT/var/log/nagvis2.log`
+- `scripts/install-omd-hook.sh`: Hook-Installer — patcht `NAGVIS2_DIR`, setzt Eigentümer auf OMD-Site-User; `--uninstall` entfernt Hook
+- `docs/admin-guide.md`: neuer Abschnitt **„OMD / Checkmk-Integration"** — Voraussetzungen, Installation, Verwendung, `.env`-Konfiguration, Deinstallation
+
+### Bugfix: GitHub Actions – Node 20 Deprecation
+- `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` aus allen 4 Workflows entfernt (`ci.yml`, `docker.yml`, `docs.yml`, `release.yml`)
+- Node 24 ist seit September 2025 der Standard — das temporäre Opt-in-Flag ist obsolet
+
+### Dokumentation: README.md + FEATURES.md aktualisiert
+- `README.md`: CI/Release/Changelog-Badges; Features-Tabelle ergänzt; `install.sh` als primäre Schnellstart-Option; `AUTH_ENABLED`/`NAGVIS_SECRET` in `.env`-Sektion; aktualisierte Ordnerstruktur; Links-Sektion am Ende
+- `FEATURES.md`: P2 + P3 als ✅ markiert; Fortschritts-Balken auf 100 % (Monitoring/Betrieb, Backend API)
 
 ---
 
