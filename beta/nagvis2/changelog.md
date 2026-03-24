@@ -191,6 +191,30 @@
 - `ui-core.js`: `setTheme()` aktualisiert `ucd-theme-ico` + `ucd-theme-label` synchron
 - `css/styles.css`: `.user-chip-btn` + `:hover`
 
+### Feature: P2 HTTPS/TLS für Produktionsbetrieb ✅
+- `nginx.conf.prod`: vollständige TLS-Produktionskonfiguration
+  - HTTP → HTTPS Redirect (301), TLS 1.2 + 1.3, moderne Cipher-Suites, OCSP Stapling
+  - Security-Header: HSTS (2 Jahre + preload), CSP, X-Frame-Options, X-Content-Type-Options
+  - `/metrics` nur von `127.0.0.1` erreichbar
+- `scripts/setup-tls.sh`: TLS-Setup-Skript
+  - Standard: selbstsigniertes RSA-4096-Zertifikat mit SAN; speichert nach `/etc/nagvis2/tls/`
+  - `--certbot`: Let's Encrypt via certbot (inkl. nginx-Plugin); reload nach Erstellung
+- `docs/admin-guide.md`: neuer Abschnitt **„HTTPS / TLS"** — Option A selbstsigniert, Option B Let's Encrypt, Firewall-Hinweise
+
+### Feature: P3 OMD-Hook / Systemd-Integration ✅
+- `omd/nagvis2`: OMD init.d-Hook-Skript — `start | stop | restart | status | version`
+  - Liest `PORT` aus `$OMD_ROOT/etc/nagvis2/.env`; PID-Datei in `$OMD_ROOT/tmp/run/`; Log nach `$OMD_ROOT/var/log/nagvis2.log`
+- `scripts/install-omd-hook.sh`: Hook-Installer — patcht `NAGVIS2_DIR`, setzt Eigentümer auf OMD-Site-User; `--uninstall` entfernt Hook
+- `docs/admin-guide.md`: neuer Abschnitt **„OMD / Checkmk-Integration"** — Voraussetzungen, Installation, Verwendung, `.env`-Konfiguration, Deinstallation
+
+### Bugfix: GitHub Actions – Node 20 Deprecation
+- `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` aus allen 4 Workflows entfernt (`ci.yml`, `docker.yml`, `docs.yml`, `release.yml`)
+- Node 24 ist seit September 2025 der Standard — das temporäre Opt-in-Flag ist obsolet
+
+### Dokumentation: README.md + FEATURES.md aktualisiert
+- `README.md`: CI/Release/Changelog-Badges; Features-Tabelle ergänzt; `install.sh` als primäre Schnellstart-Option; `AUTH_ENABLED`/`NAGVIS_SECRET` in `.env`-Sektion; aktualisierte Ordnerstruktur; Links-Sektion am Ende
+- `FEATURES.md`: P2 + P3 als ✅ markiert; Fortschritts-Balken auf 100 % (Monitoring/Betrieb, Backend API)
+
 ---
 
 ---

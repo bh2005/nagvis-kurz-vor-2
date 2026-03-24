@@ -637,6 +637,107 @@ http://localhost:8008/api/v1/docs
 
 ---
 
+---
+
+## HTTPS / TLS
+
+### Option A: Self-Signed (internes Netz / Entwicklung)
+
+```bash
+# Zertifikat erzeugen (SAN mit Hostname + IP, 10 Jahre gültig)
+sudo bash scripts/setup-tls.sh
+
+# nginx-Konfiguration aktivieren
+sudo cp nginx.conf.prod /etc/nginx/sites-available/nagvis2
+sudo ln -s /etc/nginx/sites-available/nagvis2 /etc/nginx/sites-enabled/nagvis2
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+Browser zeigt Zertifikatswarnung → einmalig akzeptieren (intern akzeptabel).
+
+### Option B: Let's Encrypt / Certbot (öffentlich erreichbarer Server)
+
+```bash
+# certbot installieren
+sudo apt install certbot python3-certbot-nginx
+
+# nginx-Konfiguration aktivieren (vorher HTTP, certbot ergänzt TLS)
+sudo cp nginx.conf.prod /etc/nginx/sites-available/nagvis2
+sudo ln -s /etc/nginx/sites-available/nagvis2 /etc/nginx/sites-enabled/nagvis2
+
+# Zertifikat anfordern + nginx automatisch konfigurieren
+sudo bash scripts/setup-tls.sh --certbot nagvis.example.com --email admin@example.com
+```
+
+Auto-Renewal läuft via systemd-Timer `certbot.timer` (wird von certbot eingerichtet).
+
+### Port 443 in Firewall öffnen
+
+```bash
+# UFW
+sudo ufw allow 443/tcp
+
+# firewalld (RHEL/CentOS)
+sudo firewall-cmd --permanent --add-service=https && sudo firewall-cmd --reload
+```
+
+---
+
+## OMD / Checkmk-Integration (P3)
+
+NagVis 2 kann als OMD-Service registriert werden und startet dann automatisch mit der Checkmk-Site.
+
+### Voraussetzungen
+
+- OMD/Checkmk-Site bereits vorhanden (`omd create mysite`)
+- NagVis 2 via `install.sh` installiert (Standard: `/opt/nagvis2`)
+
+### Hook installieren
+
+```bash
+# Hook in OMD-Site registrieren
+sudo bash scripts/install-omd-hook.sh --site mysite
+
+# Optionaler abweichender Install-Pfad
+sudo bash scripts/install-omd-hook.sh --site mysite --nagvis2-dir /opt/nagvis2
+```
+
+### Verwendung
+
+```bash
+omd start  mysite          # startet alle Services inkl. NagVis 2
+omd stop   mysite          # stoppt alle Services
+omd status mysite          # zeigt Status aller Services
+
+# Nur NagVis 2 steuern
+omd start  mysite nagvis2
+omd stop   mysite nagvis2
+omd status mysite nagvis2
+```
+
+### Konfiguration im OMD-Kontext
+
+Der Hook liest `/opt/nagvis2/backend/.env`. Wichtig für OMD-Betrieb:
+
+```env
+# Livestatus-Socket der OMD-Site direkt nutzen
+LIVESTATUS_TYPE=unix
+LIVESTATUS_PATH=/omd/sites/mysite/tmp/run/live
+LIVESTATUS_SITE=mysite
+
+# Kein DEMO_MODE, kein DEBUG
+DEMO_MODE=false
+DEBUG=false
+```
+
+### Hook deinstallieren
+
+```bash
+sudo bash scripts/install-omd-hook.sh --site mysite --uninstall
+```
+
+---
+
 ## Produktions-Empfehlungen
 
 - `DEBUG=false` setzen (deaktiviert Auto-Reload)

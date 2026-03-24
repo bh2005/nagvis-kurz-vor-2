@@ -1,0 +1,158 @@
+#!/usr/bin/env bash
+# =============================================================================
+# NagVis 2 – OMD Service Hook
+# =============================================================================
+# Platzierung im OMD-Site:
+#   cp omd/nagvis2 $OMD_ROOT/etc/init.d/nagvis2
+#   chmod 755 $OMD_ROOT/etc/init.d/nagvis2
+#
+# Danach startet/stoppt OMD NagVis 2 automatisch mit der Site:
+#   omd start <site>    → ruft dieses Script mit "start" auf
+#   omd stop  <site>    → ruft dieses Script mit "stop" auf
+#   omd status <site>   → ruft dieses Script mit "status" auf
+# =============================================================================
+
+NAGVIS2_VERSION="2.0-beta"
+
+# ── Konfiguration ──────────────────────────────────────────────────────────────
+# Pfad zur NagVis-2-Installation (Standard: /opt/nagvis2)
+# Überschreiben via Umgebungsvariable NAGVIS2_DIR
+NAGVIS2_DIR="${NAGVIS2_DIR:-/opt/nagvis2}"
+BACKEND_DIR="$NAGVIS2_DIR/backend"
+VENV_DIR="$NAGVIS2_DIR/backend/venv"
+ENV_FILE="$NAGVIS2_DIR/backend/.env"
+
+# Laufzeit-Dateien im OMD-Site-Verzeichnis
+RUN_DIR="${OMD_ROOT:-/tmp}/tmp/run"
+PID_FILE="$RUN_DIR/nagvis2.pid"
+LOG_FILE="${OMD_ROOT:-/tmp}/var/log/nagvis2.log"
+
+# Port aus .env lesen (Fallback: 8008)
+PORT=8008
+if [[ -f "$ENV_FILE" ]]; then
+  _port=$(grep -E '^PORT=' "$ENV_FILE" | cut -d= -f2 | tr -d '[:space:]')
+  [[ -n "$_port" ]] && PORT="$_port"
+fi
+
+# ── Hilfsfunktionen ────────────────────────────────────────────────────────────
+
+_check_install() {
+  if [[ ! -d "$NAGVIS2_DIR" ]]; then
+    echo "NagVis 2 nicht gefunden: $NAGVIS2_DIR"
+    echo "Installation: sudo install.sh --install-dir $NAGVIS2_DIR"
+    return 1
+  fi
+  if [[ ! -f "$VENV_DIR/bin/uvicorn" ]]; then
+    echo "uvicorn nicht gefunden in $VENV_DIR"
+    echo "Erneut installieren: sudo install.sh --upgrade"
+    return 1
+  fi
+  return 0
+}
+
+_is_running() {
+  if [[ -f "$PID_FILE" ]]; then
+    local pid
+    pid=$(cat "$PID_FILE" 2>/dev/null)
+    if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+      return 0   # läuft
+    fi
+    rm -f "$PID_FILE"   # veraltete PID-Datei entfernen
+  fi
+  return 1   # läuft nicht
+}
+
+# ── Aktionen ───────────────────────────────────────────────────────────────────
+
+do_start() {
+  if _is_running; then
+    echo "NagVis 2 läuft bereits (PID $(cat "$PID_FILE"))"
+    return 0
+  fi
+
+  _check_install || return 1
+
+  mkdir -p "$RUN_DIR"
+  mkdir -p "$(dirname "$LOG_FILE")"
+
+  # .env laden
+  local env_args=()
+  [[ -f "$ENV_FILE" ]] && env_args=(env "$(grep -v '^#' "$ENV_FILE" | grep '=' | xargs)")
+
+  echo -n "Starte NagVis 2..."
+
+  # Als aktueller User starten (OMD läuft bereits als Site-User)
+  nohup "${env_args[@]}" \
+    "$VENV_DIR/bin/uvicorn" main:app \
+    --host 127.0.0.1 \
+    --port "$PORT" \
+    --workers 1 \
+    --no-access-log \
+    >> "$LOG_FILE" 2>&1 &
+
+  echo $! > "$PID_FILE"
+  local pid=$!
+
+  # Kurz warten und prüfen ob Prozess noch läuft
+  sleep 2
+  if kill -0 "$pid" 2>/dev/null; then
+    echo " OK (PID $pid, Port $PORT)"
+    return 0
+  else
+    echo " FEHLER (siehe $LOG_FILE)"
+    rm -f "$PID_FILE"
+    return 1
+  fi
+}
+
+do_stop() {
+  if ! _is_running; then
+    echo "NagVis 2 läuft nicht."
+    return 0
+  fi
+
+  local pid
+  pid=$(cat "$PID_FILE")
+  echo -n "Stoppe NagVis 2 (PID $pid)..."
+  kill "$pid" 2>/dev/null
+
+  # Bis zu 10 Sekunden warten
+  local i=0
+  while kill -0 "$pid" 2>/dev/null && [[ $i -lt 10 ]]; do
+    sleep 1; ((i++))
+  done
+
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -9 "$pid" 2>/dev/null
+    echo " SIGKILL gesendet"
+  else
+    echo " OK"
+  fi
+
+  rm -f "$PID_FILE"
+  return 0
+}
+
+do_status() {
+  if _is_running; then
+    echo "NagVis 2 läuft (PID $(cat "$PID_FILE"), Port $PORT)"
+    return 0
+  else
+    echo "NagVis 2 läuft nicht."
+    return 1
+  fi
+}
+
+# ── Einstiegspunkt ─────────────────────────────────────────────────────────────
+
+case "${1:-}" in
+  start)   do_start   ;;
+  stop)    do_stop    ;;
+  restart) do_stop; sleep 1; do_start ;;
+  status)  do_status  ;;
+  version) echo "$NAGVIS2_VERSION" ;;
+  *)
+    echo "Verwendung: $0 {start|stop|restart|status|version}"
+    exit 1
+    ;;
+esac
