@@ -1233,6 +1233,7 @@ function openBackendMgmtDlg() {
               <option value="checkmk">Checkmk REST API</option>
               <option value="icinga2">Icinga2 REST API</option>
               <option value="zabbix">Zabbix JSON-RPC API</option>
+              <option value="prometheus">Prometheus / VictoriaMetrics</option>
               <option value="livestatus_tcp">Livestatus TCP</option>
               <option value="livestatus_unix">Livestatus Unix-Socket</option>
               <option value="demo">Demo (Musterdaten)</option>
@@ -1309,6 +1310,37 @@ function openBackendMgmtDlg() {
           <div style="margin-bottom:8px">
             <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text-dim)">
               <input type="checkbox" id="bm-zabbix-verify-ssl" checked> SSL-Zertifikat prüfen
+            </label>
+          </div>
+        </div>
+
+        <div id="bm-fields-prometheus" style="display:none">
+          <div style="margin-bottom:8px">
+            <label class="f-label">Prometheus URL <span style="color:var(--crit)">*</span></label>
+            <input class="f-input" id="bm-prom-url" type="text"
+                   placeholder="http://prometheus:9090">
+          </div>
+          <div style="margin-bottom:8px">
+            <label class="f-label">Bearer Token <span style="color:var(--text-dim)">(optional)</span></label>
+            <input class="f-input" id="bm-prom-token" type="password" placeholder="••••••••">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+            <div>
+              <label class="f-label">Benutzer <span style="color:var(--text-dim)">(Basic Auth)</span></label>
+              <input class="f-input" id="bm-prom-username" type="text" placeholder="">
+            </div>
+            <div>
+              <label class="f-label">Passwort <span style="color:var(--text-dim)">(Basic Auth)</span></label>
+              <input class="f-input" id="bm-prom-password" type="password" placeholder="••••••••">
+            </div>
+          </div>
+          <div style="margin-bottom:8px">
+            <label class="f-label">Host-Label <span style="color:var(--text-dim)">(Standard: instance)</span></label>
+            <input class="f-input" id="bm-prom-host-label" type="text" placeholder="instance" value="instance">
+          </div>
+          <div style="margin-bottom:8px">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text-dim)">
+              <input type="checkbox" id="bm-prom-verify-ssl" checked> SSL-Zertifikat prüfen
             </label>
           </div>
         </div>
@@ -1412,8 +1444,9 @@ function _bmUpdateFields() {
   const t = document.getElementById('bm-type')?.value;
   document.getElementById('bm-fields-checkmk').style.display  = t === 'checkmk'         ? '' : 'none';
   document.getElementById('bm-fields-icinga2').style.display  = t === 'icinga2'          ? '' : 'none';
-  document.getElementById('bm-fields-zabbix').style.display   = t === 'zabbix'           ? '' : 'none';
-  document.getElementById('bm-fields-tcp').style.display      = t === 'livestatus_tcp'  ? '' : 'none';
+  document.getElementById('bm-fields-zabbix').style.display      = t === 'zabbix'           ? '' : 'none';
+  document.getElementById('bm-fields-prometheus').style.display  = t === 'prometheus'       ? '' : 'none';
+  document.getElementById('bm-fields-tcp').style.display         = t === 'livestatus_tcp'  ? '' : 'none';
   document.getElementById('bm-fields-unix').style.display     = t === 'livestatus_unix' ? '' : 'none';
   // Demo hat keine Verbindungsfelder
   const timeoutRow = document.getElementById('bm-timeout')?.closest('div[style]');
@@ -1485,6 +1518,19 @@ function _bmBuildEntry() {
       username:   document.getElementById('bm-zabbix-username')?.value.trim() || 'Admin',
       password:   document.getElementById('bm-zabbix-password')?.value || '',
       verify_ssl: document.getElementById('bm-zabbix-verify-ssl')?.checked ?? true,
+    };
+  }
+  if (type === 'prometheus') {
+    const url = document.getElementById('bm-prom-url')?.value.trim();
+    if (!url) { showToast('Prometheus URL fehlt', 'warn'); return null; }
+    return {
+      ...base,
+      url:        url,
+      token:      document.getElementById('bm-prom-token')?.value || '',
+      username:   document.getElementById('bm-prom-username')?.value.trim() || '',
+      password:   document.getElementById('bm-prom-password')?.value || '',
+      host_label: document.getElementById('bm-prom-host-label')?.value.trim() || 'instance',
+      verify_ssl: document.getElementById('bm-prom-verify-ssl')?.checked ?? true,
     };
   }
   if (type === 'livestatus_tcp') {
@@ -1559,6 +1605,7 @@ function _bmClearForm() {
     'bm-id', 'bm-base-url', 'bm-username', 'bm-secret',
     'bm-icinga2-url', 'bm-icinga2-username', 'bm-icinga2-password',
     'bm-zabbix-url', 'bm-zabbix-token', 'bm-zabbix-username', 'bm-zabbix-password',
+    'bm-prom-url', 'bm-prom-token', 'bm-prom-username', 'bm-prom-password', 'bm-prom-host-label',
     'bm-host', 'bm-socket',
   ].forEach(id => {
     const el = document.getElementById(id);
@@ -1566,6 +1613,7 @@ function _bmClearForm() {
     if (id === 'bm-username')         el.value = 'automation';
     else if (id === 'bm-icinga2-username') el.value = 'nagvis2';
     else if (id === 'bm-zabbix-username')  el.value = 'Admin';
+    else if (id === 'bm-prom-host-label')  el.value = 'instance';
     else el.value = '';
   });
   const i2ssl = document.getElementById('bm-icinga2-verify-ssl');
@@ -1621,6 +1669,15 @@ async function _bmEditLoad(backendId) {
   set('bm-zabbix-password', cfg.password);
   const zbssl = document.getElementById('bm-zabbix-verify-ssl');
   if (zbssl) zbssl.checked = cfg.verify_ssl !== false;
+
+  // Prometheus-spezifische Felder
+  set('bm-prom-url',        cfg.url);
+  set('bm-prom-token',      cfg.token);
+  set('bm-prom-username',   cfg.username || '');
+  set('bm-prom-password',   cfg.password);
+  set('bm-prom-host-label', cfg.host_label || 'instance');
+  const promssl = document.getElementById('bm-prom-verify-ssl');
+  if (promssl) promssl.checked = cfg.verify_ssl !== false;
 
   const timeoutEl = document.getElementById('bm-timeout');
   if (timeoutEl) timeoutEl.value = cfg.timeout ?? 15;

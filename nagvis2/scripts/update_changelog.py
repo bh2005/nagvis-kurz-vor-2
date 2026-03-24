@@ -761,6 +761,28 @@ NagVis 2 - Changelog
                - .github/workflows/release.yml: alle 7 Pfadvorkommen aktualisiert
                - .github/dependabot.yml: pip directory aktualisiert
                - scripts/make_changelog.py: Input-/Output-Pfade aktualisiert
+
+[2026-03-24]   Feature: F5 Prometheus & VictoriaMetrics Connector
+               - backend/prometheus/client.py: Async HTTP-Client fuer Prometheus HTTP API v1
+               - Hosts aus up-Metrik abgeleitet (host_label konfigurierbar, Standard: instance)
+               - Services aus firing/pending Alerts (GET /api/v1/alerts)
+               - Hostgruppen aus job-Label
+               - Severity-Mapping: critical/page/error -> CRITICAL, warning/warn/info -> WARNING
+               - Auth: Bearer Token + Basic Auth (beide optional)
+               - ping() via /api/v1/status/buildinfo (kein Auth noetig)
+               - VictoriaMetrics: identische API, volle Kompatibilitaet
+               - connectors/registry.py: PrometheusClient eingebunden (5 neue Stellen)
+               - frontend/js/map-core.js: Prometheus-Option + Felder im Backend-Dialog
+               - Aktionen (ACK, Downtime) geben False zurueck (Prometheus ist read-only)
+
+[2026-03-24]   Dokumentation: dev-guide.md erstellt
+               - docs/dev-guide.md: Vollstaendiges Entwickler-Handbuch
+               - Stack & Abhaengigkeiten, lokales Setup, Projektstruktur
+               - Backend-Architektur (Request-Flow, WebSocket-Flow, Konfiguration)
+               - Frontend-Architektur (Ladereihenfolge, Globale Variablen, api()-Wrapper)
+               - Schritt-fuer-Schritt: Neuen Connector / API-Endpoint / Dialog hinzufuegen
+               - Tests (pytest, Vitest, Playwright), Code-Konventionen, Release-Prozess
+               - mkdocs.yml: dev-guide.md in Navigation eingetragen
 """
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1258,6 +1280,25 @@ Einstellungen persistiert in `nv2-user-settings` (localStorage). Standard: deakt
 - `.github/workflows/`: ci, docker, docs, release — alle Pfade aktualisiert
 - `.github/dependabot.yml`: pip `directory` aktualisiert
 - `scripts/make_changelog.py`: Input-/Output-Pfade aktualisiert
+
+### Feature: F5 Prometheus & VictoriaMetrics Connector ✅
+- `backend/prometheus/client.py`: Async HTTP-Client für Prometheus HTTP API v1
+- Hosts aus `up`-Metrik abgeleitet (`host_label` konfigurierbar, Standard: `instance`)
+- Services aus firing/pending Alerts (`GET /api/v1/alerts`)
+- Hostgruppen aus `job`-Label
+- Severity-Mapping: `critical/page/error` → CRITICAL, `warning/warn/info` → WARNING
+- Auth: Bearer Token + Basic Auth (beide optional); VictoriaMetrics vollständig kompatibel
+- Aktionen (ACK, Downtime) → `False` (Prometheus ist read-only)
+- `connectors/registry.py`: `PrometheusClient` eingebunden
+- `frontend/js/map-core.js`: Prometheus-Option + Felder im Backend-Dialog
+
+### Dokumentation: `dev-guide.md` erstellt ✅
+- Vollständiges Entwickler-Handbuch: Stack, lokales Setup, Projektstruktur
+- Backend-Architektur (Request-Flow, WebSocket-Flow, Konfiguration, Persistenz)
+- Frontend-Architektur (Ladereihenfolge, globale Variablen, `api()`-Wrapper, Demo-Modus)
+- Schritt-für-Schritt-Anleitungen: neuer Connector, API-Endpoint, Dialog
+- Tests, Code-Konventionen, Release-Prozess
+- `mkdocs.yml`: „Entwickler"-Eintrag in Navigation
 
 ---
 

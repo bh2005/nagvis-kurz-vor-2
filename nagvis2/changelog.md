@@ -494,6 +494,25 @@ Einstellungen persistiert in `nv2-user-settings` (localStorage). Standard: deakt
 - `.github/dependabot.yml`: pip `directory` aktualisiert
 - `scripts/make_changelog.py`: Input-/Output-Pfade aktualisiert
 
+### Feature: F5 Prometheus & VictoriaMetrics Connector ✅
+- `backend/prometheus/client.py`: Async HTTP-Client für Prometheus HTTP API v1
+- Hosts aus `up`-Metrik abgeleitet (`host_label` konfigurierbar, Standard: `instance`)
+- Services aus firing/pending Alerts (`GET /api/v1/alerts`)
+- Hostgruppen aus `job`-Label
+- Severity-Mapping: `critical/page/error` → CRITICAL, `warning/warn/info` → WARNING
+- Auth: Bearer Token + Basic Auth (beide optional); VictoriaMetrics vollständig kompatibel
+- Aktionen (ACK, Downtime) → `False` (Prometheus ist read-only)
+- `connectors/registry.py`: `PrometheusClient` eingebunden
+- `frontend/js/map-core.js`: Prometheus-Option + Felder im Backend-Dialog
+
+### Dokumentation: `dev-guide.md` erstellt ✅
+- Vollständiges Entwickler-Handbuch: Stack, lokales Setup, Projektstruktur
+- Backend-Architektur (Request-Flow, WebSocket-Flow, Konfiguration, Persistenz)
+- Frontend-Architektur (Ladereihenfolge, globale Variablen, `api()`-Wrapper, Demo-Modus)
+- Schritt-für-Schritt-Anleitungen: neuer Connector, API-Endpoint, Dialog
+- Tests, Code-Konventionen, Release-Prozess
+- `mkdocs.yml`: „Entwickler"-Eintrag in Navigation
+
 ---
 
 ---

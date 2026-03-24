@@ -26,6 +26,7 @@ nav:
   - Home: index.md
   - Benutzer: user-guide.md
   - Admin: admin-guide.md
+  - Entwickler: dev-guide.md
   - API: api-reference.md
   - Kiosk: kiosk-guide.md
   - Hilfe:
