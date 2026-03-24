@@ -752,6 +752,15 @@ NagVis 2 - Changelog
                - Verzeichnisstruktur: zabbix/ und icinga2/ ergaenzt
                - todo-liste.md: bereinigt (erledigte Items als [x] markiert)
                  Neue Eintraege: DRAW.io-Import, BI-Visualisierung
+
+[2026-03-24]   Refactor: Projektverzeichnis von beta/nagvis2 nach nagvis2 verschoben
+               - Verzeichnis beta/nagvis2 -> nagvis2 (eine Ebene hoeher)
+               - .github/workflows/ci.yml: alle Pfade aktualisiert
+               - .github/workflows/docker.yml: context + file Pfade aktualisiert
+               - .github/workflows/docs.yml: path-trigger + working-directory aktualisiert
+               - .github/workflows/release.yml: alle 7 Pfadvorkommen aktualisiert
+               - .github/dependabot.yml: pip directory aktualisiert
+               - scripts/make_changelog.py: Input-/Output-Pfade aktualisiert
 """
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1243,6 +1252,12 @@ Einstellungen persistiert in `nv2-user-settings` (localStorage). Standard: deakt
 - `checkmk/client.py`: async HTTP-Client für Checkmk REST API v1.0
 - `connectors/registry.py`: Unified Backend Registry
 - `data/backends.json` für Persistenz
+
+### Refactor: Projektverzeichnis verschoben `beta/nagvis2` → `nagvis2`
+- Verzeichnis eine Ebene höher, `beta/`-Zwischenordner entfernt
+- `.github/workflows/`: ci, docker, docs, release — alle Pfade aktualisiert
+- `.github/dependabot.yml`: pip `directory` aktualisiert
+- `scripts/make_changelog.py`: Input-/Output-Pfade aktualisiert
 
 ---
 
