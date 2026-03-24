@@ -22,6 +22,8 @@ Rückgabe (pro Metrik):
   }
 """
 
+from __future__ import annotations
+
 import re
 
 # Unterstützte UOM-Einheiten (Nagios-Standard)

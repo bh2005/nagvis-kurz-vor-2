@@ -25,6 +25,8 @@ Prometheus API-Endpunkte:
   GET /api/v1/status/buildinfo      → Verbindungstest (kein Auth nötig)
 """
 
+from __future__ import annotations
+
 import logging
 import time
 from dataclasses import dataclass, field

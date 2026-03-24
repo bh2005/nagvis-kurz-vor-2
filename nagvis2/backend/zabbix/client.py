@@ -30,6 +30,8 @@ Zabbix JSON-RPC Endpunkt:
   POST https://<zabbix>/api_jsonrpc.php
 """
 
+from __future__ import annotations
+
 import asyncio
 import logging
 import time

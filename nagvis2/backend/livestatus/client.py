@@ -36,6 +36,8 @@ Konfigurationsbeispiel (main.py)
   registry = BackendRegistry(BACKENDS)
 """
 
+from __future__ import annotations
+
 import asyncio
 import json
 import logging
