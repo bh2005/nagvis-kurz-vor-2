@@ -95,7 +95,7 @@
 |---|---|---|---|
 | F1 | **Checkmk BI & Event Console Widgets** | BI-Aggregate und Event-Console-Filter direkt als Gadget auf der Map anzeigen | Mittel |
 | F2 | **Checkmk Topology-Import** | Hosts + Verbindungen automatisch aus Checkmk Topology übernehmen (kein manuelles Platzieren) | Hoch |
-| F3 | **Custom Graph Gadget** | Checkmk-Graphen (RRDtool) oder Grafana-Panels direkt in die Map einbetten (`<iframe>` oder PNG-URL) | Niedrig |
+| ~~F3~~ | ~~**Custom Graph Gadget**~~ ✅ | Checkmk-Graphen (RRDtool) oder Grafana-Panels direkt in die Map einbetten (`<iframe>` oder PNG-URL) | Niedrig |
 | F4 | **Auto-Layout (Graphviz / Force-Directed)** | „Arrange selected hosts"-Button — Nodes automatisch anordnen; Graphviz DOT oder D3 Force-Simulation | Mittel |
 | ~~F5~~ | ~~**Prometheus & VictoriaMetrics Connector**~~ ✅ | Metrics-Backends für Hybrid-Umgebungen; PromQL-Ergebnis als Gadget-Wert | Mittel |
 | F6 | **Versioned Maps + Git-Integration** | Maps in einem Git-Repository speichern und versionieren; Diff-Ansicht, Rollback | Mittel |

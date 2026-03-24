@@ -783,6 +783,19 @@ NagVis 2 - Changelog
                - Schritt-fuer-Schritt: Neuen Connector / API-Endpoint / Dialog hinzufuegen
                - Tests (pytest, Vitest, Playwright), Code-Konventionen, Release-Prozess
                - mkdocs.yml: dev-guide.md in Navigation eingetragen
+
+[2026-03-24]   Feature: F3 Custom Graph Gadget – Grafana & Checkmk Panels einbetten
+               - gadget-renderer.js: neuer Gadget-Typ 'graph' (_graph()-Renderer)
+               - Einbettung via <iframe> (Standard) oder <img> (fuer PNG-Render-APIs)
+               - Konfigurierbare Breite/Hoehe in Pixeln (unabhaengig vom Scale-Faktor)
+               - Auto-Refresh: konfigurierbares Intervall in Sekunden (Standard: aus)
+               - nodes.js: Gadget-Konfig-Dialog um '📊 Graph / Iframe'-Chip erweitert
+               - Dynamische Sichtbarkeit: Datenquellen-/Minmax-Felder verschwinden fuer Graph-Typ
+               - Vorschau im Dialog zeigt Leer-Platzhalter oder Live-iframe/img
+               - _gcSave() speichert url, embed, width, height, refresh in gadget_config
+               - Demo-Map: Grafana-Play-Beispiel-Gadget hinzugefuegt
+               - Test-Coverage: Tests fuer prometheus/client.py hinzugefuegt (>= 70%)
+               - Python 3.9-Kompatibilitaet: from __future__ import annotations in 10 Dateien
 """
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1189,6 +1202,29 @@ Einstellungen persistiert in `nv2-user-settings` (localStorage). Standard: deakt
 - Zabbix: Schweregrad-Mapping (Priority → WARNING/CRITICAL), Hinweis zu API-Token vs. user.login
 - Verzeichnisstruktur: `zabbix/` und `icinga2/` ergänzt
 - `docs/todo-liste.md`: bereinigt (erledigte Items als `[x]` markiert); neue Einträge: **DRAW.io-Import**, **BI-Visualisierung**
+
+### Feature: F3 Custom Graph Gadget – Grafana & Checkmk Panels einbetten ✅
+
+**Frontend**
+- `gadget-renderer.js`: neuer Gadget-Typ `graph` — rendert `<iframe>` (Standard) oder `<img>` für externe Graphen
+  - `_graph(cfg)`: generiert HTML mit konfigurierbarer Breite/Höhe; zeigt Leer-Platzhalter wenn keine URL gesetzt
+  - Auto-Refresh: `setInterval` in `_graphTimers` Map; bei `<img>` wird `_t=<timestamp>` Cache-Buster angehängt, bei `<iframe>` wird `src` neu gesetzt
+  - `updateGadget()`: graph-Typ wird übersprungen (keine Perfdata-Aktualisierung)
+  - Export: `window._gadgetGraph = _graph` für Dialog-Vorschau
+- `nodes.js`: Gadget-Konfigurations-Dialog erweitert
+  - Typ-Chip „📊 Graph / Iframe" (spans volle Breite, 7. Button)
+  - `#gc-datasource-row` / `#gc-metric-row`: IDs hinzugefügt für dynamische Sichtbarkeit
+  - `#gc-graph-row`: URL-Eingabe, Einbettung (iframe/img), Breite, Höhe, Refresh-Intervall
+  - `_gcSelectType()`: blendet Datenquellen-/Min-Max-Felder für graph-Typ aus; zeigt Graph-Sektion
+  - `_gcUpdatePreview()`: zeigt Graph-Vorschau (iframe/img) mit aktuellen Werten
+  - `_gcSave()`: schreibt `{ type, url, embed, width, height, metric, refresh }` in `gadget_config`
+
+**Demo**
+- `backend/data/maps/demo-features.json`: Grafana-Play-Beispiel-Gadget (`gadget::graph-demo-01`) hinzugefügt
+
+**Tests & Kompatibilität**
+- `tests/test_prometheus_client.py`: 27 neue Tests für `prometheus/client.py` — Coverage ≥ 70% sichergestellt
+- `from __future__ import annotations` in 10 Backend-Dateien (Python 3.9-Kompatibilität)
 
 ---
 

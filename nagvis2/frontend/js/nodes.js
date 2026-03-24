@@ -400,9 +400,10 @@ function openGadgetConfigDialog(el, obj) {
           <button class="type-chip ${cfg.type==='weather'     ?'active':''}" data-gtype="weather"     onclick="_gcSelectType(this)">→ Flow</button>
           <button class="type-chip ${cfg.type==='rawnumber'   ?'active':''}" data-gtype="rawnumber"   onclick="_gcSelectType(this)">🔢 Zahl</button>
           <button class="type-chip ${cfg.type==='thermometer' ?'active':''}" data-gtype="thermometer" onclick="_gcSelectType(this)">🌡 Thermo</button>
+          <button class="type-chip ${cfg.type==='graph'       ?'active':''}" data-gtype="graph"       onclick="_gcSelectType(this)" style="grid-column:span 3">📊 Graph / Iframe</button>
         </div>
       </div>
-      <div class="f-row" style="margin-top:10px">
+      <div id="gc-datasource-row" class="f-row" style="margin-top:10px">
         <label class="f-label">Datenquelle</label>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <div>
@@ -434,16 +435,39 @@ function openGadgetConfigDialog(el, obj) {
           </select>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-top:8px">
+      <div id="gc-metric-row" style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-top:8px">
         <div>
-          <label class="f-label">Bezeichnung (Label)</label>
+          <label class="f-label" id="gc-metric-lbl">Bezeichnung (Label)</label>
           <input class="f-input" id="gc-metric" type="text" placeholder="z.B. CPU Auslastung"
                  value="${esc(cfg.metric || '')}">
         </div>
-        <div>
+        <div id="gc-unit-col">
           <label class="f-label">Einheit</label>
           <input class="f-input" id="gc-unit" type="text" placeholder="%, Mbps, °C …"
                  value="${esc(cfg.unit || '%')}" style="max-width:80px">
+        </div>
+      </div>
+      <div id="gc-graph-row" style="margin-top:8px;${cfg.type==='graph'?'':'display:none'}">
+        <div>
+          <label class="f-label">URL (Grafana, Checkmk, …)</label>
+          <input class="f-input" id="gc-graph-url" type="url"
+                 placeholder="https://grafana.example.com/d-solo/abc?panelId=1&orgId=1"
+                 value="${esc(cfg.url || '')}">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:6px">
+          <div>
+            <label class="f-label">Einbettung</label>
+            <select class="f-input" id="gc-graph-embed">
+              <option value="iframe" ${(cfg.embed??'iframe')==='iframe'?'selected':''}>iframe</option>
+              <option value="img"    ${cfg.embed==='img'?'selected':''}>&lt;img&gt;</option>
+            </select>
+          </div>
+          <div><label class="f-label">Breite (px)</label><input class="f-input" id="gc-graph-width"   type="number" min="50" max="2000" value="${cfg.width??400}"></div>
+          <div><label class="f-label">Höhe (px)</label>  <input class="f-input" id="gc-graph-height"  type="number" min="50" max="2000" value="${cfg.height??200}"></div>
+        </div>
+        <div style="margin-top:6px">
+          <label class="f-label">Auto-Refresh (Sekunden, 0 = aus)</label>
+          <input class="f-input" id="gc-graph-refresh" type="number" min="0" step="30" value="${cfg.refresh??0}" style="max-width:90px">
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-top:8px" id="gc-minmax-row">
@@ -525,25 +549,43 @@ function openGadgetConfigDialog(el, obj) {
   _gcUpdatePreview();
   _gcUpdatePerfLabels();
   ['gc-metric','gc-unit','gc-min','gc-max','gc-warning','gc-critical','gc-demo-value','gc-size',
-   'gc-history-points','gc-decimals','gc-divide','gc-display-unit','gc-value-out','gc-value-in']
+   'gc-history-points','gc-decimals','gc-divide','gc-display-unit','gc-value-out','gc-value-in',
+   'gc-graph-url','gc-graph-width','gc-graph-height']
     .forEach(id => document.getElementById(id)?.addEventListener('input', _gcUpdatePreview));
+  document.getElementById('gc-graph-embed')?.addEventListener('change', _gcUpdatePreview);
   document.getElementById('gc-service')?.addEventListener('input', _gcUpdatePerfLabels);
 }
 
 window._gcSelectType = function(btn) {
   document.querySelectorAll('#dlg-gadget-cfg .type-chip').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  const type = btn.dataset.gtype;
-  const mmRow  = document.getElementById('gc-minmax-row');
-  const dirRow = document.getElementById('gc-direction-row');
-  const divRow = document.getElementById('gc-divide-row');
-  const orRow  = document.getElementById('gc-orientation-row');
-  const spkRow = document.getElementById('gc-sparkline-row');
-  if (mmRow)  mmRow.style.display  = type === 'sparkline'   ? 'none'  : 'grid';
-  if (dirRow) dirRow.style.display = type === 'weather'     ? 'block' : 'none';
-  if (divRow) divRow.style.display = type === 'rawnumber'   ? 'block' : 'none';
-  if (orRow)  orRow.style.display  = type === 'linear'      ? 'block' : 'none';
-  if (spkRow) spkRow.style.display = type === 'sparkline'   ? 'block' : 'none';
+  const type    = btn.dataset.gtype;
+  const isGraph = type === 'graph';
+  const mmRow   = document.getElementById('gc-minmax-row');
+  const dirRow  = document.getElementById('gc-direction-row');
+  const divRow  = document.getElementById('gc-divide-row');
+  const orRow   = document.getElementById('gc-orientation-row');
+  const spkRow  = document.getElementById('gc-sparkline-row');
+  const dsRow   = document.getElementById('gc-datasource-row');
+  const mtxRow  = document.getElementById('gc-metric-row');
+  const grpRow  = document.getElementById('gc-graph-row');
+  const demoRow = document.getElementById('gc-demo-row');
+  const lbl     = document.getElementById('gc-metric-lbl');
+  const unitCol = document.getElementById('gc-unit-col');
+
+  // Metrik-Zeile: für graph nur Label (Titel), keine Einheit
+  if (lbl)     lbl.textContent      = isGraph ? 'Titel / Beschriftung' : 'Bezeichnung (Label)';
+  if (unitCol) unitCol.style.display = isGraph ? 'none' : '';
+
+  // Sektionen ein-/ausblenden
+  if (dsRow)   dsRow.style.display   = isGraph ? 'none' : '';
+  if (grpRow)  grpRow.style.display  = isGraph ? 'block' : 'none';
+  if (demoRow) demoRow.style.display = isGraph ? 'none' : '';
+  if (mmRow)   mmRow.style.display   = (isGraph || type === 'sparkline') ? 'none' : 'grid';
+  if (dirRow)  dirRow.style.display  = type === 'weather'   ? 'block' : 'none';
+  if (divRow)  divRow.style.display  = type === 'rawnumber' ? 'block' : 'none';
+  if (orRow)   orRow.style.display   = type === 'linear'    ? 'block' : 'none';
+  if (spkRow)  spkRow.style.display  = type === 'sparkline' ? 'block' : 'none';
   _gcUpdatePreview();
 };
 
@@ -593,13 +635,22 @@ window._gcUpdatePreview = function() {
   try {
     const rendered = document.createElement('div');
     rendered.className = `nv2-node gadget ${type}`;
-    switch (type) {
-      case 'linear':      rendered.innerHTML = window._gadgetLinear?.(tmpCfg)      ?? ''; break;
-      case 'sparkline':   rendered.innerHTML = window._gadgetSparkline?.(tmpCfg)   ?? ''; break;
-      case 'weather':     rendered.innerHTML = window._gadgetWeather?.(tmpCfg)     ?? ''; break;
-      case 'rawnumber':   rendered.innerHTML = window._gadgetRawNumber?.(tmpCfg)   ?? ''; break;
-      case 'thermometer': rendered.innerHTML = window._gadgetThermometer?.(tmpCfg) ?? ''; break;
-      default:            rendered.innerHTML = window._gadgetRadial?.(tmpCfg)      ?? '';
+    if (type === 'graph') {
+      const gUrl     = document.getElementById('gc-graph-url')?.value.trim()  || '';
+      const gEmbed   = document.getElementById('gc-graph-embed')?.value       || 'iframe';
+      const gWidth   = parseInt(document.getElementById('gc-graph-width')?.value)  || 400;
+      const gHeight  = parseInt(document.getElementById('gc-graph-height')?.value) || 200;
+      const metric   = document.getElementById('gc-metric')?.value.trim()     || '';
+      rendered.innerHTML = window._gadgetGraph?.({ type:'graph', url:gUrl, embed:gEmbed, width:gWidth, height:gHeight, metric }) ?? '';
+    } else {
+      switch (type) {
+        case 'linear':      rendered.innerHTML = window._gadgetLinear?.(tmpCfg)      ?? ''; break;
+        case 'sparkline':   rendered.innerHTML = window._gadgetSparkline?.(tmpCfg)   ?? ''; break;
+        case 'weather':     rendered.innerHTML = window._gadgetWeather?.(tmpCfg)     ?? ''; break;
+        case 'rawnumber':   rendered.innerHTML = window._gadgetRawNumber?.(tmpCfg)   ?? ''; break;
+        case 'thermometer': rendered.innerHTML = window._gadgetThermometer?.(tmpCfg) ?? ''; break;
+        default:            rendered.innerHTML = window._gadgetRadial?.(tmpCfg)      ?? '';
+      }
     }
     tmp.appendChild(rendered);
   } catch { tmp.innerHTML = `<span style="color:var(--text-dim);font-size:10px">${type}</span>`; }
@@ -684,16 +735,27 @@ window._gcSave = async function(objectId) {
   const valueIn     = parseFloat(document.getElementById('gc-value-in')?.value)     || 0;
   const backendId   = document.getElementById('gc-backend-id')?.value               || null;
 
-  const newCfg = { type, metric, unit, min, max, warning, critical, value,
-    ...(type === 'linear'    ? { orientation: orientation !== 'horizontal' ? orientation : undefined } : {}),
-    ...(type === 'sparkline' ? { history_points: histPoints !== 25 ? histPoints : undefined } : {}),
-    ...(type === 'rawnumber' ? { divide: divide !== 1 ? divide : undefined, display_unit: displayUnit || undefined, decimals: decimals || undefined } : {}),
-    ...(type === 'weather'   ? { direction, ...(direction === 'both' ? { value_out: valueOut, value_in: valueIn } : {}) } : {}),
-    ...(hostName  ? { host_name: hostName }                  : {}),
-    ...(svcName   ? { service_description: svcName }         : {}),
-    ...(perfLabel ? { perf_label: perfLabel }                : {}),
-    history: [30,45,52,38,61,55,70,65,48,58,72,68,80,75,62,68,55,70,65,78,75,60,65,58,72],
-  };
+  let newCfg;
+  if (type === 'graph') {
+    const gUrl     = document.getElementById('gc-graph-url')?.value.trim()    || '';
+    const gEmbed   = document.getElementById('gc-graph-embed')?.value         || 'iframe';
+    const gWidth   = parseInt(document.getElementById('gc-graph-width')?.value)  || 400;
+    const gHeight  = parseInt(document.getElementById('gc-graph-height')?.value) || 200;
+    const gRefresh = parseInt(document.getElementById('gc-graph-refresh')?.value) || 0;
+    newCfg = { type, url: gUrl, embed: gEmbed, width: gWidth, height: gHeight,
+               metric, ...(gRefresh > 0 ? { refresh: gRefresh } : {}) };
+  } else {
+    newCfg = { type, metric, unit, min, max, warning, critical, value,
+      ...(type === 'linear'    ? { orientation: orientation !== 'horizontal' ? orientation : undefined } : {}),
+      ...(type === 'sparkline' ? { history_points: histPoints !== 25 ? histPoints : undefined } : {}),
+      ...(type === 'rawnumber' ? { divide: divide !== 1 ? divide : undefined, display_unit: displayUnit || undefined, decimals: decimals || undefined } : {}),
+      ...(type === 'weather'   ? { direction, ...(direction === 'both' ? { value_out: valueOut, value_in: valueIn } : {}) } : {}),
+      ...(hostName  ? { host_name: hostName }                  : {}),
+      ...(svcName   ? { service_description: svcName }         : {}),
+      ...(perfLabel ? { perf_label: perfLabel }                : {}),
+      history: [30,45,52,38,61,55,70,65,48,58,72,68,80,75,62,68,55,70,65,78,75,60,65,58,72],
+    };
+  }
 
   const objRef = activeMapCfg?.objects?.find(o => o.object_id === objectId);
   if (objRef) { objRef.gadget_config = newCfg; objRef.size = size; objRef.label = metric; objRef.backend_id = backendId; }

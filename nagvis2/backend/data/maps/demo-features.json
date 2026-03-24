@@ -239,6 +239,23 @@
         "critical": 85
       },
       "label": "CPU Temp"
+    },
+    {
+      "object_id": "gadget::graph-demo-01",
+      "type": "gadget",
+      "x": 50,
+      "y": 78,
+      "label": "Grafana Demo",
+      "size": 100,
+      "gadget_config": {
+        "type": "graph",
+        "url": "https://play.grafana.org/d-solo/000000012/grafana-play-home?orgId=1&panelId=3",
+        "embed": "iframe",
+        "width": 400,
+        "height": 200,
+        "metric": "Grafana Demo",
+        "refresh": 0
+      }
     }
   ]
 }
