@@ -243,8 +243,8 @@
     {
       "object_id": "gadget::graph-demo-01",
       "type": "gadget",
-      "x": 50,
-      "y": 78,
+      "x": 50.0,
+      "y": 78.0,
       "label": "Grafana Demo",
       "size": 100,
       "gadget_config": {
@@ -256,6 +256,24 @@
         "metric": "Grafana Demo",
         "refresh": 0
       }
+    },
+    {
+      "type": "gadget",
+      "x": 67.55,
+      "y": 75.16,
+      "iconset": "std_small",
+      "label": "Gadget",
+      "gadget_config": {
+        "type": "radial",
+        "value": 0,
+        "unit": "%",
+        "min": 0,
+        "max": 100,
+        "warning": 70,
+        "critical": 90,
+        "metric": "Gadget"
+      },
+      "object_id": "gadget::9de12b::04dfe3"
     }
   ]
 }

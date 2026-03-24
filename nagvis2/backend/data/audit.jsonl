@@ -6,3 +6,5 @@
 {"ts": 1774257397, "user": "admin", "action": "object.update", "map_id": "world", "details": {"object_id": "host::srv-web-01::54a9a8"}}
 {"ts": 1774258729, "user": "admin", "action": "map.parent_set", "map_id": "hallo-1", "details": {"parent": "demo-features"}}
 {"ts": 1774329745, "user": "anonymous", "action": "user.password_change", "map_id": "", "details": {"username": "admin"}}
+{"ts": 1774370655, "user": "admin", "action": "object.move", "map_id": "demo-features", "details": {"object_id": "gadget::graph-demo-01"}}
+{"ts": 1774370813, "user": "admin", "action": "object.create", "map_id": "demo-features", "details": {"object_id": "gadget::9de12b::04dfe3", "type": "gadget"}}

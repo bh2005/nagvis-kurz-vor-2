@@ -12,11 +12,13 @@ Dieses Dokument beschreibt Architektur, lokales Setup und alles was man braucht 
 4. [Backend-Architektur](#4-backend-architektur)
 5. [Frontend-Architektur](#5-frontend-architektur)
 6. [Neuen Backend-Connector hinzufügen](#6-neuen-backend-connector-hinzufügen)
-7. [Neuen API-Endpoint hinzufügen](#7-neuen-api-endpoint-hinzufügen)
-8. [Neuen Frontend-Dialog hinzufügen](#8-neuen-frontend-dialog-hinzufügen)
-9. [Tests](#9-tests)
-10. [Code-Konventionen](#10-code-konventionen)
-11. [Release-Prozess](#11-release-prozess)
+7. [Neuen Import-Endpoint hinzufügen (Datei-Upload)](#7-neuen-import-endpoint-hinzufügen-datei-upload)
+8. [Neuen API-Endpoint hinzufügen](#8-neuen-api-endpoint-hinzufügen)
+9. [Neuen Frontend-Dialog hinzufügen](#9-neuen-frontend-dialog-hinzufügen)
+10. [Neuen Gadget-Typ hinzufügen](#10-neuen-gadget-typ-hinzufügen)
+11. [Tests](#11-tests)
+12. [Code-Konventionen](#12-code-konventionen)
+13. [Release-Prozess](#13-release-prozess)
 
 ---
 
@@ -125,13 +127,18 @@ nagvis2/
 │       ├── conftest.py
 │       ├── test_storage.py
 │       ├── test_auth.py
-│       └── test_api.py
+│       ├── test_auth_router.py
+│       ├── test_api_maps.py
+│       ├── test_audit.py
+│       ├── test_perfdata.py
+│       ├── test_ws_manager.py
+│       └── test_prometheus_client.py
 │
 ├── frontend/
 │   ├── index.html                ← Einzige HTML-Datei; lädt alle JS + CSS
 │   ├── css/styles.css
 │   └── js/
-│       ├── gadget-renderer.js    ← Gadget-Rendering (NICHT ANFASSEN)
+│       ├── gadget-renderer.js    ← Gadget-Rendering inkl. graph/iframe-Typ
 │       ├── zoom_pan.js           ← Zoom/Pan-Modul (NICHT ANFASSEN)
 │       ├── constants.js          ← STATE_CLS, ICON_SVG, svgToDataUri, iconSrc
 │       ├── state.js              ← Alle globalen Laufzeit-Variablen
@@ -358,13 +365,46 @@ if (type === 'mymonitoring') {
 // 6. _bmEditLoad() – neue set()-Aufrufe
 ```
 
-### Schritt 4: Docstring in admin-guide.md
+### Schritt 4: Dokumentation
 
-Neuen Abschnitt unter "Konfiguration → Backends" hinzufügen.
+Neuen Abschnitt unter "Multi-Backend-Unterstützung → Backends" in `docs/admin-guide.md` hinzufügen.
+
+> **Referenz-Implementierung:** Der Prometheus-Connector (`backend/prometheus/client.py`) ist ein vollständiges Beispiel für einen read-only HTTP-Connector mit Bearer-Token, Basic-Auth und SSL-Konfiguration.
 
 ---
 
-## 7. Neuen API-Endpoint hinzufügen
+## 7. Neuen Import-Endpoint hinzufügen (Datei-Upload)
+
+Für Datei-Upload-Endpoints (z.B. draw.io-Import):
+
+```python
+@api_router.post("/maps/import-myformat", status_code=201)
+async def api_import_myformat(
+    file:    UploadFile = File(...),
+    title:   str        = Query(""),
+    request: Request    = None,
+):
+    content = await file.read()
+    # Verarbeitung ...
+    new_map = create_map({"title": title or file.filename, "canvas": {"mode": "ratio", "ratio": "16:9"}})
+    # Objekte anlegen ...
+    audit_log(request, "map.import_myformat", map_id=new_map["id"])
+    return {"map_id": new_map["id"], "object_count": ..., "warnings": []}
+```
+
+**Pattern:** Query-Parameter statt Form-Felder verwenden — dann ist kein `python-multipart`-Import in den Typen nötig und der Endpoint ist direkt mit `?param=value` erreichbar.
+
+**Frontend-Anbindung** (Beispiel aus draw.io-Import):
+```javascript
+const form = new FormData();
+form.append('file', file);
+const params = new URLSearchParams({ title: 'Mein Import' });
+const res = await fetch(`/api/maps/import-myformat?${params}`, { method: 'POST', body: form });
+```
+
+---
+
+## 8. Neuen API-Endpoint hinzufügen
 
 Alle Endpoints in `backend/api/router.py` (oder `auth_router.py` für Auth).
 
@@ -388,7 +428,7 @@ const DEMO_HANDLERS = {
 
 ---
 
-## 8. Neuen Frontend-Dialog hinzufügen
+## 9. Neuen Frontend-Dialog hinzufügen
 
 ### HTML (index.html)
 
@@ -444,7 +484,48 @@ window.myDialogSave  = myDialogSave;
 
 ---
 
-## 9. Tests
+## 10. Neuen Gadget-Typ hinzufügen
+
+Am Beispiel eines neuen Typs `"mytype"`:
+
+### Schritt 1: Renderer in `gadget-renderer.js`
+
+```javascript
+// 1. Render-Funktion
+function _mytype(cfg) {
+  return `<div class="g-mytype" style="width:${cfg.width??200}px;height:${cfg.height??100}px">
+    <span>${cfg.metric || 'Wert'}: ${cfg.value ?? 0}${cfg.unit || ''}</span>
+  </div>`;
+}
+
+// 2. Dispatcher-Switch ergänzen
+case 'mytype': return _mytype(cfg);
+
+// 3. Export für Dialog-Vorschau
+window._gadgetMytype = _mytype;
+```
+
+### Schritt 2: Konfigurations-Dialog in `nodes.js`
+
+```javascript
+// 1. Chip hinzufügen (in openGadgetConfigDialog HTML-String):
+<button class="type-chip ..." data-gtype="mytype" onclick="_gcSelectType(this)">🔷 MeinTyp</button>
+
+// 2. Typ-spezifische Felder-Div (mit id="gc-mytype-row")
+// 3. _gcSelectType(): show/hide gc-mytype-row
+// 4. _gcUpdatePreview(): case 'mytype': rendered.innerHTML = window._gadgetMytype?.(tmpCfg)
+// 5. _gcSave(): Felder auslesen und in newCfg schreiben
+```
+
+### Hinweise
+
+- Gadgets ohne Live-Datenanbindung: `updateGadget()` per `if (type === 'mytype') return;` überspringen
+- Auto-Refresh-Logik (wie beim `graph`-Typ): `_graphTimers`-Map verwenden oder eigene Map anlegen
+- Reine Anzeige-Gadgets (kein Host/Service nötig): `gc-datasource-row` und `gc-minmax-row` bei Typ-Wechsel ausblenden
+
+---
+
+## 11. Tests
 
 ### Backend (pytest)
 
@@ -452,8 +533,13 @@ window.myDialogSave  = myDialogSave;
 cd nagvis-kurz-vor-2/nagvis2/backend
 pytest -v
 pytest --cov=. --cov-report=term-missing    # mit Coverage
-pytest tests/test_api.py -k "test_maps"     # einzelne Tests
+pytest tests/test_prometheus_client.py -v   # einzelne Datei
+pytest -k "test_poll_loop"                  # nach Name filtern
 ```
+
+**Coverage-Schwelle:** `--cov-fail-under=70` in `pyproject.toml`. CI schlägt fehl wenn die Gesamtabdeckung darunter liegt.
+
+**Python 3.9-Kompatibilität:** Alle Backend-Dateien mit `X | None`-Typen brauchen `from __future__ import annotations` als erste Import-Zeile.
 
 Konfiguration in `pyproject.toml` (Projekt-Root):
 
@@ -490,7 +576,7 @@ GitHub Actions führt bei jedem Push auf `main` und bei PRs automatisch `pytest`
 
 ---
 
-## 10. Code-Konventionen
+## 12. Code-Konventionen
 
 ### Python
 
@@ -523,7 +609,7 @@ ruff format backend/
 
 ---
 
-## 11. Release-Prozess
+## 13. Release-Prozess
 
 ```bash
 # 1. Changelog aktualisieren

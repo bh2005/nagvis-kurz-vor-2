@@ -18,7 +18,7 @@
 
 ## Datenquellen & Import
 
-- [ ] **Import von DRAW.io Diagrammen** – `.drawio`/`.xml`-Dateien als Grundlage für Maps importieren; Nodes aus Shape-Bibliothek zu NagVis-Objekten mappen
+- [x] **Import von DRAW.io Diagrammen** – `.drawio`/`.xml`-Dateien als Grundlage für Maps importieren; Nodes aus Shape-Bibliothek zu NagVis-Objekten mappen
 - [ ] **Visualisierung von BI (Business Intelligence)** – BI-Aggregationen aus Checkmk als eigenen Node-Typ darstellen; Status aus Checkmk BI REST API abrufen
 
 ---
@@ -99,6 +99,6 @@
 | F4 | **Auto-Layout (Graphviz / Force-Directed)** | „Arrange selected hosts"-Button — Nodes automatisch anordnen; Graphviz DOT oder D3 Force-Simulation | Mittel |
 | ~~F5~~ | ~~**Prometheus & VictoriaMetrics Connector**~~ ✅ | Metrics-Backends für Hybrid-Umgebungen; PromQL-Ergebnis als Gadget-Wert | Mittel |
 | F6 | **Versioned Maps + Git-Integration** | Maps in einem Git-Repository speichern und versionieren; Diff-Ansicht, Rollback | Mittel |
-| F7 | **DRAW.io Import** | `.drawio`/`.xml`-Dateien als Map-Grundlage importieren; Shapes zu NagVis-Objekten mappen | Mittel |
+| ~~F7~~ | ~~**DRAW.io Import**~~ ✅ | `.drawio`/`.xml`-Dateien als Map-Grundlage importieren; Shapes zu NagVis-Objekten mappen | Mittel |
 | F8 | **Visualisierung von BI (Business Intelligence)** | BI-Aggregationen aus Checkmk als eigenen Node-Typ; Status via Checkmk BI REST API | Mittel |
 | F9 | **3D Maps** | Räumliche Darstellung (z.B. Über- und Untertage im Bergbau); Godot-Engine als Renderer-Backend oder WebGL-Szene | Sehr hoch |

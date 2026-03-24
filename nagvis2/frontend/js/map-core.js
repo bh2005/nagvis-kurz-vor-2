@@ -928,8 +928,10 @@ window.selectObjType    = selectObjType;
 window.confirmNewMap    = confirmNewMap;
 window.exportActiveMap  = exportActiveMap;
 window.exportMapById    = exportMapById;
-window.dlgImportZip     = dlgImportZip;
-window.confirmImportZip = confirmImportZip;
+window.dlgImportZip        = dlgImportZip;
+window.confirmImportZip    = confirmImportZip;
+window.dlgImportDrawio     = dlgImportDrawio;
+window.confirmImportDrawio = confirmImportDrawio;
 window.dlgNewMap        = dlgNewMap;
 window.dlgMigrate       = dlgMigrate;
 window.confirmMigrate   = confirmMigrate;
@@ -1075,6 +1077,96 @@ async function confirmImportZip() {
   } catch (err) {
     resultBox.style.color = 'var(--crit)'; resultBox.textContent = `❌ Netzwerkfehler: ${err.message}`;
     document.getElementById('zip-btn-ok').disabled = false;
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════
+//  draw.io / diagrams.net IMPORT
+// ═══════════════════════════════════════════════════════════════════════
+
+let _drawioFile = null;
+
+function dlgImportDrawio() {
+  _drawioFile = null;
+  document.getElementById('drawio-drop-label').textContent = '🗂 .drawio / .xml-Datei wählen oder hier ablegen';
+  document.getElementById('drawio-drop-label').style.color = '';
+  document.getElementById('drawio-btn-ok').disabled = true;
+  document.getElementById('drawio-result').style.display = 'none';
+  document.getElementById('drawio-result').textContent   = '';
+  document.getElementById('drawio-title').value    = '';
+  document.getElementById('drawio-as-hosts').checked = false;
+  openDlg('dlg-drawio-import');
+
+  const inp  = document.getElementById('drawio-file-input');
+  inp.value  = '';
+  inp.onchange = e => _drawioHandleFile(e.target.files[0]);
+  const zone = document.getElementById('drawio-drop-zone');
+  zone.ondragover  = e => { e.preventDefault(); zone.classList.add('drag-over'); };
+  zone.ondragleave = () => zone.classList.remove('drag-over');
+  zone.ondrop = e => {
+    e.preventDefault(); zone.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0]; if (f) _drawioHandleFile(f);
+  };
+}
+
+function _drawioHandleFile(file) {
+  const lbl  = document.getElementById('drawio-drop-label');
+  const name = file?.name?.toLowerCase() ?? '';
+  if (!file || (!name.endsWith('.drawio') && !name.endsWith('.xml'))) {
+    lbl.textContent = '⚠ Nur .drawio oder .xml-Dateien erlaubt';
+    lbl.style.color = 'var(--crit)';
+    _drawioFile = null;
+    document.getElementById('drawio-btn-ok').disabled = true;
+    return;
+  }
+  _drawioFile = file;
+  lbl.textContent = `✓ ${file.name}  (${(file.size / 1024).toFixed(0)} KB)`;
+  lbl.style.color = 'var(--ok)';
+  document.getElementById('drawio-btn-ok').disabled = false;
+  const titleField = document.getElementById('drawio-title');
+  if (!titleField.value) {
+    titleField.value = file.name.replace(/\.(drawio|xml)$/i, '');
+  }
+}
+
+async function confirmImportDrawio() {
+  if (!_drawioFile) return;
+  const title     = document.getElementById('drawio-title').value.trim();
+  const asHosts   = document.getElementById('drawio-as-hosts').checked;
+  const resultBox = document.getElementById('drawio-result');
+  resultBox.style.display = 'block';
+  resultBox.style.color   = '';
+  resultBox.textContent   = '⏳ Importiere…';
+  document.getElementById('drawio-btn-ok').disabled = true;
+  try {
+    const form = new FormData();
+    form.append('file', _drawioFile);
+    const params = new URLSearchParams({ as_hosts: asHosts });
+    if (title) params.set('title', title);
+    const res  = await fetch(`/api/maps/import-drawio?${params}`, { method: 'POST', body: form });
+    const data = await res.json();
+    if (!res.ok) {
+      resultBox.style.color = 'var(--crit)';
+      resultBox.textContent = '❌ ' + (data.detail ?? 'Unbekannter Fehler');
+      document.getElementById('drawio-btn-ok').disabled = false;
+      return;
+    }
+    const lines = [
+      `✅ Import erfolgreich`,
+      `Map-ID: ${data.map_id}`,
+      `Titel:  ${data.title}`,
+      `Objekte importiert: ${data.object_count}`,
+      ...(data.warnings ?? []).map(w => `⚠ ${w}`),
+    ];
+    resultBox.style.color = 'var(--ok)';
+    resultBox.textContent = lines.join('\n');
+    await loadMaps();
+    setTimeout(() => { closeDlg('dlg-drawio-import'); openMap(data.map_id); }, 1800);
+  } catch (err) {
+    resultBox.style.color = 'var(--crit)';
+    resultBox.textContent = `❌ Netzwerkfehler: ${err.message}`;
+    document.getElementById('drawio-btn-ok').disabled = false;
   }
 }
 

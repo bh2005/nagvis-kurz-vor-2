@@ -87,6 +87,7 @@ NagVis 2 visualisiert den Status deiner Monitoring-Umgebung (Nagios / Checkmk / 
 | **Checkmk REST API** | Checkmk REST API v1.0 | Base-URL, Automation-User, Secret/Token, SSL |
 | **Icinga2 REST API** | Icinga2 REST API v1 (Basic Auth) | Base-URL, API-Benutzer, Passwort, SSL (Standard: aus) |
 | **Zabbix JSON-RPC** | Zabbix 6.0+ (Bearer-Token) oder älter (Login) | URL, API-Token (bevorzugt) oder Benutzer + Passwort, SSL |
+| **Prometheus / VictoriaMetrics** | Prometheus HTTP API v1 — Targets als Hosts, Alerts als Services | URL, Bearer Token oder Basic Auth, Host-Label, SSL |
 | **Livestatus TCP** | Nagios/Checkmk via TCP-Verbindung | Host/IP, Port (Standard: 6557) |
 | **Livestatus Unix** | Nagios/Checkmk via Unix-Socket (lokal/OMD) | Socket-Pfad |
 | **Demo** | Statische Musterdaten, keine Verbindung nötig | — |
@@ -131,8 +132,33 @@ Klick auf den Map-Namen in der Sidebar oder in der Übersicht.
 
 ### Map importieren / migrieren
 
-- **ZIP-Import** (NagVis-2-Format): Burger → 📥 Map importieren
+- **ZIP-Import** (NagVis-2-Format): Burger → 📥 Map importieren (.zip)
+- **draw.io Import** (.drawio / .xml): Burger → 🗂 draw.io importieren
 - **NagVis-1-Migration** (.cfg-Datei): Burger → ↑ NagVis 1 importieren
+
+### draw.io / diagrams.net Import
+
+Diagramme aus [draw.io](https://app.diagrams.net) oder Visio-ähnlichen Tools können direkt als NagVis-Map importiert werden.
+
+**Ablauf:**
+1. Burger-Menü → **🗂 draw.io importieren (.drawio / .xml)**
+2. Datei per Klick oder Drag & Drop auswählen
+3. Optional: Titel anpassen
+4. Optional: **„Shapes als Monitoring-Hosts anlegen"** aktivieren — dann werden Shapes mit Label als `host`-Objekte statt Textboxen angelegt
+5. **Importieren** klicken → die neue Map öffnet sich automatisch
+
+**Was wird importiert:**
+
+| draw.io-Element | NagVis-Objekt |
+|---|---|
+| Shape / Rechteck / Ellipse (vertex) | Textbox mit Label (Standard) oder Host |
+| Verbindung / Pfeil (edge) | Linie (grau, solid, 2 px) |
+
+**Hinweise:**
+- Koordinaten werden automatisch normalisiert (draw.io-Pixel → 5–95 % Map-Koordinaten)
+- Komprimierte `.drawio`-Dateien (base64/deflate) werden automatisch dekomprimiert
+- Shapes ohne gültige Quelle/Ziel-Verbindung werden übersprungen (Warnung im Ergebnis)
+- Nach dem Import können alle Objekte im Edit-Mode weiter konfiguriert werden (Icons, Backend, Statusverknüpfung)
 
 ---
 
@@ -288,6 +314,7 @@ Visualisiert Metrikwerte grafisch — entweder als statischer Demo-Wert oder mit
 | 🌡 Thermometer | Temperatur / Füllstand |
 | → Flow / Weather | Uni- oder bidirektionale Durchflussanzeige |
 | 🔢 Raw-Number | Numerischer Wert mit Divisor und Einheit |
+| 📊 Graph / iframe | Externe Grafik einbetten (Grafana, Checkmk, beliebige URL) |
 
 #### Gadget konfigurieren
 
@@ -313,6 +340,28 @@ Rechtsklick auf Gadget → **⚙ Gadget konfigurieren**:
 > **Perfdata-Vorrang:** Wenn Host + Service gesetzt sind, werden `warn`/`crit`/`min`/`max` aus den Perfdata automatisch übernommen — eigene Werte im Dialog haben jedoch immer Vorrang.
 
 Die **Live-Vorschau** am unteren Dialogrand aktualisiert sich bei jeder Änderung sofort.
+
+#### Graph-Gadget konfigurieren
+
+Der Typ **📊 Graph / iframe** bettet externe Grafiken direkt auf der Map ein — ideal für Grafana-Panels oder Checkmk-Graphen.
+
+| Feld | Beschreibung |
+|---|---|
+| **URL** | Vollständige URL des einzubettenden Inhalts |
+| **Einbettung** | `iframe` (Standard, interaktiv) oder `<img>` (nur Bild, z.B. für PNG-Render-APIs) |
+| **Breite / Höhe** | Pixelgröße des eingebetteten Bereichs |
+| **Auto-Refresh** | Intervall in Sekunden für automatisches Neu-Laden (0 = aus) |
+| **Titel** | Beschriftung unter dem Gadget |
+
+**Beispiel-URLs:**
+
+| System | URL-Muster | Einbettung |
+|---|---|---|
+| Grafana Panel | `https://grafana.example.com/d-solo/ABC?panelId=5&orgId=1` | `iframe` |
+| Grafana PNG | `https://grafana.example.com/render/d-solo/ABC?panelId=5&width=400&height=200` | `img` + Refresh |
+| Checkmk Graph | `https://checkmk.example.com/site/check_mk/graph_image.py?host=srv1&service=CPU` | `img` + Refresh |
+
+> **Tipp:** Bei `<img>` mit Auto-Refresh wird ein `?_t=<timestamp>`-Parameter angehängt, um den Browser-Cache zu umgehen.
 
 ---
 

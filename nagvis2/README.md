@@ -12,10 +12,12 @@ Eine komplette Neuentwicklung von NagVis mit FastAPI-Backend, WebSocket-Livestat
 |---|---|
 | **Echtzeit-Updates** | WebSocket-Livestatus, automatischer Reconnect, Offline-Banner |
 | **Edit-Mode** | Drag & Drop, Multi-Select (Lasso + Shift+Klick), Gruppen-Drag, Layer-System |
-| **Gadgets** | Radial, Linear (H/V), Sparkline, Thermometer, Flow/Weather, Raw-Number |
+| **Gadgets** | Radial, Linear (H/V), Sparkline, Thermometer, Flow/Weather, Raw-Number, **Graph/iframe** |
+| **Graph-Gadget** | Grafana-Panels, Checkmk-Graphen oder beliebige URLs per `<iframe>` oder `<img>` einbetten |
 | **Perfdata** | Nagios/Checkmk Performance-Daten automatisch in Gadgets eingespeist |
 | **Weathermap-Linien** | Statusfarbe, Bandbreiten-Labels, bidirektionale Pfeile |
-| **Multi-Backend** | Livestatus TCP/Unix + Checkmk REST API gemischt, Hot-Add ohne Neustart |
+| **Multi-Backend** | Livestatus, Checkmk REST API, Zabbix, Icinga2, **Prometheus / VictoriaMetrics** — gemischt, Hot-Add |
+| **draw.io Import** | `.drawio`/`.xml`-Diagramme direkt als Map importieren (Shapes → Textboxen/Hosts, Connectors → Linien) |
 | **Kiosk-Modus** | Token-URL, automatische Map-Rotation, Vollbild mit Zoom/Pan |
 | **Help-System** | Integriertes MkDocs-Hilfe-System unter `/help/` |
 | **Docker** | `docker compose up --build` — fertig |
@@ -74,7 +76,7 @@ DEMO_MODE=false              # true = statische Testdaten
 WS_POLL_INTERVAL=10          # Sekunden zwischen Livestatus-Abfragen
 ```
 
-Alternativ Checkmk REST API als Backend konfigurieren: Burger-Menü → **⚙ Backends verwalten**.
+Alternativ Checkmk REST API, Zabbix, Icinga2 oder Prometheus als Backend konfigurieren: Burger-Menü → **⚙ Backends verwalten**.
 
 ---
 
@@ -102,8 +104,10 @@ nagvis2/
 │   │   ├── perfdata.py       ← Nagios Perfdata-Parser
 │   │   ├── livestatus.py
 │   │   └── migrate.py
-│   ├── checkmk/
-│   │   └── client.py         ← Checkmk REST API Client
+│   ├── checkmk/client.py     ← Checkmk REST API Client
+│   ├── icinga2/client.py     ← Icinga2 REST API Client
+│   ├── zabbix/client.py      ← Zabbix JSON-RPC Client
+│   ├── prometheus/client.py  ← Prometheus / VictoriaMetrics Client
 │   ├── connectors/
 │   │   └── registry.py       ← Unified Backend Registry
 │   ├── api/
@@ -159,15 +163,15 @@ Danach ist die Hilfe unter `http://localhost:8008/help/` erreichbar.
 
 | Sprache | Dateien | Zeilen | Anteil |
 |---|---|---|---|
-| **Python** | 40 | 8 078 | 37 % |
-| **JavaScript** | 13 | 7 200 | 33 % |
-| **Markdown** (Docs) | 17 | 2 478 | 11 % |
-| **CSS** | 2 | 1 496 | 7 % |
-| **HTML** | 1 | 1 093 | 5 % |
-| **JSON** (Config/Data) | 12 | 651 | 3 % |
+| **Python** | 44 | 8 900 | 37 % |
+| **JavaScript** | 13 | 7 600 | 32 % |
+| **Markdown** (Docs) | 18 | 2 700 | 11 % |
+| **CSS** | 2 | 1 500 | 6 % |
+| **HTML** | 1 | 1 150 | 5 % |
+| **JSON** (Config/Data) | 12 | 680 | 3 % |
 | **YAML** (Docker/Helm) | 12 | 431 | 2 % |
 | **Sonstige** | 4 | 371 | 2 % |
-| **Gesamt** | **101** | **21 798** | 100 % |
+| **Gesamt** | **106** | **23 332** | 100 % |
 
 ---
 
@@ -179,4 +183,13 @@ Dieses Projekt steht unter der **MIT License** – siehe [LICENSE](LICENSE).
 
 **Projektstatus:** Beta (funktioniert stabil, aktive Weiterentwicklung)
 **Autor:** bh2005
-**Version:** 2.0 Beta (März 2026)
+**Version:** 2.1 Beta (März 2026)
+
+---
+
+## Neu in 2.1
+
+- **Prometheus / VictoriaMetrics Connector** — Targets als Hosts, Alerts als Services
+- **Graph-Gadget** — Grafana-Panels / Checkmk-Graphen per `<iframe>` oder `<img>` einbetten mit Auto-Refresh
+- **draw.io Import** — `.drawio`/`.xml`-Diagramme direkt als NagVis-Map importieren
+- **Test-Coverage ≥ 70 %** — CI schlägt fehl bei Unterschreitung
