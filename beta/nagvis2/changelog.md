@@ -116,6 +116,85 @@
 
 ---
 
+## [2026-03-24]
+
+### Bugfix: Poll-Loop Absturz `expected string or bytes-like object, got 'dict'`
+- `core/perfdata.py`: `parse_perfdata()` prüft `isinstance(raw, str)` vor `re.finditer()` → gibt `{}` zurück wenn kein String übergeben wird
+- `checkmk/client.py`: Neue Hilfsfunktion `_to_perf_str()` — stellt sicher dass `performance_data` (Checkmk REST API kann Dict liefern) immer als `""` weitergegeben wird
+
+### Feature: Authentifizierung vollständig ✅
+
+**Backend**
+- `api/auth_router.py`: `POST /api/v1/auth/refresh` — gibt neues Token (7 Tage) für eingeloggten User zurück
+- `api/auth_router.py`: `PATCH /api/v1/auth/me` — eigenes Passwort ändern (mind. 6 Zeichen, jede Rolle)
+
+**Frontend**
+- `auth.js`: **Bugfix** — `nv2AuthChangeRole()`, `nv2AuthChangePw()`, `nv2AuthDeleteUser()` verwendeten `/api/auth/` statt `/api/v1/auth/` → 404-Fehler
+- `auth.js`: `_scheduleRefresh()` / `_doRefresh()` — JWT-Ablaufdatum aus Payload lesen; 1 Tag vor Ablauf automatisch via `POST /api/v1/auth/refresh` erneuern; wird nach Login + Init gestartet
+- `auth.js`: `nv2AuthChangeOwnPw()` — eigenes Passwort ändern via `PATCH /api/v1/auth/me`
+- `auth.js`: `_applyRoleUI(role)` — blendet UI-Elemente nach Rolle aus:
+  - Editor-Pflicht: Neue Map, Map importieren, Edit-Mode
+  - Admin-Pflicht: Backends, Aktionen, Kiosk-User, Map löschen
+- `index.html`: IDs `btn-new-map`, `btn-import-map`, `btn-import-zip`, `btn-backend-mgmt`, `btn-kiosk-users`, `btn-action-config` an Burger-Menü-Buttons ergänzt
+- `index.html`: Burger-Menü „Konto"-Abschnitt: Button „🔑 Passwort ändern" (`btn-change-own-pw`)
+
+### Bugfix: Logout + Auth-UI-Sichtbarkeit
+- `auth.js`: Logout-Button nur sichtbar wenn `AUTH_ENABLED=true` (bei deaktivierter Auth nach Reload sofort wieder Admin → Logout wäre sinnlos/verwirrend)
+- `auth.js`: Benutzerverwaltung + Passwort ändern bleiben auch bei `AUTH_ENABLED=false` sichtbar (Rolle=admin)
+
+### Dokumentation: `.env.example` + `admin-guide.md`
+
+- `.env.example`: komplett überarbeitet — fehlende Variablen ergänzt (`LIVESTATUS_TYPE/PATH/SITE`, `WS_POLL_INTERVAL`, `LOG_FORMAT/LEVEL/LOG_BUFFER_LINES`, `NAGVIS_SECRET`); Port korrigiert 8000 → 8008; falscher `SECRET_KEY` durch `NAGVIS_SECRET` ersetzt
+- `docs/admin-guide.md`: neuer Abschnitt **„Installation via Install-Script"** (Schnellstart, alle Optionen, Berechtigungskonzept, Service-Befehle)
+- `docs/admin-guide.md`: neuer Abschnitt **„Authentifizierung & Benutzerverwaltung"** (Modi-Tabelle, Aktivierung, Rollen, REST-API-Beispiele, `users.json`-Format)
+- `docs/admin-guide.md`: Konfigurationstabelle um `AUTH_ENABLED` + `NAGVIS_SECRET` erweitert
+
+### Feature: `install.sh` – Bash-Installationsskript ✅
+- Optionen: `--zip`, `--install-dir`, `--user`, `--port`, `--auth-enabled`, `--no-systemd`, `--no-start`, `--upgrade`, `--uninstall`
+- System-User/Group `nagvis2` anlegen, venv erstellen, `requirements.txt` installieren
+- `NAGVIS_SECRET` wird automatisch generiert (`secrets.token_hex(32)`)
+- Berechtigungen: Code `root:nagvis2 755/644` · `data/` `nagvis2:nagvis2 750` · `.env` `600`
+- Systemd-Service mit Security-Hardening (`NoNewPrivileges`, `PrivateTmp`, `ProtectSystem=strict`)
+- Upgrade-Modus: `data/` + `.env` vor Update sichern, danach wiederherstellen
+
+### Feature: `build.sh` – Build-Skript für ZIP-Distribution ✅
+- Erstellt `nagvis2-<version>.zip` + `.sha256`; Version aus `changelog.txt` oder `git describe`
+- Schließt aus: `venv/`, `data/`, `__pycache__/`, `*.pyc`, `.env`, `.coverage`
+- Baut MkDocs-Hilfe vor dem Packen; ZIP-Wurzel immer `nagvis2/`
+
+### Feature: GitHub Action – Automatische Releases ✅
+- `.github/workflows/release.yml`: Trigger auf `v*.*.*`-Tags + manuell
+- Job 1: pytest (Release schlägt fehl wenn Tests rot)
+- Job 2: MkDocs + `build.sh` → ZIP als Artifact
+- Job 3: GitHub Release mit ZIP + SHA256, Release-Notes aus `changelog.md`, Install-Befehl im Body
+
+### Feature: M2 Map-Duplikat ✅
+
+**Backend**
+- `core/storage.py`: `clone_map(source_id, new_title)` — Deep-Copy, neue slugifizierte ID (Kollisionsvermeidung), `parent_map=None`, Hintergrundbild wird mitkopiert
+- `api/router.py`: `POST /api/v1/maps/{id}/clone` (201) mit Audit-Log `map.clone`
+
+**Frontend**
+- `map-core.js`: `cloneActiveMap()` — prompt für neuen Namen, Default „\<Titel\> – Kopie"
+- `map-core.js`: `cloneMap(mapId, newTitle)` — POST `/clone`, `loadMaps()` danach
+- `index.html`: Burger-Menü → Aktive Map: **⧉ Map duplizieren** (`btn-clone-map`)
+- `map-core.js`: Übersicht-Rechtsklickmenü: „Duplizieren"-Eintrag
+
+### Feature: User-Chip als klickbarer Button mit Dropdown ✅
+- `index.html`: `#nv2-user-chip` `<span>` → `<button class="user-chip-btn">` in `<div id="user-chip-wrap">`
+- Dropdown `#user-chip-dropdown`:
+  - Header: Rollenicon + Username + Rolle (immer)
+  - ☀/☽ Theme wechseln (immer, synchron mit Burger-Menü)
+  - ⚙ Einstellungen… → `dlg-user-settings` (immer)
+  - 🔑 Passwort ändern / 👥 Benutzer verwalten (Admin) / ⏻ Abmelden — nur `AUTH_ENABLED=true`
+- `auth.js`: `toggleUserChip()` / `closeUserChip()` / Außenklick-Listener
+- `ui-core.js`: `setTheme()` aktualisiert `ucd-theme-ico` + `ucd-theme-label` synchron
+- `css/styles.css`: `.user-chip-btn` + `:hover`
+
+---
+
+---
+
 ## [2026-03-23]
 
 ### Bugfix: Merge-Konflikte behoben

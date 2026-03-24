@@ -10,7 +10,88 @@
 
 ---
 
-## Installation (ohne Docker)
+## Installation via Install-Script (empfohlen)
+
+Das mitgelieferte `install.sh` übernimmt alle Schritte automatisch:
+Service-User anlegen, Dateien entpacken, venv erstellen, Berechtigungen setzen, Systemd-Service einrichten.
+
+### Schnellstart
+
+```bash
+# ZIP herunterladen/bereitstellen, dann:
+sudo ./install.sh
+# → installiert nach /opt/nagvis2, startet nagvis2.service
+```
+
+### Optionen
+
+```bash
+sudo ./install.sh [OPTIONEN]
+
+  --zip FILE           Pfad zur nagvis2.zip       (Standard: nagvis2.zip im CWD)
+  --install-dir DIR    Zielverzeichnis             (Standard: /opt/nagvis2)
+  --user USER          Service-User/Gruppe         (Standard: nagvis2)
+  --port PORT          HTTP-Port                   (Standard: 8008)
+  --auth-enabled       AUTH_ENABLED=true in .env
+  --no-systemd         Kein Systemd-Service
+  --no-start           Service nicht automatisch starten
+  --upgrade            Bestehende Installation aktualisieren (Daten bleiben)
+  --uninstall          Installation vollständig entfernen
+```
+
+### Beispiele
+
+```bash
+# Standard-Installation mit Auth und Port 8080
+sudo ./install.sh --zip /tmp/nagvis2.zip --port 8080 --auth-enabled
+
+# Upgrade (Daten/Config bleiben erhalten, Code wird aktualisiert)
+sudo ./install.sh --upgrade --zip /tmp/nagvis2_v2.1.zip
+
+# Nur Dateien, kein Systemd (z.B. für Docker/OMD-Integration)
+sudo ./install.sh --no-systemd --no-start
+
+# Deinstallation
+sudo ./install.sh --uninstall
+```
+
+### Was das Script macht
+
+| Schritt | Beschreibung |
+|---|---|
+| Voraussetzungen | Python 3.11+, pip, unzip prüfen |
+| User/Group | `nagvis2` System-User + Gruppe anlegen |
+| Dateien | ZIP entpacken → Zielverzeichnis |
+| venv | Python venv erstellen + `requirements.txt` installieren |
+| Datenverzeichnisse | `data/{maps,backgrounds,thumbnails,kiosk,logs}` anlegen |
+| `.env` | Aus `.env.example` erstellen, Secret Key auto-generieren |
+| Berechtigungen | Code: `root:nagvis2 755/644` · Daten: `nagvis2:nagvis2 750` · `.env`: `600` |
+| Systemd | `/etc/systemd/system/nagvis2.service` erstellen + aktivieren |
+
+### Berechtigungskonzept
+
+```
+/opt/nagvis2/                  root:nagvis2   755   ← Code nicht schreibbar für Service
+/opt/nagvis2/backend/          root:nagvis2   755
+/opt/nagvis2/backend/.env      nagvis2:nagvis2 600  ← Secrets nur für Service-User lesbar
+/opt/nagvis2/backend/data/     nagvis2:nagvis2 750  ← Service darf schreiben
+/opt/nagvis2/backend/venv/     root:nagvis2   755
+/opt/nagvis2/frontend/         root:nagvis2   755
+```
+
+### Service verwalten
+
+```bash
+systemctl status  nagvis2        # Status anzeigen
+systemctl restart nagvis2        # Neu starten (nach .env-Änderungen)
+systemctl stop    nagvis2        # Stoppen
+journalctl -u nagvis2 -f         # Live-Log verfolgen
+journalctl -u nagvis2 --since today   # Log von heute
+```
+
+---
+
+## Installation (manuell / ohne Script)
 
 ```bash
 # 1. Repository klonen
@@ -23,7 +104,7 @@ python3 -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
-# 3. Konfiguration (optional – Standardwerte funktionieren für lokale Tests)
+# 3. Konfiguration
 cp .env.example .env
 # .env anpassen (siehe Abschnitt Konfiguration)
 
@@ -71,13 +152,18 @@ data/
 
 Alle Einstellungen erfolgen über Umgebungsvariablen (oder `.env`-Datei im `backend/`-Verzeichnis).
 
+```bash
+cp .env.example .env
+# .env anpassen, dann Backend neu starten
+```
+
 ### Umgebung
 
 | Variable | Standard | Beschreibung |
 |---|---|---|
 | `ENVIRONMENT` | `development` | `development` oder `production` |
-| `DEBUG` | `true` | Swagger-Docs aktivieren, Auto-Reload |
-| `DEMO_MODE` | `false` | Statische Testdaten, kein Livestatus |
+| `DEBUG` | `true` | Auto-Reload aktivieren |
+| `DEMO_MODE` | `false` | Statische Testdaten, kein Backend nötig |
 
 ### Logging
 
@@ -95,6 +181,13 @@ Alle Einstellungen erfolgen über Umgebungsvariablen (oder `.env`-Datei im `back
 | `PORT` | `8008` | HTTP-Port |
 | `UVICORN_WORKERS` | `1` | Anzahl Worker-Prozesse (nur Production) |
 | `CORS_ORIGINS` | `http://localhost:8008,...` | Erlaubte Origins (kommagetrennt) |
+
+### Authentifizierung
+
+| Variable | Standard | Beschreibung |
+|---|---|---|
+| `AUTH_ENABLED` | `false` | `true`: Login-Overlay + JWT-Prüfung; `false`: offen (kein Login) |
+| `NAGVIS_SECRET` | *(leer)* | JWT-Signing-Key – **muss in Produktion gesetzt werden!** |
 
 ### Livestatus
 
@@ -327,6 +420,98 @@ POST /api/backends/probe
 
 ---
 
+## Authentifizierung & Benutzerverwaltung
+
+### Überblick
+
+NagVis 2 unterstützt zwei Betriebsmodi:
+
+| Modus | `AUTH_ENABLED` | Beschreibung |
+|---|---|---|
+| **Offen** (Standard) | `false` | Kein Login erforderlich. Alle Benutzer haben implizit Admin-Rechte. Schutz über nginx / OMD-Basis-Auth empfohlen. |
+| **Auth-Modus** | `true` | Login-Overlay beim ersten Aufruf. Alle API-Endpunkte prüfen JWT-Bearer-Token. Rollen-basierter Zugriff. |
+
+### Auth-Modus aktivieren
+
+1. `.env` anlegen (oder `.env.example` kopieren):
+
+```env
+AUTH_ENABLED=true
+NAGVIS_SECRET=<langer-zufälliger-schluessel>
+```
+
+Secret erzeugen:
+```bash
+python3 -c "import secrets; print(secrets.token_hex(32))"
+```
+
+2. Backend neu starten – beim nächsten Aufruf erscheint das Login-Overlay.
+
+3. Ersten Admin-Benutzer anlegen (Swagger UI oder curl):
+```bash
+# Ersten User via API anlegen (nur solange noch kein Admin existiert)
+curl -X POST http://localhost:8008/api/v1/auth/users \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "sicher123", "role": "admin"}'
+```
+
+> **Hinweis:** Alternativ direkt `data/users.json` anlegen — Passwörter müssen bcrypt-gehasht sein.
+
+### Rollen
+
+| Rolle | Rechte |
+|---|---|
+| `viewer` | Maps anzeigen, Monitoring-Daten lesen |
+| `editor` | Zusätzlich: Maps und Objekte bearbeiten, Map importieren |
+| `admin` | Zusätzlich: Maps anlegen/löschen, Backends verwalten, Benutzer verwalten, Aktionen konfigurieren |
+
+### Benutzerverwaltung im Browser
+
+Burger-Menü → **👤 Benutzer verwalten** (nur sichtbar als Admin):
+
+- Neue Benutzer anlegen (Name, Passwort, Rolle)
+- Rolle bestehender Benutzer ändern
+- Passwort zurücksetzen
+- Benutzer löschen
+
+Eigenes Passwort ändern: Burger-Menü → **🔑 Passwort ändern** (für alle eingeloggten Benutzer).
+
+### Token-Verwaltung
+
+- Tokens sind **7 Tage** gültig
+- Das Frontend erneuert den Token automatisch **1 Tag vor Ablauf** (Auto-Refresh)
+- Logout widerruft das aktuelle Token serverseitig (`POST /api/v1/auth/logout`)
+- Widerrufene Tokens werden in `data/tokens.json` gespeichert
+
+### REST-API Authentifizierung
+
+```bash
+# Login → JWT-Token holen
+TOKEN=$(curl -s -X POST http://localhost:8008/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"sicher123"}' | jq -r .token)
+
+# Geschützte Endpunkte aufrufen
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8008/api/v1/auth/me
+
+# Alle Benutzer auflisten (admin only)
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8008/api/v1/auth/users
+```
+
+### Benutzerdaten
+
+Benutzer werden in `data/users.json` gespeichert (bcrypt-Hashes, kein Klartext):
+```json
+[
+  {"username": "admin", "password": "$2b$12$...", "role": "admin"},
+  {"username": "readonly", "password": "$2b$12$...", "role": "viewer"}
+]
+```
+
+Die Datei wird beim ersten Start automatisch angelegt. **Backup empfohlen** (zusammen mit `data/backends.json`).
+
+---
+
 ## Perfdata-Verarbeitung
 
 NagVis 2 parst Nagios/Checkmk Performance-Daten automatisch und stellt sie für Gadgets bereit.
@@ -454,11 +639,13 @@ http://localhost:8008/api/v1/docs
 
 ## Produktions-Empfehlungen
 
-- `DEBUG=false` setzen (deaktiviert Auto-Reload; Swagger UI bleibt verfügbar)
+- `DEBUG=false` setzen (deaktiviert Auto-Reload)
 - `ENVIRONMENT=production` setzen
+- `AUTH_ENABLED=true` + starkes `NAGVIS_SECRET` setzen (oder nginx-Basis-Auth als Alternative)
+- `NAGVIS_SECRET` mit `python3 -c "import secrets; print(secrets.token_hex(32))"` erzeugen
 - nginx als Reverse Proxy verwenden (TLS-Terminierung, Security-Header)
 - `CORS_ORIGINS` auf tatsächliche Domains einschränken
-- `data/`-Verzeichnis regelmäßig sichern (Maps, Backends, Kiosk-User)
+- `data/`-Verzeichnis regelmäßig sichern (Maps, Backends, Benutzer, Kiosk)
 - `LIVESTATUS_SITE` explizit setzen (schnellerer Start)
 - `UVICORN_WORKERS` auf CPU-Kernanzahl setzen (ab 2 Workers)
 - `LOG_FORMAT=json` für Log-Aggregation (ELK, Loki, Splunk)

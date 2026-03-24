@@ -165,6 +165,8 @@ function openCardMenu(e, mapId, mapTitle, canvasJson) {
     <div class="ctx-sep"></div>
     <button class="ctx-item" onclick="closeCardMenu(); exportMapById('${esc(mapId)}')">
       📤 Exportieren (.zip)</button>
+    <button class="ctx-item" onclick="closeCardMenu(); cloneMap('${esc(mapId)}', '${esc(mapTitle)} – Kopie').then(() => {})">
+      ⧉ Duplizieren</button>
     <button class="ctx-item ctx-danger"
       onclick="closeCardMenu(); _deleteMapId='${esc(mapId)}'; _deleteMapTitle='${esc(mapTitle)}'; confirmDeleteMapById()">
       🗑 Löschen</button>`;
@@ -977,6 +979,33 @@ async function exportMapById(mapId) {
     setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
   } catch (err) { alert(`Export fehlgeschlagen: ${err.message}`); }
 }
+
+
+// ── Map klonen ──────────────────────────────────────────────────────────────
+
+async function cloneActiveMap() {
+  if (!activeMapId) return;
+  const srcTitle = activeMapCfg?.title ?? activeMapId;
+  const newTitle = prompt(`Klon-Name (Kopie von "${srcTitle}"):`, `${srcTitle} – Kopie`);
+  if (!newTitle?.trim()) return;
+  await cloneMap(activeMapId, newTitle.trim());
+}
+
+async function cloneMap(mapId, newTitle) {
+  try {
+    const r = await api(`/api/maps/${encodeURIComponent(mapId)}/clone`, 'POST', { title: newTitle });
+    if (r === null) return null;  // api() zeigt Toast bei Fehler
+    await loadMaps();           // Sidebar + Übersicht aktualisieren
+    return r;
+  } catch (e) {
+    alert(`Netzwerkfehler: ${e}`);
+    return null;
+  }
+}
+
+window.cloneActiveMap = cloneActiveMap;
+window.cloneMap       = cloneMap;
+
 
 function dlgImportZip() {
   _zipFile = null;

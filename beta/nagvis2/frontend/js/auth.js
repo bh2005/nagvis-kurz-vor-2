@@ -66,6 +66,7 @@ window.nv2Auth = {
         const saved = localStorage.getItem(NV2_USER_KEY);
         try { this.currentUser = JSON.parse(saved); } catch { /* ignore */ }
         _updateAuthUI();
+        _scheduleRefresh();   // Auto-Refresh vor Ablauf
         return; // bereits eingeloggt
       }
       // Token ungültig → Session löschen + Login zeigen
@@ -89,10 +90,7 @@ window.nv2Auth = {
       } catch { /* ignore network errors */ }
     }
     this._clearSession();
-    if (this.enabled) {
-      // Seite neu laden → Login-Overlay erscheint
-      location.reload();
-    }
+    location.reload();   // immer neu laden – stellt sauberen Zustand sicher
   },
 
   // ── 401-Handler (aus ws-client.js aufgerufen) ──────────────────────
@@ -171,6 +169,7 @@ async function _doLogin() {
     nv2Auth._setSession(data.token, data.username, data.role);
     document.getElementById('login-password').value = '';
     _hideLoginOverlay();
+    _scheduleRefresh();
   } catch {
     if (errEl) errEl.textContent = 'Netzwerkfehler – Backend nicht erreichbar.';
   } finally {
@@ -215,18 +214,101 @@ function _updateAuthUI() {
   if (chip) {
     if (u) {
       chip.textContent = `${_roleIcon(u.role)} ${u.username}`;
-      chip.style.display = 'inline-block';
-      chip.title = `Eingeloggt als ${u.username} (${u.role})`;
+      chip.style.display = 'inline-flex';
     } else {
       chip.style.display = 'none';
     }
   }
 
+  // User-Chip-Dropdown Items
+  const ucdHeader    = document.getElementById('user-chip-header');
+  const ucdOwnPw     = document.getElementById('ucd-own-pw');
+  const ucdMgmt      = document.getElementById('ucd-manage-users');
+  const ucdLogout    = document.getElementById('ucd-logout');
+  const ucdDivider   = document.getElementById('ucd-divider-logout');
+  const ucdDivAuth   = document.getElementById('ucd-divider-auth');
+
+  if (ucdHeader) ucdHeader.textContent = u
+    ? `${_roleIcon(u.role)} ${u.username}  ·  ${u.role}`
+    : '';
+  if (ucdDivAuth) ucdDivAuth.style.display = (nv2Auth.enabled && u) ? 'block' : 'none';
+  if (ucdOwnPw)   ucdOwnPw.style.display  = (nv2Auth.enabled && u) ? 'flex' : 'none';
+  if (ucdMgmt)    ucdMgmt.style.display   = (nv2Auth.enabled && u?.role === 'admin') ? 'flex' : 'none';
+  if (ucdDivider) ucdDivider.style.display = (nv2Auth.enabled && u) ? 'block' : 'none';
+  if (ucdLogout)  ucdLogout.style.display  = (nv2Auth.enabled && u) ? 'flex' : 'none';
+
   if (authDiv) authDiv.style.display = u ? 'block' : 'none';
 
+  const btnOwnPw = document.getElementById('btn-change-own-pw');
+
   if (btnMgmt)   btnMgmt.style.display   = (u?.role === 'admin') ? 'flex' : 'none';
-  if (btnLogout) btnLogout.style.display  = u ? 'flex' : 'none';
+  if (btnOwnPw)  btnOwnPw.style.display  = u ? 'flex' : 'none';
+  // Logout nur anzeigen wenn Auth tatsächlich aktiviert ist (sonst sinnlos)
+  if (btnLogout) btnLogout.style.display  = (nv2Auth.enabled && u) ? 'flex' : 'none';
   if (lblUser)   lblUser.textContent      = u?.username ?? '';
+
+  _applyRoleUI(u?.role ?? 'viewer');
+}
+
+// ── User-Chip Dropdown ──────────────────────────────────────────────────────
+
+window.toggleUserChip = function() {
+  const dd = document.getElementById('user-chip-dropdown');
+  if (!dd) return;
+  const isOpen = dd.style.display !== 'none';
+  // Burger schließen falls offen
+  const burger = document.getElementById('burger-dropdown');
+  if (burger) burger.style.display = 'none';
+  dd.style.display = isOpen ? 'none' : 'block';
+};
+
+window.closeUserChip = function() {
+  const dd = document.getElementById('user-chip-dropdown');
+  if (dd) dd.style.display = 'none';
+};
+
+// Außenklick schließt Dropdown
+document.addEventListener('click', function(e) {
+  const wrap = document.getElementById('user-chip-wrap');
+  if (wrap && !wrap.contains(e.target)) {
+    const dd = document.getElementById('user-chip-dropdown');
+    if (dd) dd.style.display = 'none';
+  }
+});
+
+
+/**
+ * Versteckt UI-Elemente je nach Rolle.
+ * viewer  → kann keine Maps/Objekte bearbeiten
+ * editor  → darf Objekte bearbeiten, aber keine Maps anlegen/löschen/Backends
+ * admin   → alles sichtbar
+ */
+function _applyRoleUI(role) {
+  const rank = { viewer: 1, editor: 2, admin: 3 }[role] ?? 1;
+
+  // Elemente die mindestens editor-Rolle erfordern
+  const editorIds = [
+    'btn-new-map',         // Neue Map erstellen
+    'btn-import-map',      // NagVis 1 importieren
+    'btn-import-zip',      // Map importieren (.zip)
+    'btn-edit',            // Bearbeiten / Edit-Mode
+  ];
+  // Elemente die admin erfordern
+  const adminIds = [
+    'btn-delete-map',      // Map löschen
+    'btn-backend-mgmt',    // Backends verwalten
+    'btn-action-config',   // Aktionen konfigurieren
+    'btn-kiosk-users',     // Kiosk-User verwalten
+  ];
+
+  editorIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = rank >= 2 ? '' : 'none';
+  });
+  adminIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = rank >= 3 ? '' : 'none';
+  });
 }
 
 function _roleIcon(role) {
@@ -301,7 +383,7 @@ window.nv2AuthCreateUser = async function() {
 
 window.nv2AuthChangeRole = async function(username, role) {
   const token = nv2Auth.getToken();
-  const r = await fetch(`/api/auth/users/${encodeURIComponent(username)}`, {
+  const r = await fetch(`/api/v1/auth/users/${encodeURIComponent(username)}`, {
     method:  'PATCH',
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body:    JSON.stringify({ role }),
@@ -310,10 +392,10 @@ window.nv2AuthChangeRole = async function(username, role) {
 };
 
 window.nv2AuthChangePw = async function(username) {
-  const pw = prompt(`Neues Passwort für ${username}:`);
+  const pw = prompt(`Neues Passwort für ${username} (min. 6 Zeichen):`);
   if (!pw) return;
   const token = nv2Auth.getToken();
-  const r = await fetch(`/api/auth/users/${encodeURIComponent(username)}`, {
+  const r = await fetch(`/api/v1/auth/users/${encodeURIComponent(username)}`, {
     method:  'PATCH',
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body:    JSON.stringify({ password: pw }),
@@ -325,12 +407,73 @@ window.nv2AuthChangePw = async function(username) {
 window.nv2AuthDeleteUser = async function(username) {
   if (!confirm(`Benutzer '${username}' wirklich löschen?`)) return;
   const token = nv2Auth.getToken();
-  const r = await fetch(`/api/auth/users/${encodeURIComponent(username)}`, {
+  const r = await fetch(`/api/v1/auth/users/${encodeURIComponent(username)}`, {
     method:  'DELETE',
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   if (!r.ok) { const j = await r.json().catch(()=>({})); alert(j.detail ?? 'Fehler'); return; }
   await _renderUserMgmt();
+};
+
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Token Auto-Refresh
+// ═══════════════════════════════════════════════════════════════════════
+
+let _refreshTimer = null;
+
+function _scheduleRefresh() {
+  if (_refreshTimer) clearTimeout(_refreshTimer);
+  if (!nv2Auth.enabled) return;
+
+  // expires_at aus JWT lesen (Payload ist base64url-kodiert, kein Verify nötig)
+  const token = nv2Auth.getToken();
+  if (!token) return;
+
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    if (!payload.exp) return;   // kein Ablaufdatum → kein Refresh nötig
+
+    // 1 Tag vor Ablauf erneuern; frühestens in 60 Sekunden
+    const refreshAt = (payload.exp - 86400) * 1000;
+    const delay     = Math.max(60_000, refreshAt - Date.now());
+
+    _refreshTimer = setTimeout(_doRefresh, delay);
+  } catch { /* ignore parse errors */ }
+}
+
+async function _doRefresh() {
+  const token = nv2Auth.getToken();
+  if (!token) return;
+  try {
+    const r = await fetch('/api/v1/auth/refresh', {
+      method:  'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!r.ok) return;
+    const data = await r.json();
+    nv2Auth._setSession(data.token, data.username, data.role);
+    _scheduleRefresh();   // nächsten Refresh planen
+  } catch { /* Netzwerkfehler – beim nächsten Init erneut versuchen */ }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Eigenes Passwort ändern
+// ═══════════════════════════════════════════════════════════════════════
+
+window.nv2AuthChangeOwnPw = async function() {
+  const pw = prompt('Neues Passwort (min. 6 Zeichen):');
+  if (!pw) return;
+  if (pw.length < 6) { alert('Passwort muss mindestens 6 Zeichen lang sein.'); return; }
+  const token = nv2Auth.getToken();
+  const r = await fetch('/api/v1/auth/me', {
+    method:  'PATCH',
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body:    JSON.stringify({ password: pw }),
+  });
+  if (!r.ok) { const j = await r.json().catch(()=>({})); alert(j.detail ?? 'Fehler'); }
+  else alert('Passwort erfolgreich geändert.');
 };
 
 

@@ -3,7 +3,9 @@ NagVis 2 – Storage Layer
 JSON-basierte Persistenz für Maps, Objekte, Kiosk-User.
 """
 
+import copy
 import json
+import shutil
 import uuid
 import re
 from pathlib import Path
@@ -113,6 +115,29 @@ def delete_map(map_id: str) -> bool:
             thumb.unlink()
         return True
     return False
+
+
+def clone_map(source_id: str, new_title: str) -> Optional[dict]:
+    """Klont eine Map inkl. aller Objekte. Hintergrundbild wird mitkopiert."""
+    src = get_map(source_id)
+    if not src:
+        return None
+    new_id = _slugify(new_title)
+    base, n = new_id, 1
+    while map_path(new_id).exists():
+        new_id = f"{base}-{n}"; n += 1
+    new_data = copy.deepcopy(src)
+    new_data["id"]         = new_id
+    new_data["title"]      = new_title
+    new_data["parent_map"] = None
+    _write_json(map_path(new_id), new_data)
+    # Hintergrundbild mitkopieren
+    for ext in ("png", "jpg", "jpeg", "gif", "webp", "svg"):
+        src_bg = settings.BG_DIR / f"{source_id}.{ext}"
+        if src_bg.exists():
+            shutil.copy2(src_bg, settings.BG_DIR / f"{new_id}.{ext}")
+            break
+    return new_data
 
 
 def update_map_field(map_id: str, **fields) -> Optional[dict]:

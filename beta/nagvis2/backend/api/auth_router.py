@@ -5,7 +5,9 @@ NagVis 2 – Auth Router
 Endpunkte
 ---------
 POST  /api/v1/auth/login              – Username + Passwort → JWT
+POST  /api/v1/auth/refresh            – Neues Token für eingeloggten User
 GET   /api/v1/auth/me                 – Aktuell eingeloggter User
+PATCH /api/v1/auth/me                 – Eigenes Passwort ändern
 POST  /api/v1/auth/logout             – Aktuelles Token widerrufen
 GET   /api/v1/auth/config             – Gibt { auth_enabled } zurück (kein Auth nötig)
 
@@ -54,6 +56,10 @@ class PatchUserRequest(BaseModel):
     password: Optional[str] = None
 
 
+class PatchMeRequest(BaseModel):
+    password: str   # Eigenes Passwort ändern
+
+
 # ── Öffentliche Endpunkte (kein Token nötig) ──────────────────────────────────
 
 @auth_router.get("/config")
@@ -87,6 +93,22 @@ async def login(body: LoginRequest):
 
 # ── Geschützte Endpunkte (Token erforderlich) ─────────────────────────────────
 
+@auth_router.post("/refresh")
+async def refresh(user: AuthUser = Depends(require_auth)):
+    """
+    Gibt ein neues Token für den eingeloggten User zurück.
+    Das alte Token bleibt noch bis zu seinem Ablaufdatum gültig –
+    der Client soll es lokal ersetzen.
+    """
+    am    = get_auth_manager()
+    token = am.create_token(user.username, user.role, expires_in=86400 * 7)
+    return {
+        "token":    token,
+        "username": user.username,
+        "role":     user.role,
+    }
+
+
 @auth_router.get("/me")
 async def me(user: AuthUser = Depends(require_auth)):
     """Gibt den aktuell eingeloggten User zurück."""
@@ -95,6 +117,20 @@ async def me(user: AuthUser = Depends(require_auth)):
         "role":       user.role,
         "expires_at": user.expires_at,
     }
+
+
+@auth_router.patch("/me")
+async def patch_me(
+    body: PatchMeRequest,
+    request: Request,
+    user: AuthUser = Depends(require_auth),
+):
+    """Eigenes Passwort ändern – für jeden eingeloggten Benutzer."""
+    if not body.password or len(body.password) < 6:
+        raise HTTPException(400, detail="Passwort muss mindestens 6 Zeichen lang sein")
+    get_user_manager().change_password(user.username, body.password)
+    audit_log(request, "user.password_change", username=user.username)
+    return {"ok": True}
 
 
 @auth_router.post("/logout")

@@ -126,9 +126,43 @@
 
     <div class="tb-gap"></div>
 
-    <!-- User-Chip (Auth) -->
-    <span id="nv2-user-chip" style="display:none; font-size:11px; color:var(--text-dim);
-          margin-right:4px; cursor:default; white-space:nowrap;"></span>
+    <!-- User-Chip Button (Auth) -->
+    <div id="user-chip-wrap" style="position:relative; flex-shrink:0; margin-right:4px;">
+      <button id="nv2-user-chip" class="user-chip-btn" style="display:none"
+              onclick="toggleUserChip()" title="Konto-Optionen"></button>
+
+      <div id="user-chip-dropdown" class="burger-dropdown" style="display:none; right:0; left:auto; min-width:210px;">
+        <div id="user-chip-header" class="burger-head" style="padding:10px 14px 6px; font-size:11px; text-transform:none; letter-spacing:0; color:var(--text);"></div>
+        <div class="burger-divider"></div>
+
+        <!-- Persönliche Einstellungen – immer sichtbar -->
+        <button class="burger-item"
+                onclick="setTheme(currentTheme==='dark'?'light':'dark'); closeUserChip()">
+          <span class="burger-ico" id="ucd-theme-ico">☀</span>
+          <span id="ucd-theme-label">Light-Theme</span>
+        </button>
+        <button class="burger-item"
+                onclick="openUserSettingsDlg(); closeUserChip()">
+          <span class="burger-ico">⚙</span> Einstellungen…
+        </button>
+
+        <!-- Auth-bezogen – nur bei AUTH_ENABLED -->
+        <div class="burger-divider" id="ucd-divider-auth" style="display:none"></div>
+        <button class="burger-item" id="ucd-own-pw" style="display:none"
+                onclick="nv2AuthChangeOwnPw(); closeUserChip()">
+          <span class="burger-ico">🔑</span> Passwort ändern
+        </button>
+        <button class="burger-item" id="ucd-manage-users" style="display:none"
+                onclick="nv2Auth.openUserMgmtDlg(); closeUserChip()">
+          <span class="burger-ico">👥</span> Benutzer verwalten
+        </button>
+        <div class="burger-divider" id="ucd-divider-logout" style="display:none"></div>
+        <button class="burger-item burger-item-danger" id="ucd-logout" style="display:none"
+                onclick="nv2Auth.logout(); closeUserChip()">
+          <span class="burger-ico">⏻</span> Abmelden
+        </button>
+      </div>
+    </div>
 
     <!-- Burger -->
     <div id="burger-wrap" style="position:relative; flex-shrink:0;">
@@ -175,23 +209,26 @@
           <button class="burger-item" onclick="openCanvasModeDialog(activeMapId, activeMapCfg?.title, activeMapCfg?.canvas); closeBurgerMenu()">
             <span class="burger-ico">⊡</span> Canvas-Format ändern
           </button>
+          <button class="burger-item" id="btn-clone-map" onclick="cloneActiveMap(); closeBurgerMenu()">
+            <span class="burger-ico">⧉</span> Map duplizieren
+          </button>
           <button class="burger-item" onclick="exportActiveMap(); closeBurgerMenu()">
             <span class="burger-ico">📤</span> Map exportieren (.zip)
           </button>
           <div class="burger-divider"></div>
         </div>
 
-        <div class="burger-head">Maps verwalten</div>
-        <button class="burger-item" onclick="dlgNewMap(); closeBurgerMenu()">
+        <div class="burger-head" id="burger-head-maps">Maps verwalten</div>
+        <button class="burger-item" id="btn-new-map" onclick="dlgNewMap(); closeBurgerMenu()">
           <span class="burger-ico">＋</span> Neue Map erstellen
         </button>
         <button class="burger-item" onclick="openManageMapsOverlay(); closeBurgerMenu()">
           <span class="burger-ico">⊟</span> Alle Maps verwalten
         </button>
-        <button class="burger-item" onclick="dlgMigrate(); closeBurgerMenu()">
+        <button class="burger-item" id="btn-import-map" onclick="dlgMigrate(); closeBurgerMenu()">
           <span class="burger-ico">↑</span> NagVis&#x202F;1 importieren
         </button>
-        <button class="burger-item" onclick="dlgImportZip(); closeBurgerMenu()">
+        <button class="burger-item" id="btn-import-zip" onclick="dlgImportZip(); closeBurgerMenu()">
           <span class="burger-ico">📥</span> Map importieren (.zip)
         </button>
         <div class="burger-divider"></div>
@@ -202,13 +239,13 @@
           <span class="burger-ico" id="burger-theme-ico">☀</span>
           <span id="burger-theme-label">Light-Theme</span>
         </button>
-        <button class="burger-item" onclick="openBackendMgmtDlg(); closeBurgerMenu()">
+        <button class="burger-item" id="btn-backend-mgmt" onclick="openBackendMgmtDlg(); closeBurgerMenu()">
           <span class="burger-ico">🗄</span> Datenquellen verwalten
         </button>
-        <button class="burger-item" onclick="openKioskUsersDlg(); closeBurgerMenu()">
+        <button class="burger-item" id="btn-kiosk-users" onclick="openKioskUsersDlg(); closeBurgerMenu()">
           <span class="burger-ico">⬛</span> Kiosk-User verwalten
         </button>
-        <button class="burger-item" onclick="openActionConfigDlg(); closeBurgerMenu()">
+        <button class="burger-item" id="btn-action-config" onclick="openActionConfigDlg(); closeBurgerMenu()">
           <span class="burger-ico">⚡</span> Aktionen konfigurieren
         </button>
         <button class="burger-item" onclick="openUserSettingsDlg(); closeBurgerMenu()">
@@ -241,6 +278,10 @@
           <button class="burger-item" id="btn-manage-users" style="display:none"
                   onclick="nv2Auth.openUserMgmtDlg(); closeBurgerMenu()">
             <span class="burger-ico">👥</span> Benutzer verwalten
+          </button>
+          <button class="burger-item" id="btn-change-own-pw" style="display:none"
+                  onclick="nv2AuthChangeOwnPw(); closeBurgerMenu()">
+            <span class="burger-ico">🔑</span> Passwort ändern
           </button>
           <button class="burger-item" id="btn-logout" style="display:none"
                   onclick="nv2Auth.logout(); closeBurgerMenu()">
