@@ -4,10 +4,10 @@
   "description": "NagVis 2 (Beta) — moderne Nagios/Checkmk/Icinga-UI + Hilfesystem",
   "private": true,
   "scripts": {
-    "docs:build": "cd beta/nagvis2 && python -m mkdocs build -f mkdocs.yml -d frontend/help",
-    "docs:serve": "cd beta/nagvis2 && python -m mkdocs serve -f mkdocs.yml",
-    "backend:start": "cd beta/nagvis2 && python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
-    "backend:lint": "cd beta/nagvis2 && python -m compileall backend",
+    "docs:build": "cd nagvis2 && python -m mkdocs build -f mkdocs.yml -d frontend/help",
+    "docs:serve": "cd nagvis2 && python -m mkdocs serve -f mkdocs.yml",
+    "backend:start": "cd nagvis2 && python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
+    "backend:lint": "cd nagvis2 && python -m compileall backend",
     "changelog": "python scripts/make_changelog.py"
   },
   "author": "bh2005",

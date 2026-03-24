@@ -98,7 +98,7 @@ journalctl -u nagvis2 --since today   # Log von heute
 ```bash
 # 1. Repository klonen
 git clone https://github.com/bh2005/nagvis-kurz-vor-2
-cd nagvis-kurz-vor-2/beta/nagvis2
+cd nagvis-kurz-vor-2/nagvis2
 
 # 2. Python-Umgebung anlegen
 cd backend
@@ -123,7 +123,7 @@ API-Dokumentation (Swagger): `http://localhost:8008/api/v1/docs`
 ## Installation (Docker)
 
 ```bash
-cd nagvis-kurz-vor-2/beta/nagvis2
+cd nagvis-kurz-vor-2/nagvis2
 
 # Alle Dienste starten
 docker-compose up --build -d
@@ -724,7 +724,7 @@ Die integrierte Hilfe liegt unter `frontend/help/` und wird von FastAPI statisch
 ### Hilfe neu bauen
 
 ```bash
-cd nagvis-kurz-vor-2/beta/nagvis2
+cd nagvis-kurz-vor-2/nagvis2
 pip install mkdocs-material
 mkdocs build
 # Ausgabe: frontend/help/

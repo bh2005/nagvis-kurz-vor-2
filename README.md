@@ -6,7 +6,7 @@ Eine komplette Neuentwicklung von NagVis mit FastAPI-Backend, WebSocket-Livestat
 
 [![CI](https://github.com/bh2005/nagvis-kurz-vor-2/actions/workflows/ci.yml/badge.svg)](https://github.com/bh2005/nagvis-kurz-vor-2/actions/workflows/ci.yml)
 [![Latest Release](https://img.shields.io/github/v/release/bh2005/nagvis-kurz-vor-2?label=Release)](https://github.com/bh2005/nagvis-kurz-vor-2/releases/latest)
-[![Changelog](https://img.shields.io/badge/Changelog-ansehen-blue)](beta/nagvis2/changelog.txt)
+[![Changelog](https://img.shields.io/badge/Changelog-ansehen-blue)](nagvis2/changelog.txt)
 [![Code of Conduct](https://img.shields.io/badge/Code_of_Conduct-2.1-blue)](CODE_OF_CONDUCT.md)
 
 ---
@@ -54,7 +54,7 @@ Alle Optionen: `sudo ./install.sh --help`
 ### Docker
 
 ```bash
-cd beta/nagvis2
+cd nagvis2
 docker compose up --build -d
 # → http://localhost:8008
 ```
@@ -63,7 +63,7 @@ docker compose up --build -d
 
 ```bash
 git clone https://github.com/bh2005/nagvis-kurz-vor-2
-cd nagvis-kurz-vor-2/beta/nagvis2/backend
+cd nagvis-kurz-vor-2/nagvis2/backend
 python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 python main.py
@@ -94,7 +94,7 @@ DEMO_MODE=false
 WS_POLL_INTERVAL=10
 ```
 
-Alle Variablen: [`.env.example`](beta/nagvis2/.env.example) · Vollständige Doku: [`docs/admin-guide.md`](beta/nagvis2/docs/admin-guide.md)
+Alle Variablen: [`.env.example`](nagvis2/.env.example) · Vollständige Doku: [`docs/admin-guide.md`](nagvis2/docs/admin-guide.md)
 
 Backends über die UI konfigurieren: Burger-Menü → **⚙ Backends verwalten**.
 
@@ -108,8 +108,8 @@ Backends über die UI konfigurieren: Burger-Menü → **⚙ Backends verwalten**
 | `http://localhost:8008/api/v1/docs` | Swagger UI (immer verfügbar) |
 | `http://localhost:8008/api/v1/health` | System-Status + Backend-Erreichbarkeit |
 | [Releases](https://github.com/bh2005/nagvis-kurz-vor-2/releases) | ZIP-Download + Release Notes |
-| [changelog.txt](beta/nagvis2/changelog.txt) | Vollständiger Änderungsverlauf |
-| [admin-guide.md](beta/nagvis2/docs/admin-guide.md) | Installation, Konfiguration, Auth |
+| [changelog.txt](nagvis2/changelog.txt) | Vollständiger Änderungsverlauf |
+| [admin-guide.md](nagvis2/docs/admin-guide.md) | Installation, Konfiguration, Auth |
 
 ---
 
@@ -175,7 +175,7 @@ nagvis2/
 ## Hilfe-System bauen (MkDocs)
 
 ```bash
-cd nagvis-kurz-vor-2/beta/nagvis2
+cd nagvis-kurz-vor-2/nagvis2
 pip install mkdocs-material
 mkdocs build           # Ausgabe: frontend/help/
 ```
@@ -219,7 +219,7 @@ Dieses Projekt steht unter der **MIT License** – siehe [LICENSE](LICENSE).
 | | |
 |---|---|
 | 🚀 [Aktuelles Release](https://github.com/bh2005/nagvis-kurz-vor-2/releases/latest) | ZIP-Download + SHA256 + Release Notes |
-| 📋 [Changelog](beta/nagvis2/changelog.txt) | Vollständiger Änderungsverlauf (UTF-16) |
-| 📖 [Changelog (Markdown)](beta/nagvis2/changelog.md) | Changelog als Markdown |
-| 📚 [Admin-Handbuch](beta/nagvis2/docs/admin-guide.md) | Installation, Konfiguration, Auth, Betrieb |
+| 📋 [Changelog](nagvis2/changelog.txt) | Vollständiger Änderungsverlauf (UTF-16) |
+| 📖 [Changelog (Markdown)](nagvis2/changelog.md) | Changelog als Markdown |
+| 📚 [Admin-Handbuch](nagvis2/docs/admin-guide.md) | Installation, Konfiguration, Auth, Betrieb |
 | ✨ [Feature-Übersicht](FEATURES.md) | Was ist gebaut, was ist geplant |

@@ -28,7 +28,7 @@ Eine komplette Neuentwicklung von NagVis mit FastAPI-Backend, WebSocket-Livestat
 ### Docker (empfohlen)
 
 ```bash
-cd beta/nagvis2
+cd nagvis2
 docker compose up --build -d
 ```
 
@@ -41,7 +41,7 @@ docker compose up --build -d
 ```bash
 # 1. Repository klonen
 git clone https://github.com/bh2005/nagvis-kurz-vor-2
-cd nagvis-kurz-vor-2/beta/nagvis2
+cd nagvis-kurz-vor-2/nagvis2
 
 # 2. Python-Umgebung anlegen (WSL2 / Linux / macOS)
 cd backend
@@ -144,7 +144,7 @@ nagvis2/
 ## Hilfe-System bauen (MkDocs)
 
 ```bash
-cd nagvis-kurz-vor-2/beta/nagvis2
+cd nagvis-kurz-vor-2/nagvis2
 pip install mkdocs-material
 mkdocs build           # Ausgabe: frontend/help/
 ```

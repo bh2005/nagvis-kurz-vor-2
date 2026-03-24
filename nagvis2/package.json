@@ -1,0 +1,26 @@
+{
+  "name": "nagvis2",
+  "version": "0.1.0",
+  "description": "NagVis 2 - Modernes Web-Interface für Nagios/Checkmk/Icinga",
+  "private": true,
+  "scripts": {
+    "docs:build":      "python -m mkdocs build -f mkdocs.yml -d frontend/help",
+    "docs:serve":      "python -m mkdocs serve -f mkdocs.yml",
+    "backend:start":   "cd backend && python -m uvicorn main:app --host 0.0.0.0 --port 8008 --reload",
+    "backend:lint":    "cd backend && python -m py_compile **/*.py",
+    "test:unit":       "vitest run",
+    "test:unit:watch": "vitest",
+    "test:unit:cov":   "vitest run --coverage",
+    "test:e2e":        "playwright test",
+    "test:e2e:ui":     "playwright test --ui",
+    "test":            "npm run test:unit && npm run test:e2e"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.0",
+    "@vitest/coverage-v8": "^2.1.0",
+    "jsdom": "^25.0.0",
+    "@playwright/test": "^1.48.0"
+  },
+  "author": "bh2005",
+  "license": "GPL-2.0-only"
+}

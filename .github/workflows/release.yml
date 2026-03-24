@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: beta/nagvis2/backend
+        working-directory: nagvis2/backend
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -43,7 +43,7 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
-          cache-dependency-path: beta/nagvis2/backend/requirements-dev.txt
+          cache-dependency-path: nagvis2/backend/requirements-dev.txt
 
       - name: Abhängigkeiten installieren
         run: pip install -r requirements-dev.txt
@@ -74,7 +74,7 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
-          cache-dependency-path: beta/nagvis2/backend/requirements.txt
+          cache-dependency-path: nagvis2/backend/requirements.txt
 
       - name: MkDocs installieren
         run: pip install mkdocs-material
@@ -94,11 +94,11 @@ jobs:
           echo "Baue Version: $VERSION"
 
       - name: MkDocs-Hilfe bauen
-        working-directory: beta/nagvis2
+        working-directory: nagvis2
         run: mkdocs build --quiet
 
       - name: ZIP erstellen
-        working-directory: beta/nagvis2
+        working-directory: nagvis2
         run: |
           bash build.sh --version "${{ steps.version.outputs.version }}" --out /tmp/dist --no-docs
           ls -lh /tmp/dist/
@@ -138,7 +138,7 @@ jobs:
         run: |
           VERSION="${{ needs.build.outputs.version }}"
           VERSION_CLEAN="${VERSION#v}"
-          CHANGELOG="beta/nagvis2/changelog.md"
+          CHANGELOG="nagvis2/changelog.md"
 
           # Abschnitt zwischen dieser und der nächsten Version extrahieren
           if [[ -f "$CHANGELOG" ]]; then
@@ -146,7 +146,7 @@ jobs:
                     | head -n -1 | tail -n +2)
           fi
           if [[ -z "${NOTES:-}" ]]; then
-            NOTES="Siehe [changelog.md](https://github.com/${{ github.repository }}/blob/main/beta/nagvis2/changelog.md) für Details."
+            NOTES="Siehe [changelog.md](https://github.com/${{ github.repository }}/blob/main/nagvis2/changelog.md) für Details."
           fi
 
           # Multiline in GITHUB_OUTPUT schreiben
@@ -196,7 +196,7 @@ jobs:
             sudo ./install.sh --auth-enabled
             ```
 
-            Vollständige Dokumentation: [`docs/admin-guide.md`](https://github.com/${{ github.repository }}/blob/main/beta/nagvis2/docs/admin-guide.md)
+            Vollständige Dokumentation: [`docs/admin-guide.md`](https://github.com/${{ github.repository }}/blob/main/nagvis2/docs/admin-guide.md)
 
           files: |
             /tmp/dist/${{ needs.build.outputs.zip_name }}
