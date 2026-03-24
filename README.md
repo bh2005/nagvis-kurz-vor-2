@@ -7,6 +7,7 @@ Eine komplette Neuentwicklung von NagVis mit FastAPI-Backend, WebSocket-Livestat
 [![CI](https://github.com/bh2005/nagvis-kurz-vor-2/actions/workflows/ci.yml/badge.svg)](https://github.com/bh2005/nagvis-kurz-vor-2/actions/workflows/ci.yml)
 [![Latest Release](https://img.shields.io/github/v/release/bh2005/nagvis-kurz-vor-2?label=Release)](https://github.com/bh2005/nagvis-kurz-vor-2/releases/latest)
 [![Changelog](https://img.shields.io/badge/Changelog-ansehen-blue)](beta/nagvis2/changelog.txt)
+[![Code of Conduct](https://img.shields.io/badge/Code_of_Conduct-2.1-blue)](CODE_OF_CONDUCT.md)
 
 ---
 
