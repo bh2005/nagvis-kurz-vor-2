@@ -149,6 +149,29 @@ Einstellungen persistiert in `nv2-user-settings` (localStorage). Standard: deakt
 - Verzeichnisstruktur: `zabbix/` und `icinga2/` ergänzt
 - `docs/todo-liste.md`: bereinigt (erledigte Items als `[x]` markiert); neue Einträge: **DRAW.io-Import**, **BI-Visualisierung**
 
+### Feature: F3 Custom Graph Gadget – Grafana & Checkmk Panels einbetten ✅
+
+**Frontend**
+- `gadget-renderer.js`: neuer Gadget-Typ `graph` — rendert `<iframe>` (Standard) oder `<img>` für externe Graphen
+  - `_graph(cfg)`: generiert HTML mit konfigurierbarer Breite/Höhe; zeigt Leer-Platzhalter wenn keine URL gesetzt
+  - Auto-Refresh: `setInterval` in `_graphTimers` Map; bei `<img>` wird `_t=<timestamp>` Cache-Buster angehängt, bei `<iframe>` wird `src` neu gesetzt
+  - `updateGadget()`: graph-Typ wird übersprungen (keine Perfdata-Aktualisierung)
+  - Export: `window._gadgetGraph = _graph` für Dialog-Vorschau
+- `nodes.js`: Gadget-Konfigurations-Dialog erweitert
+  - Typ-Chip „📊 Graph / Iframe" (spans volle Breite, 7. Button)
+  - `#gc-datasource-row` / `#gc-metric-row`: IDs hinzugefügt für dynamische Sichtbarkeit
+  - `#gc-graph-row`: URL-Eingabe, Einbettung (iframe/img), Breite, Höhe, Refresh-Intervall
+  - `_gcSelectType()`: blendet Datenquellen-/Min-Max-Felder für graph-Typ aus; zeigt Graph-Sektion
+  - `_gcUpdatePreview()`: zeigt Graph-Vorschau (iframe/img) mit aktuellen Werten
+  - `_gcSave()`: schreibt `{ type, url, embed, width, height, metric, refresh }` in `gadget_config`
+
+**Demo**
+- `backend/data/maps/demo-features.json`: Grafana-Play-Beispiel-Gadget (`gadget::graph-demo-01`) hinzugefügt
+
+**Tests & Kompatibilität**
+- `tests/test_prometheus_client.py`: 27 neue Tests für `prometheus/client.py` — Coverage ≥ 70% sichergestellt
+- `from __future__ import annotations` in 10 Backend-Dateien (Python 3.9-Kompatibilität)
+
 ---
 
 ---

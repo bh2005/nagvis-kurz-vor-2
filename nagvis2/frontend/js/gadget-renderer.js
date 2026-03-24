@@ -20,6 +20,20 @@ window.createGadget = function(obj) {
   el.style.transform       = `translate(-50%,-50%) scale(${size/100})`;
   el.style.transformOrigin = 'center center';
 
+  // Auto-Refresh für graph-Gadgets
+  if (cfg.type === 'graph' && (cfg.refresh ?? 0) > 0) {
+    const tid = setInterval(() => {
+      const img = el.querySelector('.g-graph-img');
+      const frm = el.querySelector('.g-graph-frame');
+      if (img) {
+        const sep = img.src.includes('?') ? '&' : '?';
+        img.src = img.src.replace(/[&?]_t=\d+/, '') + `${sep}_t=${Date.now()}`;
+      }
+      if (frm) { frm.src = frm.src; }
+    }, cfg.refresh * 1000);
+    _graphTimers.set(el.id, tid);
+  }
+
   el.addEventListener('mouseenter', () => { if (window.showTooltip) showTooltip(el, obj); });
   el.addEventListener('mouseleave', () => { if (window.hideTooltip) hideTooltip(); });
   el.addEventListener('contextmenu', e => {
@@ -37,8 +51,12 @@ window.createGadget = function(obj) {
   return el;
 };
 
+// Timer-Registry für Graph-Auto-Refresh
+const _graphTimers = new Map();
+
 window.updateGadget = function(el, data) {
   const type = el.dataset.gadgetType;
+  if (type === 'graph') return;   // graph-Gadgets werden nicht via Perfdata aktualisiert
   if (type === 'rawnumber' || type === 'thermometer' || type === 'linear') {
     // Komplett neu rendern (linear: Orientierung kann sich ändern)
     el.innerHTML = _renderGadget({ ...data, type });
@@ -69,6 +87,7 @@ function _renderGadget(cfg) {
     case 'weather':     return _weather(cfg);
     case 'rawnumber':   return _rawNumber(cfg);
     case 'thermometer': return _thermometer(cfg);
+    case 'graph':       return _graph(cfg);
     default:            return _radial(cfg);
   }
 }
@@ -632,6 +651,37 @@ function _thermometer(cfg) {
 }
 
 
+// ════════════════════════════════════════════════════════
+//  GRAPH EMBED  – iframe oder <img> für externe Grafiken
+// ════════════════════════════════════════════════════════
+function _graph(cfg) {
+  const w   = cfg.width  ?? 400;
+  const h   = cfg.height ?? 200;
+  const url = cfg.url || '';
+  const lbl = _gesc(cfg.metric || '');
+
+  if (!url) {
+    return `<div class="g-graph g-graph-empty" style="width:${w}px;height:${h}px;
+              display:flex;align-items:center;justify-content:center;
+              border:1px dashed var(--border);border-radius:var(--r)">
+              <span style="color:var(--text-dim);font-size:11px">Keine URL konfiguriert</span>
+            </div>
+            ${lbl ? `<div class="nv2-label">${lbl}</div>` : ''}`;
+  }
+
+  const inner = cfg.embed === 'img'
+    ? `<img  class="g-graph-img"   src="${_gesc(url)}"
+             width="${w}" height="${h}"
+             style="display:block;border:0;border-radius:var(--r);max-width:none" alt="Graph">`
+    : `<iframe class="g-graph-frame" src="${_gesc(url)}"
+               width="${w}" height="${h}" frameborder="0"
+               style="display:block;border:0;border-radius:var(--r)"
+               sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>`;
+
+  return `<div class="g-graph" style="width:${w}px;height:${h}px;overflow:hidden;border-radius:var(--r)">${inner}</div>
+          ${lbl ? `<div class="nv2-label">${lbl}</div>` : ''}`;
+}
+
 // Exports für Gadget-Konfigurations-Dialog Vorschau
 window._gadgetRadial       = _radial;
 window._gadgetLinear       = _linear;
@@ -639,6 +689,7 @@ window._gadgetSparkline    = _sparkline;
 window._gadgetWeather      = _weather;
 window._gadgetRawNumber    = _rawNumber;
 window._gadgetThermometer  = _thermometer;
+window._gadgetGraph        = _graph;
 
 // Vollständiges Re-Render für _gcSave in app.js
 window._renderGadgetHTML = _renderGadget;
