@@ -34,20 +34,22 @@ async def ws_map(websocket: WebSocket, map_id: str):
             await websocket.send_text(json.dumps({
                 "event":    "snapshot",
                 "ts":       time.time(),
-                "hosts":    DEMO_STATUS,
-                "services": DEMO_SERVICES,
+                "hosts":    [{**h, "_backend_id": "demo"} for h in DEMO_STATUS],
+                "services": [{**s, "_backend_id": "demo"} for s in DEMO_SERVICES],
             }))
         else:
             t0       = time.time()
-            hosts    = await registry.get_all_hosts()
-            services = await registry.get_all_services()
+            # get_all_hosts_tagged() liefert Dicts mit _backend_id – konsistent
+            # mit dem Poll-Loop, damit backendStatusCache sofort befüllt wird.
+            hosts    = await registry.get_all_hosts_tagged()
+            services = await registry.get_all_services_tagged()
             elapsed  = int((time.time() - t0) * 1000)
             await websocket.send_text(json.dumps({
                 "event":    "snapshot",
                 "ts":       time.time(),
                 "elapsed":  elapsed,
-                "hosts":    [h.to_dict() for h in hosts],
-                "services": [s.to_dict() for s in services],
+                "hosts":    hosts,
+                "services": services,
             }))
 
     try:

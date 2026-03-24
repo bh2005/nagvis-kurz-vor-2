@@ -291,18 +291,15 @@ class TestPollLoopEdgeCases:
         mgr = ConnectionManager()
         mgr.connect("map-1", ws)
 
-        host_mock = MagicMock()
-        host_mock.to_dict.return_value = {"name": "srv1", "state_label": "up"}
-        svc_mock = MagicMock()
-        svc_mock.to_dict.return_value = {
-            "host_name": "srv1", "description": "ping", "state_label": "ok"
-        }
-
         with patch("connectors.registry.registry") as mock_reg, \
              patch("ws.manager.manager", mgr):
             mock_reg.is_empty.return_value = False
-            mock_reg.get_all_hosts    = AsyncMock(return_value=[host_mock])
-            mock_reg.get_all_services = AsyncMock(return_value=[svc_mock])
+            mock_reg.get_all_hosts_tagged    = AsyncMock(return_value=[
+                {"name": "srv1", "state_label": "up", "_backend_id": "test"}
+            ])
+            mock_reg.get_all_services_tagged = AsyncMock(return_value=[
+                {"host_name": "srv1", "description": "ping", "state_label": "ok", "_backend_id": "test"}
+            ])
 
             from ws.manager import _poll_loop
             task = asyncio.create_task(_poll_loop())
@@ -327,14 +324,13 @@ class TestPollLoopEdgeCases:
         mgr = ConnectionManager()
         mgr.connect("map-1", ws)
 
-        host_mock = MagicMock()
-        host_mock.to_dict.return_value = {"name": "srv1", "state_label": "up"}
-
         with patch("connectors.registry.registry") as mock_reg, \
              patch("ws.manager.manager", mgr):
             mock_reg.is_empty.return_value = False
-            mock_reg.get_all_hosts    = AsyncMock(return_value=[host_mock])
-            mock_reg.get_all_services = AsyncMock(return_value=[])
+            mock_reg.get_all_hosts_tagged    = AsyncMock(return_value=[
+                {"name": "srv1", "state_label": "up", "_backend_id": "test"}
+            ])
+            mock_reg.get_all_services_tagged = AsyncMock(return_value=[])
 
             from ws.manager import _poll_loop
             task = asyncio.create_task(_poll_loop())
