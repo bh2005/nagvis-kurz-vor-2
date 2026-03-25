@@ -12,18 +12,20 @@
         <meta name="author" content="NagVis 2 Team">
       
       
+        <link rel="canonical" href="https://bh2005.github.io/nagvis-kurz-vor-2/admin-guide/">
+      
       
         <link rel="prev" href="../user-guide/">
       
       
-        <link rel="next" href="../api-reference/">
+        <link rel="next" href="../dev-guide/">
       
       
         
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.5">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
@@ -335,10 +337,93 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#installation-ohne-docker" class="md-nav__link">
+  <a href="#installation-via-install-script-empfohlen" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Installation (ohne Docker)
+        Installation via Install-Script (empfohlen)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Installation via Install-Script (empfohlen)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#schnellstart" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schnellstart
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#optionen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optionen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#beispiele" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Beispiele
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#was-das-script-macht" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Was das Script macht
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#berechtigungskonzept" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Berechtigungskonzept
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#service-verwalten" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Service verwalten
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installation-manuell-ohne-script" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installation (manuell / ohne Script)
       
     </span>
   </a>
@@ -395,6 +480,17 @@
     <span class="md-ellipsis">
       
         Server
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#authentifizierung" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentifizierung
       
     </span>
   </a>
@@ -546,6 +642,50 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#checkmk-rest-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Checkmk REST API
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#zabbix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Zabbix
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#icinga2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Icinga2
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#prometheus-victoriametrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prometheus / VictoriaMetrics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#backend-persistenz" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -561,6 +701,100 @@
     <span class="md-ellipsis">
       
         REST-API für Backends
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authentifizierung-benutzerverwaltung" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentifizierung &amp; Benutzerverwaltung
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Authentifizierung &amp; Benutzerverwaltung">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#uberblick" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Überblick
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#auth-modus-aktivieren" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Auth-Modus aktivieren
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rollen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rollen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#benutzerverwaltung-im-browser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Benutzerverwaltung im Browser
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#token-verwaltung" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Token-Verwaltung
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rest-api-authentifizierung" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        REST-API Authentifizierung
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#benutzerdaten" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Benutzerdaten
       
     </span>
   </a>
@@ -695,6 +929,128 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#https-tls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTTPS / TLS
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="HTTPS / TLS">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#option-a-self-signed-internes-netz-entwicklung" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option A: Self-Signed (internes Netz / Entwicklung)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-b-lets-encrypt-certbot-offentlich-erreichbarer-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option B: Let's Encrypt / Certbot (öffentlich erreichbarer Server)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#port-443-in-firewall-offnen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Port 443 in Firewall öffnen
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#omd-checkmk-integration-p3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OMD / Checkmk-Integration (P3)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="OMD / Checkmk-Integration (P3)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#voraussetzungen_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Voraussetzungen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hook-installieren" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hook installieren
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#verwendung" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verwendung
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#konfiguration-im-omd-kontext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Konfiguration im OMD-Kontext
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hook-deinstallieren" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hook deinstallieren
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#produktions-empfehlungen" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -709,6 +1065,33 @@
   
 </nav>
       
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dev-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Entwickler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -782,10 +1165,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
         
           
-          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
             
   
   
@@ -803,8 +1186,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1055,10 +1438,93 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#installation-ohne-docker" class="md-nav__link">
+  <a href="#installation-via-install-script-empfohlen" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Installation (ohne Docker)
+        Installation via Install-Script (empfohlen)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Installation via Install-Script (empfohlen)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#schnellstart" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schnellstart
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#optionen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optionen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#beispiele" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Beispiele
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#was-das-script-macht" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Was das Script macht
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#berechtigungskonzept" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Berechtigungskonzept
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#service-verwalten" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Service verwalten
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installation-manuell-ohne-script" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installation (manuell / ohne Script)
       
     </span>
   </a>
@@ -1115,6 +1581,17 @@
     <span class="md-ellipsis">
       
         Server
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#authentifizierung" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentifizierung
       
     </span>
   </a>
@@ -1266,6 +1743,50 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#checkmk-rest-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Checkmk REST API
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#zabbix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Zabbix
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#icinga2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Icinga2
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#prometheus-victoriametrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prometheus / VictoriaMetrics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#backend-persistenz" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1281,6 +1802,100 @@
     <span class="md-ellipsis">
       
         REST-API für Backends
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authentifizierung-benutzerverwaltung" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentifizierung &amp; Benutzerverwaltung
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Authentifizierung &amp; Benutzerverwaltung">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#uberblick" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Überblick
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#auth-modus-aktivieren" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Auth-Modus aktivieren
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rollen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rollen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#benutzerverwaltung-im-browser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Benutzerverwaltung im Browser
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#token-verwaltung" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Token-Verwaltung
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rest-api-authentifizierung" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        REST-API Authentifizierung
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#benutzerdaten" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Benutzerdaten
       
     </span>
   </a>
@@ -1415,6 +2030,128 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#https-tls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTTPS / TLS
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="HTTPS / TLS">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#option-a-self-signed-internes-netz-entwicklung" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option A: Self-Signed (internes Netz / Entwicklung)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-b-lets-encrypt-certbot-offentlich-erreichbarer-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option B: Let's Encrypt / Certbot (öffentlich erreichbarer Server)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#port-443-in-firewall-offnen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Port 443 in Firewall öffnen
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#omd-checkmk-integration-p3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OMD / Checkmk-Integration (P3)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="OMD / Checkmk-Integration (P3)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#voraussetzungen_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Voraussetzungen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hook-installieren" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hook installieren
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#verwendung" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verwendung
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#konfiguration-im-omd-kontext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Konfiguration im OMD-Kontext
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hook-deinstallieren" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hook deinstallieren
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#produktions-empfehlungen" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1461,16 +2198,117 @@
 <td>24.x / 2.x</td>
 </tr>
 <tr>
-<td>Nagios / Checkmk / Icinga</td>
+<td>Nagios / Checkmk</td>
 <td>mit Livestatus-Modul oder Checkmk REST API</td>
+</tr>
+<tr>
+<td>Zabbix</td>
+<td>6.0+ (empfohlen), 5.x mit Username/Password</td>
+</tr>
+<tr>
+<td>Icinga2</td>
+<td>2.11+ mit aktivierter REST API</td>
 </tr>
 </tbody>
 </table>
 <hr />
-<h2 id="installation-ohne-docker">Installation (ohne Docker)</h2>
+<h2 id="installation-via-install-script-empfohlen">Installation via Install-Script (empfohlen)</h2>
+<p>Das mitgelieferte <code>install.sh</code> übernimmt alle Schritte automatisch:
+Service-User anlegen, Dateien entpacken, venv erstellen, Berechtigungen setzen, Systemd-Service einrichten.</p>
+<h3 id="schnellstart">Schnellstart</h3>
+<pre><code class="language-bash"># ZIP herunterladen/bereitstellen, dann:
+sudo ./install.sh
+# → installiert nach /opt/nagvis2, startet nagvis2.service
+</code></pre>
+<h3 id="optionen">Optionen</h3>
+<pre><code class="language-bash">sudo ./install.sh [OPTIONEN]
+
+  --zip FILE           Pfad zur nagvis2.zip       (Standard: nagvis2.zip im CWD)
+  --install-dir DIR    Zielverzeichnis             (Standard: /opt/nagvis2)
+  --user USER          Service-User/Gruppe         (Standard: nagvis2)
+  --port PORT          HTTP-Port                   (Standard: 8008)
+  --auth-enabled       AUTH_ENABLED=true in .env
+  --no-systemd         Kein Systemd-Service
+  --no-start           Service nicht automatisch starten
+  --upgrade            Bestehende Installation aktualisieren (Daten bleiben)
+  --uninstall          Installation vollständig entfernen
+</code></pre>
+<h3 id="beispiele">Beispiele</h3>
+<pre><code class="language-bash"># Standard-Installation mit Auth und Port 8080
+sudo ./install.sh --zip /tmp/nagvis2.zip --port 8080 --auth-enabled
+
+# Upgrade (Daten/Config bleiben erhalten, Code wird aktualisiert)
+sudo ./install.sh --upgrade --zip /tmp/nagvis2_v2.1.zip
+
+# Nur Dateien, kein Systemd (z.B. für Docker/OMD-Integration)
+sudo ./install.sh --no-systemd --no-start
+
+# Deinstallation
+sudo ./install.sh --uninstall
+</code></pre>
+<h3 id="was-das-script-macht">Was das Script macht</h3>
+<table>
+<thead>
+<tr>
+<th>Schritt</th>
+<th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Voraussetzungen</td>
+<td>Python 3.11+, pip, unzip prüfen</td>
+</tr>
+<tr>
+<td>User/Group</td>
+<td><code>nagvis2</code> System-User + Gruppe anlegen</td>
+</tr>
+<tr>
+<td>Dateien</td>
+<td>ZIP entpacken → Zielverzeichnis</td>
+</tr>
+<tr>
+<td>venv</td>
+<td>Python venv erstellen + <code>requirements.txt</code> installieren</td>
+</tr>
+<tr>
+<td>Datenverzeichnisse</td>
+<td><code>data/{maps,backgrounds,thumbnails,kiosk,logs}</code> anlegen</td>
+</tr>
+<tr>
+<td><code>.env</code></td>
+<td>Aus <code>.env.example</code> erstellen, Secret Key auto-generieren</td>
+</tr>
+<tr>
+<td>Berechtigungen</td>
+<td>Code: <code>root:nagvis2 755/644</code> · Daten: <code>nagvis2:nagvis2 750</code> · <code>.env</code>: <code>600</code></td>
+</tr>
+<tr>
+<td>Systemd</td>
+<td><code>/etc/systemd/system/nagvis2.service</code> erstellen + aktivieren</td>
+</tr>
+</tbody>
+</table>
+<h3 id="berechtigungskonzept">Berechtigungskonzept</h3>
+<pre><code>/opt/nagvis2/                  root:nagvis2   755   ← Code nicht schreibbar für Service
+/opt/nagvis2/backend/          root:nagvis2   755
+/opt/nagvis2/backend/.env      nagvis2:nagvis2 600  ← Secrets nur für Service-User lesbar
+/opt/nagvis2/backend/data/     nagvis2:nagvis2 750  ← Service darf schreiben
+/opt/nagvis2/backend/venv/     root:nagvis2   755
+/opt/nagvis2/frontend/         root:nagvis2   755
+</code></pre>
+<h3 id="service-verwalten">Service verwalten</h3>
+<pre><code class="language-bash">systemctl status  nagvis2        # Status anzeigen
+systemctl restart nagvis2        # Neu starten (nach .env-Änderungen)
+systemctl stop    nagvis2        # Stoppen
+journalctl -u nagvis2 -f         # Live-Log verfolgen
+journalctl -u nagvis2 --since today   # Log von heute
+</code></pre>
+<hr />
+<h2 id="installation-manuell-ohne-script">Installation (manuell / ohne Script)</h2>
 <pre><code class="language-bash"># 1. Repository klonen
 git clone https://github.com/bh2005/nagvis-kurz-vor-2
-cd nagvis-kurz-vor-2/beta/nagvis2
+cd nagvis-kurz-vor-2/nagvis2
 
 # 2. Python-Umgebung anlegen
 cd backend
@@ -1478,7 +2316,7 @@ python3 -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
-# 3. Konfiguration (optional – Standardwerte funktionieren für lokale Tests)
+# 3. Konfiguration
 cp .env.example .env
 # .env anpassen (siehe Abschnitt Konfiguration)
 
@@ -1487,10 +2325,10 @@ python main.py
 # → http://localhost:8008
 </code></pre>
 <p>Das Frontend wird automatisch unter <code>http://localhost:8008/</code> ausgeliefert.
-API-Dokumentation (nur im Debug-Modus): <code>http://localhost:8008/api/docs</code></p>
+API-Dokumentation (Swagger): <code>http://localhost:8008/api/v1/docs</code></p>
 <hr />
 <h2 id="installation-docker">Installation (Docker)</h2>
-<pre><code class="language-bash">cd nagvis-kurz-vor-2/beta/nagvis2
+<pre><code class="language-bash">cd nagvis-kurz-vor-2/nagvis2
 
 # Alle Dienste starten
 docker-compose up --build -d
@@ -1514,6 +2352,9 @@ docker-compose down
 <hr />
 <h2 id="konfiguration">Konfiguration</h2>
 <p>Alle Einstellungen erfolgen über Umgebungsvariablen (oder <code>.env</code>-Datei im <code>backend/</code>-Verzeichnis).</p>
+<pre><code class="language-bash">cp .env.example .env
+# .env anpassen, dann Backend neu starten
+</code></pre>
 <h3 id="umgebung">Umgebung</h3>
 <table>
 <thead>
@@ -1532,12 +2373,12 @@ docker-compose down
 <tr>
 <td><code>DEBUG</code></td>
 <td><code>true</code></td>
-<td>Swagger-Docs aktivieren, Auto-Reload</td>
+<td>Auto-Reload aktivieren</td>
 </tr>
 <tr>
 <td><code>DEMO_MODE</code></td>
 <td><code>false</code></td>
-<td>Statische Testdaten, kein Livestatus</td>
+<td>Statische Testdaten, kein Backend nötig</td>
 </tr>
 </tbody>
 </table>
@@ -1597,6 +2438,28 @@ docker-compose down
 <td><code>CORS_ORIGINS</code></td>
 <td><code>http://localhost:8008,...</code></td>
 <td>Erlaubte Origins (kommagetrennt)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="authentifizierung">Authentifizierung</h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Standard</th>
+<th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>AUTH_ENABLED</code></td>
+<td><code>false</code></td>
+<td><code>true</code>: Login-Overlay + JWT-Prüfung; <code>false</code>: offen (kein Login)</td>
+</tr>
+<tr>
+<td><code>NAGVIS_SECRET</code></td>
+<td><em>(leer)</em></td>
+<td>JWT-Signing-Key – <strong>muss in Produktion gesetzt werden!</strong></td>
 </tr>
 </tbody>
 </table>
@@ -1837,6 +2700,10 @@ GET /api/logs?lines=1000&amp;download=true
     │   └── logging_setup.py ← Log-Format (text/json), In-Memory-Ringpuffer
     ├── checkmk/
     │   └── client.py        ← Checkmk REST API Client
+    ├── zabbix/
+    │   └── client.py        ← Zabbix JSON-RPC API Client
+    ├── icinga2/
+    │   └── client.py        ← Icinga2 REST API Client
     ├── connectors/
     │   └── registry.py      ← Unified Backend Registry
     ├── api/
@@ -1899,8 +2766,318 @@ GET /api/logs?lines=1000&amp;download=true
 <td><strong>Livestatus Unix</strong></td>
 <td>Socket-Pfad (z.B. <code>/omd/sites/mysite/tmp/run/live</code>)</td>
 </tr>
+<tr>
+<td><strong>Zabbix</strong></td>
+<td>URL (z.B. <code>https://zabbix.example.com</code>), API-Token (Zabbix 6.0+) oder Username/Password</td>
+</tr>
+<tr>
+<td><strong>Icinga2</strong></td>
+<td>URL (z.B. <code>https://icinga2:5665/v1</code>), API-User + Passwort</td>
+</tr>
+<tr>
+<td><strong>Prometheus / VictoriaMetrics</strong></td>
+<td>URL (z.B. <code>http://prometheus:9090</code>), Bearer Token oder Basic Auth, Host-Label</td>
+</tr>
 </tbody>
 </table>
+<h3 id="checkmk-rest-api">Checkmk REST API</h3>
+<p><strong>Voraussetzungen:</strong>
+- Checkmk 2.0+ (Raw, Free oder Enterprise Edition)
+- Automation-User unter <em>Setup → Users → Automation user</em> angelegt</p>
+<p><strong>Konfigurationsparameter:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Beispiel</th>
+<th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>url</code></td>
+<td><code>http://checkmk:5000/mysite/check_mk/api/1.0</code></td>
+<td>REST-API-Basis-URL (inkl. Site-Name)</td>
+</tr>
+<tr>
+<td><code>username</code></td>
+<td><code>automation</code></td>
+<td>Automation-User-Name</td>
+</tr>
+<tr>
+<td><code>secret</code></td>
+<td><code>abc123xyz...</code></td>
+<td>Automation-Secret (aus Checkmk-UI kopieren)</td>
+</tr>
+<tr>
+<td><code>verify_ssl</code></td>
+<td><code>true</code></td>
+<td>TLS-Zertifikat prüfen (bei Self-Signed: <code>false</code>)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Automation-User anlegen (Checkmk UI):</strong></p>
+<pre><code>Setup → Users → Add user
+→ Automation user aktivieren
+→ Secret kopieren und in NagVis 2 eintragen
+</code></pre>
+<hr />
+<h3 id="zabbix">Zabbix</h3>
+<p><strong>Voraussetzungen:</strong>
+- Zabbix 6.0+ (empfohlen; Zabbix 5.x mit Username/Passwort möglich)
+- API-Token unter <em>User Settings → API tokens</em> erstellt</p>
+<p><strong>Konfigurationsparameter:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Beispiel</th>
+<th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>url</code></td>
+<td><code>https://zabbix.example.com</code></td>
+<td>Zabbix-Frontend-URL (ohne <code>/api_jsonrpc.php</code>)</td>
+</tr>
+<tr>
+<td><code>token</code></td>
+<td><code>abc123...</code></td>
+<td>API-Token (Zabbix 6.0+, bevorzugt)</td>
+</tr>
+<tr>
+<td><code>username</code></td>
+<td><code>Admin</code></td>
+<td>Fallback-Login (nur ohne Token, Zabbix 5.x)</td>
+</tr>
+<tr>
+<td><code>password</code></td>
+<td><code>geheim</code></td>
+<td>Fallback-Passwort</td>
+</tr>
+<tr>
+<td><code>verify_ssl</code></td>
+<td><code>true</code></td>
+<td>TLS-Zertifikat prüfen</td>
+</tr>
+</tbody>
+</table>
+<p><strong>API-Token anlegen (Zabbix 6.0+):</strong></p>
+<pre><code>User Settings → API tokens → Create API token
+→ User-Rolle mit Read-Zugriff auf gewünschte Hosts/Gruppen
+</code></pre>
+<p><strong>Konzept-Mapping Zabbix → NagVis 2:</strong></p>
+<table>
+<thead>
+<tr>
+<th>NagVis 2</th>
+<th>Zabbix</th>
+<th>Hinweis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hosts</td>
+<td><code>host.get</code></td>
+<td><code>available</code>: 1=UP, 2=DOWN, 0=UNREACHABLE</td>
+</tr>
+<tr>
+<td>Services</td>
+<td><code>problem.get</code></td>
+<td>Aktive Trigger-Auslösungen</td>
+</tr>
+<tr>
+<td>Hostgruppen</td>
+<td><code>hostgroup.get</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Schweregrad-Mapping:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Zabbix Severity</th>
+<th>NagVis 2 State</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0 Not classified, 1 Information, 2 Warning</td>
+<td>WARNING</td>
+</tr>
+<tr>
+<td>3 Average, 4 High, 5 Disaster</td>
+<td>CRITICAL</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="icinga2">Icinga2</h3>
+<p><strong>Voraussetzungen:</strong>
+- Icinga2 2.11+
+- Icinga2 REST API aktiviert (<code>icinga2 api setup</code>)
+- API-Benutzer in <code>/etc/icinga2/conf.d/api-users.conf</code> angelegt</p>
+<p><strong>Konfigurationsparameter:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Beispiel</th>
+<th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>base_url</code></td>
+<td><code>https://icinga2.example.com:5665/v1</code></td>
+<td>REST-API-URL (Port 5665)</td>
+</tr>
+<tr>
+<td><code>username</code></td>
+<td><code>nagvis2</code></td>
+<td>API-Benutzer-Name</td>
+</tr>
+<tr>
+<td><code>password</code></td>
+<td><code>geheim</code></td>
+<td>API-Benutzer-Passwort</td>
+</tr>
+<tr>
+<td><code>verify_ssl</code></td>
+<td><code>false</code></td>
+<td>TLS prüfen (Icinga2 nutzt oft Self-Signed-Certs)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>API-Benutzer anlegen</strong> (<code>/etc/icinga2/conf.d/api-users.conf</code>):</p>
+<pre><code>object ApiUser &quot;nagvis2&quot; {
+  password = &quot;geheimes-passwort&quot;
+  permissions = [
+    &quot;objects/query/Host&quot;,
+    &quot;objects/query/Service&quot;,
+    &quot;objects/query/HostGroup&quot;,
+    &quot;actions/acknowledge-problem&quot;,
+    &quot;actions/remove-acknowledgement&quot;,
+    &quot;actions/schedule-downtime&quot;,
+    &quot;actions/reschedule-check&quot;
+  ]
+}
+</code></pre>
+<p>Nach der Änderung Icinga2 neu laden:</p>
+<pre><code class="language-bash">systemctl reload icinga2
+</code></pre>
+<p><strong>Konzept-Mapping Icinga2 → NagVis 2:</strong></p>
+<table>
+<thead>
+<tr>
+<th>NagVis 2</th>
+<th>Icinga2 Endpoint</th>
+<th>Hinweis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hosts</td>
+<td><code>GET /v1/objects/hosts</code></td>
+<td>state: 0=UP, 1=DOWN, 2=UNREACHABLE</td>
+</tr>
+<tr>
+<td>Services</td>
+<td><code>GET /v1/objects/services</code></td>
+<td>state: 0=OK, 1=WARNING, 2=CRITICAL, 3=UNKNOWN</td>
+</tr>
+<tr>
+<td>Hostgruppen</td>
+<td><code>GET /v1/objects/hostgroups</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Icinga2 Custom-Vars (<code>host.vars.*</code>) werden automatisch als Labels übernommen (nur einfache Datentypen: String, Zahl, Bool).</p>
+<hr />
+<h3 id="prometheus-victoriametrics">Prometheus / VictoriaMetrics</h3>
+<p><strong>Voraussetzungen:</strong>
+- Prometheus 2.x oder VictoriaMetrics (identische HTTP API)
+- Keine besondere Konfiguration erforderlich — NagVis 2 nutzt nur lesende API-Endpunkte</p>
+<p><strong>Konfigurationsparameter:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Beispiel</th>
+<th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>url</code></td>
+<td><code>http://prometheus:9090</code></td>
+<td>Prometheus-Basis-URL (ohne <code>/api/v1/</code>)</td>
+</tr>
+<tr>
+<td><code>token</code></td>
+<td><code>Bearer xyz...</code></td>
+<td>Bearer Token (optional, für gesicherte Instanzen)</td>
+</tr>
+<tr>
+<td><code>username</code> / <code>password</code></td>
+<td><code>user</code> / <code>pass</code></td>
+<td>Basic Auth (alternativ zu Bearer Token)</td>
+</tr>
+<tr>
+<td><code>host_label</code></td>
+<td><code>instance</code></td>
+<td>Welches Prometheus-Label als Host-Name verwendet wird (Standard: <code>instance</code>)</td>
+</tr>
+<tr>
+<td><code>timeout</code></td>
+<td><code>15</code></td>
+<td>HTTP-Timeout in Sekunden</td>
+</tr>
+<tr>
+<td><code>verify_ssl</code></td>
+<td><code>true</code></td>
+<td>TLS-Zertifikat prüfen</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Konzept-Mapping Prometheus → NagVis 2:</strong></p>
+<table>
+<thead>
+<tr>
+<th>NagVis 2</th>
+<th>Prometheus Endpoint</th>
+<th>Mapping</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hosts</td>
+<td><code>GET /api/v1/query?query=up</code></td>
+<td><code>up=1</code> → UP, <code>up=0</code> → DOWN; Label <code>host_label</code> → Host-Name</td>
+</tr>
+<tr>
+<td>Services</td>
+<td><code>GET /api/v1/alerts</code></td>
+<td><code>firing</code> + <code>severity=critical</code> → CRITICAL; <code>firing</code> + <code>warning/warn/info</code> → WARNING; <code>pending</code> → WARNING</td>
+</tr>
+<tr>
+<td>Hostgruppen</td>
+<td><code>GET /api/v1/query?query=up</code></td>
+<td><code>job</code>-Label gruppiert Targets</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Mehrere Jobs, gleicher Host-Name:</strong>
+Wenn derselbe <code>instance</code>-Wert in mehreren Jobs auftaucht, gewinnt der schlechteste Status (DOWN &gt; UP).</p>
+<p><strong>Wichtig:</strong> Prometheus ist <strong>read-only</strong> — ACK, Downtime und Reschedule sind nicht möglich. Entsprechende Aktionen im Kontextmenü werden ignoriert (mit Hinweis im Log).</p>
+<p><strong>VictoriaMetrics:</strong>
+VictoriaMetrics ist vollständig kompatibel — dieselbe API, kein Unterschied in der Konfiguration.</p>
+<p><strong>Verbindungstest:</strong>
+<code>GET /api/v1/status/buildinfo</code> — liefert die Prometheus-Version zurück (sichtbar im Backend-Test-Dialog).</p>
+<hr />
 <h3 id="backend-persistenz">Backend-Persistenz</h3>
 <p>Konfigurierte Backends werden in <code>data/backends.json</code> gespeichert — kein Neustart erforderlich.</p>
 <p>Beim ersten Start werden <code>LIVESTATUS_*</code>-Umgebungsvariablen automatisch als „default"-Backend importiert (Rückwärtskompatibilität zu bestehenden Deployments).</p>
@@ -1917,6 +3094,116 @@ DELETE /api/backends/{id}
 # Verbindung testen (ohne Speichern)
 POST /api/backends/probe
 </code></pre>
+<hr />
+<h2 id="authentifizierung-benutzerverwaltung">Authentifizierung &amp; Benutzerverwaltung</h2>
+<h3 id="uberblick">Überblick</h3>
+<p>NagVis 2 unterstützt zwei Betriebsmodi:</p>
+<table>
+<thead>
+<tr>
+<th>Modus</th>
+<th><code>AUTH_ENABLED</code></th>
+<th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Offen</strong> (Standard)</td>
+<td><code>false</code></td>
+<td>Kein Login erforderlich. Alle Benutzer haben implizit Admin-Rechte. Schutz über nginx / OMD-Basis-Auth empfohlen.</td>
+</tr>
+<tr>
+<td><strong>Auth-Modus</strong></td>
+<td><code>true</code></td>
+<td>Login-Overlay beim ersten Aufruf. Alle API-Endpunkte prüfen JWT-Bearer-Token. Rollen-basierter Zugriff.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="auth-modus-aktivieren">Auth-Modus aktivieren</h3>
+<ol>
+<li><code>.env</code> anlegen (oder <code>.env.example</code> kopieren):</li>
+</ol>
+<pre><code class="language-env">AUTH_ENABLED=true
+NAGVIS_SECRET=&lt;langer-zufälliger-schluessel&gt;
+</code></pre>
+<p>Secret erzeugen:</p>
+<pre><code class="language-bash">python3 -c &quot;import secrets; print(secrets.token_hex(32))&quot;
+</code></pre>
+<ol>
+<li>
+<p>Backend neu starten – beim nächsten Aufruf erscheint das Login-Overlay.</p>
+</li>
+<li>
+<p>Ersten Admin-Benutzer anlegen (Swagger UI oder curl):</p>
+</li>
+</ol>
+<pre><code class="language-bash"># Ersten User via API anlegen (nur solange noch kein Admin existiert)
+curl -X POST http://localhost:8008/api/v1/auth/users \
+  -H &quot;Content-Type: application/json&quot; \
+  -d '{&quot;username&quot;: &quot;admin&quot;, &quot;password&quot;: &quot;sicher123&quot;, &quot;role&quot;: &quot;admin&quot;}'
+</code></pre>
+<blockquote>
+<p><strong>Hinweis:</strong> Alternativ direkt <code>data/users.json</code> anlegen — Passwörter müssen bcrypt-gehasht sein.</p>
+</blockquote>
+<h3 id="rollen">Rollen</h3>
+<table>
+<thead>
+<tr>
+<th>Rolle</th>
+<th>Rechte</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>viewer</code></td>
+<td>Maps anzeigen, Monitoring-Daten lesen</td>
+</tr>
+<tr>
+<td><code>editor</code></td>
+<td>Zusätzlich: Maps und Objekte bearbeiten, Map importieren</td>
+</tr>
+<tr>
+<td><code>admin</code></td>
+<td>Zusätzlich: Maps anlegen/löschen, Backends verwalten, Benutzer verwalten, Aktionen konfigurieren</td>
+</tr>
+</tbody>
+</table>
+<h3 id="benutzerverwaltung-im-browser">Benutzerverwaltung im Browser</h3>
+<p>Burger-Menü → <strong>👤 Benutzer verwalten</strong> (nur sichtbar als Admin):</p>
+<ul>
+<li>Neue Benutzer anlegen (Name, Passwort, Rolle)</li>
+<li>Rolle bestehender Benutzer ändern</li>
+<li>Passwort zurücksetzen</li>
+<li>Benutzer löschen</li>
+</ul>
+<p>Eigenes Passwort ändern: Burger-Menü → <strong>🔑 Passwort ändern</strong> (für alle eingeloggten Benutzer).</p>
+<h3 id="token-verwaltung">Token-Verwaltung</h3>
+<ul>
+<li>Tokens sind <strong>7 Tage</strong> gültig</li>
+<li>Das Frontend erneuert den Token automatisch <strong>1 Tag vor Ablauf</strong> (Auto-Refresh)</li>
+<li>Logout widerruft das aktuelle Token serverseitig (<code>POST /api/v1/auth/logout</code>)</li>
+<li>Widerrufene Tokens werden in <code>data/tokens.json</code> gespeichert</li>
+</ul>
+<h3 id="rest-api-authentifizierung">REST-API Authentifizierung</h3>
+<pre><code class="language-bash"># Login → JWT-Token holen
+TOKEN=$(curl -s -X POST http://localhost:8008/api/v1/auth/login \
+  -H &quot;Content-Type: application/json&quot; \
+  -d '{&quot;username&quot;:&quot;admin&quot;,&quot;password&quot;:&quot;sicher123&quot;}' | jq -r .token)
+
+# Geschützte Endpunkte aufrufen
+curl -H &quot;Authorization: Bearer $TOKEN&quot; http://localhost:8008/api/v1/auth/me
+
+# Alle Benutzer auflisten (admin only)
+curl -H &quot;Authorization: Bearer $TOKEN&quot; http://localhost:8008/api/v1/auth/users
+</code></pre>
+<h3 id="benutzerdaten">Benutzerdaten</h3>
+<p>Benutzer werden in <code>data/users.json</code> gespeichert (bcrypt-Hashes, kein Klartext):</p>
+<pre><code class="language-json">[
+  {&quot;username&quot;: &quot;admin&quot;, &quot;password&quot;: &quot;$2b$12$...&quot;, &quot;role&quot;: &quot;admin&quot;},
+  {&quot;username&quot;: &quot;readonly&quot;, &quot;password&quot;: &quot;$2b$12$...&quot;, &quot;role&quot;: &quot;viewer&quot;}
+]
+</code></pre>
+<p>Die Datei wird beim ersten Start automatisch angelegt. <strong>Backup empfohlen</strong> (zusammen mit <code>data/backends.json</code>).</p>
 <hr />
 <h2 id="perfdata-verarbeitung">Perfdata-Verarbeitung</h2>
 <p>NagVis 2 parst Nagios/Checkmk Performance-Daten automatisch und stellt sie für Gadgets bereit.</p>
@@ -1982,7 +3269,7 @@ rta=1.234ms;3000;5000;0;
 <h2 id="hilfe-system-mkdocs">Hilfe-System (MkDocs)</h2>
 <p>Die integrierte Hilfe liegt unter <code>frontend/help/</code> und wird von FastAPI statisch ausgeliefert.</p>
 <h3 id="hilfe-neu-bauen">Hilfe neu bauen</h3>
-<pre><code class="language-bash">cd nagvis-kurz-vor-2/beta/nagvis2
+<pre><code class="language-bash">cd nagvis-kurz-vor-2/nagvis2
 pip install mkdocs-material
 mkdocs build
 # Ausgabe: frontend/help/
@@ -2016,25 +3303,97 @@ mkdocs build
 </tr>
 <tr>
 <td>Swagger UI</td>
-<td><code>/api/docs</code> (nur <code>DEBUG=true</code>)</td>
+<td><code>/api/v1/docs</code></td>
 </tr>
 </tbody>
 </table>
 <hr />
 <h2 id="api-dokumentation-swagger">API-Dokumentation (Swagger)</h2>
-<p>Swagger UI ist nur im Debug-Modus aktiv:</p>
-<pre><code class="language-env">DEBUG=true
+<p>Swagger UI ist immer verfügbar unter:</p>
+<pre><code>http://localhost:8008/api/v1/docs
 </code></pre>
-<p>Erreichbar unter: <code>http://localhost:8008/api/docs</code></p>
-<p>Für Produktiv-Deployments <code>DEBUG=false</code> setzen.</p>
+<p><code>DEBUG=true</code> aktiviert zusätzlich den Auto-Reload des Backends.</p>
+<hr />
+<hr />
+<h2 id="https-tls">HTTPS / TLS</h2>
+<h3 id="option-a-self-signed-internes-netz-entwicklung">Option A: Self-Signed (internes Netz / Entwicklung)</h3>
+<pre><code class="language-bash"># Zertifikat erzeugen (SAN mit Hostname + IP, 10 Jahre gültig)
+sudo bash scripts/setup-tls.sh
+
+# nginx-Konfiguration aktivieren
+sudo cp nginx.conf.prod /etc/nginx/sites-available/nagvis2
+sudo ln -s /etc/nginx/sites-available/nagvis2 /etc/nginx/sites-enabled/nagvis2
+sudo nginx -t &amp;&amp; sudo systemctl reload nginx
+</code></pre>
+<p>Browser zeigt Zertifikatswarnung → einmalig akzeptieren (intern akzeptabel).</p>
+<h3 id="option-b-lets-encrypt-certbot-offentlich-erreichbarer-server">Option B: Let's Encrypt / Certbot (öffentlich erreichbarer Server)</h3>
+<pre><code class="language-bash"># certbot installieren
+sudo apt install certbot python3-certbot-nginx
+
+# nginx-Konfiguration aktivieren (vorher HTTP, certbot ergänzt TLS)
+sudo cp nginx.conf.prod /etc/nginx/sites-available/nagvis2
+sudo ln -s /etc/nginx/sites-available/nagvis2 /etc/nginx/sites-enabled/nagvis2
+
+# Zertifikat anfordern + nginx automatisch konfigurieren
+sudo bash scripts/setup-tls.sh --certbot nagvis.example.com --email admin@example.com
+</code></pre>
+<p>Auto-Renewal läuft via systemd-Timer <code>certbot.timer</code> (wird von certbot eingerichtet).</p>
+<h3 id="port-443-in-firewall-offnen">Port 443 in Firewall öffnen</h3>
+<pre><code class="language-bash"># UFW
+sudo ufw allow 443/tcp
+
+# firewalld (RHEL/CentOS)
+sudo firewall-cmd --permanent --add-service=https &amp;&amp; sudo firewall-cmd --reload
+</code></pre>
+<hr />
+<h2 id="omd-checkmk-integration-p3">OMD / Checkmk-Integration (P3)</h2>
+<p>NagVis 2 kann als OMD-Service registriert werden und startet dann automatisch mit der Checkmk-Site.</p>
+<h3 id="voraussetzungen_1">Voraussetzungen</h3>
+<ul>
+<li>OMD/Checkmk-Site bereits vorhanden (<code>omd create mysite</code>)</li>
+<li>NagVis 2 via <code>install.sh</code> installiert (Standard: <code>/opt/nagvis2</code>)</li>
+</ul>
+<h3 id="hook-installieren">Hook installieren</h3>
+<pre><code class="language-bash"># Hook in OMD-Site registrieren
+sudo bash scripts/install-omd-hook.sh --site mysite
+
+# Optionaler abweichender Install-Pfad
+sudo bash scripts/install-omd-hook.sh --site mysite --nagvis2-dir /opt/nagvis2
+</code></pre>
+<h3 id="verwendung">Verwendung</h3>
+<pre><code class="language-bash">omd start  mysite          # startet alle Services inkl. NagVis 2
+omd stop   mysite          # stoppt alle Services
+omd status mysite          # zeigt Status aller Services
+
+# Nur NagVis 2 steuern
+omd start  mysite nagvis2
+omd stop   mysite nagvis2
+omd status mysite nagvis2
+</code></pre>
+<h3 id="konfiguration-im-omd-kontext">Konfiguration im OMD-Kontext</h3>
+<p>Der Hook liest <code>/opt/nagvis2/backend/.env</code>. Wichtig für OMD-Betrieb:</p>
+<pre><code class="language-env"># Livestatus-Socket der OMD-Site direkt nutzen
+LIVESTATUS_TYPE=unix
+LIVESTATUS_PATH=/omd/sites/mysite/tmp/run/live
+LIVESTATUS_SITE=mysite
+
+# Kein DEMO_MODE, kein DEBUG
+DEMO_MODE=false
+DEBUG=false
+</code></pre>
+<h3 id="hook-deinstallieren">Hook deinstallieren</h3>
+<pre><code class="language-bash">sudo bash scripts/install-omd-hook.sh --site mysite --uninstall
+</code></pre>
 <hr />
 <h2 id="produktions-empfehlungen">Produktions-Empfehlungen</h2>
 <ul>
-<li><code>DEBUG=false</code> setzen (deaktiviert Swagger UI und Auto-Reload)</li>
+<li><code>DEBUG=false</code> setzen (deaktiviert Auto-Reload)</li>
 <li><code>ENVIRONMENT=production</code> setzen</li>
+<li><code>AUTH_ENABLED=true</code> + starkes <code>NAGVIS_SECRET</code> setzen (oder nginx-Basis-Auth als Alternative)</li>
+<li><code>NAGVIS_SECRET</code> mit <code>python3 -c "import secrets; print(secrets.token_hex(32))"</code> erzeugen</li>
 <li>nginx als Reverse Proxy verwenden (TLS-Terminierung, Security-Header)</li>
 <li><code>CORS_ORIGINS</code> auf tatsächliche Domains einschränken</li>
-<li><code>data/</code>-Verzeichnis regelmäßig sichern (Maps, Backends, Kiosk-User)</li>
+<li><code>data/</code>-Verzeichnis regelmäßig sichern (Maps, Backends, Benutzer, Kiosk)</li>
 <li><code>LIVESTATUS_SITE</code> explizit setzen (schnellerer Start)</li>
 <li><code>UVICORN_WORKERS</code> auf CPU-Kernanzahl setzen (ab 2 Workers)</li>
 <li><code>LOG_FORMAT=json</code> für Log-Aggregation (ELK, Loki, Splunk)</li>
