@@ -95,6 +95,24 @@
       "label": "Datacenter B (nested)"
     },
     {
+      "object_id": "map::demo-europe",
+      "type": "map",
+      "name": "demo-europe",
+      "x": 75,
+      "y": 10,
+      "iconset": "map",
+      "label": "→ Europa OSM Demo"
+    },
+    {
+      "object_id": "map::demo-appstack",
+      "type": "map",
+      "name": "demo-appstack",
+      "x": 88,
+      "y": 10,
+      "iconset": "map",
+      "label": "→ App-Stack Demo"
+    },
+    {
       "object_id": "gadget::cpu-01",
       "type": "gadget",
       "x": 25.0,
@@ -258,22 +276,62 @@
       }
     },
     {
+      "object_id": "gadget::linear-v-01",
       "type": "gadget",
-      "x": 67.55,
-      "y": 75.16,
-      "iconset": "std_small",
-      "label": "Gadget",
+      "x": 67.0,
+      "y": 72.0,
+      "label": "HTTP Latenz",
+      "size": 100,
       "gadget_config": {
-        "type": "radial",
-        "value": 0,
-        "unit": "%",
+        "type": "linear",
+        "direction": "vertical",
+        "metric": "http_rta",
+        "value": 34,
+        "unit": "ms",
         "min": 0,
-        "max": 100,
-        "warning": 70,
-        "critical": 90,
-        "metric": "Gadget"
-      },
-      "object_id": "gadget::9de12b::04dfe3"
+        "max": 500,
+        "warning": 200,
+        "critical": 400
+      }
+    },
+    {
+      "object_id": "gadget::graph-img-01",
+      "type": "gadget",
+      "x": 50.0,
+      "y": 88.0,
+      "label": "Graph (img-Embed)",
+      "size": 100,
+      "gadget_config": {
+        "type": "graph",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Simple_sine_wave.svg/400px-Simple_sine_wave.svg.png",
+        "embed": "img",
+        "width": 360,
+        "height": 140,
+        "metric": "Beispiel-Graph (img)",
+        "refresh": 0
+      }
+    },
+    {
+      "object_id": "container::dc-logo",
+      "type": "container",
+      "x": 80.0,
+      "y": 72.0,
+      "w": 120,
+      "h": 80,
+      "url": "https://picsum.photos/seed/nagvis/120/80"
+    },
+    {
+      "object_id": "textbox::zone-b",
+      "type": "textbox",
+      "text": "Zone B – Monitoring / Gadgets",
+      "x": 8,
+      "y": 48,
+      "w": 22,
+      "h": 5,
+      "font_size": 14,
+      "bold": true,
+      "color": "#a78bfa",
+      "bg_color": "rgba(167,139,250,0.08)"
     }
   ]
 }
