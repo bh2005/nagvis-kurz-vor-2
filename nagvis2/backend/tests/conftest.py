@@ -62,6 +62,10 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setattr(_mgr, "start_poller", lambda: None)
     monkeypatch.setattr(_mgr, "stop_poller",  lambda: None)
 
+    # Seed-Maps nicht in das tmp-Verzeichnis kopieren (Tests starten mit leerer Map-Liste)
+    import main as _main
+    monkeypatch.setattr(_main, "_seed_maps", lambda: None)
+
     # UserManager neu initialisieren (zeigt auf leere tmp-Datei)
     from core.users import UserManager, set_user_manager
     um = UserManager(tmp_path / "users.json")
