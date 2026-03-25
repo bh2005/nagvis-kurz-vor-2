@@ -66,22 +66,29 @@ if _user_mgr.count() == 0:
 
 def _seed_maps():
     """
-    Kopiert Demo-Maps aus seed_maps/ nach data/maps/ wenn sie dort fehlen.
-    Läuft bei jedem Start – überschreibt keine vom Nutzer geänderten Maps.
+    Kopiert/aktualisiert Demo-Maps aus seed_maps/ nach data/maps/.
+    Maps mit dem Prefix "demo-" werden IMMER überschrieben (jeder Deploy
+    bringt die neueste Version). Andere Maps werden nur angelegt wenn fehlend.
     Seed-Verzeichnis liegt außerhalb des Docker-Volumes und ist immer im Image.
     """
     import shutil
     seed_dir = settings.BASE_DIR / "seed_maps"
     if not seed_dir.exists():
         return
-    copied = []
+    copied, updated = [], []
     for src in sorted(seed_dir.glob("*.json")):
         dst = settings.MAPS_DIR / src.name
+        is_demo = src.stem.startswith("demo-")
         if not dst.exists():
             shutil.copy2(src, dst)
             copied.append(src.name)
+        elif is_demo:
+            shutil.copy2(src, dst)
+            updated.append(src.name)
     if copied:
-        log.info("Seed maps copied: %s", ", ".join(copied))
+        log.info("Seed maps created: %s", ", ".join(copied))
+    if updated:
+        log.info("Seed maps updated: %s", ", ".join(updated))
 
 
 @asynccontextmanager
