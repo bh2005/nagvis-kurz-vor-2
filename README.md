@@ -11,7 +11,6 @@ Eine komplette Neuentwicklung von NagVis mit FastAPI-Backend, WebSocket-Livestat
 [![Live Demo](https://img.shields.io/badge/Live_Demo-ansehen-brightgreen)](https://nagvis-kurz-vor-2.onrender.com/#/)
 
 > **Live-Demo (Full Stack):** [https://nagvis-kurz-vor-2.onrender.com/#/](https://nagvis-kurz-vor-2.onrender.com/#/)
-> **Live-Demo (Frontend only):** [https://nagvis2-frontend.onrender.com](https://nagvis2-frontend.onrender.com)
 > ⚠ Gehostet auf Render Free Tier — beim ersten Aufruf kann der Start **30–60 Sekunden** dauern.
 
 ---
