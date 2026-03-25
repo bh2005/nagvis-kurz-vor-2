@@ -2,6 +2,40 @@
 
 ---
 
+## [2026-03-25]
+
+### Feature: Demo-Maps & Live-Demo auf Render
+
+**Demo-Maps**
+- Zwei neue Demo-Maps: `demo-europe` (OSM-Karte, 10 Hosts in Europa) und `demo-appstack` (NagVis2-Applikationsstack)
+- `demo-features.json`: Map-Links zu den neuen Maps, Keyboard-Shortcuts-Textbox, neue Gadgets (Linear vertikal, Graph-img-Embed, Container, Zone-B-Label)
+- `ws/demo_data.py`: `DEMO_STATUS` um 10 Europa-Hosts (Madrid=DOWN, Wien=DT) und App-Stack-Hosts mit Perfdata erweitert
+- `statistik.md`: Projektkalkulation mit Zeit-, Kosten- und KI-Hebelschätzung erstellt
+
+**Seed-Mechanismus**
+- `backend/seed_maps/`: neues Verzeichnis außerhalb des Docker-Volumes mit allen Demo-Maps
+- `main.py`: `_seed_maps()` kopiert beim Start fehlende Maps und überschreibt `demo-*` Maps immer
+- Stellt sicher, dass neue Demo-Maps nach jedem Render-Deploy / `docker compose up --build` erscheinen
+
+**Live-Demo**
+- Live-Demo-URL in `README.md` eingebaut: `https://nagvis-kurz-vor-2.onrender.com`
+
+### Bugfix: Sidebar beim ersten Start nicht aufgeklappt
+
+- `map-core.js` `openMap()`: setzte `gridTemplateColumns` immer auf `44px 1fr`, ignorierte `sidebarCollapsed`
+- Fix: Breite und `sidebar-expanded`-Klasse werden jetzt korrekt nach User-Präferenz gesetzt
+
+### Bugfix: Demo-Modus blockierte echte API-Aufrufe trotz laufendem Backend
+
+- `ws-client.js`: im Demo-Modus wurden `/api/maps`-Calls abgefangen und hardcodierte JS-Daten zurückgegeben
+- Folge: `demo-europe` und `demo-appstack` erschienen nie in der Seitenleiste auf `nagvis-kurz-vor-2.onrender.com`
+- Fix: `_backendReachable`-Flag — wenn Backend erreichbar, werden Map-Calls ans echte Backend weitergeleitet
+- Fallback-Daten bleiben für rein statisches Frontend ohne Backend (`nagvis2-frontend.onrender.com`)
+
+---
+
+---
+
 ## [2026-03-24]
 
 ### Bugfix: Poll-Loop Absturz `expected string or bytes-like object, got 'dict'`
