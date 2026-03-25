@@ -64,6 +64,26 @@ if _user_mgr.count() == 0:
 #  Lifespan
 # ══════════════════════════════════════════════════════════════════════
 
+def _seed_maps():
+    """
+    Kopiert Demo-Maps aus seed_maps/ nach data/maps/ wenn sie dort fehlen.
+    Läuft bei jedem Start – überschreibt keine vom Nutzer geänderten Maps.
+    Seed-Verzeichnis liegt außerhalb des Docker-Volumes und ist immer im Image.
+    """
+    import shutil
+    seed_dir = settings.BASE_DIR / "seed_maps"
+    if not seed_dir.exists():
+        return
+    copied = []
+    for src in sorted(seed_dir.glob("*.json")):
+        dst = settings.MAPS_DIR / src.name
+        if not dst.exists():
+            shutil.copy2(src, dst)
+            copied.append(src.name)
+    if copied:
+        log.info("Seed maps copied: %s", ", ".join(copied))
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     log.info(
@@ -72,6 +92,8 @@ async def lifespan(app: FastAPI):
                "debug": settings.DEBUG,
                "demo_mode": settings.DEMO_MODE},
     )
+    _seed_maps()
+
     from ws.manager import start_poller
     start_poller()
 

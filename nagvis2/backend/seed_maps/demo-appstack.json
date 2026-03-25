@@ -1,0 +1,286 @@
+{
+  "id": "demo-appstack",
+  "title": "NagVis 2 – Applikations-Stack (Demo)",
+  "background": null,
+  "parent_map": null,
+  "canvas": {
+    "mode": "ratio",
+    "ratio": "16:9"
+  },
+  "objects": [
+
+    {
+      "object_id": "textbox::client",
+      "type": "textbox",
+      "text": "🌐  Client / Browser",
+      "x": 37, "y": 4,
+      "w": 22, "h": 5,
+      "font_size": 15, "bold": true,
+      "color": "#94a3b8",
+      "bg_color": "rgba(148,163,184,0.10)"
+    },
+
+    {
+      "object_id": "textbox::tier1",
+      "type": "textbox",
+      "text": "Tier 1 · Frontend",
+      "x": 5, "y": 13,
+      "w": 14, "h": 4,
+      "font_size": 11, "bold": false,
+      "color": "#64748b",
+      "bg_color": "transparent"
+    },
+    {
+      "object_id": "textbox::tier2",
+      "type": "textbox",
+      "text": "Tier 2 · Applikation",
+      "x": 5, "y": 31,
+      "w": 16, "h": 4,
+      "font_size": 11, "bold": false,
+      "color": "#64748b",
+      "bg_color": "transparent"
+    },
+    {
+      "object_id": "textbox::tier3",
+      "type": "textbox",
+      "text": "Tier 3 · Storage & Auth",
+      "x": 5, "y": 56,
+      "w": 18, "h": 4,
+      "font_size": 11, "bold": false,
+      "color": "#64748b",
+      "bg_color": "transparent"
+    },
+    {
+      "object_id": "textbox::tier4",
+      "type": "textbox",
+      "text": "Tier 4 · Monitoring Backends",
+      "x": 5, "y": 74,
+      "w": 22, "h": 4,
+      "font_size": 11, "bold": false,
+      "color": "#64748b",
+      "bg_color": "transparent"
+    },
+
+    {
+      "object_id": "host::nagvis2-frontend::f01",
+      "type": "host",
+      "name": "nagvis2-frontend",
+      "x": 44, "y": 17,
+      "iconset": "server",
+      "label": "Frontend · Nginx :8008",
+      "size": 36
+    },
+
+    {
+      "object_id": "host::nagvis2-backend::b01",
+      "type": "host",
+      "name": "nagvis2-backend",
+      "x": 30, "y": 37,
+      "iconset": "server",
+      "label": "Backend · FastAPI",
+      "size": 36
+    },
+    {
+      "object_id": "host::nagvis2-auth::a01",
+      "type": "host",
+      "name": "nagvis2-auth",
+      "x": 66, "y": 37,
+      "iconset": "server",
+      "label": "Auth · JWT",
+      "size": 32
+    },
+
+    {
+      "object_id": "service::nagvis2-backend::REST-API",
+      "type": "service",
+      "host_name": "nagvis2-backend",
+      "name": "REST API /api/v1",
+      "x": 18, "y": 48,
+      "iconset": "default",
+      "label": "REST /api/v1",
+      "size": 24
+    },
+    {
+      "object_id": "service::nagvis2-backend::WebSocket",
+      "type": "service",
+      "host_name": "nagvis2-backend",
+      "name": "WebSocket /ws",
+      "x": 32, "y": 48,
+      "iconset": "default",
+      "label": "WS /ws",
+      "size": 24
+    },
+    {
+      "object_id": "service::nagvis2-backend::Metrics",
+      "type": "service",
+      "host_name": "nagvis2-backend",
+      "name": "Prometheus Metrics",
+      "x": 47, "y": 48,
+      "iconset": "default",
+      "label": "/metrics",
+      "size": 24
+    },
+
+    {
+      "object_id": "host::nagvis2-mapstore::ms01",
+      "type": "host",
+      "name": "nagvis2-mapstore",
+      "x": 22, "y": 63,
+      "iconset": "storage",
+      "label": "Map Store · data/maps/",
+      "size": 32
+    },
+    {
+      "object_id": "host::nagvis2-ws::ws01",
+      "type": "host",
+      "name": "nagvis2-ws",
+      "x": 46, "y": 63,
+      "iconset": "server",
+      "label": "WebSocket Manager",
+      "size": 32
+    },
+
+    {
+      "object_id": "host::nagvis2-livestatus::ls01",
+      "type": "host",
+      "name": "nagvis2-livestatus",
+      "x": 10, "y": 82,
+      "iconset": "router",
+      "label": "Livestatus · TCP/Unix",
+      "size": 28
+    },
+    {
+      "object_id": "host::nagvis2-checkmk::cmk01",
+      "type": "host",
+      "name": "nagvis2-checkmk",
+      "x": 26, "y": 82,
+      "iconset": "server",
+      "label": "Checkmk · REST API",
+      "size": 28
+    },
+    {
+      "object_id": "host::nagvis2-icinga2::ic01",
+      "type": "host",
+      "name": "nagvis2-icinga2",
+      "x": 43, "y": 82,
+      "iconset": "server",
+      "label": "Icinga2 · REST API",
+      "size": 28
+    },
+    {
+      "object_id": "host::nagvis2-zabbix::zx01",
+      "type": "host",
+      "name": "nagvis2-zabbix",
+      "x": 60, "y": 82,
+      "iconset": "server",
+      "label": "Zabbix · JSON-RPC",
+      "size": 28
+    },
+    {
+      "object_id": "host::nagvis2-prometheus::prom01",
+      "type": "host",
+      "name": "nagvis2-prometheus",
+      "x": 77, "y": 82,
+      "iconset": "server",
+      "label": "Prometheus · PromQL",
+      "size": 28
+    },
+
+    {
+      "object_id": "line::client-to-frontend",
+      "type": "line",
+      "x": 48, "y": 9,
+      "x2": 48, "y2": 16,
+      "line_style": "solid",
+      "line_width": 2,
+      "color": "#64748b"
+    },
+    {
+      "object_id": "line::wm-frontend-backend",
+      "type": "line",
+      "x": 44, "y": 20,
+      "x2": 33, "y2": 36,
+      "line_type": "weathermap",
+      "host_from": "nagvis2-frontend",
+      "host_to": "nagvis2-backend",
+      "label_from": "1 240 req/s",
+      "label_to": "1 238 req/s",
+      "line_width": 5,
+      "line_style": "solid",
+      "line_split": true,
+      "show_arrow": true
+    },
+    {
+      "object_id": "line::backend-to-auth",
+      "type": "line",
+      "x": 38, "y": 40,
+      "x2": 64, "y2": 40,
+      "line_style": "dashed",
+      "line_width": 2,
+      "color": "#a78bfa"
+    },
+    {
+      "object_id": "line::backend-to-mapstore",
+      "type": "line",
+      "x": 28, "y": 42,
+      "x2": 23, "y2": 62,
+      "line_style": "dashed",
+      "line_width": 2,
+      "color": "#0ea5e9"
+    },
+    {
+      "object_id": "line::backend-to-ws",
+      "type": "line",
+      "x": 33, "y": 42,
+      "x2": 45, "y2": 62,
+      "line_style": "dashed",
+      "line_width": 2,
+      "color": "#0ea5e9"
+    },
+    {
+      "object_id": "line::backend-to-livestatus",
+      "type": "line",
+      "x": 27, "y": 44,
+      "x2": 11, "y2": 80,
+      "line_style": "dashed",
+      "line_width": 1,
+      "color": "#475569"
+    },
+    {
+      "object_id": "line::backend-to-checkmk",
+      "type": "line",
+      "x": 29, "y": 44,
+      "x2": 27, "y2": 80,
+      "line_style": "dashed",
+      "line_width": 1,
+      "color": "#475569"
+    },
+    {
+      "object_id": "line::backend-to-icinga2",
+      "type": "line",
+      "x": 31, "y": 44,
+      "x2": 44, "y2": 80,
+      "line_style": "dashed",
+      "line_width": 1,
+      "color": "#475569"
+    },
+    {
+      "object_id": "line::backend-to-zabbix",
+      "type": "line",
+      "x": 33, "y": 44,
+      "x2": 61, "y2": 80,
+      "line_style": "dashed",
+      "line_width": 1,
+      "color": "#475569"
+    },
+    {
+      "object_id": "line::backend-to-prometheus",
+      "type": "line",
+      "x": 35, "y": 44,
+      "x2": 78, "y2": 80,
+      "line_style": "dashed",
+      "line_width": 1,
+      "color": "#475569"
+    }
+  ]
+}
