@@ -1391,3 +1391,40 @@ img.nv2-icon { display: block; width: 100%; height: 100%; object-fit: contain; t
 }
 .help-body h1, .help-body h2 { color: var(--text); margin-top: 15px; }
 .help-body code { background: var(--bg-hi); padding: 2px 4px; border-radius: 3px; font-family: var(--mono); }
+/* ── Sidebar Keyboard Shortcuts ───────────────────────────────────────── */
+.sidebar-shortcuts {
+  padding: 10px 12px 8px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.sidebar-shortcuts-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+.sidebar-shortcuts-body {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 8px;
+  font-size: 10px;
+  font-family: var(--mono);
+}
+.sc-key {
+  color: var(--text-dim);
+  background: var(--bg-hi);
+  border-radius: 3px;
+  padding: 0 4px;
+  white-space: nowrap;
+  line-height: 16px;
+}
+.sc-desc {
+  color: var(--text-dim);
+  line-height: 16px;
+}
+/* Ausblenden wenn collapsed */
+#sidebar.collapsed .sidebar-shortcuts,
+#app.map-open .sidebar-shortcuts { display: none; }
+#app.map-open.sidebar-expanded .sidebar-shortcuts { display: block; }
