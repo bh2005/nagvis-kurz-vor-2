@@ -8,6 +8,11 @@ Eine komplette Neuentwicklung von NagVis mit FastAPI-Backend, WebSocket-Livestat
 [![Latest Release](https://img.shields.io/github/v/release/bh2005/nagvis-kurz-vor-2?label=Release)](https://github.com/bh2005/nagvis-kurz-vor-2/releases/latest)
 [![Changelog](https://img.shields.io/badge/Changelog-ansehen-blue)](nagvis2/changelog.txt)
 [![Code of Conduct](https://img.shields.io/badge/Code_of_Conduct-2.1-blue)](CODE_OF_CONDUCT.md)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-ansehen-brightgreen)](https://nagvis-kurz-vor-2.onrender.com/#/)
+
+> **Live-Demo (Full Stack):** [https://nagvis-kurz-vor-2.onrender.com/#/](https://nagvis-kurz-vor-2.onrender.com/#/)
+> **Live-Demo (Frontend only):** [https://nagvis2-frontend.onrender.com](https://nagvis2-frontend.onrender.com)
+> ⚠ Gehostet auf Render Free Tier — beim ersten Aufruf kann der Start **30–60 Sekunden** dauern.
 
 ---
 
