@@ -186,7 +186,12 @@ async function openMap(mapId, { skipHistory = false } = {}) {
   if (!activeMapCfg) { alert('Map nicht gefunden'); return; }
 
   document.getElementById('app')?.classList.add('map-open');
-  document.getElementById('app').style.gridTemplateColumns = '44px 1fr';
+  if (sidebarCollapsed) {
+    document.getElementById('app').style.gridTemplateColumns = '44px 1fr';
+  } else {
+    document.getElementById('app').style.gridTemplateColumns = 'var(--sidebar) 1fr';
+    document.getElementById('app')?.classList.add('sidebar-expanded');
+  }
   document.getElementById('overview')         .style.display = 'none';
   document.getElementById('map-area')         .style.display = 'block';
   document.getElementById('map-toolbar')      .style.display = 'flex';

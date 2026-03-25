@@ -321,6 +321,19 @@
       "url": "https://picsum.photos/seed/nagvis/120/80"
     },
     {
+      "object_id": "textbox::shortcuts",
+      "type": "textbox",
+      "text": "⌨  Tastatur-Shortcuts\n──────────────────\nCtrl+E   Edit-Mode\nB           Sidebar\nR           Neu laden\nF11        Kiosk\nEsc        Schließen\nDel        Objekt löschen\nCtrl+A  Alle auswählen",
+      "x": 89,
+      "y": 38,
+      "w": 19,
+      "h": 26,
+      "font_size": 11,
+      "bold": false,
+      "color": "#94a3b8",
+      "bg_color": "rgba(15,23,42,0.55)"
+    },
+    {
       "object_id": "textbox::zone-b",
       "type": "textbox",
       "text": "Zone B – Monitoring / Gadgets",
