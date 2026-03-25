@@ -245,6 +245,7 @@ const DEMO_STATUS = [
 ];
 
 window._demoMode = false;
+window._backendReachable = false;
 window._demoMaps = [
   { id:"demo-features", title:"NagVis 2 – Feature Demo", background:null, canvas: { mode:"ratio", ratio:"16:9" }, object_count:DEMO_MAP.objects.length }
 ];
@@ -253,6 +254,7 @@ async function detectDemoMode() {
   try {
     const r = await fetch('/api/health', { signal: AbortSignal.timeout(600) });
     if (r.ok) {
+      _backendReachable = true;
       const data = await r.json().catch(() => ({}));
       // Backend meldet sich selbst als Demo (kein Livestatus konfiguriert)
       if (data.demo_mode) {
@@ -352,7 +354,11 @@ async function api(path, method = 'GET', body = null) {
       return found ? { ...found } : null;
     }
 
-    // ── Standard Demo-Mode Handlers ────────────────────────────────────
+    // ── Standard Demo-Mode Handlers (Fallback wenn kein Backend) ───────
+    // Ist das Backend erreichbar, echte API-Calls für Maps durchlassen.
+    if (_backendReachable) {
+      // Nur Kiosk-Daten bleiben lokal (localStorage), alles andere → Backend
+    } else {
     if (path === '/api/maps' && method === 'GET') return [..._demoMaps];
 
     if (path === '/api/maps' && method === 'POST') {
@@ -391,6 +397,7 @@ async function api(path, method = 'GET', body = null) {
     if (path === '/api/health') return { status:'ok', demo_mode:true };
     console.warn('[NV2] Demo: unhandled API call', method, path);
     return null;
+    } // end !_backendReachable
   }
 
   try {
