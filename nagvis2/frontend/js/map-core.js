@@ -262,7 +262,8 @@ async function openMap(mapId, { skipHistory = false } = {}) {
     wsClient._dead = true;
     wsClient.ws?.close();
   }
-  wsClient = _demoMode ? makeDemoWsClient(mapId) : makeWsClient(mapId);
+  // Demo-Modus: echten WS nutzen wenn Backend erreichbar (alle Hosts inkl. Europa/AppStack)
+  wsClient = (_demoMode && !_backendReachable) ? makeDemoWsClient(mapId) : makeWsClient(mapId);
   wsClient.connect();
 
   const zoomControls = document.getElementById('nv2-zoom-controls');
