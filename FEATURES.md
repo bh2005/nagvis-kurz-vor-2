@@ -68,7 +68,7 @@
 | **Textbox** | ✅ | Freier Text, Schriftgröße/Farbe/Fett/Hintergrund |
 | **Linie** | ✅ | Stil/Farbe/Breite, Drag-Handles, Winkel-Slider, Statusfarbe, View-Mode-Aktionsmenü |
 | **Container** | ✅ | Bild-URL, resize-fähig |
-| **Gadget** | ✅ | Radial, Linear (H/V), Sparkline, Thermometer, Flow/Weather, Raw-Number |
+| **Gadget** | ✅ | Radial, Linear (H/V), Sparkline, Thermometer, Flow/Weather, Raw-Number, Graph/iframe |
 
 ### Label-Template-System
 - **Nagios-Macros** – `$HOSTNAME$`, `$HOSTALIAS$`, `$HOSTSTATE$`, `$HOSTOUTPUT$`, `$SERVICEDESC$`, `$SERVICESTATE$`, `$SERVICEOUTPUT$`, `$MAPNAME$`
@@ -95,6 +95,7 @@
 - **Thermometer** – vertikale Füllstandsanzeige
 - **Flow/Weather-Line** – bidirektionale Bandbreiten-Linie mit Statusfarbe
 - **Raw-Number** – numerischer Wert mit Einheit und konfigurierbaren Nachkommastellen
+- **Graph / iframe** – Grafana-Panels, Checkmk-Graphen oder beliebige URLs per `<iframe>` oder `<img>` einbetten; konfigurierbarer Auto-Refresh (Sekunden-Intervall); Embed-Typ wählbar (`iframe` / `img`); Breite + Höhe frei einstellbar
 - **Perfdata-Integration** – Nagios/Checkmk Performance-Daten automatisch eingespeist
   - Parser unterstützt quoted/unquoted Labels, UOM (%, ms, MB, GB, ...)
   - `perf_label`-Feld im Gadget-Dialog mit Datalist-Autocomplete
@@ -179,6 +180,7 @@
 - **Checkmk REST API** – async HTTP-Client für Checkmk REST API v1.0
 - **Icinga2 REST API** – Basic Auth, `X-HTTP-Method-Override: GET`; Host/Service/Gruppe; ACK, Downtime, Reschedule ✅
 - **Zabbix JSON-RPC API** – Zabbix 6.0+ (Bearer-Token) + ältere Versionen (user.login); Host/Problem/Gruppe; ACK, Maintenance ✅
+- **Prometheus / VictoriaMetrics** – HTTP-Client via PromQL; Alertmanager-Alerts als Service-States; Hosts aus Job-Labels aggregiert; Hostgroups per `job`; kompatibel mit VictoriaMetrics (kein ACK/Downtime — read-only)
 - **Unified Registry** – alle Backend-Typen gemischt nutzbar, Hot-Add ohne Neustart
 - **Persistenz** – `data/backends.json`, LIVESTATUS_* Env-Vars werden auto-importiert
 - **Backend-Management-UI** – Burger-Menü → Backends verwalten (hinzufügen, testen, entfernen)
@@ -189,6 +191,7 @@
 
 ### Map-Verwaltung (Ergänzungen)
 - **Map-Duplikat** – Map klonen inkl. aller Objekte + Hintergrundbild; `POST /api/v1/maps/{id}/clone`; Burger-Menü + Rechtsklick-Kontextmenü
+- **draw.io / diagrams.net Import** – `.drawio`/`.xml`-Diagramme als NagVis-Map importieren; Shapes → Textboxen (optional Hosts), Connectors → Linien; Koordinaten-Normalisierung (absolute px → 5–95 % relativ); komprimiertes Format (base64 + raw-deflate) automatisch erkannt; `POST /api/maps/import-drawio`
 
 ---
 
@@ -276,12 +279,12 @@ Frontend-Shell      ████████████████████
 Map-Verwaltung      ████████████████████  100%  (inkl. Duplikat/Clone)
 Objekt-Typen        ████████████████████  100%  (Label-Templates, remove_ack, Linien-Aktionsmenü)
 Edit-Mode           ████████████████████  100%
-Live-Status         ████████████████████  100%  (Livestatus, Checkmk, Icinga2, Zabbix)
+Live-Status         ████████████████████  100%  (Livestatus, Checkmk, Icinga2, Zabbix, Prometheus)
 Authentifizierung   ████████████████████  100%  (JWT, Auto-Refresh, Rollen-UI, User-Mgmt, User-Chip)
 Layer-System        ████████████████████  100%
 Kiosk-Modus         ████████████████████  100%
 OSM / Weltkarte     ████████████████████  100%
-Gadget-System       ████████████████████  100%
+Gadget-System       ████████████████████  100%  (inkl. Graph/iframe-Gadget)
 Monitoring/Betrieb  ████████████████████  100%  (Systemd/OMD, OMD-Hook, Prometheus)
 Backend API         ████████████████████  100%  (HTTPS/TLS produktionsreif)
 Docker/Helm         ██████████████████░░   90%

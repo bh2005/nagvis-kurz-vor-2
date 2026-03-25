@@ -19,10 +19,12 @@ Eine komplette Neuentwicklung von NagVis mit FastAPI-Backend, WebSocket-Livestat
 | **Edit-Mode** | Drag & Drop, Multi-Select (Lasso + Shift+Klick), Gruppen-Drag, Layer-System |
 | **Map-Duplikat** | Map klonen inkl. aller Objekte + Hintergrundbild (`POST /api/v1/maps/{id}/clone`) |
 | **Label-Templates** | Nagios-Macros (`$HOSTNAME$`, `$HOSTSTATE$`, …) + Checkmk-Labels (`$LABEL:os$`) als Node-Beschriftung |
-| **Gadgets** | Radial, Linear (H/V), Sparkline, Thermometer, Flow/Weather, Raw-Number |
+| **Gadgets** | Radial, Linear (H/V), Sparkline, Thermometer, Flow/Weather, Raw-Number, **Graph/iframe** |
+| **Graph-Gadget** | Grafana-Panels, Checkmk-Graphen oder beliebige URLs per `<iframe>` oder `<img>` einbetten mit Auto-Refresh |
 | **Perfdata** | Nagios/Checkmk Performance-Daten automatisch in Gadgets eingespeist |
 | **Weathermap-Linien** | Statusfarbe, Bandbreiten-Labels, bidirektionale Pfeile |
-| **Multi-Backend** | Livestatus, Checkmk REST API, **Icinga2 REST API**, **Zabbix JSON-RPC** gemischt, Hot-Add ohne Neustart |
+| **Multi-Backend** | Livestatus, Checkmk REST API, Icinga2 REST API, Zabbix JSON-RPC, **Prometheus / VictoriaMetrics** — gemischt, Hot-Add |
+| **draw.io Import** | `.drawio`/`.xml`-Diagramme direkt als Map importieren (Shapes → Textboxen/Hosts, Connectors → Linien) |
 | **Authentifizierung** | JWT (7 Tage), Auto-Refresh, Login-Overlay, Rollen (viewer/editor/admin), Benutzer-Management |
 | **User-Chip** | Klickbarer Topbar-Button: Theme, Einstellungen, Passwort, Benutzerverwaltung, Logout |
 | **Kiosk-Modus** | Token-URL, automatische Map-Rotation, Vollbild mit Zoom/Pan |
@@ -139,6 +141,7 @@ nagvis2/
 │   ├── checkmk/client.py     ← Checkmk REST API Client
 │   ├── icinga2/client.py     ← Icinga2 REST API v1 Client
 │   ├── zabbix/client.py      ← Zabbix JSON-RPC Client
+│   ├── prometheus/client.py  ← Prometheus / VictoriaMetrics Client
 │   ├── connectors/registry.py← Unified Backend Registry
 │   ├── api/
 │   │   ├── router.py         ← Maps, Objekte, Backends, Logs
@@ -153,8 +156,9 @@ nagvis2/
 │   ├── help/                 ← MkDocs-Output (mkdocs build)
 │   └── js/
 │       ├── auth.js           ← Login-Overlay, JWT, User-Chip-Dropdown
-│       ├── map-core.js       ← Maps, Backends, Clone
-│       ├── nodes.js
+│       ├── map-core.js       ← Maps, Backends, Clone, draw.io-Import
+│       ├── nodes.js          ← Node-Dialog, Gadget-Config-Dialog
+│       ├── gadget-renderer.js← Gadget-Typen inkl. Graph/iframe
 │       ├── ui-core.js
 │       ├── ws-client.js
 │       ├── kiosk.js
@@ -190,15 +194,15 @@ Danach ist die Hilfe unter `http://localhost:8008/help/` erreichbar.
 
 | Sprache | Dateien | Zeilen | Anteil |
 |---|---|---|---|
-| **Python** | 40 | 8 078 | 37 % |
-| **JavaScript** | 13 | 7 200 | 33 % |
-| **Markdown** (Docs) | 17 | 2 478 | 11 % |
-| **CSS** | 2 | 1 496 | 7 % |
-| **HTML** | 1 | 1 093 | 5 % |
+| **Python** | 43 | 8 900 | 38 % |
+| **JavaScript** | 14 | 7 700 | 33 % |
+| **Markdown** (Docs) | 19 | 2 900 | 12 % |
+| **CSS** | 2 | 1 496 | 6 % |
+| **HTML** | 1 | 1 150 | 5 % |
 | **JSON** (Config/Data) | 12 | 651 | 3 % |
 | **YAML** (Docker/Helm) | 12 | 431 | 2 % |
 | **Sonstige** | 4 | 371 | 2 % |
-| **Gesamt** | **101** | **21 798** | 100 % |
+| **Gesamt** | **107** | **23 599** | 100 % |
 
 ---
 
@@ -210,7 +214,7 @@ Dieses Projekt steht unter der **MIT License** – siehe [LICENSE](LICENSE).
 
 **Projektstatus:** Beta (funktioniert stabil, aktive Weiterentwicklung)
 **Autor:** bh2005
-**Version:** 2.0 Beta (März 2026)
+**Version:** 2.1 Beta (März 2026)
 
 ---
 
