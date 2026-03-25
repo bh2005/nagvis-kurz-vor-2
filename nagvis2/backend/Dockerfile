@@ -25,8 +25,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Datenverzeichnisse anlegen + Berechtigungen setzen
-RUN mkdir -p data/maps data/backgrounds data/kiosk \
-    && chown -R nagvis:nagvis /app/backend/data
+# seed_maps/ liegt AUSSERHALB des Volumes → immer im Image verfügbar
+RUN mkdir -p data/maps data/backgrounds data/kiosk data/thumbnails \
+    && chown -R nagvis:nagvis /app/backend/data \
+    && chown -R nagvis:nagvis /app/backend/seed_maps
 
 USER nagvis
 
