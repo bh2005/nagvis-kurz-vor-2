@@ -260,12 +260,16 @@ class PrometheusClient:
         log.info("[%s] acknowledge_service: Prometheus ist read-only – ignoriert", self.cfg.backend_id)
         return False
 
-    async def schedule_host_downtime(self, host_name: str, start_time: int, end_time: int, comment: str = "", author: str = "") -> bool:
+    async def schedule_host_downtime(self, host_name: str, start_time: int, end_time: int, comment: str = "", author: str = "", child_hosts: bool = False) -> bool:
         log.info("[%s] schedule_host_downtime: Prometheus ist read-only – ignoriert", self.cfg.backend_id)
         return False
 
     async def schedule_service_downtime(self, host_name: str, service_name: str, start_time: int, end_time: int, comment: str = "", author: str = "") -> bool:
         log.info("[%s] schedule_service_downtime: Prometheus ist read-only – ignoriert", self.cfg.backend_id)
+        return False
+
+    async def reschedule_host_check(self, host_name: str) -> bool:
+        log.info("[%s] reschedule_host_check: Prometheus ist read-only – ignoriert", self.cfg.backend_id)
         return False
 
     # ── Ping ──────────────────────────────────────────────────────────────

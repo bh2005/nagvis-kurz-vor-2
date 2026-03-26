@@ -298,15 +298,18 @@ class CheckmkClient:
 
     async def schedule_host_downtime(
         self,
-        host_name:  str,
-        start_time: int,
-        end_time:   int,
-        comment:    str = "NagVis 2",
-        author:     str = "nagvis2",
+        host_name:   str,
+        start_time:  int,
+        end_time:    int,
+        comment:     str  = "NagVis 2",
+        author:      str  = "nagvis2",
+        child_hosts: bool = False,
     ) -> bool:
+        # child_hosts=True → Checkmk-Typ "host_and_related_services" (Host + alle Services)
+        downtime_type = "host_and_related_services" if child_hosts else "host"
         try:
             await self._post("/domain-types/downtime/collections/host", {
-                "downtime_type": "host",
+                "downtime_type": downtime_type,
                 "host_name":     host_name,
                 "start_time":    datetime.fromtimestamp(start_time, tz=timezone.utc).isoformat(),
                 "end_time":      datetime.fromtimestamp(end_time,   tz=timezone.utc).isoformat(),

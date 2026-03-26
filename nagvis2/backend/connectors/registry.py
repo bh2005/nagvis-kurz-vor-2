@@ -358,13 +358,67 @@ class UnifiedRegistry:
                         host_name, service_name, start_time, end_time, comment, author
                     )
                 return await client.schedule_host_downtime(
-                    host_name, start_time, end_time, comment, author
+                    host_name, start_time, end_time, comment, author,
+                    child_hosts=child_hosts,
                 )
             except Exception as e:
                 log.error("schedule_downtime failed on %s: %s",
                           getattr(getattr(client, "cfg", None), "backend_id", "?"), e)
                 return False
 
+        if self.is_empty():
+            return False
+        results = await asyncio.gather(*[_one(c) for c in self._clients.values()])
+        return any(results)
+
+    async def acknowledge_host(
+        self,
+        host_name: str,
+        comment:   str = "NagVis 2",
+        author:    str = "nagvis2",
+    ) -> bool:
+        """ACK an alle aktiven Backends – True wenn mindestens eines erfolgreich."""
+        async def _one(client: AnyClient) -> bool:
+            try:
+                return await client.acknowledge_host(host_name, comment, author)
+            except Exception as e:
+                log.error("acknowledge_host failed on %s: %s",
+                          getattr(getattr(client, "cfg", None), "backend_id", "?"), e)
+                return False
+        if self.is_empty():
+            return False
+        results = await asyncio.gather(*[_one(c) for c in self._clients.values()])
+        return any(results)
+
+    async def acknowledge_service(
+        self,
+        host_name:    str,
+        service_name: str,
+        comment:      str = "NagVis 2",
+        author:       str = "nagvis2",
+    ) -> bool:
+        """Service-ACK an alle aktiven Backends – True wenn mindestens eines erfolgreich."""
+        async def _one(client: AnyClient) -> bool:
+            try:
+                return await client.acknowledge_service(host_name, service_name, comment, author)
+            except Exception as e:
+                log.error("acknowledge_service failed on %s: %s",
+                          getattr(getattr(client, "cfg", None), "backend_id", "?"), e)
+                return False
+        if self.is_empty():
+            return False
+        results = await asyncio.gather(*[_one(c) for c in self._clients.values()])
+        return any(results)
+
+    async def reschedule_check(self, host_name: str) -> bool:
+        """Check neu einplanen – an alle aktiven Backends."""
+        async def _one(client: AnyClient) -> bool:
+            try:
+                return await client.reschedule_host_check(host_name)
+            except Exception as e:
+                log.error("reschedule_check failed on %s: %s",
+                          getattr(getattr(client, "cfg", None), "backend_id", "?"), e)
+                return False
         if self.is_empty():
             return False
         results = await asyncio.gather(*[_one(c) for c in self._clients.values()])

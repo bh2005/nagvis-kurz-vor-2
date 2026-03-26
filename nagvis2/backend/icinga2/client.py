@@ -294,11 +294,12 @@ class Icinga2Client:
 
     async def schedule_host_downtime(
         self,
-        host_name:  str,
-        start_time: int,
-        end_time:   int,
-        comment:    str = "Downtime via NagVis 2",
-        author:     str = "nagvis2",
+        host_name:   str,
+        start_time:  int,
+        end_time:    int,
+        comment:     str  = "Downtime via NagVis 2",
+        author:      str  = "nagvis2",
+        child_hosts: bool = False,
     ) -> bool:
         return await self._action("schedule-downtime", {
             "type":       "Host",
@@ -330,6 +331,10 @@ class Icinga2Client:
             "duration":   end_time - start_time,
             "fixed":      True,
         })
+
+    async def reschedule_host_check(self, host_name: str) -> bool:
+        """Alias für das einheitliche Backend-Interface."""
+        return await self.reschedule_check(host_name)
 
     async def reschedule_check(self, host_name: str, service_name: str = "") -> bool:
         if service_name:
