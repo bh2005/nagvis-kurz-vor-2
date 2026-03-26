@@ -67,10 +67,30 @@ NagVis 2 visualisiert den Status deiner Monitoring-Umgebung (Nagios / Checkmk / 
 | ⬛ Kiosk-User verwalten | Token-URLs für Displays anlegen |
 | ⚙ Backends verwalten | Monitoring-Backends konfigurieren |
 | ⚡ Aktionen konfigurieren | URL-Templates für Monitoring-Aktionen |
-| ⚙ Einstellungen | Theme, Sidebar, Kiosk-Optionen |
+| ⚙ Einstellungen | Theme, Sidebar, Kiosk-Optionen, **Sprache** |
 | ☰ Hilfe | Handbücher (öffnen im neuen Fenster) |
 | </> Swagger UI | REST-API-Dokumentation (`/api/v1/docs`) |
 | ℹ Über NagVis 2 | Version, GitHub-Link, Changelog-Viewer |
+
+---
+
+## Sprache ändern
+
+### Burger-Menü → ⚙ Einstellungen → Sprache
+
+NagVis 2 ist in **Deutsch** und **Englisch** verfügbar. Die Sprache kann jederzeit ohne Seiten-Reload gewechselt werden.
+
+1. Burger-Menü (☰) → **⚙ Einstellungen** öffnen
+2. Im Abschnitt **Sprache**: gewünschte Sprache im Dropdown wählen
+3. Die Oberfläche wechselt sofort — kein Reload nötig
+
+**Weitere Sprachen per Lang-Pack importieren:**
+
+1. JSON-Datei im Format `{ "meta": { "lang": "fr", "name": "Français" }, "strings": { ... } }` vorbereiten
+2. Burger-Menü → ⚙ Einstellungen → **Lang-Pack importieren** klicken
+3. JSON-Datei auswählen — Sprache ist sofort aktiv und steht im Dropdown zur Verfügung
+
+Die gewählte Sprache wird in `localStorage` gespeichert und bei jedem Besuch automatisch wiederhergestellt.
 
 ---
 

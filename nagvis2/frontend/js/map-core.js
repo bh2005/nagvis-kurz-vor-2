@@ -63,7 +63,7 @@ function renderMapsSnapin(maps) {
   const body = document.getElementById('body-maps');
   if (!body) return;
   if (!maps.length) {
-    body.innerHTML = '<div class="empty-hint">Keine Maps vorhanden</div>';
+    body.innerHTML = `<div class="empty-hint">${t('no_maps')}</div>`;
     return;
   }
   body.innerHTML = maps.map(m => `
@@ -116,7 +116,7 @@ function renderOverview(maps) {
         <button class="ov-card-menu-btn" data-map-id="${esc(m.id)}"
                 title="Map-Optionen" onclick="event.stopPropagation(); openCardMenu(event, '${esc(m.id)}', '${esc(m.title)}', this.closest('.ov-card').dataset.canvas)">⋯</button>
       </div>
-      <div class="ov-card-meta">${m.object_count ?? 0} Objekte · <span class="ov-card-id">${esc(m.id)}</span></div>
+      <div class="ov-card-meta">${t('objects_count', { count: m.object_count ?? 0 })} · <span class="ov-card-id">${esc(m.id)}</span></div>
       ${parentTitle ? `<div class="ov-card-parent">↳ ${esc(parentTitle)}</div>` : ''}
       <div class="ov-card-pills" id="ov-pills-${esc(m.id)}">
         ${_pillsHtml(m.id)}
@@ -126,7 +126,7 @@ function renderOverview(maps) {
 
   grid.innerHTML = cards + `
     <div class="ov-new" id="btn-new-map">
-      <span style="font-size:18px;line-height:1">＋</span> Neue Map
+      <span style="font-size:18px;line-height:1">＋</span> ${t('new_map_card')}
     </div>`;
 
   grid.querySelectorAll('.ov-card').forEach(card => {
@@ -153,23 +153,23 @@ function openCardMenu(e, mapId, mapTitle, canvasJson) {
   const y = Math.min(e.clientY + 4, window.innerHeight - 220);
   menu.style.cssText = `position:fixed;top:${y}px;left:${x}px`;
   menu.innerHTML = `
-    <button class="ctx-item" onclick="closeCardMenu(); openMap('${esc(mapId)}')">▶ Öffnen</button>
+    <button class="ctx-item" onclick="closeCardMenu(); openMap('${esc(mapId)}')">${t('ctx_open')}</button>
     <div class="ctx-sep"></div>
     <button class="ctx-item" onclick="closeCardMenu(); _renameMapId='${esc(mapId)}';
       document.getElementById('rename-map-title').value='${esc(mapTitle)}';
-      openDlg('dlg-rename-map')">✎ Umbenennen</button>
+      openDlg('dlg-rename-map')">${t('ctx_rename')}</button>
     <button class="ctx-item" onclick="closeCardMenu(); _parentMapId='${esc(mapId)}'; openParentMapDlg()">
-      🗺 Parent-Map setzen</button>
+      ${t('ctx_set_parent')}</button>
     <button class="ctx-item" onclick="closeCardMenu(); openCanvasModeDialog('${esc(mapId)}', '${esc(mapTitle)}', ${canvasArg})">
-      ⊡ Canvas-Format ändern</button>
+      ${t('ctx_change_canvas')}</button>
     <div class="ctx-sep"></div>
     <button class="ctx-item" onclick="closeCardMenu(); exportMapById('${esc(mapId)}')">
-      📤 Exportieren (.zip)</button>
+      ${t('ctx_export_zip')}</button>
     <button class="ctx-item" onclick="closeCardMenu(); cloneMap('${esc(mapId)}', '${esc(mapTitle)} – Kopie').then(() => {})">
-      ⧉ Duplizieren</button>
+      ${t('ctx_duplicate')}</button>
     <button class="ctx-item ctx-danger"
       onclick="closeCardMenu(); _deleteMapId='${esc(mapId)}'; _deleteMapTitle='${esc(mapTitle)}'; confirmDeleteMapById()">
-      🗑 Löschen</button>`;
+      ${t('ctx_delete')}</button>`;
   document.body.appendChild(menu);
   setTimeout(() => document.addEventListener('click', closeCardMenu, { once: true }), 0);
 }
@@ -183,7 +183,7 @@ async function openMap(mapId, { skipHistory = false } = {}) {
   if (!skipHistory) history.pushState({ mapId }, '', `#/map/${mapId}`);
   activeMapId  = mapId;
   activeMapCfg = await api(`/api/maps/${mapId}`);
-  if (!activeMapCfg) { alert('Map nicht gefunden'); return; }
+  if (!activeMapCfg) { alert(t('map_not_found')); return; }
 
   document.getElementById('app')?.classList.add('map-open');
   if (sidebarCollapsed) {
@@ -203,7 +203,7 @@ async function openMap(mapId, { skipHistory = false } = {}) {
 
   document.getElementById('tb-title').textContent = activeMapCfg.title;
   document.getElementById('tb-sub')  .textContent =
-    `${activeMapCfg.objects?.length ?? 0} Objekte · ${mapId}`;
+    `${t('objects_count', { count: activeMapCfg.objects?.length ?? 0 })} · ${mapId}`;
   _renderTopbarNav(mapId, activeMapCfg.parent_map);
 
   document.querySelectorAll('.map-entry').forEach(e => e.classList.remove('active'));
@@ -401,7 +401,7 @@ function showOverview({ skipHistory = false } = {}) {
   closeBurgerMenu();
 
   document.getElementById('tb-title').textContent = 'NagVis 2';
-  document.getElementById('tb-sub')  .textContent = 'Wähle eine Map';
+  document.getElementById('tb-sub')  .textContent = t('select_a_map');
   const _tnav = document.getElementById('tb-nav'); if (_tnav) _tnav.innerHTML = '';
   document.getElementById('nav-btn-overview').classList.add('active');
   document.querySelectorAll('.map-entry').forEach(e => e.classList.remove('active'));

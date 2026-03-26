@@ -137,7 +137,11 @@ nagvis2/
 ├── frontend/
 │   ├── index.html                ← Einzige HTML-Datei; lädt alle JS + CSS
 │   ├── css/styles.css
+│   ├── lang/
+│   │   ├── de.json               ← Deutsches Sprachpaket
+│   │   └── en.json               ← Englisches Sprachpaket
 │   └── js/
+│       ├── i18n.js               ← i18n-Engine (ZUERST laden!) — t(), setLang(), importLangPack()
 │       ├── gadget-renderer.js    ← Gadget-Rendering inkl. graph/iframe-Typ
 │       ├── zoom_pan.js           ← Zoom/Pan-Modul (NICHT ANFASSEN)
 │       ├── constants.js          ← STATE_CLS, ICON_SVG, svgToDataUri, iconSrc
@@ -229,16 +233,17 @@ Bewusste Entscheidung: keine Build-Tools, kein npm für den Produktivbetrieb. Da
 Die Reihenfolge in `index.html` ist strikt einzuhalten:
 
 ```html
-<script src="js/gadget-renderer.js"></script>  <!-- 1. Gadget-Renderer (extern) -->
-<script src="js/zoom_pan.js"></script>          <!-- 2. Zoom/Pan (extern) -->
-<script src="js/constants.js"></script>         <!-- 3. Konstanten -->
-<script src="js/state.js"></script>             <!-- 4. Globaler State -->
-<script src="js/ui-core.js"></script>           <!-- 5. UI-Grundfunktionen -->
-<script src="js/ws-client.js"></script>         <!-- 6. WebSocket + api() -->
-<script src="js/nodes.js"></script>             <!-- 7. Node-Rendering -->
-<script src="js/map-core.js"></script>          <!-- 8. Map-Verwaltung -->
-<script src="js/kiosk.js"></script>             <!-- 9. Kiosk-Modus -->
-<script src="js/app.js"></script>               <!-- 10. Init (ZULETZT) -->
+<script src="js/i18n.js"></script>             <!-- 1. i18n-Engine (ZUERST — t() muss vor allen anderen Modulen verfügbar sein) -->
+<script src="js/gadget-renderer.js"></script>  <!-- 2. Gadget-Renderer (extern) -->
+<script src="js/zoom_pan.js"></script>          <!-- 3. Zoom/Pan (extern) -->
+<script src="js/constants.js"></script>         <!-- 4. Konstanten -->
+<script src="js/state.js"></script>             <!-- 5. Globaler State -->
+<script src="js/ui-core.js"></script>           <!-- 6. UI-Grundfunktionen -->
+<script src="js/ws-client.js"></script>         <!-- 7. WebSocket + api() -->
+<script src="js/nodes.js"></script>             <!-- 8. Node-Rendering -->
+<script src="js/map-core.js"></script>          <!-- 9. Map-Verwaltung -->
+<script src="js/kiosk.js"></script>             <!-- 10. Kiosk-Modus -->
+<script src="js/app.js"></script>               <!-- 11. Init (ZULETZT) -->
 ```
 
 ### Globale Variablen
@@ -273,6 +278,55 @@ Gibt bei Fehler `null` zurück (kein throw). Im Demo-Modus werden alle Schreibop
 ### Demo-Modus
 
 `detectDemoMode()` in `ws-client.js` versucht `GET /api/health`. Schlägt das nach 600ms fehl, wird `window.DEMO_MODE = true` gesetzt. Alle `api()`-Aufrufe gehen dann gegen localStorage-Handler statt gegen den echten Backend.
+
+### i18n (Mehrsprachigkeit)
+
+`i18n.js` wird als **erstes** Script geladen und stellt `window.t()` für alle anderen Module bereit.
+
+**Schlüssel-basierte Übersetzung:**
+
+```javascript
+// Einfach
+t('overview')                          // → "Übersicht" (DE) / "Overview" (EN)
+
+// Mit Variablen
+t('objects_count', { count: 42 })      // → "42 Objekte"
+t('snapshot_status', { time: '12:00', count: 3 })
+```
+
+**Statische HTML-Texte** via `data-i18n`-Attribute (kein JS nötig):
+
+```html
+<span data-i18n="overview">Übersicht</span>
+<input data-i18n-placeholder="search_placeholder">
+<button data-i18n-title="btn_tooltip">...</button>
+```
+
+`applyI18n()` wird in `app.js` nach `await _i18nReady` aufgerufen und setzt alle Attribute.
+
+**Neuen Übersetzungs-Schlüssel hinzufügen:**
+
+1. Schlüssel in `frontend/lang/de.json` → `strings`-Objekt eintragen
+2. Gleichen Schlüssel in `frontend/lang/en.json` eintragen
+3. Im JS: `t('mein_schluessel')` oder `t('mein_schluessel', { var: wert })` verwenden
+4. Im HTML: `data-i18n="mein_schluessel"` am Element
+
+**Neue Sprache hinzufügen** (ohne Code-Änderung):
+
+```json
+{
+  "meta": { "lang": "fr", "name": "Français", "version": "1" },
+  "strings": {
+    "overview": "Vue d'ensemble",
+    "maps": "Cartes",
+    ...
+  }
+}
+```
+
+Datei in **⚙ Einstellungen → Lang-Pack importieren** hochladen — sofort aktiv.
+
+**Oder** als Built-in: `frontend/lang/fr.json` ablegen + Option im `<select>` in `index.html` ergänzen.
 
 ---
 

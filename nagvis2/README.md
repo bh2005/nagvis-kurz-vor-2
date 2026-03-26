@@ -22,6 +22,7 @@ Eine komplette Neuentwicklung von NagVis mit FastAPI-Backend, WebSocket-Livestat
 | **Help-System** | Integriertes MkDocs-Hilfe-System unter `/help/` |
 | **Docker** | `docker compose up --build` — fertig |
 | **Theme** | Dark / Light, responsiv |
+| **Mehrsprachigkeit** | DE/EN eingebaut; beliebige Sprachen per JSON-Lang-Pack importierbar; Sprach-Picker in den Einstellungen |
 
 ---
 
@@ -129,6 +130,7 @@ nagvis2/
 │       ├── nodes.js
 │       ├── map-core.js
 │       ├── ui-core.js
+│       ├── i18n.js           ← i18n-Engine (t(), setLang(), importLangPack())
 │       ├── kiosk.js
 │       └── app.js
 ├── docs/                     ← MkDocs-Quelldateien
@@ -183,9 +185,13 @@ Dieses Projekt steht unter der **MIT License** – siehe [LICENSE](LICENSE).
 
 **Projektstatus:** Beta (funktioniert stabil, aktive Weiterentwicklung)
 **Autor:** bh2005
-**Version:** 2.1 Beta (März 2026)
+**Version:** 2.2 Beta (März 2026)
 
 ---
+
+## Neu in 2.2
+
+- **Mehrsprachigkeit (i18n)** — DE/EN eingebaut; beliebige Sprachen per JSON-Lang-Pack importierbar; kein Flash of Untranslated Content dank localStorage-Cache
 
 ## Neu in 2.1
 

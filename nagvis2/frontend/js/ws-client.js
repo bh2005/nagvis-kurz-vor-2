@@ -41,14 +41,14 @@ function makeWsClient(mapId) {
 
 function onWsOpen() {
   setConnDot('connected');
-  setSidebarLive(true, 'Livestatus · verbunden');
+  setSidebarLive(true, t('livestatus_connected'));
   _setCanvasOffline(false);
 }
 
 function onWsClose() {
   setConnDot('disconnected');
-  setSidebarLive(false, 'Getrennt – verbinde…');
-  setStatusBar('Verbindung unterbrochen…');
+  setSidebarLive(false, t('disconnected'));
+  setStatusBar(t('connection_lost'));
   _setCanvasOffline(true);
 }
 
@@ -63,7 +63,7 @@ function _setCanvasOffline(offline) {
       const b = document.createElement('div');
       b.id = 'nv2-offline-banner';
       b.className = 'nv2-offline-banner';
-      b.textContent = '⚠  Verbindung unterbrochen – Statusdaten können veraltet sein';
+      b.textContent = t('offline_banner');
       area.appendChild(b);
     }
   } else {
@@ -86,7 +86,7 @@ function onWsMsg(ev) {
       renderHostsPanel(ev.hosts ?? []);
       fillHostDatalist(ev.hosts ?? []);
       appendEvents(ev.hosts ?? [], ev.services ?? [], ev.ts);
-      setStatusBar(`${fmt(ev.ts)} · Snapshot · ${ev.hosts?.length ?? 0} Hosts`);
+      setStatusBar(t('snapshot_status', { time: fmt(ev.ts), count: ev.hosts?.length ?? 0 }));
       break;
 
     case 'status_update': {
@@ -97,13 +97,14 @@ function onWsMsg(ev) {
       if (ev.downtime_started?.length) showDowntimeBanner(ev.downtime_started, true);
       if (ev.downtime_ended?.length)   showDowntimeBanner(ev.downtime_ended,   false);
       const n = (ev.hosts?.length ?? 0) + (ev.services?.length ?? 0);
-      setStatusBar(`${fmt(ev.ts)} · ${n} Änderung${n !== 1 ? 'en' : ''} · ${ev.elapsed}ms`);
+      const _sfx = window._nv2Lang === 'de' ? (n !== 1 ? 'en' : '') : (n !== 1 ? 's' : '');
+      setStatusBar(t('update_status', { time: fmt(ev.ts), count: n, suffix: _sfx, elapsed: ev.elapsed }));
       _checkCriticalNotify(ev.hosts ?? [], ev.services ?? []);
       break;
     }
 
     case 'heartbeat':
-      setStatusBar(`${fmt(ev.ts)} · live ♥`);
+      setStatusBar(t('heartbeat_status', { time: fmt(ev.ts) }));
       break;
 
     case 'object_added':
@@ -140,7 +141,7 @@ function onWsMsg(ev) {
     case '_disconnected': setConnDot('disconnected'); break;
     case 'backend_error':
       setStatusBar(`⚠ ${ev.message}`);
-      showToast(`Backend: ${ev.message}`, 'error');
+      showToast(t('backend_error', { msg: ev.message }), 'error');
       break;
   }
 }
@@ -173,8 +174,8 @@ function _checkCriticalNotify(hosts, services) {
 
   if ('Notification' in window && Notification.permission === 'granted') {
     const names = all.slice(0, 3).map(i => i.name || i.host_name).join(', ');
-    const more  = all.length > 3 ? ` (+${all.length - 3} weitere)` : '';
-    new Notification('⚠ NagVis 2 – CRITICAL', {
+    const more  = all.length > 3 ? ` (${t('notify_more', { n: all.length - 3 })})` : '';
+    new Notification(t('notify_critical_title'), {
       body:  names + more,
       icon:  '/favicon.ico',
       tag:   'nagvis2-critical',   // ersetzt vorherige Benachrichtigung
@@ -278,8 +279,8 @@ async function detectDemoMode() {
 
 function _activateDemoUI() {
   console.info('[NV2] Demo-Modus aktiv');
-  setSidebarLive(true, 'Demo-Modus · kein Backend');
-  setStatusBar('Demo-Modus · statische Daten');
+  setSidebarLive(true, t('demo_no_backend'));
+  setStatusBar(t('demo_static'));
   document.getElementById('nv2-conn-dot').className = 'conn-dot connected';
   // Demo-Banner einblenden
   const banner = document.getElementById('nv2-demo-banner');
@@ -427,7 +428,7 @@ async function api(path, method = 'GET', body = null) {
     return r.json();
   } catch (err) {
     console.error('[NV2] api() error:', err);
-    showToast('Netzwerkfehler – Backend nicht erreichbar', 'error', 5000);
+    showToast(t('network_error'), 'error', 5000);
     return null;
   }
 }

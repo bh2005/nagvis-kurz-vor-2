@@ -188,6 +188,21 @@ Aktionen konfigurierbar: Burger-Menü → ⚡ Aktionen konfigurieren
 | Offline-Modus | Demo-Mode läuft vollständig im Browser (localStorage-basiert) |
 | Browser-Benachrichtigungen | Bei CRITICAL/DOWN — Web-Push-API + Hinweiston (Web Audio API) |
 | Label-Templates | Nagios-Macros (`$HOSTNAME$` etc.) + Monitoring-Labels in Node-Beschriftungen |
+| **Mehrsprachigkeit (i18n)** | `window.t(key, vars)` — Schlüssel-basierte Übersetzung mit `{var}`-Interpolation; DE + EN eingebaut; beliebige Sprachen per JSON-Lang-Pack-Import erweiterbar; `data-i18n`-Attribute im DOM; localStorage-Cache für blitzschnellen Warm-Start ohne Flash |
+
+---
+
+## Mehrsprachigkeit (i18n)
+
+| Feature | Details |
+|---|---|
+| Sprachpakete | DE (`de.json`) und EN (`en.json`) eingebaut; Format: `{ meta, strings }` |
+| Erweiterbar | Beliebige Sprache als JSON-Datei hochladbar — kein Build-Schritt nötig |
+| Sprach-Picker | Dropdown in **⚙ Einstellungen**; Umschalten wirkt sofort ohne Seiten-Reload |
+| Kein Flash | Synchrone Cache-Ladung aus localStorage im Boot; Async-Fetch im Hintergrund |
+| DOM-Attribute | `data-i18n`, `data-i18n-placeholder`, `data-i18n-title` für statische HTML-Texte |
+| Pluralisierung | `{suffix}`-Pattern; sprachabhängig DE (`'en'`/`''`) vs. EN (`'s'`/`''`) |
+| Dynamische UI | `_refreshDynamicUI()` nach Sprachwechsel aktualisiert Theme-Labels, Maps, Host-Panel |
 
 ---
 
