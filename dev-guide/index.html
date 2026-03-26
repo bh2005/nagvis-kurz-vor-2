@@ -563,6 +563,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#i18n-mehrsprachigkeit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        i18n (Mehrsprachigkeit)
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1422,6 +1433,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#i18n-mehrsprachigkeit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        i18n (Mehrsprachigkeit)
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1896,7 +1918,11 @@ docker compose up --build
 ├── frontend/
 │   ├── index.html                ← Einzige HTML-Datei; lädt alle JS + CSS
 │   ├── css/styles.css
+│   ├── lang/
+│   │   ├── de.json               ← Deutsches Sprachpaket
+│   │   └── en.json               ← Englisches Sprachpaket
 │   └── js/
+│       ├── i18n.js               ← i18n-Engine (ZUERST laden!) — t(), setLang(), importLangPack()
 │       ├── gadget-renderer.js    ← Gadget-Rendering inkl. graph/iframe-Typ
 │       ├── zoom_pan.js           ← Zoom/Pan-Modul (NICHT ANFASSEN)
 │       ├── constants.js          ← STATE_CLS, ICON_SVG, svgToDataUri, iconSrc
@@ -1965,16 +1991,17 @@ settings.WS_POLL_INTERVAL  # int (Sekunden)
 <p>Bewusste Entscheidung: keine Build-Tools, kein npm für den Produktivbetrieb. Das Frontend läuft direkt aus dem Repository-Verzeichnis ohne Compilation.</p>
 <h3 id="script-ladereihenfolge">Script-Ladereihenfolge</h3>
 <p>Die Reihenfolge in <code>index.html</code> ist strikt einzuhalten:</p>
-<pre><code class="language-html">&lt;script src=&quot;js/gadget-renderer.js&quot;&gt;&lt;/script&gt;  &lt;!-- 1. Gadget-Renderer (extern) --&gt;
-&lt;script src=&quot;js/zoom_pan.js&quot;&gt;&lt;/script&gt;          &lt;!-- 2. Zoom/Pan (extern) --&gt;
-&lt;script src=&quot;js/constants.js&quot;&gt;&lt;/script&gt;         &lt;!-- 3. Konstanten --&gt;
-&lt;script src=&quot;js/state.js&quot;&gt;&lt;/script&gt;             &lt;!-- 4. Globaler State --&gt;
-&lt;script src=&quot;js/ui-core.js&quot;&gt;&lt;/script&gt;           &lt;!-- 5. UI-Grundfunktionen --&gt;
-&lt;script src=&quot;js/ws-client.js&quot;&gt;&lt;/script&gt;         &lt;!-- 6. WebSocket + api() --&gt;
-&lt;script src=&quot;js/nodes.js&quot;&gt;&lt;/script&gt;             &lt;!-- 7. Node-Rendering --&gt;
-&lt;script src=&quot;js/map-core.js&quot;&gt;&lt;/script&gt;          &lt;!-- 8. Map-Verwaltung --&gt;
-&lt;script src=&quot;js/kiosk.js&quot;&gt;&lt;/script&gt;             &lt;!-- 9. Kiosk-Modus --&gt;
-&lt;script src=&quot;js/app.js&quot;&gt;&lt;/script&gt;               &lt;!-- 10. Init (ZULETZT) --&gt;
+<pre><code class="language-html">&lt;script src=&quot;js/i18n.js&quot;&gt;&lt;/script&gt;             &lt;!-- 1. i18n-Engine (ZUERST — t() muss vor allen anderen Modulen verfügbar sein) --&gt;
+&lt;script src=&quot;js/gadget-renderer.js&quot;&gt;&lt;/script&gt;  &lt;!-- 2. Gadget-Renderer (extern) --&gt;
+&lt;script src=&quot;js/zoom_pan.js&quot;&gt;&lt;/script&gt;          &lt;!-- 3. Zoom/Pan (extern) --&gt;
+&lt;script src=&quot;js/constants.js&quot;&gt;&lt;/script&gt;         &lt;!-- 4. Konstanten --&gt;
+&lt;script src=&quot;js/state.js&quot;&gt;&lt;/script&gt;             &lt;!-- 5. Globaler State --&gt;
+&lt;script src=&quot;js/ui-core.js&quot;&gt;&lt;/script&gt;           &lt;!-- 6. UI-Grundfunktionen --&gt;
+&lt;script src=&quot;js/ws-client.js&quot;&gt;&lt;/script&gt;         &lt;!-- 7. WebSocket + api() --&gt;
+&lt;script src=&quot;js/nodes.js&quot;&gt;&lt;/script&gt;             &lt;!-- 8. Node-Rendering --&gt;
+&lt;script src=&quot;js/map-core.js&quot;&gt;&lt;/script&gt;          &lt;!-- 9. Map-Verwaltung --&gt;
+&lt;script src=&quot;js/kiosk.js&quot;&gt;&lt;/script&gt;             &lt;!-- 10. Kiosk-Modus --&gt;
+&lt;script src=&quot;js/app.js&quot;&gt;&lt;/script&gt;               &lt;!-- 11. Init (ZULETZT) --&gt;
 </code></pre>
 <h3 id="globale-variablen">Globale Variablen</h3>
 <p><strong>Kritisch:</strong> <code>let</code> in einem <code>&lt;script&gt;</code>-Block ist <strong>nicht</strong> in anderen Dateien sichtbar. Alle öffentlichen Funktionen und Variablen müssen als <code>window.xyz = ...</code> gesetzt werden.</p>
@@ -1998,6 +2025,41 @@ await api(`/api/maps/${id}/objects/${oid}/props`, 'PATCH', { name: 'Server1' });
 <p>Gibt bei Fehler <code>null</code> zurück (kein throw). Im Demo-Modus werden alle Schreiboperationen über Handler in <code>ws-client.js</code> auf localStorage umgeleitet.</p>
 <h3 id="demo-modus">Demo-Modus</h3>
 <p><code>detectDemoMode()</code> in <code>ws-client.js</code> versucht <code>GET /api/health</code>. Schlägt das nach 600ms fehl, wird <code>window.DEMO_MODE = true</code> gesetzt. Alle <code>api()</code>-Aufrufe gehen dann gegen localStorage-Handler statt gegen den echten Backend.</p>
+<h3 id="i18n-mehrsprachigkeit">i18n (Mehrsprachigkeit)</h3>
+<p><code>i18n.js</code> wird als <strong>erstes</strong> Script geladen und stellt <code>window.t()</code> für alle anderen Module bereit.</p>
+<p><strong>Schlüssel-basierte Übersetzung:</strong></p>
+<pre><code class="language-javascript">// Einfach
+t('overview')                          // → &quot;Übersicht&quot; (DE) / &quot;Overview&quot; (EN)
+
+// Mit Variablen
+t('objects_count', { count: 42 })      // → &quot;42 Objekte&quot;
+t('snapshot_status', { time: '12:00', count: 3 })
+</code></pre>
+<p><strong>Statische HTML-Texte</strong> via <code>data-i18n</code>-Attribute (kein JS nötig):</p>
+<pre><code class="language-html">&lt;span data-i18n=&quot;overview&quot;&gt;Übersicht&lt;/span&gt;
+&lt;input data-i18n-placeholder=&quot;search_placeholder&quot;&gt;
+&lt;button data-i18n-title=&quot;btn_tooltip&quot;&gt;...&lt;/button&gt;
+</code></pre>
+<p><code>applyI18n()</code> wird in <code>app.js</code> nach <code>await _i18nReady</code> aufgerufen und setzt alle Attribute.</p>
+<p><strong>Neuen Übersetzungs-Schlüssel hinzufügen:</strong></p>
+<ol>
+<li>Schlüssel in <code>frontend/lang/de.json</code> → <code>strings</code>-Objekt eintragen</li>
+<li>Gleichen Schlüssel in <code>frontend/lang/en.json</code> eintragen</li>
+<li>Im JS: <code>t('mein_schluessel')</code> oder <code>t('mein_schluessel', { var: wert })</code> verwenden</li>
+<li>Im HTML: <code>data-i18n="mein_schluessel"</code> am Element</li>
+</ol>
+<p><strong>Neue Sprache hinzufügen</strong> (ohne Code-Änderung):</p>
+<pre><code class="language-json">{
+  &quot;meta&quot;: { &quot;lang&quot;: &quot;fr&quot;, &quot;name&quot;: &quot;Français&quot;, &quot;version&quot;: &quot;1&quot; },
+  &quot;strings&quot;: {
+    &quot;overview&quot;: &quot;Vue d'ensemble&quot;,
+    &quot;maps&quot;: &quot;Cartes&quot;,
+    ...
+  }
+}
+</code></pre>
+<p>Datei in <strong>⚙ Einstellungen → Lang-Pack importieren</strong> hochladen — sofort aktiv.</p>
+<p><strong>Oder</strong> als Built-in: <code>frontend/lang/fr.json</code> ablegen + Option im <code>&lt;select&gt;</code> in <code>index.html</code> ergänzen.</p>
 <hr />
 <h2 id="6-neuen-backend-connector-hinzufugen">6. Neuen Backend-Connector hinzufügen</h2>
 <p>Am Beispiel eines neuen Connectors für "MyMonitoring":</p>
