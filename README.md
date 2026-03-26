@@ -37,6 +37,7 @@ Eine komplette Neuentwicklung von NagVis mit FastAPI-Backend, WebSocket-Livestat
 | **Docker** | `docker compose up --build` — fertig |
 | **Install-Script** | `install.sh` — vollautomatische Linux-Installation mit Systemd-Service |
 | **Theme** | Dark / Light, Standard: Dark + Sidebar ausgeklappt |
+| **Mehrsprachigkeit** | DE/EN eingebaut; beliebige Sprachen per JSON-Lang-Pack importierbar; Sprach-Picker in den Einstellungen |
 
 ---
 
@@ -163,6 +164,7 @@ nagvis2/
 │       ├── map-core.js       ← Maps, Backends, Clone, draw.io-Import
 │       ├── nodes.js          ← Node-Dialog, Gadget-Config-Dialog
 │       ├── gadget-renderer.js← Gadget-Typen inkl. Graph/iframe
+│       ├── i18n.js           ← i18n-Engine (t(), setLang(), importLangPack())
 │       ├── ui-core.js
 │       ├── ws-client.js
 │       ├── kiosk.js
@@ -218,7 +220,7 @@ Dieses Projekt steht unter der **MIT License** – siehe [LICENSE](LICENSE).
 
 **Projektstatus:** Beta (funktioniert stabil, aktive Weiterentwicklung)
 **Autor:** bh2005
-**Version:** 2.1 Beta (März 2026)
+**Version:** 2.2 Beta (März 2026)
 
 ---
 

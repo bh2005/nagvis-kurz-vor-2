@@ -171,7 +171,20 @@
 - Sidebar-Startzustand (Expanded/Collapsed) – **Standard: Expanded**
 - Kiosk-Optionen (Sidebar, Topbar, Auto-Refresh, Intervall)
 - **Browser-Benachrichtigungen** – Web Push API bei CRITICAL/DOWN; Hinweiston via Web Audio API (Square-Wave, kein externer Asset); in Benutzereinstellungen an/abschaltbar; Debounce 15 s; Berechtigung-Button mit Live-Statusanzeige
+- **Sprach-Picker** – Dropdown DE/EN + Import beliebiger Sprachen als JSON-Lang-Pack; sofortige Umschaltung ohne Reload
 - Persistenz via `nv2-user-settings` in localStorage (einzige Quelle; `nv2-theme` / `nv2-sidebar` entfernt)
+
+---
+
+### Mehrsprachigkeit (i18n)
+- **`i18n.js`** – wird als erstes Script geladen; stellt `window.t(key, vars)` für alle Module bereit
+- **`window.t(key, vars)`** – Schlüssel-basierte Übersetzung mit `{var}`-Interpolation; Fallback = Schlüssel selbst
+- **`applyI18n()`** – traversiert DOM und setzt `data-i18n` / `data-i18n-placeholder` / `data-i18n-title`
+- **`setLang(code)`** – lädt `/lang/{code}.json`, aktualisiert `window.I18N`, speichert in localStorage, ruft `applyI18n()` + `_refreshDynamicUI()` auf
+- **`importLangPack(file)`** – beliebige Sprache als JSON-Datei laden; kein Server-Deployment nötig
+- **`window._i18nReady`** – Promise; in `app.js` vor erstem Render awaited → kein Flash of Untranslated Content
+- **Warm-Start** – synchrone Cache-Ladung aus localStorage im Boot; Texte sofort korrekt, auch wenn Fetch noch läuft
+- **`lang/de.json` + `lang/en.json`** – ~130 Schlüssel inkl. Meta-Block und `{var}`-Templates für Pluralisierung
 
 ---
 
@@ -261,7 +274,7 @@
 ### Nice-to-have / Langfristig
 | # | Feature | Beschreibung |
 |---|---|---|
-| N1 | **Mehrsprachigkeit (i18n)** | DE/EN via JSON-Dictionary |
+| ~~N1~~ | ~~**Mehrsprachigkeit (i18n)**~~ | ✅ DE/EN eingebaut; Lang-Pack-Import; Sprach-Picker; localStorage-Cache |
 | N2 | **Map-Vorlagen** | Vordefinierte Layouts (Stern, Hierarchie, Rechenzentrum) |
 | N3 | **Mobile-Ansicht** | Touch-Events für Drag, Pinch-Zoom, responsive Breakpoints |
 | ~~N4~~ | ~~**Benachrichtigungen**~~ | ✅ Browser-Push + Hinweiston bei CRITICAL/DOWN; in Benutzereinstellungen an/abschaltbar |
@@ -287,6 +300,7 @@ OSM / Weltkarte     ████████████████████
 Gadget-System       ████████████████████  100%  (inkl. Graph/iframe-Gadget)
 Monitoring/Betrieb  ████████████████████  100%  (Systemd/OMD, OMD-Hook, Prometheus)
 Backend API         ████████████████████  100%  (HTTPS/TLS produktionsreif)
+Mehrsprachigkeit    ████████████████████  100%  (DE/EN, Lang-Pack-Import, localStorage-Cache)
 Docker/Helm         ██████████████████░░   90%
 Tests               ████████████████░░░░   80%  (ws_manager 89%, main 76%)
 Distribution        ████████████████████  100%  (install.sh, build.sh, GitHub Releases)
