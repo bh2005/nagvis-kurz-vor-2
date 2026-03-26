@@ -1398,7 +1398,7 @@ function initLayers(objects) {
   const used = new Set(objects.map(o => o.layer ?? 0));
   _layers = {};
   [...used].sort((a,b)=>a-b).forEach(id => {
-    _layers[id] = { id, name: id === 0 ? 'Standard' : `Layer ${id}`, visible: true, zIndex: 10 + id * 10 };
+    _layers[id] = { id, name: id === 0 ? t('layer_default') : t('layer_n', { n: id }), visible: true, zIndex: 10 + id * 10 };
   });
   renderLayerPanel();
   applyAllLayerVisibility();
@@ -1535,7 +1535,7 @@ function assignLayer(el, layerId) {
   const id = parseInt(layerId ?? 0);
   el.dataset.layer = id;
   if (!_layers[id]) {
-    _layers[id] = { id, name: `Layer ${id}`, visible: true, zIndex: 10 + id * 10 };
+    _layers[id] = { id, name: t('layer_n', { n: id }), visible: true, zIndex: 10 + id * 10 };
     renderLayerPanel();
   }
   el.style.zIndex = _layers[id].zIndex;
@@ -1578,7 +1578,7 @@ function openLayerDialog(el, obj) {
     let targetId = newIdInput !== '' ? parseInt(newIdInput) : parseInt(panel.querySelector('#layer-select').value);
     if (isNaN(targetId)) targetId = 0;
     if (newIdInput !== '') {
-      const name = panel.querySelector('#layer-new-name').value.trim() || `Layer ${targetId}`;
+      const name = panel.querySelector('#layer-new-name').value.trim() || t('layer_n', { n: targetId });
       if (!_layers[targetId]) {
         _layers[targetId] = { id: targetId, name, visible: true, zIndex: 10 + targetId * 10 };
         renderLayerPanel();
@@ -1706,7 +1706,7 @@ function toggleEdit() {
   const banner = document.getElementById('nv2-edit-banner');
   const canvas = document.getElementById('nv2-canvas');
   const lbl    = document.getElementById('burger-edit-label');
-  if (lbl) lbl.textContent = editActive ? 'Fertig' : 'Bearbeiten';
+  if (lbl) lbl.textContent = editActive ? t('done') : t('edit');
   if (btn) { btn.classList.toggle('on', editActive); btn.title = editActive ? 'Edit-Mode beenden (Ctrl+E)' : 'Edit-Mode starten (Ctrl+E)'; }
   addBtn.style.display = editActive ? 'flex' : 'none';
   banner.classList.toggle('show', editActive);
@@ -1885,7 +1885,7 @@ function showViewContextMenu(e, el, obj) {
   if (!visibleActions.length) {
     const empty = document.createElement('div');
     empty.className = 'ctx-item'; empty.style.color = 'var(--text-dim)'; empty.style.cursor = 'default';
-    empty.textContent = 'Keine Aktionen verfügbar';
+    empty.textContent = t('no_actions');
     menu.appendChild(empty);
   }
 

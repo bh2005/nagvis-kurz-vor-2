@@ -10,6 +10,10 @@
 
 document.addEventListener('DOMContentLoaded', async () => {
 
+  // i18n: sicherstellen dass das initiale Sprachpaket geladen ist
+  await window._i18nReady;
+  applyI18n();
+
   // Theme aus User-Settings laden (Default: 'dark')
   setTheme(loadUserSettings().theme, false);
 

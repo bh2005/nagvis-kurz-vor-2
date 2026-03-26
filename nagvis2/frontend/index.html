@@ -24,31 +24,31 @@
 
     <div class="nav">
 
-      <div class="nav-section">Navigation</div>
+      <div class="nav-section" data-i18n="navigation">Navigation</div>
 
       <button class="nav-btn active" id="nav-btn-overview" onclick="showOverview()" data-label="Übersicht">
         <span class="nav-ico">◈</span>
-        <span class="nav-text">Übersicht</span>
+        <span class="nav-text" data-i18n="overview">Übersicht</span>
       </button>
 
-      <div class="nav-section">Maps</div>
+      <div class="nav-section" data-i18n="maps">Maps</div>
       <div id="sidebar-maps" class="map-list"></div>
 
-      <div class="nav-section" id="layer-section" style="display:none">Layer</div>
+      <div class="nav-section" id="layer-section" style="display:none" data-i18n="layer">Layer</div>
       <div id="sidebar-layers" class="layer-list" style="display:none"></div>
 
     </div>
 
     <div class="sidebar-shortcuts">
-      <div class="sidebar-shortcuts-title">⌨ Tastatur-Shortcuts</div>
+      <div class="sidebar-shortcuts-title" data-i18n="keyboard_shortcuts">⌨ Tastatur-Shortcuts</div>
       <div class="sidebar-shortcuts-body">
-        <span class="sc-key">Ctrl+E</span><span class="sc-desc">Edit-Mode</span>
-        <span class="sc-key">B</span><span class="sc-desc">Sidebar</span>
-        <span class="sc-key">R</span><span class="sc-desc">Neu laden</span>
-        <span class="sc-key">F11</span><span class="sc-desc">Kiosk</span>
-        <span class="sc-key">Esc</span><span class="sc-desc">Schließen</span>
-        <span class="sc-key">Del</span><span class="sc-desc">Objekt löschen</span>
-        <span class="sc-key">Ctrl+A</span><span class="sc-desc">Alle auswählen</span>
+        <span class="sc-key">Ctrl+E</span><span class="sc-desc" data-i18n="sc_edit_mode">Edit-Mode</span>
+        <span class="sc-key">B</span><span class="sc-desc" data-i18n="sc_sidebar">Sidebar</span>
+        <span class="sc-key">R</span><span class="sc-desc" data-i18n="sc_reload">Neu laden</span>
+        <span class="sc-key">F11</span><span class="sc-desc" data-i18n="sc_kiosk">Kiosk</span>
+        <span class="sc-key">Esc</span><span class="sc-desc" data-i18n="sc_close">Schließen</span>
+        <span class="sc-key">Del</span><span class="sc-desc" data-i18n="sc_delete_obj">Objekt löschen</span>
+        <span class="sc-key">Ctrl+A</span><span class="sc-desc" data-i18n="sc_select_all">Alle auswählen</span>
       </div>
     </div>
 
@@ -97,7 +97,7 @@
 
     <div class="tb-ident">
       <div class="tb-title" id="tb-title">NagVis 2</div>
-      <div class="tb-sub"   id="tb-sub">Wähle eine Map</div>
+      <div class="tb-sub"   id="tb-sub" data-i18n="select_a_map">Wähle eine Map</div>
     </div>
 
     <div id="tb-nav" class="tb-nav"></div>
@@ -115,8 +115,8 @@
 
     <div id="map-toolbar" style="display:none; align-items:center; gap:6px;">
       <div class="tb-sep"></div>
-      <button class="tb-btn" id="btn-add-host" style="display:none;" title="Objekt platzieren (Edit-Mode)">
-        <span class="tb-icon">＋</span> Objekt
+      <button class="tb-btn" id="btn-add-host" style="display:none;" data-i18n-title="add_object_title" title="Objekt platzieren (Edit-Mode)">
+        <span class="tb-icon">＋</span><span data-i18n="add_object"> Objekt</span>
       </button>
       <button class="tb-btn" id="btn-kiosk" title="Kiosk-Modus (Vollbild)" onclick="toggleKiosk()">
         <span class="tb-icon">⛶</span>
@@ -191,85 +191,85 @@
       <div id="burger-dropdown" class="burger-dropdown" style="display:none;">
 
         <div id="burger-map-section" style="display:none;">
-          <div class="burger-head">Aktive Map</div>
+          <div class="burger-head" data-i18n="active_map">Aktive Map</div>
           <button class="burger-item" id="btn-edit" onclick="toggleEdit(); closeBurgerMenu()">
             <span class="burger-ico">✏</span>
-            <span id="burger-edit-label">Bearbeiten</span>
+            <span id="burger-edit-label" data-i18n="edit">Bearbeiten</span>
             <kbd class="burger-kbd">Ctrl+E</kbd>
           </button>
           <button class="burger-item" id="btn-bg-upload"
                   onclick="document.getElementById('bg-file-input').click(); closeBurgerMenu()">
-            <span class="burger-ico">🖼</span> Hintergrund hochladen
+            <span class="burger-ico">🖼</span><span data-i18n="upload_background"> Hintergrund hochladen</span>
           </button>
           <button class="burger-item" id="burger-btn-rename"
                   onclick="openRenameMapDlg(); closeBurgerMenu()">
-            <span class="burger-ico">✎</span> Umbenennen
+            <span class="burger-ico">✎</span><span data-i18n="rename"> Umbenennen</span>
           </button>
           <button class="burger-item" id="burger-btn-parentmap"
                   onclick="openParentMapDlg(); closeBurgerMenu()">
-            <span class="burger-ico">🗺</span> Parent-Map setzen
+            <span class="burger-ico">🗺</span><span data-i18n="set_parent_map"> Parent-Map setzen</span>
           </button>
           <button class="burger-item" id="burger-btn-kiosk"
                   onclick="toggleKiosk(); closeBurgerMenu()">
             <span class="burger-ico">⛶</span>
-            <span id="burger-kiosk-label">Kiosk-Modus</span>
+            <span id="burger-kiosk-label" data-i18n="kiosk_mode">Kiosk-Modus</span>
             <kbd class="burger-kbd">F11</kbd>
           </button>
           <button class="burger-item burger-item-danger" id="btn-delete-map"
-                  onclick="confirmDeleteMap(); closeBurgerMenu()">
-            <span class="burger-ico">🗑</span> Map löschen
+                  onclick="confirmDeleteMap(); closeBurgerMenu()" data-i18n-title="delete_map">
+            <span class="burger-ico">🗑</span><span data-i18n="delete_map"> Map löschen</span>
           </button>
           <button class="burger-item" onclick="openCanvasModeDialog(activeMapId, activeMapCfg?.title, activeMapCfg?.canvas); closeBurgerMenu()">
-            <span class="burger-ico">⊡</span> Canvas-Format ändern
+            <span class="burger-ico">⊡</span><span data-i18n="change_canvas"> Canvas-Format ändern</span>
           </button>
           <button class="burger-item" id="btn-clone-map" onclick="cloneActiveMap(); closeBurgerMenu()">
-            <span class="burger-ico">⧉</span> Map duplizieren
+            <span class="burger-ico">⧉</span><span data-i18n="duplicate_map"> Map duplizieren</span>
           </button>
           <button class="burger-item" onclick="exportActiveMap(); closeBurgerMenu()">
-            <span class="burger-ico">📤</span> Map exportieren (.zip)
+            <span class="burger-ico">📤</span><span data-i18n="export_map_zip"> Map exportieren (.zip)</span>
           </button>
           <div class="burger-divider"></div>
         </div>
 
-        <div class="burger-head" id="burger-head-maps">Maps verwalten</div>
+        <div class="burger-head" id="burger-head-maps" data-i18n="manage_maps">Maps verwalten</div>
         <button class="burger-item" id="btn-new-map" onclick="dlgNewMap(); closeBurgerMenu()">
-          <span class="burger-ico">＋</span> Neue Map erstellen
+          <span class="burger-ico">＋</span><span data-i18n="create_new_map"> Neue Map erstellen</span>
         </button>
         <button class="burger-item" onclick="openManageMapsOverlay(); closeBurgerMenu()">
-          <span class="burger-ico">⊟</span> Alle Maps verwalten
+          <span class="burger-ico">⊟</span><span data-i18n="manage_all_maps"> Alle Maps verwalten</span>
         </button>
         <button class="burger-item" id="btn-import-map" onclick="dlgMigrate(); closeBurgerMenu()">
-          <span class="burger-ico">↑</span> NagVis&#x202F;1 importieren
+          <span class="burger-ico">↑</span><span data-i18n="import_nagvis1"> NagVis&#x202F;1 importieren</span>
         </button>
         <button class="burger-item" id="btn-import-zip" onclick="dlgImportZip(); closeBurgerMenu()">
-          <span class="burger-ico">📥</span> Map importieren (.zip)
+          <span class="burger-ico">📥</span><span data-i18n="import_map_zip"> Map importieren (.zip)</span>
         </button>
         <button class="burger-item" id="btn-import-drawio" onclick="dlgImportDrawio(); closeBurgerMenu()">
-          <span class="burger-ico">🗂</span> draw.io importieren (.drawio / .xml)
+          <span class="burger-ico">🗂</span><span data-i18n="import_drawio"> draw.io importieren (.drawio / .xml)</span>
         </button>
         <div class="burger-divider"></div>
 
-        <div class="burger-head">Benutzereinstellungen</div>
+        <div class="burger-head" data-i18n="user_settings_section">Benutzereinstellungen</div>
         <button class="burger-item"
                 onclick="setTheme(currentTheme==='dark'?'light':'dark'); closeBurgerMenu()">
           <span class="burger-ico" id="burger-theme-ico">☀</span>
-          <span id="burger-theme-label">Light-Theme</span>
+          <span id="burger-theme-label" data-i18n="light_theme">Light-Theme</span>
         </button>
         <button class="burger-item" id="btn-backend-mgmt" onclick="openBackendMgmtDlg(); closeBurgerMenu()">
-          <span class="burger-ico">🗄</span> Datenquellen verwalten
+          <span class="burger-ico">🗄</span><span data-i18n="manage_backends"> Datenquellen verwalten</span>
         </button>
         <button class="burger-item" id="btn-kiosk-users" onclick="openKioskUsersDlg(); closeBurgerMenu()">
-          <span class="burger-ico">⬛</span> Kiosk-User verwalten
+          <span class="burger-ico">⬛</span><span data-i18n="manage_kiosk_users"> Kiosk-User verwalten</span>
         </button>
         <button class="burger-item" id="btn-action-config" onclick="openActionConfigDlg(); closeBurgerMenu()">
-          <span class="burger-ico">⚡</span> Aktionen konfigurieren
+          <span class="burger-ico">⚡</span><span data-i18n="configure_actions"> Aktionen konfigurieren</span>
         </button>
         <button class="burger-item" onclick="openUserSettingsDlg(); closeBurgerMenu()">
-          <span class="burger-ico">⚙</span> Einstellungen…
+          <span class="burger-ico">⚙</span><span data-i18n="settings"> Einstellungen…</span>
         </button>
         <div class="burger-divider"></div>
 
-        <div class="burger-head">System</div>
+        <div class="burger-head" data-i18n="system">System</div>
         <button class="burger-item burger-item-noaction">
           <span class="burger-ico">⊙</span> Health
           <span class="nav-chip ok" id="health-chip" style="margin-left:auto">OK</span>
@@ -278,51 +278,51 @@
           <span class="burger-ico">⊞</span> Swagger API
         </button>
         <button class="burger-item" onclick="openLogViewer(); closeBurgerMenu()">
-          <span class="burger-ico">📋</span> Log anzeigen
+          <span class="burger-ico">📋</span><span data-i18n="show_log"> Log anzeigen</span>
         </button>
         <button class="burger-item" onclick="downloadLog(); closeBurgerMenu()">
-          <span class="burger-ico">⬇</span> Log herunterladen
+          <span class="burger-ico">⬇</span><span data-i18n="download_log"> Log herunterladen</span>
         </button>
         <button class="burger-item" onclick="nv2AuditOpen(); closeBurgerMenu()">
-          <span class="burger-ico">📜</span> Audit-Log
+          <span class="burger-ico">📜</span><span data-i18n="audit_log"> Audit-Log</span>
         </button>
 
         <div class="burger-divider"></div>
 
         <div id="auth-burger-section" style="display:none">
-          <div class="burger-head">Konto</div>
+          <div class="burger-head" data-i18n="account">Konto</div>
           <button class="burger-item" id="btn-manage-users" style="display:none"
                   onclick="nv2Auth.openUserMgmtDlg(); closeBurgerMenu()">
-            <span class="burger-ico">👥</span> Benutzer verwalten
+            <span class="burger-ico">👥</span><span data-i18n="manage_users"> Benutzer verwalten</span>
           </button>
           <button class="burger-item" id="btn-change-own-pw" style="display:none"
                   onclick="nv2AuthChangeOwnPw(); closeBurgerMenu()">
-            <span class="burger-ico">🔑</span> Passwort ändern
+            <span class="burger-ico">🔑</span><span data-i18n="change_password"> Passwort ändern</span>
           </button>
           <button class="burger-item" id="btn-logout" style="display:none"
                   onclick="nv2Auth.logout(); closeBurgerMenu()">
-            <span class="burger-ico">⏻</span> Abmelden (<span id="burger-username"></span>)
+            <span class="burger-ico">⏻</span><span data-i18n="logout"> Abmelden</span> (<span id="burger-username"></span>)
           </button>
           <div class="burger-divider"></div>
         </div>
 
-        <div class="burger-head">Hilfe</div>
+        <div class="burger-head" data-i18n="help">Hilfe</div>
         <button class="burger-item" onclick="window.open('help/index.html','_blank'); closeBurgerMenu()">
-          <span class="burger-ico">📖</span> Dokumentation
+          <span class="burger-ico">📖</span><span data-i18n="documentation"> Dokumentation</span>
         </button>
         <button class="burger-item" onclick="window.open('help/user-guide/index.html','_blank'); closeBurgerMenu()">
-          <span class="burger-ico">👤</span> Benutzerhandbuch
+          <span class="burger-ico">👤</span><span data-i18n="user_manual"> Benutzerhandbuch</span>
         </button>
         <button class="burger-item" onclick="window.open('help/admin-guide/index.html','_blank'); closeBurgerMenu()">
-          <span class="burger-ico">🔧</span> Admin-Handbuch
+          <span class="burger-ico">🔧</span><span data-i18n="admin_manual"> Admin-Handbuch</span>
         </button>
         <button class="burger-item" onclick="window.open('help/api-reference/index.html','_blank'); closeBurgerMenu()">
-          <span class="burger-ico">📡</span> API-Referenz
+          <span class="burger-ico">📡</span><span data-i18n="api_reference"> API-Referenz</span>
         </button>
 
-        <div class="burger-head" style="margin-top:4px">Über</div>
+        <div class="burger-head" style="margin-top:4px" data-i18n="about">Über</div>
         <button class="burger-item" onclick="openAboutDlg(); closeBurgerMenu()">
-          <span class="burger-ico">ℹ</span> Über NagVis 2
+          <span class="burger-ico">ℹ</span><span data-i18n="about_nagvis2"> Über NagVis 2</span>
         </button>
 
       </div>
@@ -339,8 +339,8 @@
     <!-- OVERVIEW -->
     <div id="overview">
       <div class="ov-head">
-        <h2>Übersicht</h2>
-        <p>Wähle eine Map oder erstelle eine neue</p>
+        <h2 data-i18n="overview">Übersicht</h2>
+        <p data-i18n="overview_subtitle">Wähle eine Map oder erstelle eine neue</p>
       </div>
       <div class="ov-grid" id="ov-grid"></div>
     </div>
@@ -349,13 +349,13 @@
     <!-- DIALOG – NagVis-1 Migration -->
     <div class="dlg-overlay" id="dlg-migrate">
       <div class="dlg-box" style="width:440px">
-        <h3>NagVis&#x202F;1 Map importieren</h3>
+        <h3 data-i18n="dlg_migrate_title">NagVis&#x202F;1 Map importieren</h3>
 
-        <label class="f-label">.cfg-Datei</label>
+        <label class="f-label" data-i18n="cfg_file_label">.cfg-Datei</label>
         <div class="upload-box" id="cfg-drop-zone"
              onclick="document.getElementById('cfg-file-input').click()"
              style="padding:18px;text-align:center;cursor:pointer">
-          <div id="cfg-drop-label">📄 Datei wählen oder hier ablegen</div>
+          <div id="cfg-drop-label" data-i18n="drop_or_choose">📄 Datei wählen oder hier ablegen</div>
         </div>
         <input type="file" id="cfg-file-input" accept=".cfg" style="display:none">
 
@@ -376,7 +376,7 @@
         </div>
 
         <label class="f-label" style="margin-top:10px;display:flex;align-items:center;gap:6px;cursor:pointer">
-          <input type="checkbox" id="mig-dryrun"> Nur Vorschau (dry run)
+          <input type="checkbox" id="mig-dryrun"><span data-i18n="dry_run"> Nur Vorschau (dry run)</span>
         </label>
 
         <div id="mig-result" style="display:none;margin-top:12px;padding:10px;
@@ -404,10 +404,10 @@
 
       <div id="nv2-edit-banner">
         <span style="color:var(--acc);font-weight:600">✏ EDIT</span>
-        <span class="banner-key">Klick</span> Host platzieren
-        <span class="banner-key">Drag</span> verschieben
-        <span class="banner-key">Rechtsklick</span> Optionen
-        <span class="banner-key">Esc</span> beenden
+        <span class="banner-key" data-i18n="edit_click">Klick</span><span data-i18n="edit_place_host"> Host platzieren</span>
+        <span class="banner-key" data-i18n="edit_drag">Drag</span><span data-i18n="edit_move"> verschieben</span>
+        <span class="banner-key" data-i18n="edit_rclick">Rechtsklick</span><span data-i18n="edit_options"> Optionen</span>
+        <span class="banner-key">Esc</span><span data-i18n="edit_esc_exit"> beenden</span>
       </div>
 
       <div id="snap-tabs">
@@ -421,8 +421,8 @@
         <div class="snapin" id="snapin-maps">
           <div class="snapin-head">
             <span class="snapin-ico">🗺</span>
-            <span class="snapin-title">Maps</span>
-            <button class="snapin-close" onclick="closeSnapin('maps')" title="Schließen">✕</button>
+            <span class="snapin-title" data-i18n="maps">Maps</span>
+            <button class="snapin-close" onclick="closeSnapin('maps')" data-i18n-title="snapin_close" title="Schließen">✕</button>
           </div>
           <div class="snapin-body" id="body-maps">
             <div class="empty-hint">Lade…</div>
@@ -433,7 +433,7 @@
           <div class="snapin-head">
             <span class="snapin-ico">⬦</span>
             <span class="snapin-title">Hosts</span>
-            <button class="snapin-close" onclick="closeSnapin('hosts')" title="Schließen">✕</button>
+            <button class="snapin-close" onclick="closeSnapin('hosts')" data-i18n-title="snapin_close" title="Schließen">✕</button>
           </div>
           <div class="snapin-body" id="body-hosts">
             <div class="empty-hint">Lade…</div>
@@ -443,8 +443,8 @@
         <div class="snapin" id="snapin-events">
           <div class="snapin-head">
             <span class="snapin-ico">◎</span>
-            <span class="snapin-title">Event-Stream</span>
-            <button class="snapin-close" onclick="closeSnapin('events')" title="Schließen">✕</button>
+            <span class="snapin-title" data-i18n="snapin_events">Event-Stream</span>
+            <button class="snapin-close" onclick="closeSnapin('events')" data-i18n-title="snapin_close" title="Schließen">✕</button>
           </div>
           <div class="snapin-body" id="body-events">
             <div class="empty-hint">Warte auf Events…</div>
@@ -478,19 +478,19 @@
         <text x="17" y="25" text-anchor="middle" font-size="14" font-weight="700"
               fill="var(--acc)" font-family="monospace">N2</text>
       </svg>
-      <span style="font-size:16px; font-weight:600; color:var(--text)">NagVis 2 – Anmelden</span>
+      <span style="font-size:16px; font-weight:600; color:var(--text)" data-i18n="login_title">NagVis 2 – Anmelden</span>
     </div>
 
     <div class="f-row" style="margin-bottom:10px">
-      <label class="f-label" style="width:90px">Benutzer</label>
+      <label class="f-label" style="width:90px" data-i18n="login_user_label">Benutzer</label>
       <input class="f-input" id="login-username" type="text"
-             placeholder="Benutzername" autocomplete="username"
+             placeholder="Benutzername" data-i18n-placeholder="login_username_ph" autocomplete="username"
              style="flex:1">
     </div>
     <div class="f-row" style="margin-bottom:18px">
-      <label class="f-label" style="width:90px">Passwort</label>
+      <label class="f-label" style="width:90px" data-i18n="login_pw_label">Passwort</label>
       <input class="f-input" id="login-password" type="password"
-             placeholder="Passwort" autocomplete="current-password"
+             placeholder="Passwort" data-i18n-placeholder="login_pw_ph" autocomplete="current-password"
              style="flex:1">
     </div>
 
@@ -498,7 +498,7 @@
          min-height:16px; margin-bottom:12px"></div>
 
     <button id="btn-login-submit" class="btn-ok" style="width:100%"
-            onclick="nv2DoLogin()">Anmelden</button>
+            onclick="nv2DoLogin()" data-i18n="login_btn">Anmelden</button>
   </div>
 </div>
 
@@ -506,7 +506,7 @@
 <!-- DIALOG – Benutzerverwaltung (admin only) -->
 <div id="dlg-user-mgmt" class="dlg-overlay" style="display:none">
   <div class="dlg-box" style="width:520px; max-height:80vh; display:flex; flex-direction:column">
-    <h3 style="flex-shrink:0">Benutzer verwalten</h3>
+    <h3 style="flex-shrink:0" data-i18n="dlg_manage_users">Benutzer verwalten</h3>
 
     <!-- Bestehende Benutzer -->
     <div id="user-mgmt-list"
@@ -519,20 +519,20 @@
     <div style="border-top:1px solid var(--border); padding-top:12px; margin-bottom:12px">
       <div style="font-size:11px; font-weight:600; color:var(--text-dim);
                   margin-bottom:8px; text-transform:uppercase; letter-spacing:.05em">
-        Neuen Benutzer anlegen
+        <span data-i18n="create_new_user">Neuen Benutzer anlegen</span>
       </div>
       <div style="display:flex; gap:6px; flex-wrap:wrap">
         <input class="f-input" id="new-user-name" type="text"
-               placeholder="Benutzername" style="flex:1; min-width:100px">
+               placeholder="Benutzername" data-i18n-placeholder="login_username_ph" style="flex:1; min-width:100px">
         <input class="f-input" id="new-user-pw" type="password"
-               placeholder="Passwort" style="flex:1; min-width:100px">
+               placeholder="Passwort" data-i18n-placeholder="login_pw_ph" style="flex:1; min-width:100px">
         <select class="f-select" id="new-user-role" style="width:90px">
           <option value="viewer">viewer</option>
           <option value="editor">editor</option>
           <option value="admin">admin</option>
         </select>
         <button class="btn-ok" style="white-space:nowrap"
-                onclick="nv2AuthCreateUser()">＋ Anlegen</button>
+                onclick="nv2AuthCreateUser()" data-i18n="create_user_btn">＋ Anlegen</button>
       </div>
     </div>
 
@@ -585,12 +585,12 @@
 
     <!-- Filter-Zeile -->
     <div style="display:flex; gap:8px; align-items:center; flex-shrink:0; margin-bottom:10px; flex-wrap:wrap">
-      <input class="f-input" id="audit-filter-map" placeholder="Map-ID filtern"
+      <input class="f-input" id="audit-filter-map" placeholder="Map-ID filtern" data-i18n-placeholder="audit_filter_map"
              style="width:140px" oninput="nv2AuditLoad()">
-      <input class="f-input" id="audit-filter-user" placeholder="Benutzer filtern"
+      <input class="f-input" id="audit-filter-user" placeholder="Benutzer filtern" data-i18n-placeholder="audit_filter_user"
              style="width:120px" oninput="nv2AuditLoad()">
       <select class="f-select" id="audit-filter-action" style="width:170px" onchange="nv2AuditLoad()">
-        <option value="">Alle Aktionen</option>
+        <option value="" data-i18n="audit_all_actions">Alle Aktionen</option>
         <option value="map.create">map.create</option>
         <option value="map.delete">map.delete</option>
         <option value="map.rename">map.rename</option>
@@ -624,11 +624,11 @@
       <table class="audit-table" id="audit-table-body">
         <thead>
           <tr>
-            <th>Zeitpunkt</th>
-            <th>Benutzer</th>
-            <th>Aktion</th>
-            <th>Map</th>
-            <th>Details</th>
+            <th data-i18n="audit_col_time">Zeitpunkt</th>
+            <th data-i18n="audit_col_user">Benutzer</th>
+            <th data-i18n="audit_col_action">Aktion</th>
+            <th data-i18n="audit_col_map">Map</th>
+            <th data-i18n="audit_col_details">Details</th>
           </tr>
         </thead>
         <tbody id="audit-rows">
@@ -949,8 +949,24 @@
       </div>
     </div>
 
+    <!-- Sprache -->
+    <div class="f-row" style="margin-top:12px">
+      <label class="f-label" data-i18n="language">Sprache</label>
+      <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap">
+        <select class="f-select" id="us-lang-select" style="min-width:130px" onchange="nv2SetLangFromSelect(this.value)">
+          <option value="de">Deutsch</option>
+          <option value="en">English</option>
+        </select>
+        <label class="btn-secondary" style="font-size:11px; padding:4px 10px; cursor:pointer; white-space:nowrap"
+               data-i18n="import_lang_pack">Lang-Pack importieren
+          <input type="file" accept=".json" style="display:none"
+                 onchange="nv2ImportLangPack(this.files[0]); this.value=''">
+        </label>
+      </div>
+    </div>
+
     <div class="dlg-actions" style="margin-top:16px">
-      <button class="btn-cancel" onclick="closeDlg('dlg-user-settings')">Abbrechen</button>
+      <button class="btn-cancel" onclick="closeDlg('dlg-user-settings')" data-i18n="cancel">Abbrechen</button>
       <button class="btn-ok"     onclick="saveUserSettings()">Speichern</button>
     </div>
   </div>
@@ -1033,7 +1049,7 @@
            title="Nur Kleinbuchstaben, Ziffern, Bindestrich, Unterstrich">
 
     <label class="f-label" style="margin-top:10px;display:flex;align-items:center;gap:6px;cursor:pointer">
-      <input type="checkbox" id="zip-dryrun"> Nur Vorschau (dry run)
+      <input type="checkbox" id="zip-dryrun"><span data-i18n="dry_run"> Nur Vorschau (dry run)</span>
     </label>
 
     <div id="zip-result" style="display:none;margin-top:12px;padding:10px;
@@ -1165,6 +1181,7 @@
 </script>
 
 <!-- Gadget-Renderer (extern, vor den Modulen) -->
+<script src="js/i18n.js"></script>             <!-- i18n – muss als ERSTES geladen werden -->
 <script src="js/gadget-renderer.js"></script>
 <!-- Leaflet JS (OSM-Modus) -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"

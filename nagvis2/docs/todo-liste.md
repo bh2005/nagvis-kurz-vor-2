@@ -82,7 +82,7 @@
 
 ## Nice-to-have / Langfristig
 
-- [ ] Mehrsprachigkeit (DE/EN via JSON-Dictionary)
+- [x] **Mehrsprachigkeit (DE/EN via JSON-Dictionary)** — i18n-Engine, Lang-Packs, Sprach-Picker, localStorage-Cache ✅
 - [ ] Map-Vorlagen (Stern, Hierarchie, Rechenzentrum)
 - [ ] Mobile-Ansicht (Touch-Events, Pinch-Zoom, responsive Breakpoints)
 - [ ] Historische Daten / Verfügbarkeitsdiagramme (Checkmk REST API)

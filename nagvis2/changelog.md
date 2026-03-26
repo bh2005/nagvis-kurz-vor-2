@@ -2,6 +2,39 @@
 
 ---
 
+## [2026-03-26]
+
+### Feature: N1 Mehrsprachigkeit (i18n) vollständig ✅
+
+**i18n-Engine (`frontend/js/i18n.js`)** — neues Modul, wird als **erstes** Script geladen:
+- `window.t(key, vars)` — Schlüssel-basierte Übersetzung mit `{var}`-Interpolation; Fallback = Schlüssel selbst
+- `window.applyI18n()` — traversiert DOM und setzt alle `data-i18n`/`data-i18n-placeholder`/`data-i18n-title`-Attribute
+- `window.setLang(code)` — lädt `/lang/{code}.json`, aktualisiert `window.I18N`, speichert in localStorage, ruft `applyI18n()` und `_refreshDynamicUI()` auf
+- `window.importLangPack(file)` — liest JSON-Datei, validiert Format, lädt als aktive Sprache → beliebige Sprache per Datei-Upload erweiterbar
+- `window._i18nReady` — Promise; wird in `app.js` vor dem ersten Render awaited → kein Flash of Untranslated Content
+- **Warm-Start**: synchrone Cache-Ladung aus `localStorage` im Boot → Texte sofort übersetzt, auch wenn Fetch noch läuft
+
+**Sprachpakete**
+- `frontend/lang/de.json` — vollständiges deutsches Paket (~130 Schlüssel inkl. Meta-Block)
+- `frontend/lang/en.json` — vollständiges englisches Paket, identische Schlüssel
+- Format: `{ "meta": { "lang": "de", "name": "Deutsch", "version": "1" }, "strings": { ... } }`
+- FastAPI ServesFiles bereits `frontend/` → `/lang/de.json` automatisch erreichbar ohne Backend-Änderung
+
+**HTML (`frontend/index.html`)**
+- `data-i18n`, `data-i18n-placeholder`, `data-i18n-title` an allen statischen UI-Texten (Sidebar, Burger-Menü, Dialoge, Tabellen-Header, Keyboard-Shortcuts, Login, Benutzerverwaltung, Audit-Log)
+- Sprach-Picker im Dialog **⚙ Einstellungen** (`dlg-user-settings`): `<select>` DE/EN + „Lang-Pack importieren"-Button (File-Input)
+
+**JS-Module angepasst** — alle Hardcoded-Strings durch `t(key, vars)` ersetzt:
+- `ui-core.js`: Theme-Labels, Hosts-Panel, Benachrichtigungsstatus, Downtime-Banner, Log-Viewer, About-Dialog, Keyboard-Delete-Confirm; `openUserSettingsDlg()` synchronisiert Dropdown
+- `ws-client.js`: Verbindungsstatus, Status-Bar (Snapshot/Update/Heartbeat), Offline-Banner, Backend-Error-Toast, Demo-Mode-Meldungen; pluralisierter `{suffix}` jetzt sprachabhängig (`'en'`/`''` für DE, `'s'`/`''` für EN)
+- `map-core.js`: Kein-Maps-Zustand, Objekt-Zähler, Map-Not-Found, Kontextmenü-Einträge, „Neue Map"-Karte
+- `nodes.js`: Edit/Fertig-Label, leere Aktionen, Layer-Namen
+- `kiosk.js`: Ungültiger-Token-Fehlerscreen (via `t()` in Template-Literal, da `applyI18n()` nach `body.innerHTML`-Reset nicht automatisch läuft)
+- `app.js`: `await window._i18nReady; applyI18n();` als erste Zeile in `DOMContentLoaded`
+- `ui-core.js`: `window.nv2SetLangFromSelect(code)` + `window.nv2ImportLangPack(file)` — globale Handler für den Sprach-Picker
+
+---
+
 ## [2026-03-25]
 
 ### Feature: Demo-Maps & Live-Demo auf Render

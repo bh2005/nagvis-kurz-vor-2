@@ -91,7 +91,7 @@ async function _initKioskSession(token) {
                   color:var(--crit,#f44336);background:var(--bg,#1a1a1a)">
         <div style="text-align:center">
           <div style="font-size:48px;margin-bottom:16px">⛔</div>
-          <div style="font-size:16px;font-weight:600">Ungültiger Kiosk-Token</div>
+          <div style="font-size:16px;font-weight:600">${t('invalid_kiosk_token')}</div>
           <div style="font-size:11px;color:var(--text-dim,#555);margin-top:8px">
             Token: ${esc(token.substring(0, 8))}…
           </div>

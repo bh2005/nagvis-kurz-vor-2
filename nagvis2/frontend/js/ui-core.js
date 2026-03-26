@@ -61,11 +61,11 @@ function openBurgerMenu() {
   const ico   = document.getElementById('burger-theme-ico');
   const label = document.getElementById('burger-theme-label');
   if (ico)   ico.textContent   = currentTheme === 'dark' ? '☀' : '☽';
-  if (label) label.textContent = currentTheme === 'dark' ? 'Light-Theme' : 'Dark-Theme';
+  if (label) label.textContent = currentTheme === 'dark' ? t('light_theme') : t('dark_theme');
   const ucdIco   = document.getElementById('ucd-theme-ico');
   const ucdLabel = document.getElementById('ucd-theme-label');
   if (ucdIco)   ucdIco.textContent   = currentTheme === 'dark' ? '☀' : '☽';
-  if (ucdLabel) ucdLabel.textContent = currentTheme === 'dark' ? 'Light-Theme' : 'Dark-Theme';
+  if (ucdLabel) ucdLabel.textContent = currentTheme === 'dark' ? t('light_theme') : t('dark_theme');
   document.getElementById('btn-menu').classList.add('on');
 }
 
@@ -86,12 +86,12 @@ function setTheme(theme, save = true) {
   const ico   = document.getElementById('burger-theme-ico');
   const label = document.getElementById('burger-theme-label');
   if (ico)   ico.textContent   = theme === 'dark' ? '☀' : '☽';
-  if (label) label.textContent = theme === 'dark' ? 'Light-Theme' : 'Dark-Theme';
+  if (label) label.textContent = theme === 'dark' ? t('light_theme') : t('dark_theme');
   // Chip-Dropdown synchron halten
   const ucdIco   = document.getElementById('ucd-theme-ico');
   const ucdLabel = document.getElementById('ucd-theme-label');
   if (ucdIco)   ucdIco.textContent   = theme === 'dark' ? '☀' : '☽';
-  if (ucdLabel) ucdLabel.textContent = theme === 'dark' ? 'Light-Theme' : 'Dark-Theme';
+  if (ucdLabel) ucdLabel.textContent = theme === 'dark' ? t('light_theme') : t('dark_theme');
   if (save) {
     const s = loadUserSettings();
     s.theme = theme;
@@ -129,7 +129,7 @@ function updateTopbarPills(hosts) {
 
 function renderHostsPanel(hosts) {
   const body = document.getElementById('body-hosts');
-  if (!hosts.length) { body.innerHTML = '<div class="empty-hint">Keine Hosts</div>'; return; }
+  if (!hosts.length) { body.innerHTML = `<div class="empty-hint">${t('no_hosts')}</div>`; return; }
   const sorted = [...hosts].sort((a, b) => b.state - a.state);
   body.innerHTML = sorted.map(h => {
     const c = STATE_CHIP[h.state_label] ?? 'unkn';
@@ -249,6 +249,9 @@ function saveUserSettings() {
 function openUserSettingsDlg() {
   const s = loadUserSettings();
   updateThemeChips();
+  // Aktive Sprache im Dropdown vorauswählen
+  const langSel = document.getElementById('us-lang-select');
+  if (langSel) langSel.value = window._nv2Lang ?? 'de';
   const sd  = document.getElementById('us-sidebar-default');    if (sd)  sd.value    = s.sidebarDefault;
   const khs = document.getElementById('us-kiosk-hide-sidebar'); if (khs) khs.checked = s.kioskHideSidebar;
   const kht = document.getElementById('us-kiosk-hide-topbar');  if (kht) kht.checked = s.kioskHideTopbar;
@@ -264,19 +267,19 @@ function _updateNotifyStatus() {
   const el = document.getElementById('us-notify-status');
   if (!el) return;
   if (!('Notification' in window)) {
-    el.textContent = '⚠ Dieser Browser unterstützt keine Benachrichtigungen.';
+    el.textContent = t('notify_not_supported');
     el.style.color = 'var(--warn)';
     return;
   }
   const perm = Notification.permission;
   if (perm === 'granted') {
-    el.textContent = '✔ Berechtigung erteilt';
+    el.textContent = t('notify_granted');
     el.style.color = 'var(--ok)';
   } else if (perm === 'denied') {
-    el.textContent = '✖ Berechtigung verweigert – in Browser-Einstellungen freigeben';
+    el.textContent = t('notify_denied');
     el.style.color = 'var(--crit)';
   } else {
-    el.textContent = 'Berechtigung noch nicht erteilt – oben auf „Erlauben" klicken';
+    el.textContent = t('notify_pending');
     el.style.color = 'var(--text-dim)';
   }
 }
@@ -333,7 +336,7 @@ function showDowntimeBanner(hostNames, started) {
     banner.id = 'nv2-dt-banner'; banner.className = 'nv2-dt-banner';
     document.getElementById('nv2-canvas')?.appendChild(banner);
   }
-  const verb  = started ? 'Downtime gestartet' : 'Downtime beendet';
+  const verb  = started ? t('downtime_started') : t('downtime_ended');
   const names = hostNames.slice(0, 3).map(esc).join(', ') + (hostNames.length > 3 ? ` +${hostNames.length - 3}` : '');
   banner.textContent = `🔧 ${verb}: ${names}`;
   banner.classList.add('show');
@@ -341,7 +344,7 @@ function showDowntimeBanner(hostNames, started) {
   _dtBannerTimer = setTimeout(() => banner.classList.remove('show'), 4000);
 }
 
-function fmt(ts) { return ts ? new Date(ts * 1000).toLocaleTimeString('de-DE') : ''; }
+function fmt(ts) { return ts ? new Date(ts * 1000).toLocaleTimeString(window._nv2Lang ?? 'de') : ''; }
 
 function esc(s) {
   return String(s)
@@ -372,7 +375,7 @@ function onKeyDown(e) {
   if ((e.key === 'Delete' || e.key === 'Backspace') && editActive && selectedNodes?.size && !inInput) {
     e.preventDefault();
     const nodes = [...selectedNodes];
-    if (!confirm(`${nodes.length} Objekte entfernen?`)) return;
+    if (!confirm(t('confirm_delete_nodes', { count: nodes.length }))) return;
     clearSelection();
     Promise.all(nodes.map(n =>
       api(`/api/maps/${activeMapId}/objects/${n.dataset.objectId}`, 'DELETE').then(() => n.remove())
@@ -446,7 +449,7 @@ async function loadLog() {
   const pre       = document.getElementById('log-pre');
   const info      = document.getElementById('log-info');
 
-  if (pre) pre.textContent = 'Lade…';
+  if (pre) pre.textContent = t('loading');
 
   try {
     const params = new URLSearchParams({ lines });
@@ -464,15 +467,15 @@ async function loadLog() {
     }
 
     if (pre) {
-      pre.textContent = logLines.length ? logLines.join('\n') : '(keine passenden Log-Einträge)';
+      pre.textContent = logLines.length ? logLines.join('\n') : t('log_no_entries');
       // Ans Ende scrollen
       pre.scrollTop = pre.scrollHeight;
     }
     if (info) {
-      info.textContent = `${logLines.length} Zeilen angezeigt · ${data.buffered} im Puffer`;
+      info.textContent = t('log_lines_shown', { count: logLines.length, buffered: data.buffered });
     }
   } catch (e) {
-    if (pre)  pre.textContent  = 'Fehler beim Laden: ' + e.message;
+    if (pre)  pre.textContent  = t('log_error', { msg: e.message });
     if (info) info.textContent = '';
   }
 }
@@ -511,27 +514,27 @@ async function openAboutDlg() {
   btn.onclick = async () => {
     if (view.style.display === 'none') {
       if (!clLoaded) {
-        view.textContent = 'Lade …';
+        view.textContent = t('loading');
         try {
           const r = await fetch('/api/v1/changelog');
           if (!r.ok) throw new Error(r.status);
           view.textContent = await r.text();
         } catch {
-          view.textContent = 'Changelog konnte nicht geladen werden.';
+          view.textContent = t('changelog_failed');
         }
         clLoaded = true;
       }
       view.style.display = 'block';
-      btn.textContent = '📋 Changelog ausblenden';
+      btn.textContent = t('changelog_hide');
     } else {
       view.style.display = 'none';
-      btn.textContent = '📋 Changelog';
+      btn.textContent = t('changelog_show');
     }
   };
 
   // Reset bei erneutem Öffnen
   view.style.display = 'none';
-  btn.textContent = '📋 Changelog';
+  btn.textContent = t('changelog_show');
   clLoaded = false;
 
   dlg.style.display = 'flex';
@@ -539,3 +542,36 @@ async function openAboutDlg() {
 
 window.openAboutDlg = openAboutDlg;
 window.downloadLog   = downloadLog;
+
+// ═══════════════════════════════════════════════════════════════════════
+//  SPRACH-PICKER (aufgerufen aus index.html)
+// ═══════════════════════════════════════════════════════════════════════
+
+window.nv2SetLangFromSelect = async function(code) {
+  try {
+    const result = await setLang(code);
+    showToast(t('lang_applied', { name: result.name }), 'ok');
+  } catch {
+    showToast(t('lang_error', { code }), 'error');
+  }
+};
+
+window.nv2ImportLangPack = async function(file) {
+  if (!file) return;
+  const result = await importLangPack(file);
+  if (result.success) {
+    showToast(t('lang_pack_imported', { name: result.name, count: result.count }), 'ok');
+    const sel = document.getElementById('us-lang-select');
+    if (sel) {
+      if (!sel.querySelector(`option[value="${result.code}"]`)) {
+        const opt = document.createElement('option');
+        opt.value = result.code;
+        opt.textContent = result.name;
+        sel.appendChild(opt);
+      }
+      sel.value = result.code;
+    }
+  } else {
+    showToast(result.error ?? t('lang_pack_invalid'), 'error');
+  }
+};
