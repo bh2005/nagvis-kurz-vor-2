@@ -315,11 +315,12 @@ class ZabbixClient:
 
     async def schedule_host_downtime(
         self,
-        host_name:  str,
-        start_time: int,
-        end_time:   int,
-        comment:    str = "Downtime via NagVis 2",
-        author:     str = "nagvis2",
+        host_name:   str,
+        start_time:  int,
+        end_time:    int,
+        comment:     str  = "Downtime via NagVis 2",
+        author:      str  = "nagvis2",
+        child_hosts: bool = False,
     ) -> bool:
         """Wartungsfenster für einen Host anlegen (Zabbix maintenance)."""
         # Host-ID ermitteln
@@ -361,6 +362,12 @@ class ZabbixClient:
         return await self.schedule_host_downtime(
             host_name, start_time, end_time, comment, author
         )
+
+    async def reschedule_host_check(self, host_name: str) -> bool:
+        """Zabbix unterstützt kein manuelles Check-Rescheduling – ignoriert."""
+        log.info("[%s] reschedule_host_check: Zabbix unterstützt dies nicht – ignoriert",
+                 self.cfg.backend_id)
+        return False
 
     async def ping(self) -> BackendHealth:
         """Verbindungstest via apiinfo.version (kein Auth erforderlich)."""

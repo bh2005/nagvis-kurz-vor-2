@@ -429,7 +429,7 @@ async def api_export_map(map_id: str):
         # Hintergrundbild falls vorhanden
         bg_url = data.get("background")
         if bg_url:
-            bg_path = settings.BASE_DIR / bg_url.lstrip("/")
+            bg_path = settings.BG_DIR / Path(bg_url).name
             if bg_path.exists():
                 zf.write(bg_path, f"background{bg_path.suffix}")
 
@@ -620,7 +620,7 @@ async def api_import_drawio(
         (file.filename or "drawio-import")
         .replace(".drawio", "").replace(".xml", "")
     )
-    new_map   = create_map({"title": raw_title, "canvas": {"mode": "ratio", "ratio": "16:9"}})
+    new_map   = create_map(raw_title, canvas={"mode": "ratio", "ratio": "16:9"})
     map_id    = new_map["id"]
     warnings: list[str] = []
     obj_count = 0
@@ -714,12 +714,16 @@ async def api_action(body: ActionRequest):
         raise HTTPException(400, "host_name fehlt")
 
     if body.action == "ack_host":
-        ok = await livestatus.acknowledge_host(host, comment, author)
+        ok = await registry.acknowledge_host(host, comment, author)
+        if not ok:
+            ok = await livestatus.acknowledge_host(host, comment, author)
 
     elif body.action == "ack_service":
         if not svc:
             raise HTTPException(400, "service_name erforderlich")
-        ok = await livestatus.acknowledge_service(host, svc, comment, author)
+        ok = await registry.acknowledge_service(host, svc, comment, author)
+        if not ok:
+            ok = await livestatus.acknowledge_service(host, svc, comment, author)
 
     elif body.action == "remove_ack":
         if svc:
@@ -751,7 +755,9 @@ async def api_action(body: ActionRequest):
             ok = await livestatus.schedule_service_downtime(host, svc, start, end, comment, author)
 
     elif body.action == "reschedule":
-        ok = await livestatus.reschedule_host_check(host)
+        ok = await registry.reschedule_check(host)
+        if not ok:
+            ok = await livestatus.reschedule_host_check(host)
 
     else:
         raise HTTPException(400, f"Unbekannte Aktion: {body.action}")

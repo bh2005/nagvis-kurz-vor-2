@@ -83,7 +83,7 @@ class DemoClient:
 
     async def schedule_host_downtime(
         self, host_name: str, start_time: int, end_time: int,
-        comment: str = "NagVis 2", author: str = "nagvis2",
+        comment: str = "NagVis 2", author: str = "nagvis2", child_hosts: bool = False,
     ) -> bool:
         return True
 
