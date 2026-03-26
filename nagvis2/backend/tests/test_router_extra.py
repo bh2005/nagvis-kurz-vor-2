@@ -415,7 +415,8 @@ class TestActionsReal:
         assert r.status_code == 200
 
     def test_ack_host_failure_returns_502(self, client):
-        with patch("api.router.livestatus.acknowledge_host", new=AsyncMock(return_value=False)):
+        with patch("api.router.registry.acknowledge_host", new=AsyncMock(return_value=False)), \
+             patch("api.router.livestatus.acknowledge_host", new=AsyncMock(return_value=False)):
             r = client.post("/api/v1/actions",
                             json={"action": "ack_host", "host_name": "srv1"})
         assert r.status_code == 502
