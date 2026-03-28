@@ -119,6 +119,14 @@ function _renderMonitoringNode(obj) {
     if (editActive) showNodeContextMenu(e, el, obj);
     else            showViewContextMenu(e, el, obj);
   });
+  el.addEventListener('click', e => {
+    if (editActive) return;
+    if (el._nv2wasDragged) { el._nv2wasDragged = false; return; }
+    e.stopPropagation();
+    const ck = obj.type === 'service' ? `${obj.host_name}::${obj.name}` : obj.name;
+    const st = _resolveStatus(obj.backend_id || '', ck);
+    if (typeof openNodeInspector === 'function') openNodeInspector(obj, st);
+  });
   _attachSelectHandler(el);
 
   getNodeContainer().appendChild(el);
@@ -2588,7 +2596,12 @@ function openIconsetDialog(el, obj) {
 // ═══════════════════════════════════════════════════════════════════════
 
 function onCanvasClick(e) {
-  if (!editActive) return;
+  if (!editActive) {
+    if (!e.target.closest('.nv2-node') && !e.target.closest('#node-inspector')) {
+      if (typeof closeNodeInspector === 'function') closeNodeInspector();
+    }
+    return;
+  }
   if (e.target.closest('.nv2-node, .nv2-textbox, .nv2-container')) return;
   if (e.target.closest('.nv2-line-el, .nv2-wm-line, .line-handle')) return;
   if (document.getElementById('nv2-resize-panel')) { closeResizeDialog(); return; }

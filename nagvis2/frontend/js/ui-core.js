@@ -127,6 +127,89 @@ function updateTopbarPills(hosts) {
 //  HOSTS SNAP-IN
 // ═══════════════════════════════════════════════════════════════════════
 
+function renderProblemsPanel(hosts) {
+  const body = document.getElementById('body-problems');
+  if (!body) return;
+  const problems = hosts.filter(h => {
+    const l = h.state_label;
+    return l !== 'UP' && l !== 'OK';
+  }).sort((a, b) => b.state - a.state);
+
+  const tab = document.getElementById('tab-problems');
+  if (!problems.length) {
+    body.innerHTML = `<div class="empty-hint" style="color:var(--ok)">&#10003; Keine Probleme</div>`;
+    tab?.classList.remove('has-problems');
+    return;
+  }
+  body.innerHTML = problems.map(h => {
+    const c = STATE_CHIP[h.state_label] ?? 'unkn';
+    return `<div class="host-row" data-host="${esc(h.name)}">
+      <div class="hr-pip ${c}"></div>
+      <div class="hr-body">
+        <div class="hr-name">${esc(h.name)}</div>
+        <div class="hr-out">${esc((h.output ?? '–').substring(0, 55))}</div>
+      </div>
+      <div class="hr-tag ${c}">${h.state_label}</div>
+    </div>`;
+  }).join('');
+  body.querySelectorAll('.host-row').forEach(row => {
+    row.addEventListener('click', () => focusHost(row.dataset.host));
+  });
+  tab?.classList.toggle('has-problems', problems.some(h => (STATE_CHIP[h.state_label] ?? '') === 'crit'));
+}
+
+window.renderProblemsPanel = renderProblemsPanel;
+
+
+// ═══════════════════════════════════════════════════════════════════════
+//  NODE INSPECTOR
+// ═══════════════════════════════════════════════════════════════════════
+
+function openNodeInspector(obj, status) {
+  const panel = document.getElementById('node-inspector');
+  if (!panel) return;
+
+  const state = status?.state_label ?? 'UNKNOWN';
+  const c     = STATE_CHIP[state] ?? 'unkn';
+
+  document.getElementById('ins-name').textContent = obj.label || obj.name || '–';
+
+  const badge = document.getElementById('ins-state-badge');
+  badge.textContent = state;
+  badge.className   = `hr-tag ${c}`;
+
+  document.getElementById('ins-output').textContent = status?.output ?? '–';
+
+  const meta  = document.getElementById('ins-meta');
+  const lines = [];
+  if (status?.last_check) lines.push(`Last check: ${fmt(status.last_check)}`);
+  if (obj.type)            lines.push(`Type: ${obj.type}`);
+  if (obj.host_name)       lines.push(`Host: ${obj.host_name}`);
+  meta.innerHTML = lines.map(l => `<div>${esc(l)}</div>`).join('');
+
+  const actions = document.getElementById('ins-actions');
+  const types   = ['host', 'service', 'hostgroup', 'servicegroup'];
+  if (types.includes(obj.type)) {
+    const n = esc(obj.name);
+    const tp = esc(obj.type);
+    actions.innerHTML =
+      `<button class="tb-btn" onclick="openAcknowledgeDlg('${n}','${tp}')">&#10003; ACK</button>` +
+      `<button class="tb-btn" onclick="openDowntimeDlg('${n}','${tp}')">&#128295; DT</button>`;
+  } else {
+    actions.innerHTML = '';
+  }
+
+  panel.classList.add('open');
+}
+
+function closeNodeInspector() {
+  document.getElementById('node-inspector')?.classList.remove('open');
+}
+
+window.openNodeInspector  = openNodeInspector;
+window.closeNodeInspector = closeNodeInspector;
+
+
 function renderHostsPanel(hosts) {
   const body = document.getElementById('body-hosts');
   if (!hosts.length) { body.innerHTML = `<div class="empty-hint">${t('no_hosts')}</div>`; return; }
@@ -371,6 +454,7 @@ function onKeyDown(e) {
     closeResizeDialog(); closeContextMenu();
     if (editActive) toggleEdit();
     closeSnapin(activeSnapin);
+    closeNodeInspector();
   }
   if ((e.key === 'Delete' || e.key === 'Backspace') && editActive && selectedNodes?.size && !inInput) {
     e.preventDefault();

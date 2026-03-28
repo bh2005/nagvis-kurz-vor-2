@@ -411,9 +411,10 @@
       </div>
 
       <div id="snap-tabs">
-        <div class="snap-tab" id="tab-maps"   onclick="toggleSnapin('maps')">Maps</div>
-        <div class="snap-tab" id="tab-hosts"  onclick="toggleSnapin('hosts')">Hosts</div>
-        <div class="snap-tab" id="tab-events" onclick="toggleSnapin('events')">Events</div>
+        <div class="snap-tab" id="tab-maps"      onclick="toggleSnapin('maps')">Maps</div>
+        <div class="snap-tab" id="tab-hosts"     onclick="toggleSnapin('hosts')">Hosts</div>
+        <div class="snap-tab" id="tab-events"    onclick="toggleSnapin('events')">Events</div>
+        <div class="snap-tab" id="tab-problems"  onclick="toggleSnapin('problems')">Probleme</div>
       </div>
 
       <div id="snapin-container">
@@ -450,6 +451,29 @@
             <div class="empty-hint">Warte auf Events…</div>
           </div>
         </div>
+
+        <div class="snapin" id="snapin-problems">
+          <div class="snapin-head">
+            <span class="snapin-ico">⚑</span>
+            <span class="snapin-title">Probleme</span>
+            <button class="snapin-close" onclick="closeSnapin('problems')" title="Schließen">✕</button>
+          </div>
+          <div class="snapin-body" id="body-problems">
+            <div class="empty-hint">Keine Probleme</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Node Inspector (slide-up card, bottom-right of canvas) -->
+      <div id="node-inspector">
+        <div id="ins-header">
+          <span id="ins-state-badge" class="hr-tag unkn">UNKN</span>
+          <span id="ins-name">–</span>
+          <button id="ins-close" onclick="closeNodeInspector()">✕</button>
+        </div>
+        <div id="ins-output">–</div>
+        <div id="ins-meta"></div>
+        <div id="ins-actions"></div>
       </div>
 
     </div>
