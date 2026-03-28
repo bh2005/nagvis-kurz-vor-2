@@ -84,6 +84,7 @@ function onWsMsg(ev) {
       applyStatuses(ev.hosts ?? [], ev.services ?? []);
       updateTopbarPills(ev.hosts ?? []);
       renderHostsPanel(ev.hosts ?? []);
+      renderProblemsPanel(ev.hosts ?? []);
       fillHostDatalist(ev.hosts ?? []);
       appendEvents(ev.hosts ?? [], ev.services ?? [], ev.ts);
       setStatusBar(t('snapshot_status', { time: fmt(ev.ts), count: ev.hosts?.length ?? 0 }));
@@ -93,6 +94,7 @@ function onWsMsg(ev) {
       applyStatuses(ev.hosts ?? [], ev.services ?? []);
       updateTopbarPills(Object.values(hostCache));
       renderHostsPanel(Object.values(hostCache));
+      renderProblemsPanel(Object.values(hostCache));
       appendEvents(ev.hosts ?? [], ev.services ?? [], ev.ts);
       if (ev.downtime_started?.length) showDowntimeBanner(ev.downtime_started, true);
       if (ev.downtime_ended?.length)   showDowntimeBanner(ev.downtime_ended,   false);
