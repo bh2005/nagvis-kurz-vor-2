@@ -28,7 +28,7 @@ jobs:
         uses: actions/configure-pages@v5
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           # Hier sagen wir GitHub: Nimm einfach diesen Ordner so wie er ist
           path: './nagvis2/frontend'
