@@ -39,7 +39,7 @@
   --acc-bg:       rgba(19, 211, 142, 0.10);
   --acc-active-bg:#1a3d2b;
   --text:         #e0e0e0;
-  --text-mid:     #909090;
+  --text-mid:     #ababab;   /* raised from #909 → ~5.5:1 on #2b2b2b (buttons/panels) */
   --text-dim:     #828282;   /* raised from #555 → ~4.5:1 on #1a1a1a */
   --header-bg:    #1e1e1e;
   --node-bg:      #2b2b2b;
@@ -335,7 +335,7 @@ body, #sidebar, #topbar, #overview, .ov-card, .nav-btn, .map-entry,
 .tb-nav { display: flex; align-items: center; gap: 4px; flex-shrink: 0; max-width: 300px; overflow: hidden; }
 .tb-nav-up, .tb-nav-child {
   background: var(--bg-hover); border: 1px solid var(--border); border-radius: 3px;
-  color: var(--text-dim); font-size: 10px; padding: 2px 8px; cursor: pointer;
+  color: var(--text-mid); font-size: 10px; padding: 2px 8px; cursor: pointer;
   white-space: nowrap; transition: background var(--t), color var(--t);
 }
 .tb-nav-up:hover, .tb-nav-child:hover { background: var(--bg-active); color: var(--acc); }
@@ -356,7 +356,7 @@ body, #sidebar, #topbar, #overview, .ov-card, .nav-btn, .map-entry,
 .tb-btn {
   display: flex; align-items: center; gap: 5px; padding: 4px 9px;
   border-radius: var(--r); border: 1px solid var(--border);
-  background: var(--bg-panel); color: var(--text-mid);
+  background: var(--bg-panel); color: var(--text);
   font-family: var(--sans); font-size: 11.5px; font-weight: 400;
   transition: background var(--t), color var(--t), border-color var(--t);
   white-space: nowrap; flex-shrink: 0;
@@ -374,7 +374,7 @@ body, #sidebar, #topbar, #overview, .ov-card, .nav-btn, .map-entry,
 .conn-dot.connecting   { background: var(--warn); animation: pulse 1s ease infinite; }
 
 #nv2-status-bar {
-  font-family: var(--mono); font-size: 9px; color: var(--text-dim);
+  font-family: var(--mono); font-size: 9px; color: var(--text-mid);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px;
 }
 
@@ -1021,7 +1021,7 @@ img.nv2-icon { display: block; width: 100%; height: 100%; object-fit: contain; t
   box-shadow: 0 8px 28px var(--dlg-shadow); min-width: 210px; padding: 6px 0; animation: dlgIn 0.12s ease;
   max-height: calc(100dvh - 60px); overflow-y: auto; overscroll-behavior: contain;
 }
-.burger-head { font-family: var(--mono); font-size: 8.5px; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase; color: var(--text-dim); padding: 8px 14px 3px; user-select: none; }
+.burger-head { font-family: var(--mono); font-size: 8.5px; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase; color: var(--text-mid); padding: 8px 14px 3px; user-select: none; }
 .burger-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 14px; background: transparent; border: none; color: var(--text); font-family: var(--sans); font-size: 12.5px; text-align: left; cursor: pointer; transition: background var(--t); }
 .burger-item:hover { background: var(--bg-hover); }
 .burger-item.on { color: var(--acc); background: var(--bg-active); }
@@ -1092,7 +1092,7 @@ img.nv2-icon { display: block; width: 100%; height: 100%; object-fit: contain; t
 ═══════════════════════════════════════════════════════════════════════ */
 #map-canvas-wrapper { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform-origin: 0 0; will-change: transform; }
 #nv2-zoom-controls { align-items: center; gap: 4px; margin-right: 4px; }
-#nv2-zoom-level { font-family: var(--mono); font-size: 12px; color: var(--text-dim); min-width: 40px; text-align: center; user-select: none; }
+#nv2-zoom-level { font-family: var(--mono); font-size: 12px; color: var(--text-mid); min-width: 40px; text-align: center; user-select: none; }
 #btn-zoom-reset:disabled { opacity: 0.35; cursor: not-allowed; }
 
 
@@ -1444,7 +1444,7 @@ img.nv2-icon { display: block; width: 100%; height: 100%; object-fit: contain; t
 .sidebar-shortcuts-title {
   font-size: 10px;
   font-weight: 600;
-  color: var(--text-dim);
+  color: var(--text-mid);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 6px;
@@ -1457,15 +1457,16 @@ img.nv2-icon { display: block; width: 100%; height: 100%; object-fit: contain; t
   font-family: var(--mono);
 }
 .sc-key {
-  color: var(--text-dim);
-  background: var(--bg-hi);
+  color: var(--text);
+  background: var(--bg-hover);
+  border: 1px solid var(--border-hi);
   border-radius: 3px;
   padding: 0 4px;
   white-space: nowrap;
   line-height: 16px;
 }
 .sc-desc {
-  color: var(--text-dim);
+  color: var(--text-mid);
   line-height: 16px;
 }
 /* Ausblenden wenn collapsed */
