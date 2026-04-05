@@ -40,7 +40,7 @@
   --acc-active-bg:#1a3d2b;
   --text:         #e0e0e0;
   --text-mid:     #909090;
-  --text-dim:     #555555;
+  --text-dim:     #828282;   /* raised from #555 → ~4.5:1 on #1a1a1a */
   --header-bg:    #1e1e1e;
   --node-bg:      #2b2b2b;
   --node-shadow:  rgba(0, 0, 0, 0.50);
@@ -83,7 +83,7 @@
   --acc-active-bg:#d6f5eb;
   --text:         #1a1a1a;
   --text-mid:     #555555;
-  --text-dim:     #aaaaaa;
+  --text-dim:     #767676;   /* raised from #aaa → ~4.5:1 on #f0f0f0 */
   --header-bg:    #ffffff;
   --node-bg:      #ffffff;
   --node-shadow:  rgba(0, 0, 0, 0.14);
@@ -1428,7 +1428,7 @@ img.nv2-icon { display: block; width: 100%; height: 100%; object-fit: contain; t
 .help-body {
     font-size: 13px;
     line-height: 1.5;
-    color: var(--text-dim);
+    color: var(--text-mid);
     max-height: 400px;
     overflow-y: auto;
     padding-right: 10px;
