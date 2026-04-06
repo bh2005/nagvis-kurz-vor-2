@@ -1,5 +1,21 @@
 # NagVis 2 – Todo-Liste
 
+> Stand: 2026-04-06
+
+---
+
+## Offen – Bugs / Technische Schulden
+
+- [ ] **CSS-Variablen undefiniert** — `--bg2`, `--bg3`, `--hover`, `--err` in `styles.css:460–475` nicht definiert (Audit-Tabelle); sollten durch `--bg-surf`, `--bg-hover`, `--crit` ersetzt werden
+- [ ] **`--accent` ≠ `--acc`** — `styles.css:600/605` nutzt `var(--accent, #3b82f6)` als Fallback; sollte `var(--acc)` sein
+- [ ] **`var(--bg-base)` im HTML** — `index.html:1118/1183` nutzt `var(--bg-base)` (nicht definiert); sollte `var(--bg-panel)` sein
+- [ ] **Zoom-Reset-Button** — `#btn-zoom-reset` (index.html:137) ist dauerhaft `disabled`; kein Event-Listener in `zoom_pan.js` vorhanden
+- [ ] **`alert()` ersetzen** — 8+ Stellen in `auth.js`, `map-core.js`, `kiosk.js` nutzen Browser-`alert()`; sollten Toast-Notifikationen sein
+- [ ] **Browser-Notifikationen unvollständig** — `Notification.requestPermission()` in `ui-core.js:325` vorhanden, aber `new Notification()` nirgends aufgerufen
+- [ ] **`.nv2-type-pill` Kontrast** — `styles.css:595` nutzt `--text-dim` statt `--text-dim-surf` auf Panel-Hintergrund (WCAG-Verstoß)
+
+---
+
 ## UX / Frontend
 
 - [x] Multi-Select: mehrere Nodes gleichzeitig auswählen und verschieben (Shift+Klick oder Lasso)

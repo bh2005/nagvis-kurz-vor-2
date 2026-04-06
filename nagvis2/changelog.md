@@ -2,6 +2,27 @@
 
 ---
 
+## [2026-04-06]
+
+### Bugfix: WCAG-Kontrast-Fixes (5 Selektoren)
+
+Sekundäre Textelemente auf Panel-Oberflächen (`--bg-card/--bg-panel: #2b2b2b`) verwendeten
+`--text-dim` (#828282), was dort nur ~3.76:1 Kontrast ergibt — WCAG AA erfordert 4.5:1 für
+kleine Texte (8–10 px).
+
+**Neuer Design-Token `--text-dim-surf`:**
+- Dark: `#a3a3a3` → ~5.6:1 auf `#2b2b2b`, ~4.6:1 auf `--bg-hover (#333333)` ✓
+- Light: `#636363` → ~5.0:1 auf `#ffffff`, ~4.6:1 auf `--bg-hover (#ebebeb)` ✓
+
+**Betroffene Selektoren (alle auf `--text-dim-surf` umgestellt):**
+- `.ov-card-meta` (9px, Overview-Karten)
+- `.ev-time` (8px, Event-Log)
+- `.f-label` (8px, Formular-Labels in Dialogen)
+- `.burger-kbd` (9px, Keyboard-Shortcut-Badges im Burger-Menü — Hintergrund `--bg-hover`)
+- `.manage-meta` (9.5px, Manage-Maps-Overlay)
+
+---
+
 ## [2026-03-26]
 
 ### Feature: N1 Mehrsprachigkeit (i18n) vollständig ✅
