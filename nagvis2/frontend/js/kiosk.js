@@ -340,7 +340,7 @@ window._kioskCreateUser = async function(btn) {
                      .map(i => i.value);
 
   if (!label)          { document.getElementById('ki-label')?.focus(); return; }
-  if (!checked.length) { alert('Bitte mindestens eine Map auswählen.'); return; }
+  if (!checked.length) { showToast('Bitte mindestens eine Map auswählen.', 'error'); return; }
 
   const localToken = Array.from(crypto.getRandomValues(new Uint8Array(18)))
     .map(b => b.toString(36)).join('').slice(0, 24);

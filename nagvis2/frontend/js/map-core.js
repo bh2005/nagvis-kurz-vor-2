@@ -183,7 +183,7 @@ async function openMap(mapId, { skipHistory = false } = {}) {
   if (!skipHistory) history.pushState({ mapId }, '', `#/map/${mapId}`);
   activeMapId  = mapId;
   activeMapCfg = await api(`/api/maps/${mapId}`);
-  if (!activeMapCfg) { alert(t('map_not_found')); return; }
+  if (!activeMapCfg) { showToast(t('map_not_found'), 'error'); return; }
 
   document.getElementById('app')?.classList.add('map-open');
   if (sidebarCollapsed) {
@@ -958,7 +958,7 @@ async function exportActiveMap() {
   if (!activeMapId) return;
   try {
     const res = await fetch(`/api/maps/${activeMapId}/export`);
-    if (!res.ok) { const err = await res.json().catch(() => ({})); alert(`Export fehlgeschlagen: ${err.detail || res.statusText}`); return; }
+    if (!res.ok) { const err = await res.json().catch(() => ({})); showToast(`Export fehlgeschlagen: ${err.detail || res.statusText}`, 'error'); return; }
     const cd       = res.headers.get('Content-Disposition') ?? '';
     const match    = cd.match(/filename="([^"]+)"/);
     const filename = match ? match[1] : `nagvis2-${activeMapId}.zip`;
@@ -968,14 +968,14 @@ async function exportActiveMap() {
     a.href = url; a.download = filename;
     document.body.appendChild(a); a.click();
     setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
-  } catch (err) { alert(`Export fehlgeschlagen: ${err.message}`); }
+  } catch (err) { showToast(`Export fehlgeschlagen: ${err.message}`, 'error'); }
 }
 
 async function exportMapById(mapId) {
   if (!mapId) return;
   try {
     const res = await fetch(`/api/maps/${mapId}/export`);
-    if (!res.ok) { const err = await res.json().catch(() => ({})); alert(`Export fehlgeschlagen: ${err.detail || res.statusText}`); return; }
+    if (!res.ok) { const err = await res.json().catch(() => ({})); showToast(`Export fehlgeschlagen: ${err.detail || res.statusText}`, 'error'); return; }
     const cd       = res.headers.get('Content-Disposition') ?? '';
     const match    = cd.match(/filename="([^"]+)"/);
     const filename = match ? match[1] : `nagvis2-${mapId}.zip`;
@@ -985,7 +985,7 @@ async function exportMapById(mapId) {
     a.href = url; a.download = filename;
     document.body.appendChild(a); a.click();
     setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
-  } catch (err) { alert(`Export fehlgeschlagen: ${err.message}`); }
+  } catch (err) { showToast(`Export fehlgeschlagen: ${err.message}`, 'error'); }
 }
 
 
@@ -1006,7 +1006,7 @@ async function cloneMap(mapId, newTitle) {
     await loadMaps();           // Sidebar + Übersicht aktualisieren
     return r;
   } catch (e) {
-    alert(`Netzwerkfehler: ${e}`);
+    showToast(`Netzwerkfehler: ${e}`, 'error');
     return null;
   }
 }
@@ -1248,7 +1248,7 @@ async function uploadBg(file) {
     if (!res.ok) throw new Error(await res.text());
     const data = await res.json();
     setBg(data.url);
-  } catch (err) { alert(`Upload fehlgeschlagen: ${err.message}`); }
+  } catch (err) { showToast(`Upload fehlgeschlagen: ${err.message}`, 'error'); }
 }
 
 function setBg(url) {
