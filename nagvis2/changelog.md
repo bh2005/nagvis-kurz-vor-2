@@ -4,6 +4,22 @@
 
 ## [2026-04-06]
 
+### Bugfix: alert() → showToast() (auth.js, map-core.js, kiosk.js)
+
+Alle Browser-`alert()`-Aufrufe durch nicht-blockierende `showToast()`-Notifikationen ersetzt:
+
+- **auth.js** (`nv2AuthCreateUser`, `nv2AuthChangeRole`, `nv2AuthChangePw`, `nv2AuthDeleteUser`, `nv2AuthChangeOwnPw`) — 6 Stellen
+- **map-core.js** (`loadMap`, `exportCurrentMap`, `exportMapById`, `cloneMap`, `uploadBackground`) — 7 Stellen
+- **kiosk.js** (`kioskSave`) — 1 Stelle
+
+Typ jeweils `'error'` (Fehler) oder `'ok'` (Erfolg).
+
+### Bugfix: CSS-Alias-Tokens für undefinierte Variablen
+
+`--bg2`, `--bg3`, `--hover`, `--err`, `--accent`, `--bg-base`, `--bg-alt` waren in `styles.css` nicht definiert.
+Statt alle Verwendungsstellen zu ändern, wurden CSS-Alias-Tokens in `:root` (Dark) und `[data-theme="light"]` eingefügt,
+die auf die korrekten Design-Tokens zeigen. Kein Breaking Change.
+
 ### Bugfix: WCAG-Kontrast-Fixes (5 Selektoren)
 
 Sekundäre Textelemente auf Panel-Oberflächen (`--bg-card/--bg-panel: #2b2b2b`) verwendeten

@@ -367,7 +367,7 @@ window.nv2AuthCreateUser = async function() {
   const username = document.getElementById('new-user-name')?.value?.trim();
   const password = document.getElementById('new-user-pw')?.value;
   const role     = document.getElementById('new-user-role')?.value ?? 'viewer';
-  if (!username || !password) { alert('Name und Passwort erforderlich.'); return; }
+  if (!username || !password) { showToast('Name und Passwort erforderlich.', 'error'); return; }
 
   const token = nv2Auth.getToken();
   const r = await fetch('/api/v1/auth/users', {
@@ -375,7 +375,7 @@ window.nv2AuthCreateUser = async function() {
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body:    JSON.stringify({ username, password, role }),
   });
-  if (!r.ok) { const j = await r.json().catch(()=>({})); alert(j.detail ?? 'Fehler'); return; }
+  if (!r.ok) { const j = await r.json().catch(()=>({})); showToast(j.detail ?? 'Fehler', 'error'); return; }
   document.getElementById('new-user-name').value = '';
   document.getElementById('new-user-pw').value   = '';
   await _renderUserMgmt();
@@ -388,7 +388,7 @@ window.nv2AuthChangeRole = async function(username, role) {
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body:    JSON.stringify({ role }),
   });
-  if (!r.ok) { const j = await r.json().catch(()=>({})); alert(j.detail ?? 'Fehler'); await _renderUserMgmt(); }
+  if (!r.ok) { const j = await r.json().catch(()=>({})); showToast(j.detail ?? 'Fehler', 'error'); await _renderUserMgmt(); }
 };
 
 window.nv2AuthChangePw = async function(username) {
@@ -400,8 +400,8 @@ window.nv2AuthChangePw = async function(username) {
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body:    JSON.stringify({ password: pw }),
   });
-  if (!r.ok) { const j = await r.json().catch(()=>({})); alert(j.detail ?? 'Fehler'); }
-  else alert('Passwort geändert.');
+  if (!r.ok) { const j = await r.json().catch(()=>({})); showToast(j.detail ?? 'Fehler', 'error'); }
+  else showToast('Passwort geändert.', 'ok');
 };
 
 window.nv2AuthDeleteUser = async function(username) {
@@ -411,7 +411,7 @@ window.nv2AuthDeleteUser = async function(username) {
     method:  'DELETE',
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
-  if (!r.ok) { const j = await r.json().catch(()=>({})); alert(j.detail ?? 'Fehler'); return; }
+  if (!r.ok) { const j = await r.json().catch(()=>({})); showToast(j.detail ?? 'Fehler', 'error'); return; }
   await _renderUserMgmt();
 };
 
@@ -465,15 +465,15 @@ async function _doRefresh() {
 window.nv2AuthChangeOwnPw = async function() {
   const pw = prompt('Neues Passwort (min. 6 Zeichen):');
   if (!pw) return;
-  if (pw.length < 6) { alert('Passwort muss mindestens 6 Zeichen lang sein.'); return; }
+  if (pw.length < 6) { showToast('Passwort muss mindestens 6 Zeichen lang sein.', 'error'); return; }
   const token = nv2Auth.getToken();
   const r = await fetch('/api/v1/auth/me', {
     method:  'PATCH',
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body:    JSON.stringify({ password: pw }),
   });
-  if (!r.ok) { const j = await r.json().catch(()=>({})); alert(j.detail ?? 'Fehler'); }
-  else alert('Passwort erfolgreich geändert.');
+  if (!r.ok) { const j = await r.json().catch(()=>({})); showToast(j.detail ?? 'Fehler', 'error'); }
+  else showToast('Passwort erfolgreich geändert.', 'ok');
 };
 
 
