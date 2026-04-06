@@ -937,8 +937,8 @@
 <li>[x] <strong>CSS-Variablen undefiniert</strong> — <code>--bg2</code>, <code>--bg3</code>, <code>--hover</code>, <code>--err</code>, <code>--accent</code>, <code>--bg-base</code>, <code>--bg-alt</code> durch CSS-Alias-Tokens in <code>styles.css</code> aufgelöst (kein Breaking Change)</li>
 <li>[x] <strong><code>alert()</code> ersetzen</strong> — alle <code>alert()</code>-Aufrufe in <code>auth.js</code>, <code>map-core.js</code>, <code>kiosk.js</code> durch <code>showToast()</code> ersetzt</li>
 <li>[x] <strong><code>.nv2-type-pill</code> Kontrast</strong> — <code>styles.css</code> auf <code>--text-dim-surf</code> umgestellt (WCAG AA ✓)</li>
-<li>[ ] <strong>Zoom-Reset-Button</strong> — <code>#btn-zoom-reset</code> (index.html:137) ist dauerhaft <code>disabled</code>; kein Event-Listener in <code>zoom_pan.js</code> vorhanden</li>
-<li>[ ] <strong>Browser-Notifikationen unvollständig</strong> — <code>Notification.requestPermission()</code> in <code>ui-core.js:325</code> vorhanden, aber <code>new Notification()</code> nirgends aufgerufen</li>
+<li>[x] <strong>Zoom-Reset-Button</strong> — <code>disabled</code> im HTML ist korrekt (Initialzustand); <code>zoom_pan.js:52</code> aktiviert den Button dynamisch beim Zoomen/Pannen; Click-Listener vorhanden (<code>zoom_pan.js:221</code>)</li>
+<li>[x] <strong>Browser-Notifikationen</strong> — <code>new Notification()</code> wird in <code>ws-client.js:180</code> aufgerufen; <code>requestPermission()</code> in <code>ui-core.js:325</code> vorhanden — vollständig implementiert</li>
 </ul>
 <hr />
 <h2 id="ux-frontend">UX / Frontend</h2>
