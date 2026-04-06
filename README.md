@@ -38,6 +38,7 @@ Eine komplette Neuentwicklung von NagVis mit FastAPI-Backend, WebSocket-Livestat
 | **Install-Script** | `install.sh` — vollautomatische Linux-Installation mit Systemd-Service |
 | **Theme** | Dark / Light, Standard: Dark + Sidebar ausgeklappt |
 | **Mehrsprachigkeit** | DE/EN eingebaut; beliebige Sprachen per JSON-Lang-Pack importierbar; Sprach-Picker in den Einstellungen |
+| **WCAG-AA-Kontrast** | Alle sekundären Textelemente (Karten-Meta, Event-Log, Formular-Labels, Burger-KBD, Manage-Meta) erfüllen 4.5:1 auf Panel-Hintergründen |
 
 ---
 
@@ -196,7 +197,7 @@ Danach ist die Hilfe unter `http://localhost:8008/help/` erreichbar.
 
 ## Codebase-Statistik
 
-> Stand: März 2026 · ohne `venv/`, `__pycache__/`, `frontend/help/` (Build-Output)
+> Stand: April 2026 · ohne `venv/`, `__pycache__/`, `frontend/help/` (Build-Output)
 
 | Sprache | Dateien | Zeilen | Anteil |
 |---|---|---|---|
@@ -220,7 +221,7 @@ Dieses Projekt steht unter der **MIT License** – siehe [LICENSE](LICENSE).
 
 **Projektstatus:** Beta (funktioniert stabil, aktive Weiterentwicklung)
 **Autor:** bh2005
-**Version:** 2.2 Beta (März 2026)
+**Version:** 2.2 Beta (April 2026)
 
 ---
 
