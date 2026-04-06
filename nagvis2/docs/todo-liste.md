@@ -9,8 +9,8 @@
 - [x] **CSS-Variablen undefiniert** — `--bg2`, `--bg3`, `--hover`, `--err`, `--accent`, `--bg-base`, `--bg-alt` durch CSS-Alias-Tokens in `styles.css` aufgelöst (kein Breaking Change)
 - [x] **`alert()` ersetzen** — alle `alert()`-Aufrufe in `auth.js`, `map-core.js`, `kiosk.js` durch `showToast()` ersetzt
 - [x] **`.nv2-type-pill` Kontrast** — `styles.css` auf `--text-dim-surf` umgestellt (WCAG AA ✓)
-- [ ] **Zoom-Reset-Button** — `#btn-zoom-reset` (index.html:137) ist dauerhaft `disabled`; kein Event-Listener in `zoom_pan.js` vorhanden
-- [ ] **Browser-Notifikationen unvollständig** — `Notification.requestPermission()` in `ui-core.js:325` vorhanden, aber `new Notification()` nirgends aufgerufen
+- [x] **Zoom-Reset-Button** — `disabled` im HTML ist korrekt (Initialzustand); `zoom_pan.js:52` aktiviert den Button dynamisch beim Zoomen/Pannen; Click-Listener vorhanden (`zoom_pan.js:221`)
+- [x] **Browser-Notifikationen** — `new Notification()` wird in `ws-client.js:180` aufgerufen; `requestPermission()` in `ui-core.js:325` vorhanden — vollständig implementiert
 
 ---
 
