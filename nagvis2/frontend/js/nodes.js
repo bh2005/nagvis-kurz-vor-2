@@ -173,7 +173,7 @@ function _renderTextbox(obj) {
   _attachSelectHandler(el);
 
   getNodeContainer().appendChild(el);
-  if (editActive) makeDraggable(el);
+  if (editActive) { makeDraggable(el); makeResizable(el); }
   return el;
 }
 
@@ -1736,7 +1736,10 @@ function toggleEdit() {
   banner.classList.toggle('show', editActive);
   canvas.classList.toggle('nv2-edit-mode', editActive);
   // OSM-Marker vom Canvas-Drag ausschließen (Leaflet übernimmt das)
-  if (editActive) document.querySelectorAll('.nv2-node:not(.nv2-osm-marker), .nv2-textbox, .nv2-container').forEach(makeDraggable);
+  if (editActive) {
+    document.querySelectorAll('.nv2-node:not(.nv2-osm-marker), .nv2-textbox, .nv2-container').forEach(makeDraggable);
+    document.querySelectorAll('.nv2-node:not(.nv2-osm-marker), .nv2-textbox').forEach(makeResizable);
+  }
   if (window.NV2_OSM?.isActive()) NV2_OSM.setEditMode(editActive);
 }
 
@@ -1791,6 +1794,67 @@ function makeDraggable(el) {
         })),
       });
     };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup',   onUp);
+  });
+}
+
+// ── Resize-Handle ────────────────────────────────────────────────────────
+
+function makeResizable(el) {
+  if (el._nv2resize) return;
+  el._nv2resize = true;
+
+  const handle = document.createElement('div');
+  handle.className = 'nv2-resize-handle';
+  handle.title = 'Größe ändern';
+
+  // Monitoring-Nodes: Handle im Ring positionieren; sonst direkt am Element
+  const target = el.querySelector('.nv2-ring') ?? el;
+  target.appendChild(handle);
+
+  handle.addEventListener('mousedown', e => {
+    if (!editActive) return;
+    e.preventDefault(); e.stopPropagation();
+    closeResizeDialog();
+
+    const objectId = el.dataset.objectId;
+    const isNode   = ['host','service','hostgroup','servicegroup','map'].includes(el.dataset.type);
+    const isGadget = el.dataset.type === 'gadget';
+    const origSize = isNode
+      ? parseInt(el.style.getPropertyValue('--node-size') || '32')
+      : isGadget
+        ? parseInt(el.style.getPropertyValue('--gadget-size') || '100')
+        : Math.round((parseFloat(el.style.transform?.match(/scale\(([\d.]+)\)/)?.[1]) || 1) * 100);
+    const min = isNode ? 16 : 40, max = isNode ? 128 : 300, step = isNode ? 4 : 10;
+    const startX = e.clientX;
+
+    const onMove = ev => {
+      const zoom = window.NV2_ZOOM?.getState?.()?.zoom ?? 1;
+      const dx   = (ev.clientX - startX) / zoom;
+      const raw  = isNode ? origSize + dx : origSize + dx * 1.5;
+      const v    = Math.round(Math.max(min, Math.min(max, raw)) / step) * step;
+      applySize(el, null, v, isNode, isGadget);
+    };
+
+    const onUp = async () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup',   onUp);
+      const finalSize = isNode
+        ? parseInt(el.style.getPropertyValue('--node-size') || '32')
+        : isGadget
+          ? parseInt(el.style.getPropertyValue('--gadget-size') || '100')
+          : Math.round((parseFloat(el.style.transform?.match(/scale\(([\d.]+)\)/)?.[1]) || 1) * 100);
+      if (finalSize === origSize) return;
+      await api(`/api/maps/${activeMapId}/objects/${objectId}/props`, 'PATCH', { size: finalSize });
+      const obj = activeMapCfg?.objects?.find(o => o.object_id === objectId);
+      if (obj) obj.size = finalSize;
+      window.NV2_HISTORY?.push({
+        mapId: activeMapId,
+        items: [{ objectId, endpoint: 'props', before: { size: origSize }, after: { size: finalSize } }],
+      });
+    };
+
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup',   onUp);
   });
