@@ -645,6 +645,16 @@ body, #sidebar, #topbar, #overview, .ov-card, .nav-btn, .map-entry,
 .nv2-selected { outline: 2px solid var(--accent, #3b82f6); outline-offset: 3px; z-index: 31 !important; }
 .nv2-selected.nv2-dragging { opacity: 0.8; }
 
+.nv2-resize-handle {
+  position: absolute; bottom: -5px; right: -5px;
+  width: 10px; height: 10px; border-radius: 2px;
+  background: var(--acc, #3b82f6); border: 1px solid rgba(255,255,255,0.4);
+  cursor: nwse-resize; display: none; z-index: 50;
+  transition: background var(--t);
+}
+.nv2-resize-handle:hover            { background: var(--acc-hi, #60a5fa); }
+#nv2-canvas.nv2-edit-mode .nv2-resize-handle { display: block; }
+
 #nv2-lasso {
   position: absolute;
   border: 1.5px dashed var(--accent, #3b82f6);

@@ -447,28 +447,37 @@ window.NV2_HISTORY = (() => {
   const MAX = 100;
   let _undo = [], _redo = [];
 
-  function _reapplyPos(objectId, pos) {
+  function _reapplyDOM(objectId, data, endpoint) {
     const el = document.getElementById(`nv2-${objectId}`);
     if (!el) return;
+    if (endpoint === 'props' && 'size' in data) {
+      const isNode   = ['host','service','hostgroup','servicegroup','map'].includes(el.dataset.type);
+      const isGadget = el.dataset.type === 'gadget';
+      if (typeof applySize === 'function') applySize(el, null, data.size, isNode, isGadget);
+      const obj = activeMapCfg?.objects?.find(o => o.object_id === objectId);
+      if (obj) obj.size = data.size;
+      return;
+    }
     if (el.classList.contains('nv2-line-el')) {
-      el.setAttribute('x1', `${pos.x}%`);  el.setAttribute('y1', `${pos.y}%`);
-      el.setAttribute('x2', `${pos.x2}%`); el.setAttribute('y2', `${pos.y2}%`);
+      el.setAttribute('x1', `${data.x}%`);  el.setAttribute('y1', `${data.y}%`);
+      el.setAttribute('x2', `${data.x2}%`); el.setAttribute('y2', `${data.y2}%`);
       const vis = el.previousElementSibling;
       if (vis?.tagName?.toLowerCase() === 'line') {
-        vis.setAttribute('x1', `${pos.x}%`);  vis.setAttribute('y1', `${pos.y}%`);
-        vis.setAttribute('x2', `${pos.x2}%`); vis.setAttribute('y2', `${pos.y2}%`);
+        vis.setAttribute('x1', `${data.x}%`);  vis.setAttribute('y1', `${data.y}%`);
+        vis.setAttribute('x2', `${data.x2}%`); vis.setAttribute('y2', `${data.y2}%`);
       }
     } else if (!el.classList.contains('nv2-wm-line')) {
-      el.style.left = `${pos.x}%`;
-      el.style.top  = `${pos.y}%`;
+      el.style.left = `${data.x}%`;
+      el.style.top  = `${data.y}%`;
     }
   }
 
   async function _apply(entry, dir) {
     await Promise.all(entry.items.map(async item => {
-      const pos = item[dir];
-      await api(`/api/maps/${entry.mapId}/objects/${item.objectId}/pos`, 'PATCH', pos);
-      _reapplyPos(item.objectId, pos);
+      const data     = item[dir];
+      const endpoint = item.endpoint ?? 'pos';
+      await api(`/api/maps/${entry.mapId}/objects/${item.objectId}/${endpoint}`, 'PATCH', data);
+      _reapplyDOM(item.objectId, data, endpoint);
     }));
   }
 

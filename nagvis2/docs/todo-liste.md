@@ -26,7 +26,7 @@
 - [ ] Suche/Filter in der Sidebar (Maps und Hosts durchsuchen)
 - [x] Favoriten: bestimmte Maps als Favoriten markieren
 - [ ] Map-Minimap / Übersichtsfenster bei großen Karten
-- [ ] Node-Größe per Drag-Handle ändern (statt nur über Dialog)
+- [x] Node-Größe per Drag-Handle ändern (statt nur über Dialog)
 
 ---
 
