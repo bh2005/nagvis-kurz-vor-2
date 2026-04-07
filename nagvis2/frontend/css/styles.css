@@ -42,6 +42,11 @@
   --text-mid:     #ababab;   /* raised from #909 → ~5.5:1 on #2b2b2b (buttons/panels) */
   --text-dim:      #828282;   /* raised from #555 → ~4.5:1 on #1a1a1a */
   --text-dim-surf: #a3a3a3;  /* dim labels on panel surfaces (#2b2b2b+) → ~4.6:1 */
+  --muted:         #828282;  /* alias für ältere Stellen */
+  --kbd-bg:        #404040;  /* Tastatur-Badge Hintergrund – deutlich heller als --bg-panel */
+  --kbd-border:    #606060;  /* Tastatur-Badge Rand */
+  --input-border:  #505050;  /* Eingabefeld-Rand – besser sichtbar als --border (#3a3a3a) */
+  --placeholder:   #707070;  /* ::placeholder */
   /* ── Alias-Tokens (Rückwärtskompatibilität älterer Code-Stellen) ── */
   --bg2:     var(--bg-surf);
   --bg3:     var(--bg-panel);
@@ -94,6 +99,11 @@
   --text-mid:     #555555;
   --text-dim:      #767676;   /* raised from #aaa → ~4.5:1 on #f0f0f0 */
   --text-dim-surf: #636363;  /* dim labels on panel/hover surfaces → ~4.6:1 on #ebebeb */
+  --muted:         #767676;
+  --kbd-bg:        #e0e0e0;  /* Tastatur-Badge Hintergrund Light */
+  --kbd-border:    #b0b0b0;
+  --input-border:  #b8b8b8;  /* = --border-hi im Light Mode */
+  --placeholder:   #a0a0a0;
   /* ── Alias-Tokens ── */
   --bg2:     var(--bg-surf);
   --bg3:     var(--bg-panel);
@@ -150,6 +160,7 @@ input, select, textarea { font-family: var(--mono); font-size: 11px; color: var(
 ::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
 ::selection { background: var(--acc-bg); }
+::placeholder { color: var(--placeholder); }
 
 body, #sidebar, #topbar, #overview, .ov-card, .nav-btn, .map-entry,
 .snapin, .host-row, .ev-row, .dlg, .nv2-ring, .nv2-label,
@@ -881,8 +892,9 @@ img.nv2-icon { display: block; width: 100%; height: 100%; object-fit: contain; t
 .dlg h3 { font-size: 13px; font-weight: 500; margin-bottom: 14px; color: var(--text); padding-bottom: 10px; border-bottom: 1px solid var(--border); }
 .f-row { margin-bottom: 10px; }
 .f-label { display: block; font-family: var(--mono); font-size: 8px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--text-dim-surf); margin-bottom: 4px; }
-.f-input, .f-select { width: 100%; background: var(--input-bg); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 6px 8px; color: var(--text); outline: none; transition: border-color var(--t); }
-.f-input:focus, .f-select:focus { border-color: var(--acc); }
+.f-input, .f-select { width: 100%; background: var(--input-bg); border: 1px solid var(--input-border); border-radius: var(--r-sm); padding: 6px 8px; color: var(--text); outline: none; transition: border-color var(--t); }
+.f-input:focus, .f-select:focus { border-color: var(--acc); box-shadow: 0 0 0 2px var(--acc-bg); }
+.f-input::placeholder, .f-select::placeholder { color: var(--placeholder); }
 .f-select option { background: var(--bg-panel); }
 .dlg-foot { display: flex; gap: 6px; margin-top: 16px; }
 
@@ -1085,7 +1097,7 @@ img.nv2-icon { display: block; width: 100%; height: 100%; object-fit: contain; t
 .burger-item-danger { color: var(--crit); }
 .burger-item-danger:hover { background: var(--crit-bg); }
 .burger-ico { font-size: 13px; width: 18px; text-align: center; flex-shrink: 0; opacity: 0.75; }
-.burger-kbd { margin-left: auto; font-family: var(--mono); font-size: 9px; color: var(--text-dim-surf); background: var(--bg-hover); border: 1px solid var(--border); border-radius: 2px; padding: 1px 5px; }
+.burger-kbd { margin-left: auto; font-family: var(--mono); font-size: 9px; color: var(--text); background: var(--kbd-bg); border: 1px solid var(--kbd-border); border-radius: 2px; padding: 1px 5px; box-shadow: 0 1px 2px rgba(0,0,0,0.35); }
 .burger-divider { height: 1px; background: var(--border); margin: 4px 0; }
 .burger-item-noaction { cursor: default; }
 .burger-item-noaction:hover { background: transparent; }
@@ -1517,12 +1529,13 @@ img.nv2-icon { display: block; width: 100%; height: 100%; object-fit: contain; t
 }
 .sc-key {
   color: var(--text);
-  background: var(--bg-hover);
-  border: 1px solid var(--border-hi);
+  background: var(--kbd-bg);
+  border: 1px solid var(--kbd-border);
   border-radius: 3px;
   padding: 0 4px;
   white-space: nowrap;
   line-height: 16px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.35);
 }
 .sc-desc {
   color: var(--text-mid);
