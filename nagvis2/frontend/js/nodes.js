@@ -1020,6 +1020,10 @@ function _dragWmHandle(e, g, hit, handle, role, obj, svg) {
     obj.x = x1; obj.y = y1; obj.x2 = x2; obj.y2 = y2;
     await api(`/api/maps/${activeMapId}/objects/${obj.object_id}/pos`, 'PATCH',
       { x: x1, y: y1, x2, y2 });
+    window.NV2_HISTORY?.push({
+      mapId: activeMapId,
+      items: [{ objectId: obj.object_id, before: { x: origX1, y: origY1, x2: origX2, y2: origY2 }, after: { x: x1, y: y1, x2, y2 } }],
+    });
   };
 
   document.addEventListener('mousemove', onMove);
@@ -1140,8 +1144,12 @@ function _createLineHandles(lineVis, hitLine, obj, svg) {
 }
 
 function _dragHandle(e, lineVis, hitLine, handle, isStart, obj, svg) {
-  const canvas = document.getElementById('nv2-canvas');
-  const rect   = canvas.getBoundingClientRect();
+  const canvas    = document.getElementById('nv2-canvas');
+  const rect      = canvas.getBoundingClientRect();
+  const _beforePos = {
+    x:  parseFloat(lineVis.getAttribute('x1')), y:  parseFloat(lineVis.getAttribute('y1')),
+    x2: parseFloat(lineVis.getAttribute('x2')), y2: parseFloat(lineVis.getAttribute('y2')),
+  };
   lineVis.style.opacity = '0.6';
 
   const onMove = ev => {
@@ -1165,6 +1173,10 @@ function _dragHandle(e, lineVis, hitLine, handle, isStart, obj, svg) {
     await api(`/api/maps/${activeMapId}/objects/${obj.object_id}/pos`, 'PATCH',
       { x: newX, y: newY, x2: newX2, y2: newY2 });
     obj.x = newX; obj.y = newY; obj.x2 = newX2; obj.y2 = newY2;
+    window.NV2_HISTORY?.push({
+      mapId: activeMapId,
+      items: [{ objectId: obj.object_id, before: _beforePos, after: { x: newX, y: newY, x2: newX2, y2: newY2 } }],
+    });
   };
 
   document.addEventListener('mousemove', onMove);
@@ -1310,6 +1322,10 @@ function _startLineDrag(e, lineVis, hitLine, obj, svg) {
     await api(`/api/maps/${activeMapId}/objects/${obj.object_id}/pos`, 'PATCH',
       { x: newX, y: newY, x2: newX2, y2: newY2 });
     obj.x = newX; obj.y = newY; obj.x2 = newX2; obj.y2 = newY2;
+    window.NV2_HISTORY?.push({
+      mapId: activeMapId,
+      items: [{ objectId: obj.object_id, before: { x: x1, y: y1, x2, y2 }, after: { x: newX, y: newY, x2: newX2, y2: newY2 } }],
+    });
   };
 
   document.addEventListener('mousemove', onMove);
@@ -1761,10 +1777,19 @@ function makeDraggable(el) {
       dragNodes.forEach(n => { n.classList.remove('nv2-dragging'); n.style.zIndex = ''; });
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup',   onUp);
+      if (!el._nv2wasDragged) return;
       await Promise.all(dragNodes.map(n =>
         api(`/api/maps/${activeMapId}/objects/${n.dataset.objectId}/pos`, 'PATCH',
           { x: parseFloat(n.style.left), y: parseFloat(n.style.top) })
       ));
+      window.NV2_HISTORY?.push({
+        mapId: activeMapId,
+        items: dragNodes.map(n => ({
+          objectId: n.dataset.objectId,
+          before:   { x: n._dragX0, y: n._dragY0 },
+          after:    { x: parseFloat(n.style.left), y: parseFloat(n.style.top) },
+        })),
+      });
     };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup',   onUp);

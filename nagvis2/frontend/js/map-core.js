@@ -36,6 +36,20 @@ function _sortMapsHierarchically(maps) {
   return result;
 }
 
+function _mapEntryHtml(m, favs) {
+  const isFav = favs.has(m.id);
+  return `
+    <div class="map-entry${m._depth ? ' map-entry-child' : ''}" id="smap-${esc(m.id)}"
+         data-map-id="${esc(m.id)}" data-title="${esc(m.title)}">
+      ${m._depth ? '<span class="map-entry-indent">↳</span>' : ''}
+      <div class="map-pip unkn" id="mpip-${esc(m.id)}" title="${esc(m.title)}"></div>
+      <span class="map-entry-title">${esc(m.title)}</span>
+      <button class="map-fav-btn${isFav ? ' active' : ''}"
+              title="${isFav ? 'Aus Favoriten entfernen' : 'Als Favorit markieren'}"
+              onclick="event.stopPropagation(); toggleMapFav('${esc(m.id)}')">★</button>
+    </div>`;
+}
+
 function renderSidebarMaps(maps) {
   const el = document.getElementById('sidebar-maps');
   if (!maps.length) {
@@ -44,13 +58,18 @@ function renderSidebarMaps(maps) {
     return;
   }
   const sorted = _sortMapsHierarchically(maps);
-  el.innerHTML = sorted.map(m => `
-    <div class="map-entry${m._depth ? ' map-entry-child' : ''}" id="smap-${esc(m.id)}"
-         data-map-id="${esc(m.id)}" data-title="${esc(m.title)}">
-      ${m._depth ? '<span class="map-entry-indent">↳</span>' : ''}
-      <div class="map-pip unkn" id="mpip-${esc(m.id)}" title="${esc(m.title)}"></div>
-      <span class="map-entry-title">${esc(m.title)}</span>
-    </div>`).join('');
+  const favs   = _getFavs();
+  const favMaps = sorted.filter(m => favs.has(m.id));
+  const restMaps = sorted.filter(m => !favs.has(m.id));
+
+  let html = '';
+  if (favMaps.length) {
+    html += '<div class="sidebar-favs-hdr">★ Favoriten</div>';
+    html += favMaps.map(m => _mapEntryHtml(m, favs)).join('');
+    if (restMaps.length) html += '<div class="sidebar-favs-hdr sidebar-favs-hdr--all">Alle Maps</div>';
+  }
+  html += restMaps.map(m => _mapEntryHtml(m, favs)).join('');
+  el.innerHTML = html;
 
   el.querySelectorAll('.map-entry').forEach(entry => {
     entry.addEventListener('click', () => openMap(entry.dataset.mapId));
@@ -82,6 +101,19 @@ function renderMapsSnapin(maps) {
   });
 }
 
+// ── Map-Favoriten ─────────────────────────────────────────────────────
+const _FAV_KEY = 'nv2-map-favs';
+function _getFavs()       { try { return new Set(JSON.parse(localStorage.getItem(_FAV_KEY)) || []); } catch { return new Set(); } }
+function _saveFavs(set)   { localStorage.setItem(_FAV_KEY, JSON.stringify([...set])); }
+
+window.toggleMapFav = function(mapId) {
+  const favs = _getFavs();
+  if (favs.has(mapId)) favs.delete(mapId); else favs.add(mapId);
+  _saveFavs(favs);
+  renderSidebarMaps(window._allMaps);
+  renderOverview(window._allMaps);
+};
+
 // ── Vorschaubild-HTML für eine Map-Karte ──────────────────────────────
 function _thumbHtml(m) {
   // Thumbnail (generiertes Vorschaubild) hat Vorrang vor Hintergrundbild
@@ -105,14 +137,19 @@ function renderOverview(maps) {
   const sorted = _sortMapsHierarchically(maps);
   const byId   = Object.fromEntries(maps.map(m => [m.id, m]));
 
+  const favs  = _getFavs();
   const cards = sorted.map(m => {
     const parentTitle = m.parent_map ? (byId[m.parent_map]?.title ?? m.parent_map) : null;
+    const isFav = favs.has(m.id);
     return `
     <div class="ov-card${m._depth ? ' ov-card-child' : ''}" data-map-id="${esc(m.id)}" data-title="${esc(m.title)}"
          data-canvas="${esc(JSON.stringify(m.canvas ?? {}))}">
       ${_thumbHtml(m)}
       <div class="ov-card-header">
         <div class="ov-card-title">${esc(m.title)}</div>
+        <button class="ov-fav-btn${isFav ? ' active' : ''}"
+                title="${isFav ? 'Aus Favoriten entfernen' : 'Als Favorit markieren'}"
+                onclick="event.stopPropagation(); toggleMapFav('${esc(m.id)}')">★</button>
         <button class="ov-card-menu-btn" data-map-id="${esc(m.id)}"
                 title="Map-Optionen" onclick="event.stopPropagation(); openCardMenu(event, '${esc(m.id)}', '${esc(m.title)}', this.closest('.ov-card').dataset.canvas)">⋯</button>
       </div>
@@ -184,6 +221,7 @@ async function openMap(mapId, { skipHistory = false } = {}) {
   activeMapId  = mapId;
   activeMapCfg = await api(`/api/maps/${mapId}`);
   if (!activeMapCfg) { showToast(t('map_not_found'), 'error'); return; }
+  window.NV2_HISTORY?.clear();
 
   document.getElementById('app')?.classList.add('map-open');
   if (sidebarCollapsed) {

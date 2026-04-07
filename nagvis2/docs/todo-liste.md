@@ -22,9 +22,9 @@
 - [x] Map-Miniaturbilder in der Übersicht (OffscreenCanvas, POST/DELETE `/api/maps/{id}/thumbnail`)
 - [x] Objekt-Reihenfolge: Layer per Drag & Drop umsortieren (zIndex), Layer löschen
 - [x] Browser-Benachrichtigungen bei CRITICAL/DOWN (Web Push API + Hinweiston via Web Audio API, in Benutzereinstellungen an/abschaltbar)
-- [ ] Undo/Redo für Positionsänderungen (Ctrl+Z / Ctrl+Y)
+- [x] Undo/Redo für Positionsänderungen (Ctrl+Z / Ctrl+Y)
 - [ ] Suche/Filter in der Sidebar (Maps und Hosts durchsuchen)
-- [ ] Favoriten: bestimmte Maps als Favoriten markieren
+- [x] Favoriten: bestimmte Maps als Favoriten markieren
 - [ ] Map-Minimap / Übersichtsfenster bei großen Karten
 - [ ] Node-Größe per Drag-Handle ändern (statt nur über Dialog)
 

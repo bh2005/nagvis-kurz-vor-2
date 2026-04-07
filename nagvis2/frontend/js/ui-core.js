@@ -440,6 +440,63 @@ function getNodeContainer() {
 
 
 // ═══════════════════════════════════════════════════════════════════════
+//  UNDO / REDO – Positionsänderungen
+// ═══════════════════════════════════════════════════════════════════════
+
+window.NV2_HISTORY = (() => {
+  const MAX = 100;
+  let _undo = [], _redo = [];
+
+  function _reapplyPos(objectId, pos) {
+    const el = document.getElementById(`nv2-${objectId}`);
+    if (!el) return;
+    if (el.classList.contains('nv2-line-el')) {
+      el.setAttribute('x1', `${pos.x}%`);  el.setAttribute('y1', `${pos.y}%`);
+      el.setAttribute('x2', `${pos.x2}%`); el.setAttribute('y2', `${pos.y2}%`);
+      const vis = el.previousElementSibling;
+      if (vis?.tagName?.toLowerCase() === 'line') {
+        vis.setAttribute('x1', `${pos.x}%`);  vis.setAttribute('y1', `${pos.y}%`);
+        vis.setAttribute('x2', `${pos.x2}%`); vis.setAttribute('y2', `${pos.y2}%`);
+      }
+    } else if (!el.classList.contains('nv2-wm-line')) {
+      el.style.left = `${pos.x}%`;
+      el.style.top  = `${pos.y}%`;
+    }
+  }
+
+  async function _apply(entry, dir) {
+    await Promise.all(entry.items.map(async item => {
+      const pos = item[dir];
+      await api(`/api/maps/${entry.mapId}/objects/${item.objectId}/pos`, 'PATCH', pos);
+      _reapplyPos(item.objectId, pos);
+    }));
+  }
+
+  return {
+    push(entry) {
+      if (!entry?.items?.length) return;
+      _undo.push(entry);
+      if (_undo.length > MAX) _undo.shift();
+      _redo = [];
+    },
+    async undo() {
+      if (!_undo.length) { showToast('Nichts rückgängig zu machen', 'info'); return; }
+      const e = _undo.pop(); _redo.push(e);
+      await _apply(e, 'before');
+      showToast('Rückgängig', 'info');
+    },
+    async redo() {
+      if (!_redo.length) { showToast('Nichts wiederherzustellen', 'info'); return; }
+      const e = _redo.pop(); _undo.push(e);
+      await _apply(e, 'after');
+      showToast('Wiederhergestellt', 'info');
+    },
+    clear() { _undo = []; _redo = []; },
+  };
+})();
+
+
+// ═══════════════════════════════════════════════════════════════════════
 //  KEYBOARD SHORTCUTS
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -465,6 +522,8 @@ function onKeyDown(e) {
       api(`/api/maps/${activeMapId}/objects/${n.dataset.objectId}`, 'DELETE').then(() => n.remove())
     ));
   }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && editActive && !inInput) { e.preventDefault(); window.NV2_HISTORY?.undo(); return; }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'y' && editActive && !inInput) { e.preventDefault(); window.NV2_HISTORY?.redo(); return; }
   if (e.key === 'F11' && activeMapId) { e.preventDefault(); toggleKiosk(); }
   if ((e.metaKey || e.ctrlKey) && e.key === 'e' && activeMapId) { e.preventDefault(); toggleEdit(); }
   if (e.key === 'r' && activeMapId && !e.ctrlKey && !e.metaKey && !inInput) wsClient?.forceRefresh();
