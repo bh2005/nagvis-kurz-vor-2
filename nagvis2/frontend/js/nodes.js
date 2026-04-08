@@ -1705,6 +1705,7 @@ function hideTooltip() { _activeTooltip?.remove(); _activeTooltip = null; }
 function clearSelection() {
   selectedNodes.forEach(n => n.classList.remove('nv2-selected'));
   selectedNodes.clear();
+  window.NV2_ALIGN?.updateToolbar();
 }
 window.clearSelection = clearSelection;
 
@@ -1721,6 +1722,7 @@ function _attachSelectHandler(el) {
       selectedNodes.add(el);
       el.classList.add('nv2-selected');
     }
+    window.NV2_ALIGN?.updateToolbar();
   });
 }
 
@@ -1737,6 +1739,7 @@ function toggleEdit() {
   addBtn.style.display = editActive ? 'flex' : 'none';
   document.getElementById('btn-undo').style.display = editActive ? '' : 'none';
   document.getElementById('btn-redo').style.display = editActive ? '' : 'none';
+  if (!editActive) { document.getElementById('nv2-align-bar').style.display = 'none'; }
   banner.classList.toggle('show', editActive);
   canvas.classList.toggle('nv2-edit-mode', editActive);
   // OSM-Marker vom Canvas-Drag ausschließen (Leaflet übernimmt das)
@@ -1767,21 +1770,43 @@ function makeDraggable(el) {
     dragNodes.forEach(n => { n._dragX0 = parseFloat(n.style.left); n._dragY0 = parseFloat(n.style.top); });
     dragNodes.forEach(n => { n.classList.add('nv2-dragging'); n.style.zIndex = '40'; });
 
+    // IDs der gezogenen Nodes – für Smart Guides (andere Nodes als Referenz)
+    const dragIds = new Set(dragNodes.map(n => n.dataset.objectId));
+
     const onMove = ev => {
       el._nv2wasDragged = true;
       const zs    = window.NV2_ZOOM?.getState?.() ?? { zoom: 1 };
       const clamp = (activeMapCfg?.canvas?.overflow ?? 'clamp') !== 'free';
       const dx = (ev.clientX - sx) / rect.width  * 100 / zs.zoom;
       const dy = (ev.clientY - sy) / rect.height * 100 / zs.zoom;
+
+      // Smart Guides nur bei Einzelzug (Gruppe: zu aufwändig, zu unruhig)
+      let snapX = null, snapY = null;
+      if (dragNodes.length === 1 && window.NV2_GUIDES) {
+        const canvas = document.getElementById('nv2-canvas');
+        const cr     = canvas.getBoundingClientRect();
+        const r      = el.getBoundingClientRect();
+        const w = (r.width  / cr.width)  * 100;
+        const h = (r.height / cr.height) * 100;
+        const raw = window.NV2_GUIDES.snap(dragIds, el._dragX0 + dx, el._dragY0 + dy, w, h);
+        snapX = raw.snapX; snapY = raw.snapY;
+      }
+
       dragNodes.forEach(n => {
-        const nx = n._dragX0 + dx;
-        const ny = n._dragY0 + dy;
+        let nx = n._dragX0 + dx;
+        let ny = n._dragY0 + dy;
+        // Snap anwenden (nur für das primäre Element bei Einzelzug)
+        if (dragNodes.length === 1) {
+          if (snapX !== null) nx = snapX;
+          if (snapY !== null) ny = snapY;
+        }
         n.style.left = `${(clamp ? Math.max(0, Math.min(100, nx)) : nx).toFixed(2)}%`;
         n.style.top  = `${(clamp ? Math.max(0, Math.min(97,  ny)) : ny).toFixed(2)}%`;
       });
     };
     const onUp = async () => {
       dragNodes.forEach(n => { n.classList.remove('nv2-dragging'); n.style.zIndex = ''; });
+      window.NV2_GUIDES?.clear();
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup',   onUp);
       if (!el._nv2wasDragged) return;
@@ -1904,6 +1929,7 @@ function onCanvasMouseDown(e) {
         selectedNodes.add(node); node.classList.add('nv2-selected');
       }
     });
+    window.NV2_ALIGN?.updateToolbar();
   };
 
   document.addEventListener('mousemove', onMove);
