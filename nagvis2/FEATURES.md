@@ -27,7 +27,9 @@ Vollständige Liste aller implementierten Features, geordnet nach Bereich.
 | **Checkmk REST API** | Checkmk v2.0+ REST API v1 | Automation-User + Secret; Perfdata direkt aus API |
 | **Zabbix JSON-RPC** | Zabbix 5.x / 6.0+ | API-Token (6.0+) oder Benutzername/Passwort; Severity-Mapping |
 | **Icinga2 REST API** | Icinga2 2.11+ v1 | Basic Auth; Custom-Vars als Labels; ACK + Downtime-Aktionen |
+| **Naemon** | Livestatus Unix/TCP oder REST API | Socket `/var/cache/naemon/live`; 3 Verbindungsarten; ACK + Downtime + Reschedule |
 | **Prometheus / VictoriaMetrics** | HTTP API v1 | `up`-Metrik als Hosts; Alerts als Services; `job`-Label als Hostgruppe; read-only |
+| **SolarWinds Orion** | SWIS API Port 17778 | SWQL für `Orion.Nodes` + `Orion.APM`; Alert-Suppression als ACK; Unmanage als Downtime |
 | **Demo** | Statisch | Eingebaute Testdaten ohne Verbindung; für Präsentationen |
 
 - Alle Backends gleichzeitig aktiv (Hot-Add, kein Neustart nötig)
@@ -44,7 +46,11 @@ Vollständige Liste aller implementierten Features, geordnet nach Bereich.
 | Drag & Drop | Alle Node-Typen per Maus verschieben |
 | Multi-Select | Lasso-Selektion oder Shift+Klick; Gruppen-Drag |
 | Delete | Ausgewählte Nodes mit Delete/Backspace löschen |
-| Kontextmenü | Rechtsklick auf Node öffnet typspezifische Aktionen |
+| Kontextmenü | Rechtsklick auf Node öffnet typspezifische Aktionen inkl. Duplizieren |
+| **Undo/Redo** | `Ctrl+Z` / `Ctrl+Y`; bis 50 Schritte; Verschieben, Resize, Properties, Löschen, Hinzufügen |
+| **Copy / Paste / Duplicate** | `Ctrl+C` / `Ctrl+V` / `Ctrl+D`; Einfügen mit +3 % Versatz; Mehrfach-Einfügen kaskadierend |
+| **Align & Distribute** | Toolbar bei ≥ 2 Nodes: Links/Mitte/Rechts/Oben/Mitte/Unten; Verteilen H/V (≥ 3 Nodes) |
+| **Smart Guides** | Einrasten an Kanten + Mittelpunkte beim Drag; blaue Hilfslinien |
 | Layer-System | Nodes auf verschiedene Layer (0–9) verteilen; Layer ein-/ausblenden; per Drag & Drop umsortieren |
 | Objekt-Typen | Host, Service, Hostgruppe, Servicegruppe, Map (nested), Textbox, Linie, Container, Gadget |
 | Iconsets | `std_small`, `server`, `router`, `switch`, `firewall`, `storage`, `database`, `ups`, `ap` |

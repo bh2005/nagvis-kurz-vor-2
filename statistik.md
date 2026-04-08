@@ -1,5 +1,5 @@
 # Projekt-Statistik: NagVis 2
-> Stand: 25. März 2026 · Alle Zahlen sind Schätzungen auf Basis von Git-Log, Code-Analyse und Kontext-Protokollen
+> Stand: 8. April 2026 · Alle Zahlen sind Schätzungen auf Basis von Git-Log, Code-Analyse und Kontext-Protokollen
 
 ---
 
@@ -8,8 +8,8 @@
 | | |
 |---|---|
 | **Erster Commit** | 12. März 2026 |
-| **Stand heute** | 25. März 2026 |
-| **Laufzeit** | 14 Kalendertage / **10 aktive Arbeitstage** |
+| **Stand heute** | 8. April 2026 |
+| **Laufzeit** | 28 Kalendertage / **18 aktive Arbeitstage** |
 
 ### Commit-Aktivität pro Tag
 
@@ -25,7 +25,8 @@
 | 23.03. | 28 | Kiosk, Gadgets, CI/CD, HTTPS/TLS |
 | 24.03. | 24 | Auth komplett, install.sh, Graph-Gadget, draw.io |
 | 25.03. | 4 | Demo-Maps, Seed-Mechanismus, Sidebar-Fix |
-| **Gesamt** | **126** | |
+| 26.03.–07.04. | 18 | Undo/Redo, Copy/Paste, Align & Distribute, Smart Guides, Naemon + SolarWinds Connector |
+| **Gesamt** | **144** | |
 
 ---
 
@@ -33,13 +34,13 @@
 
 | Sprache | Dateien | Zeilen | Anteil |
 |---|---|---|---|
-| Python (Backend) | 43 | ~8 900 | 38 % |
-| JavaScript (Frontend) | 14 | ~7 700 | 33 % |
-| Markdown (Docs) | 19 | ~2 900 | 12 % |
-| CSS | 2 | ~1 496 | 6 % |
-| HTML | 1 | ~1 150 | 5 % |
-| JSON / YAML / Sonstige | 28 | ~1 453 | 6 % |
-| **Gesamt** | **107** | **~23 600** | 100 % |
+| Python (Backend) | 47 | ~10 200 | 38 % |
+| JavaScript (Frontend) | 16 | ~9 100 | 34 % |
+| Markdown (Docs) | 19 | ~3 400 | 13 % |
+| CSS | 2 | ~1 550 | 6 % |
+| HTML | 1 | ~1 200 | 4 % |
+| JSON / YAML / Sonstige | 28 | ~1 453 | 5 % |
+| **Gesamt** | **113** | **~26 900** | 100 % |
 
 ---
 
@@ -47,7 +48,7 @@
 
 ### Backend (Python / FastAPI)
 - FastAPI-Anwendung mit WebSocket-Livestatus und Poll-Loop
-- 5 Monitoring-Backends: Livestatus, Checkmk REST, Icinga2 REST, Zabbix JSON-RPC, Prometheus/VictoriaMetrics
+- 7 Monitoring-Backends: Livestatus, Checkmk REST, Icinga2 REST, Naemon (Livestatus/REST), Zabbix JSON-RPC, Prometheus/VictoriaMetrics, SolarWinds Orion (SWIS)
 - JWT-Authentifizierung mit Rollen (viewer / editor / admin) + Auto-Refresh
 - REST-API (/api/v1) mit vollständiger CRUD für Maps, Objekte, Backends, Benutzer, Kiosk
 - Prometheus-Metriken-Endpoint (/metrics), Liveness/Readiness-Probes
@@ -57,7 +58,7 @@
 
 ### Frontend (Vanilla JS, kein Framework)
 - Single Page Application ohne Build-Step
-- Map-Editor: Drag & Drop, Multi-Select (Lasso + Shift), Gruppen-Drag, Layer-System
+- Map-Editor: Drag & Drop, Multi-Select (Lasso + Shift), Gruppen-Drag, Layer-System, Undo/Redo, Copy/Paste/Duplicate, Align & Distribute, Smart Guides
 - 7 Objekt-Typen: Host, Service, Hostgroup, Servicegroup, Map, Textbox, Linie, Container, Gadget
 - 7 Gadget-Typen: Radial, Linear (H/V), Sparkline, Thermometer, Flow/Weather, Raw-Number, Graph/iframe
 - OSM-Integration (Leaflet.js) mit Cluster-Bubbles, Edit-Mode, Lat/Lng-Drag
@@ -129,8 +130,8 @@ Würde der gleiche Umfang bei einer externen Software-Agentur beauftragt:
 
 | Komponente | Aufwand-Schätzung | Tagessatz €900 (8h) |
 |---|---|---|
-| Backend (FastAPI, 5 Connectors, Auth) | ~120 h / 15 Tage | €13 500 |
-| Frontend (SPA, Editor, Gadgets, OSM) | ~100 h / 12,5 Tage | €11 250 |
+| Backend (FastAPI, 7 Connectors, Auth) | ~135 h / 17 Tage | €15 300 |
+| Frontend (SPA, Editor + Undo/Redo/Align, Gadgets, OSM) | ~115 h / 14,5 Tage | €13 050 |
 | DevOps (Docker, CI/CD, Helm, install.sh) | ~40 h / 5 Tage | €4 500 |
 | Testing & QA | ~20 h / 2,5 Tage | €2 250 |
 | Dokumentation | ~20 h / 2,5 Tage | €2 250 |
