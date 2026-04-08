@@ -11,8 +11,10 @@ Unterstützte Backend-Typen:
   "livestatus_unix"  – Livestatus via Unix-Socket (lokal / OMD)
   "checkmk"          – Checkmk REST API v1.0
   "icinga2"          – Icinga2 REST API v1
+  "naemon"           – Naemon Livestatus / REST API
   "zabbix"           – Zabbix JSON-RPC API (6.0+ empfohlen)
   "prometheus"       – Prometheus / VictoriaMetrics HTTP API
+  "solarwinds"       – SolarWinds Orion SWIS API (Port 17778)
   "demo"             – Statische Demo-Daten ohne Verbindung
 
 Singleton-Instanz:
@@ -36,13 +38,15 @@ from livestatus.client import (
 )
 from checkmk.client import CheckmkClient, CheckmkConfig
 from icinga2.client import Icinga2Client, Icinga2Config
+from naemon.client import NaemonClient, NaemonConfig
 from connectors.demo_client import DemoClient, DemoConfig
 from zabbix.client import ZabbixClient, ZabbixConfig
 from prometheus.client import PrometheusClient, PrometheusConfig
+from solarwinds.client import SolarWindsClient, SolarWindsConfig
 
 log = logging.getLogger("nagvis.registry")
 
-AnyClient = Union[LivestatusClient, CheckmkClient, Icinga2Client, ZabbixClient, PrometheusClient, DemoClient]
+AnyClient = Union[LivestatusClient, CheckmkClient, Icinga2Client, NaemonClient, ZabbixClient, PrometheusClient, SolarWindsClient, DemoClient]
 
 
 class UnifiedRegistry:
@@ -156,6 +160,35 @@ class UnifiedRegistry:
                 "verify_ssl": c.verify_ssl,
                 "enabled":    c.enabled,
             }
+        if isinstance(client, NaemonClient):
+            c = client.cfg
+            return {
+                "backend_id":  c.backend_id,
+                "type":        "naemon",
+                "conn_type":   c.conn_type,
+                "socket_path": c.socket_path,
+                "host":        c.host,
+                "port":        c.port,
+                "base_url":    c.base_url,
+                "username":    c.username,
+                "password":    c.password,
+                "timeout":     c.timeout,
+                "verify_ssl":  c.verify_ssl,
+                "enabled":     c.enabled,
+            }
+        if isinstance(client, SolarWindsClient):
+            c = client.cfg
+            return {
+                "backend_id": c.backend_id,
+                "type":       "solarwinds",
+                "host":       c.host,
+                "port":       c.port,
+                "username":   c.username,
+                "password":   c.password,
+                "timeout":    c.timeout,
+                "verify_ssl": c.verify_ssl,
+                "enabled":    c.enabled,
+            }
         if isinstance(client, DemoClient):
             c = client.cfg
             return {
@@ -214,6 +247,31 @@ class UnifiedRegistry:
                     host_label = entry.get("host_label", "instance"),
                     timeout    = float(entry.get("timeout", 15.0)),
                     verify_ssl = bool(entry.get("verify_ssl", True)),
+                    enabled    = bool(entry.get("enabled", True)),
+                ))
+            elif t == "naemon":
+                return NaemonClient(NaemonConfig(
+                    backend_id  = entry["backend_id"],
+                    conn_type   = entry.get("conn_type", "unix"),
+                    socket_path = entry.get("socket_path", "/var/cache/naemon/live"),
+                    host        = entry.get("host", ""),
+                    port        = int(entry.get("port", 6558)),
+                    base_url    = entry.get("base_url", ""),
+                    username    = entry.get("username", "nagvis2"),
+                    password    = entry.get("password", ""),
+                    timeout     = float(entry.get("timeout", 10.0)),
+                    verify_ssl  = bool(entry.get("verify_ssl", True)),
+                    enabled     = bool(entry.get("enabled", True)),
+                ))
+            elif t == "solarwinds":
+                return SolarWindsClient(SolarWindsConfig(
+                    backend_id = entry["backend_id"],
+                    host       = entry.get("host", ""),
+                    port       = int(entry.get("port", 17778)),
+                    username   = entry.get("username", "admin"),
+                    password   = entry.get("password", ""),
+                    timeout    = float(entry.get("timeout", 15.0)),
+                    verify_ssl = bool(entry.get("verify_ssl", False)),
                     enabled    = bool(entry.get("enabled", True)),
                 ))
             elif t in ("livestatus_tcp", "livestatus_unix"):
@@ -569,6 +627,30 @@ class UnifiedRegistry:
                 "type":       "prometheus",
                 "address":    c.url,
                 "username":   c.username if not c.token else "(Bearer Token)",
+                "enabled":    True,
+            }
+        if isinstance(client, NaemonClient):
+            c = client.cfg
+            if c.conn_type == "rest":
+                addr = c.base_url
+            elif c.conn_type == "tcp":
+                addr = f"{c.host}:{c.port}"
+            else:
+                addr = c.socket_path
+            return {
+                "backend_id": c.backend_id,
+                "type":       "naemon",
+                "address":    addr,
+                "conn_type":  c.conn_type,
+                "enabled":    True,
+            }
+        if isinstance(client, SolarWindsClient):
+            c = client.cfg
+            return {
+                "backend_id": c.backend_id,
+                "type":       "solarwinds",
+                "address":    f"{c.host}:{c.port}",
+                "username":   c.username,
                 "enabled":    True,
             }
         if isinstance(client, DemoClient):
