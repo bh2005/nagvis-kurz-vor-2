@@ -1,5 +1,5 @@
 # NagVis 2 – Feature-Übersicht
-> Stand: März 2026
+> Stand: April 2026
 
 ---
 
@@ -123,11 +123,15 @@
 - **Multi-Select** – Klick / Shift+Klick / Lasso-Rechteck
   - Gruppen-Drag: alle selektierten Nodes gemeinsam verschieben
   - Gruppen-Löschen via Rechtsklick oder Delete/Backspace
-- **Rechtsklick-Kontextmenü** – Löschen, Layer zuweisen, Größe ändern, Iconset wechseln
+- **Rechtsklick-Kontextmenü** – Löschen, Duplizieren, Layer zuweisen, Größe ändern, Iconset wechseln
 - **Linien-Drag-Handles** – cyanfarbene Kreise an Endpunkten
 - **Linienstil-Dialog** – Farbe, Stil (solid/dashed/dotted), Breite, Winkel-Slider
 - **Resize-Panel** – Slider + Pixel-Anzeige für Node- und Gadget-Größe
 - **OSM Edit-Mode** – Klick auf Karte öffnet Add-Object-Dialog mit Lat/Lng, Marker verschiebbar
+- **Undo/Redo** – `Ctrl+Z` / `Ctrl+Y`; Command-Pattern mit Before/After-States; bis zu 50 Schritte; unterstützt Verschieben, Resize, Properties, Löschen, Hinzufügen
+- **Copy / Paste / Duplicate** – `Ctrl+C` / `Ctrl+V` / `Ctrl+D`; Einfügen mit +3 % Versatz; kaskadierendes Mehrfach-Einfügen; Duplizieren im Rechtsklick-Kontextmenü
+- **Align & Distribute** – Toolbar erscheint bei ≥ 2 selektierten Nodes: Links/Mitte/Rechts ausrichten, Oben/Mitte/Unten ausrichten, Gleichmäßig horizontal/vertikal verteilen (≥ 3 Nodes)
+- **Smart Guides** – automatisches Einrasten beim Drag an Kanten und Mittelpunkte anderer Nodes; blaue Hilfslinien zeigen Ausrichtung an
 
 ---
 
@@ -192,8 +196,10 @@
 - **Livestatus TCP/Unix** – direkte Nagios/Checkmk-Verbindung
 - **Checkmk REST API** – async HTTP-Client für Checkmk REST API v1.0
 - **Icinga2 REST API** – Basic Auth, `X-HTTP-Method-Override: GET`; Host/Service/Gruppe; ACK, Downtime, Reschedule ✅
+- **Naemon** – Nagios-Fork; Livestatus Unix-Socket (`/var/cache/naemon/live`), Livestatus TCP oder REST API; ACK, Downtime, Reschedule ✅
 - **Zabbix JSON-RPC API** – Zabbix 6.0+ (Bearer-Token) + ältere Versionen (user.login); Host/Problem/Gruppe; ACK, Maintenance ✅
 - **Prometheus / VictoriaMetrics** – HTTP-Client via PromQL; Alertmanager-Alerts als Service-States; Hosts aus Job-Labels aggregiert; Hostgroups per `job`; kompatibel mit VictoriaMetrics (kein ACK/Downtime — read-only)
+- **SolarWinds Orion** – SWIS API (Port 17778); SWQL-Abfragen für `Orion.Nodes` + `Orion.APM.Application`; Status-Mapping (Up/Down/Warning/Unknown/Unmanaged); Alert-Suppression als ACK; Unmanage-Zeitraum als Downtime; PollNow als Reschedule ✅
 - **Unified Registry** – alle Backend-Typen gemischt nutzbar, Hot-Add ohne Neustart
 - **Persistenz** – `data/backends.json`, LIVESTATUS_* Env-Vars werden auto-importiert
 - **Backend-Management-UI** – Burger-Menü → Backends verwalten (hinzufügen, testen, entfernen)
@@ -291,8 +297,8 @@
 Frontend-Shell      ████████████████████  100%
 Map-Verwaltung      ████████████████████  100%  (inkl. Duplikat/Clone)
 Objekt-Typen        ████████████████████  100%  (Label-Templates, remove_ack, Linien-Aktionsmenü)
-Edit-Mode           ████████████████████  100%
-Live-Status         ████████████████████  100%  (Livestatus, Checkmk, Icinga2, Zabbix, Prometheus)
+Edit-Mode           ████████████████████  100%  (Undo/Redo, Copy/Paste, Align & Distribute, Smart Guides)
+Live-Status         ████████████████████  100%  (Livestatus, Checkmk, Icinga2, Naemon, Zabbix, Prometheus, SolarWinds)
 Authentifizierung   ████████████████████  100%  (JWT, Auto-Refresh, Rollen-UI, User-Mgmt, User-Chip)
 Layer-System        ████████████████████  100%
 Kiosk-Modus         ████████████████████  100%

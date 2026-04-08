@@ -1,6 +1,6 @@
 # NagVis 2 – Todo-Liste
 
-> Stand: 2026-04-06
+> Stand: 2026-04-08
 
 ---
 
@@ -22,7 +22,10 @@
 - [x] Map-Miniaturbilder in der Übersicht (OffscreenCanvas, POST/DELETE `/api/maps/{id}/thumbnail`)
 - [x] Objekt-Reihenfolge: Layer per Drag & Drop umsortieren (zIndex), Layer löschen
 - [x] Browser-Benachrichtigungen bei CRITICAL/DOWN (Web Push API + Hinweiston via Web Audio API, in Benutzereinstellungen an/abschaltbar)
-- [x] Undo/Redo für Positionsänderungen (Ctrl+Z / Ctrl+Y)
+- [x] Undo/Redo für Positionsänderungen, Resize, Properties, Löschen, Hinzufügen (Ctrl+Z / Ctrl+Y; bis 50 Schritte)
+- [x] Copy / Paste / Duplicate (Ctrl+C / Ctrl+V / Ctrl+D; +3% Versatz, kaskadierendes Einfügen)
+- [x] Align & Distribute: Toolbar bei ≥ 2 selektierten Nodes; 6 Ausrichte- + 2 Verteile-Funktionen
+- [x] Smart Guides beim Drag: automatisches Einrasten + blaue Hilfslinien
 - [ ] Suche/Filter in der Sidebar (Maps und Hosts durchsuchen)
 - [x] Favoriten: bestimmte Maps als Favoriten markieren
 - [ ] Map-Minimap / Übersichtsfenster bei großen Karten
@@ -53,9 +56,12 @@
 
 - [x] Checkmk REST API Connector (`checkmk/client.py`)
 - [x] Icinga2 REST API Connector (`icinga2/client.py`)
+- [x] Naemon Connector (`naemon/client.py`) – Livestatus Unix/TCP + REST API; ACK, Downtime, Reschedule
 - [x] Zabbix JSON-RPC Connector (`zabbix/client.py`)
+- [x] Prometheus / VictoriaMetrics Connector (`prometheus/client.py`)
+- [x] SolarWinds Orion Connector (`solarwinds/client.py`) – SWIS API; Alert-Suppression, Unmanage, PollNow
 - [x] Unified Backend Registry (`connectors/registry.py`)
-- [x] Backend-Management-UI (Burger-Menü → Backends verwalten)
+- [x] Backend-Management-UI (Burger-Menü → Backends verwalten; inkl. Naemon + SolarWinds Formulare)
 - [x] `_backend_id`-Tag in WS-Status-Broadcasts → backend-spezifische Statusauflösung
 - [x] Node-Eigenschaft `backend_id`: Datenquelle pro Node explizit wählbar (Host/Service/Gruppe/Gadget)
 

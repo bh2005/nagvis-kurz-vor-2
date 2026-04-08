@@ -1,18 +1,33 @@
 ```
 nagvis2
 ├── backend
-│   ├── __pycache__
-│   │   └── main.cpython-313.pyc
 │   ├── api
+│   ├── checkmk
+│   │   └── client.py
+│   ├── connectors
+│   │   ├── demo_client.py
+│   │   └── registry.py
 │   ├── core
 │   ├── data
 │   │   ├── backgrounds
 │   │   ├── kiosk
 │   │   └── maps
+│   ├── icinga2
+│   │   └── client.py
 │   ├── livestatus
 │   │   ├── __init__.py
 │   │   └── client.py
+│   ├── naemon
+│   │   ├── __init__.py
+│   │   └── client.py
+│   ├── prometheus
+│   │   └── client.py
+│   ├── solarwinds
+│   │   ├── __init__.py
+│   │   └── client.py
 │   ├── ws
+│   ├── zabbix
+│   │   └── client.py
 │   ├── Dockerfile
 │   ├── help_router.py
 │   ├── main.py
@@ -37,15 +52,16 @@ nagvis2
 │   ├── css
 │   │   └── styles.css
 │   ├── js
+│   │   ├── align.js          ← Align & Distribute + Smart Guides
 │   │   ├── app.js
 │   │   ├── constants.js
 │   │   ├── gadget-renderer.js
+│   │   ├── history.js        ← Undo/Redo + Copy/Paste/Duplicate
+│   │   ├── i18n.js
 │   │   ├── kiosk.js
 │   │   ├── map-core.js
-│   │   ├── map-core.js.test
 │   │   ├── nodes.js
 │   │   ├── state.js
-│   │   ├── tour-core.js
 │   │   ├── ui-core.js
 │   │   ├── ws-client.js
 │   │   └── zoom_pan.js

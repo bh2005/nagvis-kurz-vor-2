@@ -1,6 +1,6 @@
 # NagVis 2 (Beta)
 
-**Moderne, schnelle und wartbare Web-Oberfläche für Nagios / Checkmk / Icinga2 / Zabbix**
+**Moderne, schnelle und wartbare Web-Oberfläche für Nagios / Checkmk / Icinga2 / Naemon / Zabbix / SolarWinds**
 
 Eine komplette Neuentwicklung von NagVis mit FastAPI-Backend, WebSocket-Livestatus und einem Vanilla-JS-Frontend ohne Framework-Abhängigkeiten.
 
@@ -11,14 +11,14 @@ Eine komplette Neuentwicklung von NagVis mit FastAPI-Backend, WebSocket-Livestat
 | Bereich | Details |
 |---|---|
 | **Echtzeit-Updates** | WebSocket-Livestatus, automatischer Reconnect, Offline-Banner |
-| **Edit-Mode** | Drag & Drop, Multi-Select (Lasso + Shift+Klick), Gruppen-Drag, Layer-System |
+| **Edit-Mode** | Drag & Drop, Multi-Select, Gruppen-Drag, Layer-System, **Undo/Redo**, **Copy/Paste/Duplicate**, **Align & Distribute**, **Smart Guides** |
 | **Map-Duplikat** | Map klonen inkl. aller Objekte + Hintergrundbild |
 | **Label-Templates** | Nagios-Macros (`$HOSTNAME$`, `$HOSTSTATE$`) + Checkmk-Labels als Node-Beschriftung |
 | **Gadgets** | Radial, Linear (H/V), Sparkline, Thermometer, Flow/Weather, Raw-Number, **Graph/iframe** |
 | **Graph-Gadget** | Grafana-Panels, Checkmk-Graphen oder beliebige URLs per `<iframe>` / `<img>` einbetten |
 | **Perfdata** | Nagios/Checkmk Performance-Daten automatisch in Gadgets eingespeist |
 | **Weathermap-Linien** | Statusfarbe, Bandbreiten-Labels, bidirektionale Pfeile |
-| **Multi-Backend** | Livestatus, Checkmk REST API, Icinga2 REST API, Zabbix JSON-RPC, Prometheus / VictoriaMetrics |
+| **Multi-Backend** | Livestatus, Checkmk REST API, Icinga2 REST API, **Naemon** (Livestatus/REST), Zabbix JSON-RPC, Prometheus / VictoriaMetrics, **SolarWinds Orion** (SWIS) |
 | **draw.io Import** | `.drawio`/`.xml`-Diagramme direkt als Map importieren |
 | **Authentifizierung** | JWT (7 Tage), Auto-Refresh, Login-Overlay, Rollen (viewer/editor/admin) |
 | **Benutzerverwaltung** | Lokale Benutzer, LDAP/AD, Checkmk-Auth-Kette; Admin-UI im Browser |

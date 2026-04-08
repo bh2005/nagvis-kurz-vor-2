@@ -7,8 +7,10 @@
 | Python | 3.11 |
 | Docker / Docker Compose | 24.x / 2.x |
 | Nagios / Checkmk | mit Livestatus-Modul oder Checkmk REST API |
+| Naemon | beliebige Version (Livestatus Socket Standard); REST API ab ~1.2.x |
 | Zabbix | 6.0+ (empfohlen), 5.x mit Username/Password |
 | Icinga2 | 2.11+ mit aktivierter REST API |
+| SolarWinds Orion | Orion Platform mit NPM; SWIS API aktiv (Standard ab 2012.x) |
 
 ---
 
@@ -401,9 +403,11 @@ Burger-Menü → **⚙ Backends verwalten**
 | **Checkmk REST API** | URL (z.B. `http://checkmk:5000/mysite/check_mk/api/1.0`), Automation-User, Secret |
 | **Livestatus TCP** | Host + Port (Standard: 6557) |
 | **Livestatus Unix** | Socket-Pfad (z.B. `/omd/sites/mysite/tmp/run/live`) |
+| **Naemon** | Unix-Socket (Standard: `/var/cache/naemon/live`), Livestatus TCP oder REST API URL |
 | **Zabbix** | URL (z.B. `https://zabbix.example.com`), API-Token (Zabbix 6.0+) oder Username/Password |
 | **Icinga2** | URL (z.B. `https://icinga2:5665/v1`), API-User + Passwort |
 | **Prometheus / VictoriaMetrics** | URL (z.B. `http://prometheus:9090`), Bearer Token oder Basic Auth, Host-Label |
+| **SolarWinds Orion** | Server-Hostname + Port 17778, Admin-User + Passwort |
 
 ### Checkmk REST API
 
@@ -553,6 +557,105 @@ VictoriaMetrics ist vollständig kompatibel — dieselbe API, kein Unterschied i
 
 **Verbindungstest:**
 `GET /api/v1/status/buildinfo` — liefert die Prometheus-Version zurück (sichtbar im Backend-Test-Dialog).
+
+---
+
+### Naemon
+
+**Voraussetzungen:**
+- Naemon (beliebige Version)
+- Livestatus-Socket zugänglich (Standard: `/var/cache/naemon/live`)
+- Optional: Naemon REST API aktiv (ab ~1.2.x)
+
+**Verbindungsarten:**
+
+| Verbindungsart | Beschreibung |
+|---|---|
+| `unix` (Standard) | Unix-Socket lokal auf dem NagVis-2-Server |
+| `tcp` | Livestatus TCP (z.B. über MK Livestatus-Proxy oder SSH-Tunnel) |
+| `rest` | Naemon REST API (HTTP/HTTPS, eigener Port) |
+
+**Konfigurationsparameter (Unix-Socket):**
+
+| Parameter | Beispiel | Beschreibung |
+|---|---|---|
+| `conn_type` | `unix` | Verbindungsart |
+| `socket_path` | `/var/cache/naemon/live` | Pfad zum Livestatus-Socket |
+
+**Konfigurationsparameter (REST API):**
+
+| Parameter | Beispiel | Beschreibung |
+|---|---|---|
+| `conn_type` | `rest` | Verbindungsart |
+| `base_url` | `http://naemon-host:8080/naemon/api/v1` | REST-API-Basis-URL |
+| `username` | `nagvis2` | API-Benutzer |
+| `password` | `geheim` | API-Passwort |
+| `verify_ssl` | `true` | TLS-Zertifikat prüfen |
+
+**Socket-Zugriff prüfen:**
+```bash
+ls -la /var/cache/naemon/live
+echo -e "GET hosts\nColumns: name state\n\n" | unixcat /var/cache/naemon/live
+```
+
+**Konzept-Mapping Naemon → NagVis 2:**
+
+| NagVis 2 | Naemon | Hinweis |
+|---|---|---|
+| Hosts | Livestatus `GET hosts` | state: 0=UP, 1=DOWN, 2=UNREACHABLE |
+| Services | Livestatus `GET services` | state: 0=OK, 1=WARNING, 2=CRITICAL, 3=UNKNOWN |
+| Hostgruppen | Livestatus `GET hostgroups` | |
+
+---
+
+### SolarWinds Orion
+
+**Voraussetzungen:**
+- SolarWinds Orion Platform (NPM, SAM oder ähnlich)
+- SWIS API aktiviert (Standard seit Orion 2012.x)
+- Benutzer mit SWIS-Query-Rechten
+
+**Konfigurationsparameter:**
+
+| Parameter | Beispiel | Beschreibung |
+|---|---|---|
+| `host` | `orion.example.com` | Orion-Server-Hostname oder IP |
+| `port` | `17778` | SWIS-API-Port (Standard: 17778) |
+| `username` | `admin` | Orion-Benutzername |
+| `password` | `geheim` | Orion-Passwort |
+| `verify_ssl` | `false` | TLS prüfen (Orion nutzt oft selbst-signierte Certs) |
+
+**Verbindungstest (curl):**
+```bash
+curl -k -u admin:password \
+  "https://orion-server:17778/SolarWinds/InformationService/v3/Json/Query?query=SELECT+NodeID+FROM+Orion.Nodes"
+```
+
+**Konzept-Mapping SolarWinds → NagVis 2:**
+
+| NagVis 2 | SolarWinds | Hinweis |
+|---|---|---|
+| Hosts | `Orion.Nodes` | Status 1=UP, 2/3/14=DOWN, 4/9=UNREACHABLE |
+| Services | `Orion.APM.Application` | Nur wenn APM-Modul lizenziert; andernfalls leer |
+| Hostgruppen | `Orion.Container` | Orion-Gruppen/Container |
+
+**Status-Mapping:**
+
+| Orion-Status | Orion-Beschreibung | NagVis 2 |
+|---|---|---|
+| 1 | Up | UP |
+| 2 | Down | DOWN |
+| 3 | Warning | DOWN |
+| 4 | Unknown | UNREACHABLE |
+| 9 | Unmanaged | UNREACHABLE |
+| 14 | Critical | DOWN |
+
+**ACK / Downtime / Reschedule in SolarWinds:**
+- **ACK** → Alert Suppression (`Orion.AlertSuppression/SuppressAlerts`)
+- **Downtime** → Unmanage-Zeitraum (`Orion.Nodes/Unmanage`)
+- **Reschedule** → Poll Now (`Orion.Nodes/PollNow`)
+
+**Hinweis:** Wenn das APM-Modul nicht lizenziert ist, gibt `get_services()` eine leere Liste zurück (kein Fehler).
 
 ---
 
