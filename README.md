@@ -1,6 +1,6 @@
-# NagVis 2 (Beta)
+# NagVis 2
 
-**Moderne, schnelle und wartbare Web-Oberfläche für Nagios / Checkmk / Icinga2 / Zabbix**
+**Moderne, schnelle und wartbare Web-Oberfläche für Nagios / Checkmk / Icinga2 / Naemon / Zabbix / SolarWinds**
 
 Eine komplette Neuentwicklung von NagVis mit FastAPI-Backend, WebSocket-Livestatus und einem Vanilla-JS-Frontend ohne Framework-Abhängigkeiten.
 
@@ -19,26 +19,30 @@ Eine komplette Neuentwicklung von NagVis mit FastAPI-Backend, WebSocket-Livestat
 
 | Bereich | Details |
 |---|---|
-| **Echtzeit-Updates** | WebSocket-Livestatus, automatischer Reconnect, Offline-Banner |
+| **Echtzeit-Updates** | WebSocket-Livestatus, automatischer Reconnect, Offline-Banner, Diff-basierte Updates |
 | **Edit-Mode** | Drag & Drop, Multi-Select (Lasso + Shift+Klick), Gruppen-Drag, Layer-System |
-| **Map-Duplikat** | Map klonen inkl. aller Objekte + Hintergrundbild (`POST /api/v1/maps/{id}/clone`) |
+| **Undo / Redo** | `Ctrl+Z` / `Ctrl+Y`; bis 50 Schritte; Verschieben, Resize, Properties, Löschen, Hinzufügen |
+| **Copy / Paste / Duplicate** | `Ctrl+C` / `Ctrl+V` / `Ctrl+D`; Einfügen mit +3 % Versatz; kaskadierendes Mehrfach-Einfügen |
+| **Align & Distribute** | Toolbar bei ≥ 2 Nodes: Links / Mitte / Rechts / Oben / Mitte / Unten; Verteilen H/V (≥ 3 Nodes) |
+| **Smart Guides** | Automatisches Einrasten an Kanten + Mittelpunkte beim Drag; blaue Hilfslinien |
 | **Label-Templates** | Nagios-Macros (`$HOSTNAME$`, `$HOSTSTATE$`, …) + Checkmk-Labels (`$LABEL:os$`) als Node-Beschriftung |
 | **Gadgets** | Radial, Linear (H/V), Sparkline, Thermometer, Flow/Weather, Raw-Number, **Graph/iframe** |
-| **Graph-Gadget** | Grafana-Panels, Checkmk-Graphen oder beliebige URLs per `<iframe>` oder `<img>` einbetten mit Auto-Refresh |
+| **Graph-Gadget** | Grafana-Panels, Checkmk-Graphen oder beliebige URLs per `<iframe>` / `<img>`; Auto-Refresh |
 | **Perfdata** | Nagios/Checkmk Performance-Daten automatisch in Gadgets eingespeist |
 | **Weathermap-Linien** | Statusfarbe, Bandbreiten-Labels, bidirektionale Pfeile |
-| **Multi-Backend** | Livestatus, Checkmk REST API, Icinga2 REST API, Zabbix JSON-RPC, **Prometheus / VictoriaMetrics** — gemischt, Hot-Add |
-| **draw.io Import** | `.drawio`/`.xml`-Diagramme direkt als Map importieren (Shapes → Textboxen/Hosts, Connectors → Linien) |
-| **Authentifizierung** | JWT (7 Tage), Auto-Refresh, Login-Overlay, Rollen (viewer/editor/admin), Benutzer-Management |
+| **Multi-Backend** | Livestatus TCP/Unix, Checkmk REST API, Icinga2 REST API, **Naemon**, Zabbix JSON-RPC, Prometheus/VictoriaMetrics, **SolarWinds Orion** — gemischt, Hot-Add |
+| **draw.io Import** | `.drawio`/`.xml`-Diagramme als Map importieren (Shapes → Textboxen/Hosts, Connectors → Linien) |
+| **Authentifizierung** | JWT (30 Tage), Auto-Refresh, Login-Overlay, Rollen (viewer/admin), Benutzer-Management |
 | **User-Chip** | Klickbarer Topbar-Button: Theme, Einstellungen, Passwort, Benutzerverwaltung, Logout |
-| **Kiosk-Modus** | Token-URL, automatische Map-Rotation, Vollbild mit Zoom/Pan |
+| **Kiosk-Modus** | Token-URL, automatische Map-Rotation, Vollbild mit Zoom/Pan, Status-Ticker |
+| **OSM / Weltkarte** | Leaflet.js; Nodes auf Lat/Lng positionieren; Cluster-Bubbles; Drag & Drop im Edit-Mode |
 | **API-Versionierung** | Alle Endpunkte unter `/api/v1/`; 308-Redirect für Rückwärtskompatibilität |
 | **Help-System** | Integriertes MkDocs-Hilfe-System unter `/help/` |
 | **Docker** | `docker compose up --build` — fertig |
-| **Install-Script** | `install.sh` — vollautomatische Linux-Installation mit Systemd-Service |
+| **Install-Script** | `install.sh` — vollautomatische Linux-Installation mit Systemd-Service und Upgrade-Option |
 | **Theme** | Dark / Light, Standard: Dark + Sidebar ausgeklappt |
 | **Mehrsprachigkeit** | DE/EN eingebaut; beliebige Sprachen per JSON-Lang-Pack importierbar; Sprach-Picker in den Einstellungen |
-| **WCAG-AA-Kontrast** | Alle sekundären Textelemente (Karten-Meta, Event-Log, Formular-Labels, Burger-KBD, Manage-Meta) erfüllen 4.5:1 auf Panel-Hintergründen |
+| **WCAG-AA-Kontrast** | Alle sekundären Textelemente erfüllen 4.5:1 auf Panel-Hintergründen |
 
 ---
 
@@ -108,6 +112,21 @@ Backends über die UI konfigurieren: Burger-Menü → **⚙ Backends verwalten**
 
 ---
 
+## Unterstützte Backends
+
+| Typ | Protokoll | Aktionen |
+|---|---|---|
+| **Livestatus TCP/Unix** | Nagios/Checkmk/Naemon Socket | ACK, Downtime, Reschedule |
+| **Checkmk REST API** | Checkmk v2.0+ REST API v1 | ACK, Downtime, Reschedule |
+| **Icinga2 REST API** | Icinga2 2.11+ v1 | ACK, Downtime, Reschedule |
+| **Naemon** | Livestatus Unix/TCP oder REST API | ACK, Downtime, Reschedule |
+| **Zabbix JSON-RPC** | Zabbix 5.x / 6.0+ | ACK (Maintenance) |
+| **Prometheus / VictoriaMetrics** | HTTP API v1 / PromQL | read-only |
+| **SolarWinds Orion** | SWIS API Port 17778 | Alert-Suppression, Unmanage, PollNow |
+| **Demo** | Statisch | Eingebaute Testdaten |
+
+---
+
 ## Hilfe & Dokumentation
 
 | Ressource | Inhalt |
@@ -117,7 +136,8 @@ Backends über die UI konfigurieren: Burger-Menü → **⚙ Backends verwalten**
 | `http://localhost:8008/api/v1/health` | System-Status + Backend-Erreichbarkeit |
 | [Releases](https://github.com/bh2005/nagvis-kurz-vor-2/releases) | ZIP-Download + Release Notes |
 | [changelog.txt](nagvis2/changelog.txt) | Vollständiger Änderungsverlauf |
-| [admin-guide.md](nagvis2/docs/admin-guide.md) | Installation, Konfiguration, Auth |
+| [admin-guide.md](nagvis2/docs/admin-guide.md) | Installation, Konfiguration, Auth, Backends |
+| [FEATURES.md](FEATURES.md) | Was ist gebaut, was ist geplant |
 
 ---
 
@@ -127,56 +147,48 @@ Backends über die UI konfigurieren: Burger-Menü → **⚙ Backends verwalten**
 nagvis2/
 ├── install.sh                ← Linux-Installationsskript (Systemd, venv, Berechtigungen)
 ├── build.sh                  ← ZIP-Build-Skript für Releases
-├── .env.example              ← Alle Konfigurationsvariablen mit Kommentaren
+├── .env.example
 ├── docker-compose.yml
-├── nginx.conf
+├── nginx.conf / nginx.conf.prod
 ├── mkdocs.yml
 ├── backend/
 │   ├── main.py
 │   ├── requirements.txt
 │   ├── Dockerfile
-│   ├── core/
-│   │   ├── config.py
-│   │   ├── storage.py        ← Maps + clone_map()
-│   │   ├── auth.py           ← JWT, require_auth, require_admin
-│   │   ├── users.py          ← Benutzerverwaltung (bcrypt, data/users.json)
-│   │   ├── audit.py          ← Audit-Log (JSONL, Rotation)
-│   │   ├── perfdata.py       ← Nagios Perfdata-Parser
-│   │   ├── livestatus.py
-│   │   └── metrics.py        ← Prometheus-Metriken
+│   ├── core/                 ← config, storage, auth, users, audit, perfdata, metrics
 │   ├── checkmk/client.py     ← Checkmk REST API Client
 │   ├── icinga2/client.py     ← Icinga2 REST API v1 Client
+│   ├── naemon/client.py      ← Naemon Livestatus / REST API Client  ← NEU
 │   ├── zabbix/client.py      ← Zabbix JSON-RPC Client
 │   ├── prometheus/client.py  ← Prometheus / VictoriaMetrics Client
-│   ├── connectors/registry.py← Unified Backend Registry
-│   ├── api/
-│   │   ├── router.py         ← Maps, Objekte, Backends, Logs
-│   │   └── auth_router.py    ← Login, Refresh, User-CRUD
-│   └── ws/
-│       ├── manager.py
-│       ├── router.py
-│       └── demo_data.py
+│   ├── solarwinds/client.py  ← SolarWinds Orion SWIS API Client     ← NEU
+│   ├── connectors/registry.py← Unified Backend Registry (alle Typen)
+│   ├── api/                  ← router.py, auth_router.py
+│   └── ws/                   ← manager.py, router.py, demo_data.py
 ├── frontend/
 │   ├── index.html
 │   ├── css/styles.css
-│   ├── help/                 ← MkDocs-Output (mkdocs build)
+│   ├── lang/                 ← de.json, en.json
+│   ├── help/                 ← MkDocs-Output
 │   └── js/
-│       ├── auth.js           ← Login-Overlay, JWT, User-Chip-Dropdown
+│       ├── history.js        ← Undo/Redo + Copy/Paste/Duplicate   ← NEU
+│       ├── align.js          ← Align & Distribute + Smart Guides   ← NEU
+│       ├── auth.js           ← Login-Overlay, JWT, User-Chip
 │       ├── map-core.js       ← Maps, Backends, Clone, draw.io-Import
-│       ├── nodes.js          ← Node-Dialog, Gadget-Config-Dialog
+│       ├── nodes.js          ← Node/Gadget-Dialoge, Drag, Multi-Select
 │       ├── gadget-renderer.js← Gadget-Typen inkl. Graph/iframe
 │       ├── i18n.js           ← i18n-Engine (t(), setLang(), importLangPack())
 │       ├── ui-core.js
 │       ├── ws-client.js
 │       ├── kiosk.js
 │       └── app.js
-├── docs/                     ← MkDocs-Quelldateien (admin-guide, user-guide, …)
+├── docs/                     ← MkDocs-Quelldateien
 ├── scripts/
-│   └── update_changelog.py  ← Changelog-Generator (TXT + MD)
+│   └── update_changelog.py
 └── data/                     ← Persistente Daten (auto-erstellt)
     ├── maps/
     ├── backgrounds/
-    ├── users.json            ← Benutzerdaten (bcrypt-Hashes)
+    ├── users.json
     ├── backends.json
     └── kiosk_users.json
 ```
@@ -201,15 +213,24 @@ Danach ist die Hilfe unter `http://localhost:8008/help/` erreichbar.
 
 | Sprache | Dateien | Zeilen | Anteil |
 |---|---|---|---|
-| **Python** | 43 | 8 900 | 38 % |
-| **JavaScript** | 14 | 7 700 | 33 % |
-| **Markdown** (Docs) | 19 | 2 900 | 12 % |
-| **CSS** | 2 | 1 496 | 6 % |
-| **HTML** | 1 | 1 150 | 5 % |
-| **JSON** (Config/Data) | 12 | 651 | 3 % |
-| **YAML** (Docker/Helm) | 12 | 431 | 2 % |
-| **Sonstige** | 4 | 371 | 2 % |
-| **Gesamt** | **107** | **23 599** | 100 % |
+| **Python** | 47 | ~10 200 | 38 % |
+| **JavaScript** | 16 | ~9 100 | 34 % |
+| **Markdown** (Docs) | 19 | ~3 400 | 13 % |
+| **CSS** | 2 | ~1 550 | 6 % |
+| **HTML** | 1 | ~1 200 | 4 % |
+| **JSON / YAML / Sonstige** | 28 | ~1 450 | 5 % |
+| **Gesamt** | **113** | **~26 900** | 100 % |
+
+---
+
+## Aktuelle Highlights (April 2026)
+
+- **Undo/Redo** (`Ctrl+Z` / `Ctrl+Y`) — bis 50 Schritte; Command-Pattern mit vollständigem Before/After-State; unterstützt Verschieben, Resize, Properties, Löschen und Hinzufügen
+- **Copy / Paste / Duplicate** (`Ctrl+C` / `Ctrl+V` / `Ctrl+D`) — kaskadierendes Einfügen mit +3 % Versatz
+- **Align & Distribute** — 6 Ausrichte- + 2 Verteile-Funktionen; erscheint automatisch bei ≥ 2 selektierten Nodes
+- **Smart Guides** — blaue Hilfslinien + Einrasten beim Drag; vergleicht Kanten und Mittelpunkte aller sichtbaren Nodes
+- **Naemon Connector** — Livestatus Unix/TCP oder REST API; ACK, Downtime, Reschedule
+- **SolarWinds Orion Connector** — SWIS API (Port 17778); SWQL für `Orion.Nodes` + `Orion.APM`; Alert-Suppression, Unmanage, PollNow
 
 ---
 
@@ -219,9 +240,9 @@ Dieses Projekt steht unter der **MIT License** – siehe [LICENSE](LICENSE).
 
 ---
 
-**Projektstatus:** Beta (funktioniert stabil, aktive Weiterentwicklung)
-**Autor:** bh2005
-**Version:** 2.2 Beta (April 2026)
+**Projektstatus:** Beta (funktioniert stabil, aktive Weiterentwicklung)  
+**Autor:** bh2005  
+**Version:** 2.3 Beta (April 2026)
 
 ---
 
@@ -234,3 +255,5 @@ Dieses Projekt steht unter der **MIT License** – siehe [LICENSE](LICENSE).
 | 📖 [Changelog (Markdown)](nagvis2/changelog.md) | Changelog als Markdown |
 | 📚 [Admin-Handbuch](nagvis2/docs/admin-guide.md) | Installation, Konfiguration, Auth, Betrieb |
 | ✨ [Feature-Übersicht](FEATURES.md) | Was ist gebaut, was ist geplant |
+| 🎲 [nagvis3d-up-side-down](../nagvis3d-up-side-down/) | 3D-Visualisierung (geplante Integration) |
+| 📊 [ui-4-bi](../ui-4-bi/) | Checkmk BI Visual Editor (geplante Integration) |
