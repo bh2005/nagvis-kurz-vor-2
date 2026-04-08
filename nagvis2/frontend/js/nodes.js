@@ -1208,10 +1208,12 @@ function showLineContextMenu(e, lineVis, obj) {
     { label: '↔ Linienstil',         action: () => openLineStyleDialog(lineVis, obj) },
     { label: '🌡 Weathermap-Konfig.', action: () => openWeathermapLineDlg(lineVis, obj) },
     { label: '◫ Layer zuweisen',      action: () => openLayerDialog(lineVis, obj) },
-    { label: '🗑 Entfernen', action: () => {
+    { label: '🗑 Entfernen', action: async () => {
+        const snapshot = JSON.parse(JSON.stringify(obj));
         lineVis.remove();
         document.getElementById(`nv2-${obj.object_id}`)?.remove();
-        api(`/api/maps/${activeMapId}/objects/${obj.object_id}`, 'DELETE');
+        await api(`/api/maps/${activeMapId}/objects/${obj.object_id}`, 'DELETE');
+        window.NV2_HISTORY?.push({ type:'delete', mapId: activeMapId, items:[{ objectId: obj.object_id, fullObj: snapshot }] });
       }, cls: 'ctx-danger' },
   ];
   items.forEach(item => {
@@ -1733,6 +1735,8 @@ function toggleEdit() {
   if (lbl) lbl.textContent = editActive ? t('done') : t('edit');
   if (btn) { btn.classList.toggle('on', editActive); btn.title = editActive ? 'Edit-Mode beenden (Ctrl+E)' : 'Edit-Mode starten (Ctrl+E)'; }
   addBtn.style.display = editActive ? 'flex' : 'none';
+  document.getElementById('btn-undo').style.display = editActive ? '' : 'none';
+  document.getElementById('btn-redo').style.display = editActive ? '' : 'none';
   banner.classList.toggle('show', editActive);
   canvas.classList.toggle('nv2-edit-mode', editActive);
   // OSM-Marker vom Canvas-Drag ausschließen (Leaflet übernimmt das)
@@ -1909,8 +1913,14 @@ window.onCanvasMouseDown = onCanvasMouseDown;
 
 async function removeNode(el, obj) {
   if (!confirm(`"${obj.name ?? obj.object_id}" von der Map entfernen?`)) return;
+  const snapshot = JSON.parse(JSON.stringify(obj));   // vor dem Löschen sichern
   await api(`/api/maps/${activeMapId}/objects/${obj.object_id}`, 'DELETE');
   el.remove();
+  window.NV2_HISTORY?.push({
+    type : 'delete',
+    mapId: activeMapId,
+    items: [{ objectId: obj.object_id, fullObj: snapshot }],
+  });
 }
 
 let _ctxMenu = null;
@@ -2252,10 +2262,18 @@ function showNodeContextMenu(e, el, obj) {
       closeContextMenu();
       if (!confirm(`${selectedNodes.size} Objekte entfernen?`)) return;
       const nodes = [...selectedNodes];
+      // Snapshots vor dem Löschen sichern
+      const snapshots = nodes.map(n => {
+        const obj = activeMapCfg?.objects?.find(o => o.object_id === n.dataset.objectId);
+        return obj ? { objectId: n.dataset.objectId, fullObj: JSON.parse(JSON.stringify(obj)) } : null;
+      }).filter(Boolean);
       clearSelection();
       await Promise.all(nodes.map(n =>
         api(`/api/maps/${activeMapId}/objects/${n.dataset.objectId}`, 'DELETE').then(() => n.remove())
       ));
+      if (snapshots.length) {
+        window.NV2_HISTORY?.push({ type: 'delete', mapId: activeMapId, items: snapshots });
+      }
     };
     menu.appendChild(delBtn);
     menu.addEventListener('click', ev => ev.stopPropagation());
@@ -2277,6 +2295,7 @@ function showNodeContextMenu(e, el, obj) {
     { label:'⤢ Größe ändern',        action:() => openResizeDialog(el, obj),             hide:isTextbox || isGadget },
     { label:'🖼 Iconset wechseln',    action:() => openIconsetDialog(el, obj),            hide:!isMonitoring },
     { label:'◫ Layer zuweisen',       action:() => openLayerDialog(el, obj) },
+    { label:'⧉ Duplizieren',          action:() => { clearSelection(); selectedNodes.add(el); el.classList.add('nv2-selected'); NV2_CLIPBOARD.duplicate(); } },
     { label:'🗑 Entfernen',           action:() => removeNode(el, obj), cls:'ctx-danger' },
   ];
   items.forEach(item => {
