@@ -118,6 +118,13 @@
       <button class="tb-btn" id="btn-add-host" style="display:none;" data-i18n-title="add_object_title" title="Objekt platzieren (Edit-Mode)">
         <span class="tb-icon">＋</span><span data-i18n="add_object"> Objekt</span>
       </button>
+      <!-- Undo / Redo – nur im Edit-Mode sichtbar -->
+      <button class="tb-btn" id="btn-undo" style="display:none;" disabled
+              title="Rückgängig (Ctrl+Z)"
+              onclick="NV2_HISTORY.undo()">↩</button>
+      <button class="tb-btn" id="btn-redo" style="display:none;" disabled
+              title="Wiederholen (Ctrl+Y)"
+              onclick="NV2_HISTORY.redo()">↪</button>
       <button class="tb-btn" id="btn-kiosk" title="Kiosk-Modus (Vollbild)" onclick="toggleKiosk()">
         <span class="tb-icon">⛶</span>
       </button>
@@ -1229,6 +1236,7 @@
 <script src="js/state.js"></script>      <!-- Globale Laufzeit-Variablen -->
 <script src="js/ui-core.js"></script>    <!-- Theme, Sidebar, Burger, Snapins, Keyboard -->
 <script src="js/ws-client.js"></script>  <!-- WebSocket, Demo-Mode, api() -->
+<script src="js/history.js"></script>    <!-- Undo/Redo-Stack, Clipboard -->
 <script src="js/nodes.js"></script>      <!-- Node-Rendering, Edit-Mode, Aktionen -->
 <script src="js/osm.js"></script>        <!-- OpenStreetMap Canvas-Modus (Leaflet) -->
 <script src="js/map-core.js"></script>   <!-- Maps, openMap, Canvas, Dialoge, Export -->

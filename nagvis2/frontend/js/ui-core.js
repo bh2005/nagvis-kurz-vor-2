@@ -526,13 +526,23 @@ function onKeyDown(e) {
     e.preventDefault();
     const nodes = [...selectedNodes];
     if (!confirm(t('confirm_delete_nodes', { count: nodes.length }))) return;
+    // Snapshots vor dem Löschen sichern
+    const snapshots = nodes.map(n => {
+      const obj = activeMapCfg?.objects?.find(o => o.object_id === n.dataset.objectId);
+      return obj ? { objectId: n.dataset.objectId, fullObj: JSON.parse(JSON.stringify(obj)) } : null;
+    }).filter(Boolean);
     clearSelection();
     Promise.all(nodes.map(n =>
       api(`/api/maps/${activeMapId}/objects/${n.dataset.objectId}`, 'DELETE').then(() => n.remove())
-    ));
+    )).then(() => {
+      if (snapshots.length) window.NV2_HISTORY?.push({ type: 'delete', mapId: activeMapId, items: snapshots });
+    });
   }
   if ((e.ctrlKey || e.metaKey) && e.key === 'z' && editActive && !inInput) { e.preventDefault(); window.NV2_HISTORY?.undo(); return; }
   if ((e.ctrlKey || e.metaKey) && e.key === 'y' && editActive && !inInput) { e.preventDefault(); window.NV2_HISTORY?.redo(); return; }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c' && editActive && !inInput) { e.preventDefault(); window.NV2_CLIPBOARD?.copy(); return; }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v' && editActive && !inInput) { e.preventDefault(); window.NV2_CLIPBOARD?.paste(); return; }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'd' && editActive && !inInput) { e.preventDefault(); window.NV2_CLIPBOARD?.duplicate(); return; }
   if (e.key === 'F11' && activeMapId) { e.preventDefault(); toggleKiosk(); }
   if ((e.metaKey || e.ctrlKey) && e.key === 'e' && activeMapId) { e.preventDefault(); toggleEdit(); }
   if (e.key === 'r' && activeMapId && !e.ctrlKey && !e.metaKey && !inInput) wsClient?.forceRefresh();

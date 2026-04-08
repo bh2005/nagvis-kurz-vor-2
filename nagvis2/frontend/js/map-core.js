@@ -600,6 +600,11 @@ async function confirmAddObject() {
     if (type === 'gadget' && el && typeof openGadgetConfigDialog === 'function') {
       openGadgetConfigDialog(el, obj);
     }
+    window.NV2_HISTORY?.push({
+      type : 'add',
+      mapId: activeMapId,
+      items: [{ objectId: obj.object_id, fullObj: JSON.parse(JSON.stringify(obj)) }],
+    });
   }
   closeDlg('dlg-add-object');
   pendingPos = null;
