@@ -686,6 +686,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#naemon" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Naemon
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#solarwinds-orion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SolarWinds Orion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#backend-persistenz" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1786,6 +1808,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#naemon" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Naemon
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#solarwinds-orion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SolarWinds Orion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#backend-persistenz" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2201,12 +2245,20 @@
 <td>mit Livestatus-Modul oder Checkmk REST API</td>
 </tr>
 <tr>
+<td>Naemon</td>
+<td>beliebige Version (Livestatus Socket Standard); REST API ab ~1.2.x</td>
+</tr>
+<tr>
 <td>Zabbix</td>
 <td>6.0+ (empfohlen), 5.x mit Username/Password</td>
 </tr>
 <tr>
 <td>Icinga2</td>
 <td>2.11+ mit aktivierter REST API</td>
+</tr>
+<tr>
+<td>SolarWinds Orion</td>
+<td>Orion Platform mit NPM; SWIS API aktiv (Standard ab 2012.x)</td>
 </tr>
 </tbody>
 </table>
@@ -2766,6 +2818,10 @@ GET /api/logs?lines=1000&amp;download=true
 <td>Socket-Pfad (z.B. <code>/omd/sites/mysite/tmp/run/live</code>)</td>
 </tr>
 <tr>
+<td><strong>Naemon</strong></td>
+<td>Unix-Socket (Standard: <code>/var/cache/naemon/live</code>), Livestatus TCP oder REST API URL</td>
+</tr>
+<tr>
 <td><strong>Zabbix</strong></td>
 <td>URL (z.B. <code>https://zabbix.example.com</code>), API-Token (Zabbix 6.0+) oder Username/Password</td>
 </tr>
@@ -2776,6 +2832,10 @@ GET /api/logs?lines=1000&amp;download=true
 <tr>
 <td><strong>Prometheus / VictoriaMetrics</strong></td>
 <td>URL (z.B. <code>http://prometheus:9090</code>), Bearer Token oder Basic Auth, Host-Label</td>
+</tr>
+<tr>
+<td><strong>SolarWinds Orion</strong></td>
+<td>Server-Hostname + Port 17778, Admin-User + Passwort</td>
 </tr>
 </tbody>
 </table>
@@ -3076,6 +3136,246 @@ Wenn derselbe <code>instance</code>-Wert in mehreren Jobs auftaucht, gewinnt der
 VictoriaMetrics ist vollständig kompatibel — dieselbe API, kein Unterschied in der Konfiguration.</p>
 <p><strong>Verbindungstest:</strong>
 <code>GET /api/v1/status/buildinfo</code> — liefert die Prometheus-Version zurück (sichtbar im Backend-Test-Dialog).</p>
+<hr />
+<h3 id="naemon">Naemon</h3>
+<p><strong>Voraussetzungen:</strong>
+- Naemon (beliebige Version)
+- Livestatus-Socket zugänglich (Standard: <code>/var/cache/naemon/live</code>)
+- Optional: Naemon REST API aktiv (ab ~1.2.x)</p>
+<p><strong>Verbindungsarten:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Verbindungsart</th>
+<th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>unix</code> (Standard)</td>
+<td>Unix-Socket lokal auf dem NagVis-2-Server</td>
+</tr>
+<tr>
+<td><code>tcp</code></td>
+<td>Livestatus TCP (z.B. über MK Livestatus-Proxy oder SSH-Tunnel)</td>
+</tr>
+<tr>
+<td><code>rest</code></td>
+<td>Naemon REST API (HTTP/HTTPS, eigener Port)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Konfigurationsparameter (Unix-Socket):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Beispiel</th>
+<th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>conn_type</code></td>
+<td><code>unix</code></td>
+<td>Verbindungsart</td>
+</tr>
+<tr>
+<td><code>socket_path</code></td>
+<td><code>/var/cache/naemon/live</code></td>
+<td>Pfad zum Livestatus-Socket</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Konfigurationsparameter (REST API):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Beispiel</th>
+<th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>conn_type</code></td>
+<td><code>rest</code></td>
+<td>Verbindungsart</td>
+</tr>
+<tr>
+<td><code>base_url</code></td>
+<td><code>http://naemon-host:8080/naemon/api/v1</code></td>
+<td>REST-API-Basis-URL</td>
+</tr>
+<tr>
+<td><code>username</code></td>
+<td><code>nagvis2</code></td>
+<td>API-Benutzer</td>
+</tr>
+<tr>
+<td><code>password</code></td>
+<td><code>geheim</code></td>
+<td>API-Passwort</td>
+</tr>
+<tr>
+<td><code>verify_ssl</code></td>
+<td><code>true</code></td>
+<td>TLS-Zertifikat prüfen</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Socket-Zugriff prüfen:</strong></p>
+<pre><code class="language-bash">ls -la /var/cache/naemon/live
+echo -e &quot;GET hosts\nColumns: name state\n\n&quot; | unixcat /var/cache/naemon/live
+</code></pre>
+<p><strong>Konzept-Mapping Naemon → NagVis 2:</strong></p>
+<table>
+<thead>
+<tr>
+<th>NagVis 2</th>
+<th>Naemon</th>
+<th>Hinweis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hosts</td>
+<td>Livestatus <code>GET hosts</code></td>
+<td>state: 0=UP, 1=DOWN, 2=UNREACHABLE</td>
+</tr>
+<tr>
+<td>Services</td>
+<td>Livestatus <code>GET services</code></td>
+<td>state: 0=OK, 1=WARNING, 2=CRITICAL, 3=UNKNOWN</td>
+</tr>
+<tr>
+<td>Hostgruppen</td>
+<td>Livestatus <code>GET hostgroups</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="solarwinds-orion">SolarWinds Orion</h3>
+<p><strong>Voraussetzungen:</strong>
+- SolarWinds Orion Platform (NPM, SAM oder ähnlich)
+- SWIS API aktiviert (Standard seit Orion 2012.x)
+- Benutzer mit SWIS-Query-Rechten</p>
+<p><strong>Konfigurationsparameter:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Beispiel</th>
+<th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>host</code></td>
+<td><code>orion.example.com</code></td>
+<td>Orion-Server-Hostname oder IP</td>
+</tr>
+<tr>
+<td><code>port</code></td>
+<td><code>17778</code></td>
+<td>SWIS-API-Port (Standard: 17778)</td>
+</tr>
+<tr>
+<td><code>username</code></td>
+<td><code>admin</code></td>
+<td>Orion-Benutzername</td>
+</tr>
+<tr>
+<td><code>password</code></td>
+<td><code>geheim</code></td>
+<td>Orion-Passwort</td>
+</tr>
+<tr>
+<td><code>verify_ssl</code></td>
+<td><code>false</code></td>
+<td>TLS prüfen (Orion nutzt oft selbst-signierte Certs)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Verbindungstest (curl):</strong></p>
+<pre><code class="language-bash">curl -k -u admin:password \
+  &quot;https://orion-server:17778/SolarWinds/InformationService/v3/Json/Query?query=SELECT+NodeID+FROM+Orion.Nodes&quot;
+</code></pre>
+<p><strong>Konzept-Mapping SolarWinds → NagVis 2:</strong></p>
+<table>
+<thead>
+<tr>
+<th>NagVis 2</th>
+<th>SolarWinds</th>
+<th>Hinweis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hosts</td>
+<td><code>Orion.Nodes</code></td>
+<td>Status 1=UP, 2/3/14=DOWN, 4/9=UNREACHABLE</td>
+</tr>
+<tr>
+<td>Services</td>
+<td><code>Orion.APM.Application</code></td>
+<td>Nur wenn APM-Modul lizenziert; andernfalls leer</td>
+</tr>
+<tr>
+<td>Hostgruppen</td>
+<td><code>Orion.Container</code></td>
+<td>Orion-Gruppen/Container</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Status-Mapping:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Orion-Status</th>
+<th>Orion-Beschreibung</th>
+<th>NagVis 2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Up</td>
+<td>UP</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Down</td>
+<td>DOWN</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Warning</td>
+<td>DOWN</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Unknown</td>
+<td>UNREACHABLE</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Unmanaged</td>
+<td>UNREACHABLE</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Critical</td>
+<td>DOWN</td>
+</tr>
+</tbody>
+</table>
+<p><strong>ACK / Downtime / Reschedule in SolarWinds:</strong>
+- <strong>ACK</strong> → Alert Suppression (<code>Orion.AlertSuppression/SuppressAlerts</code>)
+- <strong>Downtime</strong> → Unmanage-Zeitraum (<code>Orion.Nodes/Unmanage</code>)
+- <strong>Reschedule</strong> → Poll Now (<code>Orion.Nodes/PollNow</code>)</p>
+<p><strong>Hinweis:</strong> Wenn das APM-Modul nicht lizenziert ist, gibt <code>get_services()</code> eine leere Liste zurück (kein Fehler).</p>
 <hr />
 <h3 id="backend-persistenz">Backend-Persistenz</h3>
 <p>Konfigurierte Backends werden in <code>data/backends.json</code> gespeichert — kein Neustart erforderlich.</p>

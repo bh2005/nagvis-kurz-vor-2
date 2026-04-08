@@ -767,7 +767,7 @@
 
 <h1 id="nagvis-2-todo-liste">NagVis 2 – Todo-Liste</h1>
 <blockquote>
-<p>Stand: 2026-04-06</p>
+<p>Stand: 2026-04-08</p>
 </blockquote>
 <hr />
 <h2 id="offen-bugs-technische-schulden">Offen – Bugs / Technische Schulden</h2>
@@ -787,7 +787,10 @@
 <li>[x] Map-Miniaturbilder in der Übersicht (OffscreenCanvas, POST/DELETE <code>/api/maps/{id}/thumbnail</code>)</li>
 <li>[x] Objekt-Reihenfolge: Layer per Drag &amp; Drop umsortieren (zIndex), Layer löschen</li>
 <li>[x] Browser-Benachrichtigungen bei CRITICAL/DOWN (Web Push API + Hinweiston via Web Audio API, in Benutzereinstellungen an/abschaltbar)</li>
-<li>[x] Undo/Redo für Positionsänderungen (Ctrl+Z / Ctrl+Y)</li>
+<li>[x] Undo/Redo für Positionsänderungen, Resize, Properties, Löschen, Hinzufügen (Ctrl+Z / Ctrl+Y; bis 50 Schritte)</li>
+<li>[x] Copy / Paste / Duplicate (Ctrl+C / Ctrl+V / Ctrl+D; +3% Versatz, kaskadierendes Einfügen)</li>
+<li>[x] Align &amp; Distribute: Toolbar bei ≥ 2 selektierten Nodes; 6 Ausrichte- + 2 Verteile-Funktionen</li>
+<li>[x] Smart Guides beim Drag: automatisches Einrasten + blaue Hilfslinien</li>
 <li>[ ] Suche/Filter in der Sidebar (Maps und Hosts durchsuchen)</li>
 <li>[x] Favoriten: bestimmte Maps als Favoriten markieren</li>
 <li>[ ] Map-Minimap / Übersichtsfenster bei großen Karten</li>
@@ -815,9 +818,12 @@
 <ul>
 <li>[x] Checkmk REST API Connector (<code>checkmk/client.py</code>)</li>
 <li>[x] Icinga2 REST API Connector (<code>icinga2/client.py</code>)</li>
+<li>[x] Naemon Connector (<code>naemon/client.py</code>) – Livestatus Unix/TCP + REST API; ACK, Downtime, Reschedule</li>
 <li>[x] Zabbix JSON-RPC Connector (<code>zabbix/client.py</code>)</li>
+<li>[x] Prometheus / VictoriaMetrics Connector (<code>prometheus/client.py</code>)</li>
+<li>[x] SolarWinds Orion Connector (<code>solarwinds/client.py</code>) – SWIS API; Alert-Suppression, Unmanage, PollNow</li>
 <li>[x] Unified Backend Registry (<code>connectors/registry.py</code>)</li>
-<li>[x] Backend-Management-UI (Burger-Menü → Backends verwalten)</li>
+<li>[x] Backend-Management-UI (Burger-Menü → Backends verwalten; inkl. Naemon + SolarWinds Formulare)</li>
 <li>[x] <code>_backend_id</code>-Tag in WS-Status-Broadcasts → backend-spezifische Statusauflösung</li>
 <li>[x] Node-Eigenschaft <code>backend_id</code>: Datenquelle pro Node explizit wählbar (Host/Service/Gruppe/Gadget)</li>
 </ul>
