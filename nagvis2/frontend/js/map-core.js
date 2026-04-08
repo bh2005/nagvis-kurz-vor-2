@@ -1373,8 +1373,10 @@ function openBackendMgmtDlg() {
             <select class="f-select" id="bm-type" onchange="_bmUpdateFields()">
               <option value="checkmk">Checkmk REST API</option>
               <option value="icinga2">Icinga2 REST API</option>
+              <option value="naemon">Naemon (Livestatus / REST)</option>
               <option value="zabbix">Zabbix JSON-RPC API</option>
               <option value="prometheus">Prometheus / VictoriaMetrics</option>
+              <option value="solarwinds">SolarWinds Orion (SWIS)</option>
               <option value="livestatus_tcp">Livestatus TCP</option>
               <option value="livestatus_unix">Livestatus Unix-Socket</option>
               <option value="demo">Demo (Musterdaten)</option>
@@ -1424,6 +1426,87 @@ function openBackendMgmtDlg() {
           <div style="margin-bottom:8px">
             <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text-dim)">
               <input type="checkbox" id="bm-icinga2-verify-ssl"> SSL-Zertifikat prüfen
+            </label>
+          </div>
+        </div>
+
+        <div id="bm-fields-naemon" style="display:none">
+          <div style="margin-bottom:8px">
+            <label class="f-label">Verbindungsart</label>
+            <select class="f-select" id="bm-naemon-conn" onchange="_bmNaemonUpdateConn()">
+              <option value="unix">Unix-Socket (lokal)</option>
+              <option value="tcp">Livestatus TCP</option>
+              <option value="rest">REST API</option>
+            </select>
+          </div>
+          <div id="bm-naemon-fields-unix">
+            <div style="margin-bottom:8px">
+              <label class="f-label">Socket-Pfad <span style="color:var(--crit)">*</span></label>
+              <input class="f-input" id="bm-naemon-socket" type="text"
+                     placeholder="/var/cache/naemon/live" value="/var/cache/naemon/live">
+            </div>
+          </div>
+          <div id="bm-naemon-fields-tcp" style="display:none">
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:8px">
+              <div>
+                <label class="f-label">Host / IP <span style="color:var(--crit)">*</span></label>
+                <input class="f-input" id="bm-naemon-host" type="text" placeholder="192.168.1.10">
+              </div>
+              <div>
+                <label class="f-label">Port</label>
+                <input class="f-input" id="bm-naemon-port" type="number" value="6558" placeholder="6558">
+              </div>
+            </div>
+          </div>
+          <div id="bm-naemon-fields-rest" style="display:none">
+            <div style="margin-bottom:8px">
+              <label class="f-label">REST API URL <span style="color:var(--crit)">*</span></label>
+              <input class="f-input" id="bm-naemon-url" type="text"
+                     placeholder="http://naemon-host:8080/naemon/api/v1">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+              <div>
+                <label class="f-label">Benutzer</label>
+                <input class="f-input" id="bm-naemon-username" type="text" placeholder="nagvis2" value="nagvis2">
+              </div>
+              <div>
+                <label class="f-label">Passwort</label>
+                <input class="f-input" id="bm-naemon-password" type="password" placeholder="••••••••">
+              </div>
+            </div>
+            <div style="margin-bottom:8px">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text-dim)">
+                <input type="checkbox" id="bm-naemon-verify-ssl" checked> SSL-Zertifikat prüfen
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div id="bm-fields-solarwinds" style="display:none">
+          <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:8px">
+            <div>
+              <label class="f-label">Orion-Server <span style="color:var(--crit)">*</span></label>
+              <input class="f-input" id="bm-sw-host" type="text" placeholder="orion.example.com">
+            </div>
+            <div>
+              <label class="f-label">Port</label>
+              <input class="f-input" id="bm-sw-port" type="number" value="17778" placeholder="17778">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+            <div>
+              <label class="f-label">Benutzer</label>
+              <input class="f-input" id="bm-sw-username" type="text" placeholder="admin" value="admin">
+            </div>
+            <div>
+              <label class="f-label">Passwort</label>
+              <input class="f-input" id="bm-sw-password" type="password" placeholder="••••••••">
+            </div>
+          </div>
+          <div style="margin-bottom:8px">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text-dim)">
+              <input type="checkbox" id="bm-sw-verify-ssl"> SSL-Zertifikat prüfen
+              <span style="color:var(--text-dim)">(Orion nutzt oft selbst-signierte Certs)</span>
             </label>
           </div>
         </div>
@@ -1581,14 +1664,23 @@ async function _bmLoad() {
   }).join('');
 }
 
+function _bmNaemonUpdateConn() {
+  const c = document.getElementById('bm-naemon-conn')?.value;
+  document.getElementById('bm-naemon-fields-unix').style.display = c === 'unix' ? '' : 'none';
+  document.getElementById('bm-naemon-fields-tcp').style.display  = c === 'tcp'  ? '' : 'none';
+  document.getElementById('bm-naemon-fields-rest').style.display = c === 'rest' ? '' : 'none';
+}
+
 function _bmUpdateFields() {
   const t = document.getElementById('bm-type')?.value;
-  document.getElementById('bm-fields-checkmk').style.display  = t === 'checkmk'         ? '' : 'none';
-  document.getElementById('bm-fields-icinga2').style.display  = t === 'icinga2'          ? '' : 'none';
-  document.getElementById('bm-fields-zabbix').style.display      = t === 'zabbix'           ? '' : 'none';
-  document.getElementById('bm-fields-prometheus').style.display  = t === 'prometheus'       ? '' : 'none';
-  document.getElementById('bm-fields-tcp').style.display         = t === 'livestatus_tcp'  ? '' : 'none';
-  document.getElementById('bm-fields-unix').style.display     = t === 'livestatus_unix' ? '' : 'none';
+  document.getElementById('bm-fields-checkmk').style.display    = t === 'checkmk'          ? '' : 'none';
+  document.getElementById('bm-fields-icinga2').style.display    = t === 'icinga2'           ? '' : 'none';
+  document.getElementById('bm-fields-naemon').style.display     = t === 'naemon'            ? '' : 'none';
+  document.getElementById('bm-fields-solarwinds').style.display = t === 'solarwinds'        ? '' : 'none';
+  document.getElementById('bm-fields-zabbix').style.display     = t === 'zabbix'            ? '' : 'none';
+  document.getElementById('bm-fields-prometheus').style.display = t === 'prometheus'        ? '' : 'none';
+  document.getElementById('bm-fields-tcp').style.display        = t === 'livestatus_tcp'   ? '' : 'none';
+  document.getElementById('bm-fields-unix').style.display       = t === 'livestatus_unix'  ? '' : 'none';
   // Demo hat keine Verbindungsfelder
   const timeoutRow = document.getElementById('bm-timeout')?.closest('div[style]');
   if (timeoutRow) timeoutRow.style.display = t === 'demo' ? 'none' : '';
@@ -1647,6 +1739,42 @@ function _bmBuildEntry() {
       username:   document.getElementById('bm-icinga2-username')?.value.trim() || 'nagvis2',
       password:   document.getElementById('bm-icinga2-password')?.value || '',
       verify_ssl: document.getElementById('bm-icinga2-verify-ssl')?.checked ?? false,
+    };
+  }
+  if (type === 'naemon') {
+    const conn = document.getElementById('bm-naemon-conn')?.value || 'unix';
+    if (conn === 'unix') {
+      const sock = document.getElementById('bm-naemon-socket')?.value.trim();
+      if (!sock) { showToast('Socket-Pfad fehlt', 'warn'); return null; }
+      return { ...base, conn_type: 'unix', socket_path: sock };
+    }
+    if (conn === 'tcp') {
+      const host = document.getElementById('bm-naemon-host')?.value.trim();
+      if (!host) { showToast('Host / IP fehlt', 'warn'); return null; }
+      return { ...base, conn_type: 'tcp', host, port: parseInt(document.getElementById('bm-naemon-port')?.value || '6558') };
+    }
+    // rest
+    const url = document.getElementById('bm-naemon-url')?.value.trim();
+    if (!url) { showToast('REST API URL fehlt', 'warn'); return null; }
+    return {
+      ...base,
+      conn_type:  'rest',
+      base_url:   url,
+      username:   document.getElementById('bm-naemon-username')?.value.trim() || 'nagvis2',
+      password:   document.getElementById('bm-naemon-password')?.value || '',
+      verify_ssl: document.getElementById('bm-naemon-verify-ssl')?.checked ?? true,
+    };
+  }
+  if (type === 'solarwinds') {
+    const host = document.getElementById('bm-sw-host')?.value.trim();
+    if (!host) { showToast('Orion-Server fehlt', 'warn'); return null; }
+    return {
+      ...base,
+      host:       host,
+      port:       parseInt(document.getElementById('bm-sw-port')?.value || '17778'),
+      username:   document.getElementById('bm-sw-username')?.value.trim() || 'admin',
+      password:   document.getElementById('bm-sw-password')?.value || '',
+      verify_ssl: document.getElementById('bm-sw-verify-ssl')?.checked ?? false,
     };
   }
   if (type === 'zabbix') {
@@ -1745,24 +1873,40 @@ function _bmClearForm() {
   [
     'bm-id', 'bm-base-url', 'bm-username', 'bm-secret',
     'bm-icinga2-url', 'bm-icinga2-username', 'bm-icinga2-password',
+    'bm-naemon-socket', 'bm-naemon-host', 'bm-naemon-url', 'bm-naemon-username', 'bm-naemon-password',
+    'bm-sw-host', 'bm-sw-username', 'bm-sw-password',
     'bm-zabbix-url', 'bm-zabbix-token', 'bm-zabbix-username', 'bm-zabbix-password',
     'bm-prom-url', 'bm-prom-token', 'bm-prom-username', 'bm-prom-password', 'bm-prom-host-label',
     'bm-host', 'bm-socket',
   ].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
-    if (id === 'bm-username')         el.value = 'automation';
+    if (id === 'bm-username')              el.value = 'automation';
     else if (id === 'bm-icinga2-username') el.value = 'nagvis2';
+    else if (id === 'bm-naemon-socket')    el.value = '/var/cache/naemon/live';
+    else if (id === 'bm-naemon-username')  el.value = 'nagvis2';
+    else if (id === 'bm-naemon-port')      el.value = '6558';
+    else if (id === 'bm-sw-username')      el.value = 'admin';
     else if (id === 'bm-zabbix-username')  el.value = 'Admin';
     else if (id === 'bm-prom-host-label')  el.value = 'instance';
     else el.value = '';
   });
   const i2ssl = document.getElementById('bm-icinga2-verify-ssl');
   if (i2ssl) i2ssl.checked = false;
+  const naemonSsl = document.getElementById('bm-naemon-verify-ssl');
+  if (naemonSsl) naemonSsl.checked = true;
+  const swSsl = document.getElementById('bm-sw-verify-ssl');
+  if (swSsl) swSsl.checked = false;
   const zbssl = document.getElementById('bm-zabbix-verify-ssl');
   if (zbssl) zbssl.checked = true;
   const portEl = document.getElementById('bm-port');
   if (portEl) portEl.value = '6557';
+  const naemonPortEl = document.getElementById('bm-naemon-port');
+  if (naemonPortEl) naemonPortEl.value = '6558';
+  const swPortEl = document.getElementById('bm-sw-port');
+  if (swPortEl) swPortEl.value = '17778';
+  const naemonConn = document.getElementById('bm-naemon-conn');
+  if (naemonConn) { naemonConn.value = 'unix'; _bmNaemonUpdateConn(); }
   document.getElementById('bm-probe-result').style.display = 'none';
 }
 
@@ -1802,6 +1946,26 @@ async function _bmEditLoad(backendId) {
   set('bm-icinga2-password', cfg.password);
   const i2ssl = document.getElementById('bm-icinga2-verify-ssl');
   if (i2ssl) i2ssl.checked = cfg.verify_ssl === true;
+
+  // Naemon-spezifische Felder
+  const naemonConn = document.getElementById('bm-naemon-conn');
+  if (naemonConn) { naemonConn.value = cfg.conn_type || 'unix'; _bmNaemonUpdateConn(); }
+  set('bm-naemon-socket',   cfg.socket_path || '/var/cache/naemon/live');
+  set('bm-naemon-host',     cfg.host);
+  set('bm-naemon-port',     cfg.port || 6558);
+  set('bm-naemon-url',      cfg.base_url);
+  set('bm-naemon-username', cfg.username || 'nagvis2');
+  set('bm-naemon-password', cfg.password);
+  const naemonSsl = document.getElementById('bm-naemon-verify-ssl');
+  if (naemonSsl) naemonSsl.checked = cfg.verify_ssl !== false;
+
+  // SolarWinds-spezifische Felder
+  set('bm-sw-host',     cfg.host);
+  set('bm-sw-port',     cfg.port || 17778);
+  set('bm-sw-username', cfg.username || 'admin');
+  set('bm-sw-password', cfg.password);
+  const swSsl = document.getElementById('bm-sw-verify-ssl');
+  if (swSsl) swSsl.checked = cfg.verify_ssl === true;
 
   // Zabbix-spezifische Felder
   set('bm-zabbix-url',      cfg.url);
