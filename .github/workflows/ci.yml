@@ -2,24 +2,22 @@ name: CI – Tests & Coverage
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
     paths:
-      - "nagvis2/backend/**"
+      - "nagvis2/**"
       - ".github/workflows/ci.yml"
   pull_request:
-    branches: [main]
+    branches: [main, develop]
     paths:
-      - "nagvis2/backend/**"
+      - "nagvis2/**"
       - ".github/workflows/ci.yml"
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
-  test:
-    name: pytest (Python ${{ matrix.python-version }})
-    runs-on: ubuntu-latest
 
+  # ── Backend: pytest ───────────────────────────────────────────────────────
+  backend:
+    name: Backend (pytest – Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -30,8 +28,7 @@ jobs:
         working-directory: nagvis2/backend
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Python ${{ matrix.python-version }} einrichten
         uses: actions/setup-python@v5
@@ -43,7 +40,7 @@ jobs:
       - name: Abhängigkeiten installieren
         run: pip install -r requirements-dev.txt
 
-      - name: Tests + Coverage
+      - name: Tests + Coverage (≥ 70 %)
         run: |
           pytest \
             --cov=. \
@@ -52,11 +49,45 @@ jobs:
             --cov-fail-under=70 \
             -v
 
-      - name: Coverage-Report hochladen
-        if: matrix.python-version == '3.13'
+      - name: Coverage-Artefakt hochladen (nur 3.13)
+        if: matrix.python-version == '3.13' && always()
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-report
+          name: coverage-backend
           path: nagvis2/backend/coverage.xml
+          retention-days: 14
+
+  # ── Frontend: Vitest ──────────────────────────────────────────────────────
+  frontend:
+    name: Frontend (Vitest)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Node.js 24 einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: npm-Cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-${{ hashFiles('nagvis2/package.json') }}
+          restore-keys: npm-
+
+      - name: Abhängigkeiten installieren
+        run: cd nagvis2 && npm install
+
+      - name: Frontend-Tests (Vitest + Coverage)
+        run: cd nagvis2 && npm run test:unit:cov
+
+      - name: Coverage-Artefakt hochladen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-frontend
+          path: nagvis2/coverage/
           retention-days: 14
 
