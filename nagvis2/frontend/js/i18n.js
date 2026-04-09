@@ -161,6 +161,9 @@ function _refreshDynamicUI() {
     if (typeof renderSidebarMaps === 'function') renderSidebarMaps(_allMaps);
     if (typeof renderOverview    === 'function') renderOverview(_allMaps);
   }
+  // Suchfeld-Placeholder aktualisieren
+  const _srch = document.getElementById('sidebar-search');
+  if (_srch) _srch.placeholder = t('search_maps_placeholder');
   // Hosts-Panel neu rendern
   if (typeof hostCache !== 'undefined') {
     const hosts = Object.values(hostCache);

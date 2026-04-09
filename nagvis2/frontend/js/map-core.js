@@ -11,6 +11,78 @@
 // Globale Map-Liste – wird von openMap / topbar-Nav genutzt
 window._allMaps = [];
 
+// ── Sidebar-Suche ─────────────────────────────────────────────────────
+window._sidebarQuery = '';
+
+window.filterSidebarMaps = function(query) {
+  window._sidebarQuery = (query || '').trim().toLowerCase();
+  renderSidebarMaps(window._allMaps);
+  _renderSidebarObjResults();
+};
+
+/** Objekt-Suche: passende Objekte der aktiven Map in der Sidebar anzeigen */
+function _renderSidebarObjResults() {
+  const sec  = document.getElementById('sidebar-obj-section');
+  const res  = document.getElementById('sidebar-obj-results');
+  if (!sec || !res) return;
+
+  const q    = window._sidebarQuery;
+  const objs = window.activeMapCfg?.objects;
+
+  if (!q || !objs?.length) {
+    sec.style.display = 'none';
+    res.style.display = 'none';
+    return;
+  }
+
+  const TYPE_ABBR = {
+    host:'host', service:'svc', hostgroup:'hgrp',
+    servicegroup:'sgrp', map:'map', line:'line',
+    textbox:'txt', gadget:'gadget', shape:'shp',
+  };
+
+  const matches = objs.filter(o => {
+    return [o.name, o.host_name, o.label, o.text]
+      .filter(Boolean)
+      .some(c => c.toLowerCase().includes(q));
+  }).slice(0, 20);
+
+  if (!matches.length) {
+    sec.style.display = 'none';
+    res.style.display = 'none';
+    return;
+  }
+
+  sec.style.display = '';
+  res.style.display = '';
+  res.innerHTML = matches.map(o => {
+    const name  = o.host_name || o.name || o.label || o.text || o.type;
+    const badge = TYPE_ABBR[o.type] ?? o.type;
+    return `<div class="map-entry sidebar-obj-entry"
+                 data-obj-id="${esc(o.object_id)}" title="${esc(name)}">
+      <div class="map-pip unkn"></div>
+      <span class="map-entry-title">${esc(name)}</span>
+      <span class="sidebar-obj-type">${esc(badge)}</span>
+    </div>`;
+  }).join('');
+
+  res.querySelectorAll('.sidebar-obj-entry').forEach(entry => {
+    entry.addEventListener('click', () => _focusMapObject(entry.dataset.objId));
+  });
+}
+
+/** Scrollt zum Objekt auf dem Canvas und pulsiert es kurz an */
+function _focusMapObject(objectId) {
+  const el = document.getElementById(`nv2-${objectId}`);
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  el.classList.remove('obj-search-highlight'); // Reset falls bereits aktiv
+  // Force reflow so die Animation neu startet
+  void el.offsetWidth;
+  el.classList.add('obj-search-highlight');
+  setTimeout(() => el.classList.remove('obj-search-highlight'), 2200);
+}
+
 async function loadMaps() {
   const maps = await api('/api/maps') ?? [];
   window._allMaps = maps;
@@ -52,25 +124,40 @@ function _mapEntryHtml(m, favs) {
 
 function renderSidebarMaps(maps) {
   const el = document.getElementById('sidebar-maps');
-  if (!maps.length) {
-    el.innerHTML = '<div style="padding:5px 10px 5px 20px;font-size:11px;color:var(--text-dim)">Keine Maps</div>';
+
+  // ── Suchfilter anwenden ──────────────────────────────────────────
+  const q       = window._sidebarQuery || '';
+  const display = q
+    ? maps.filter(m => m.title.toLowerCase().includes(q) || m.id.toLowerCase().includes(q))
+    : maps;
+
+  if (!display.length) {
+    const msg = q ? t('no_search_results') : t('no_maps');
+    el.innerHTML = `<div style="padding:5px 10px 5px 20px;font-size:11px;color:var(--text-dim)">${msg}</div>`;
     renderMapsSnapin(maps);
     return;
   }
-  const sorted = _sortMapsHierarchically(maps);
+
+  const sorted = _sortMapsHierarchically(display);
   const favs   = _getFavs();
-  const favMaps = sorted.filter(m => favs.has(m.id));
-  const restMaps = sorted.filter(m => !favs.has(m.id));
 
   let html = '';
-  if (favMaps.length) {
-    html += '<div class="sidebar-favs-hdr">★ Favoriten</div>';
-    html += favMaps.map(m => _mapEntryHtml(m, favs)).join('');
-    if (restMaps.length) html += '<div class="sidebar-favs-hdr sidebar-favs-hdr--all">Alle Maps</div>';
+  if (!q) {
+    // Normale Ansicht: Favoriten oben, dann alle
+    const favMaps  = sorted.filter(m => favs.has(m.id));
+    const restMaps = sorted.filter(m => !favs.has(m.id));
+    if (favMaps.length) {
+      html += '<div class="sidebar-favs-hdr">★ Favoriten</div>';
+      html += favMaps.map(m => _mapEntryHtml(m, favs)).join('');
+      if (restMaps.length) html += '<div class="sidebar-favs-hdr sidebar-favs-hdr--all">Alle Maps</div>';
+    }
+    html += restMaps.map(m => _mapEntryHtml(m, favs)).join('');
+  } else {
+    // Suchansicht: flache Liste ohne Favoriten-Gruppierung
+    html += sorted.map(m => _mapEntryHtml(m, favs)).join('');
   }
-  html += restMaps.map(m => _mapEntryHtml(m, favs)).join('');
-  el.innerHTML = html;
 
+  el.innerHTML = html;
   el.querySelectorAll('.map-entry').forEach(entry => {
     entry.addEventListener('click', () => openMap(entry.dataset.mapId));
   });
@@ -295,6 +382,7 @@ async function openMap(mapId, { skipHistory = false } = {}) {
   // Hostgroup-Mitglieder laden wenn hg-Nodes auf der Map sind
   const hasHgNodes = (activeMapCfg.objects ?? []).some(o => o.type === 'hostgroup');
   if (hasHgNodes) loadHostgroups();
+  _renderSidebarObjResults(); // Objekte-Suche für die neue Map aktualisieren
 
   if (wsClient) {
     wsClient._dead = true;
@@ -449,7 +537,9 @@ function showOverview({ skipHistory = false } = {}) {
   hostCache = {};
   serviceCache = {};
   activeMapId = null;
+  window.activeMapCfg = null;
   if (editActive) toggleEdit();
+  _renderSidebarObjResults(); // Objekte-Sektion zurücksetzen
 
   const zoomControls = document.getElementById('nv2-zoom-controls');
   if (zoomControls) zoomControls.style.display = 'none';

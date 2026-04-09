@@ -1,5 +1,5 @@
 """
-NagVis 2 – API Router (vollständig)
+NagVis 2 – API Router
 """
 
 import base64
