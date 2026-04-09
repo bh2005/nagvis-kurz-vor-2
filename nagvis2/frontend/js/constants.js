@@ -65,3 +65,9 @@ function updateNodeIcon(el, stateLabel) {
   const img = ring.querySelector('img.nv2-icon');
   if (img) img.src = src;
 }
+
+// 'use strict' + indirektes eval legt function-Deklarationen nicht auf globalThis →
+// explizit exportieren damit Tests und andere Scripts sie als window.* finden
+window.svgToDataUri   = svgToDataUri;
+window.iconSrc        = iconSrc;
+window.updateNodeIcon = updateNodeIcon;

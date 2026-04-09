@@ -1,0 +1,50 @@
+# =============================================
+# NagVis 2 – .gitignore
+# =============================================
+
+# --- Node.js ---
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# --- Python ---
+nagvis2/backend/venv/
+nagvis2/backend/__pycache__/
+nagvis2/backend/**/__pycache__/
+nagvis2/backend/**/*.pyc
+nagvis2/backend/**/*.pyo
+nagvis2/backend/.pytest_cache/
+nagvis2/backend/.coverage
+nagvis2/backend/coverage.xml
+nagvis2/backend/htmlcov/
+
+# --- Test / Coverage ---
+coverage/
+.nyc_output/
+*.lcov
+
+# --- Build Output (MkDocs) ---
+nagvis2/frontend/help/
+
+# --- Laufzeit-Daten (kein Commit) ---
+nagvis2/backend/data/
+nagvis2/data/
+
+# --- Umgebungsvariablen ---
+.env
+.env.local
+.env.*.local
+nagvis2/.env
+nagvis2/backend/.env
+
+# --- Editor / IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+desktop.ini
