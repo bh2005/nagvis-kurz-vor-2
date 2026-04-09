@@ -784,8 +784,6 @@ window._gcSave = async function(objectId) {
   setStatusBar(`Gadget „${metric}" aktualisiert`);
 };
 
-window.openGadgetConfigDialog = openGadgetConfigDialog;
-
 
 // ═══════════════════════════════════════════════════════════════════════
 //  LINIEN-RENDERING
@@ -2653,8 +2651,6 @@ window._wmDlgSave = async function(objectId) {
   document.getElementById('dlg-wm-line')?.remove();
   setStatusBar('Weathermap-Linie aktualisiert');
 };
-
-window.openWeathermapLineDlg = openWeathermapLineDlg;
 
 function openResizeDialog(el, obj) {
   closeResizeDialog();

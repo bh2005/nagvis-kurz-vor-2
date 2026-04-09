@@ -2,6 +2,46 @@
 
 ---
 
+## [2026-04-09]
+
+### Feature: Suche/Filter in der Sidebar ✅
+
+- `js/map-core.js`: `filterSidebarMaps(query)` — filtert Map-Liste nach Titel/ID; bei aktivem Query: flache Liste ohne Favoriten-Gruppierung
+- `js/map-core.js`: `_renderSidebarObjResults()` — durchsucht Objekte der aktiven Map nach Name/Hostname; `_focusMapObject(id)` — zentriert das Objekt auf der Canvas (Click-to-Focus)
+- `index.html`: `#sidebar-search`-Eingabefeld über der Map-Liste; `#sidebar-obj-section` / `#sidebar-obj-results` für Objekttreffer
+- `css/styles.css`: `.sidebar-search-wrap`, `.sidebar-search-input`, `.sidebar-obj-type`, `.obj-search-highlight` + `@keyframes _srch-pulse`
+- `lang/de.json` + `lang/en.json`: `search_maps_placeholder`, `sidebar_objects`, `no_search_results` ergänzt
+- `js/i18n.js`: Placeholder des Suchfelds nach Sprachwechsel aktualisiert
+
+### Feature: Map-Minimap (Übersichtsfenster) ✅
+
+- NEU `js/minimap.js`: `window.NV2_MINIMAP` — schwebendes Canvas-Panel (220×160 px), ~10 fps RAF-Loop
+  - `_draw()`: Hintergrund, Bounding-Box der Objekte, Skalierung, Status-Dots, Viewport-Rect (blauer Rahmen)
+  - `_onClick()`: Click-to-Pan via `NV2_ZOOM.setState()`
+  - Statusfarben: `OK=#4caf50`, `WARNING=#ffa726`, `CRITICAL/DOWN=#e53935`, `UNKNOWN=#9c27b0`, `PENDING=#757575`
+  - Public API: `init()`, `toggle()`, `show()`, `hide()`, `update()`, `reset()`
+- `index.html`: `#nv2-minimap`-Panel, `#minimap-canvas`, `#btn-minimap`-Schalter in Zoom-Controls
+- `css/styles.css`: `#nv2-minimap`, `.minimap-head`, `#minimap-canvas`, `#btn-minimap.active`
+- `js/ui-core.js`: Taste `M` öffnet/schließt Minimap (ohne Ctrl/Meta, nur wenn Map aktiv)
+- `js/app.js`: `NV2_MINIMAP.init()` nach Zoom-Button-Initialisierung
+
+### Feature: Objekt-Kopieren zwischen Maps ✅
+
+- `js/map-core.js`: `openCopyToMapDlg(objectIds)` — Dialog mit Map-Auswahl (alle Maps außer aktiver)
+- `js/map-core.js`: `execCopyToMap()` — POSTet Objekte einzeln zu `POST /api/v1/maps/{targetId}/objects` (ohne `object_id`, Backend vergibt neue ID); `closeCopyToMapDlg()`
+- `js/nodes.js`: Multi-Select-Kontextmenü — „⧉ Auf andere Map kopieren…"-Button (ruft `openCopyToMapDlg(ids)` auf)
+- `js/nodes.js`: Einzel-Node-Kontextmenü — `{ label:'⧉ Auf andere Map…', action:... }`
+- `index.html`: `#dlg-copy-to-map`-Dialog mit `#copy-target-map-sel` (Map-Selector) + Kopieren-Button
+- `lang/de.json` + `lang/en.json`: `dlg_copy_to_map`, `dlg_copy_target_map`, `dlg_copy_btn` ergänzt
+- `js/ui-core.js`: Escape-Handler schließt Copy-Dialog via `closeCopyToMapDlg?.()`
+
+### Refactor: Dead-Code entfernt (nodes.js)
+
+- `js/nodes.js`: doppelte `window.openGadgetConfigDialog`- und `window.openWeathermapLineDlg`-Exporte entfernt
+- Beide Funktionen hatten `window.*`-Zuweisung direkt nach der Definition UND nochmals im konsolidierten Export-Block am Dateiende — nur der Block am Ende bleibt
+
+---
+
 ## [2026-04-06]
 
 ### Bugfix: alert() → showToast() (auth.js, map-core.js, kiosk.js)
