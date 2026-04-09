@@ -24,6 +24,13 @@ function evalGlobal(filename) {
 //        svgToDataUri(), iconSrc(), updateNodeIcon()
 evalGlobal('constants.js')
 
+// constants.js weist window.* explizit zu, aber zur Sicherheit hier nochmal:
+// In manchen jsdom/Node-Kombinationen landen window.* aus eval nicht
+// automatisch als bare-name-Bindungen in ES-Modul-Testdateien.
+globalThis.svgToDataUri   = globalThis.svgToDataUri   ?? globalThis.window?.svgToDataUri
+globalThis.iconSrc        = globalThis.iconSrc        ?? globalThis.window?.iconSrc
+globalThis.updateNodeIcon = globalThis.updateNodeIcon ?? globalThis.window?.updateNodeIcon
+
 // ── nodes.js (nur Zeilen 1-51: resolveMacros) ─────────────────────────
 // nodes.js ist ~2500 Zeilen lang und hat DOM-Abhängigkeiten.
 // Wir laden nur den oberen Block, der resolveMacros enthält und

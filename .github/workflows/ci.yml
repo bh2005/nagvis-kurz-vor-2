@@ -74,11 +74,11 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.npm
-          key: npm-${{ hashFiles('nagvis2/package.json') }}
+          key: npm-${{ hashFiles('nagvis2/package-lock.json') }}
           restore-keys: npm-
 
       - name: Abhängigkeiten installieren
-        run: cd nagvis2 && npm install
+        run: cd nagvis2 && npm ci
 
       - name: Frontend-Tests (Vitest + Coverage)
         run: cd nagvis2 && npm run test:unit:cov
