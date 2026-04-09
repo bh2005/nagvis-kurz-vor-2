@@ -322,6 +322,42 @@ body, #sidebar, #topbar, #overview, .ov-card, .nav-btn, .map-entry,
 .sidebar-favs-hdr:first-child       { border-top: none; }
 .sidebar-favs-hdr--all              { margin-top: 2px; }
 
+/* ── Sidebar Search ── */
+.sidebar-search-wrap {
+  padding: 3px 8px 4px; flex-shrink: 0;
+}
+.sidebar-search-input {
+  width: 100%; box-sizing: border-box;
+  background: var(--bg-alt); border: 1px solid var(--border);
+  color: var(--text); border-radius: 4px;
+  padding: 4px 8px; font-size: 11px; font-family: var(--sans);
+  outline: none; transition: border-color var(--t), background var(--t);
+}
+.sidebar-search-input:focus         { border-color: var(--acc); background: var(--bg2, var(--bg-alt)); }
+.sidebar-search-input::placeholder  { color: var(--text-dim); }
+.sidebar-search-input::-webkit-search-cancel-button { cursor: pointer; opacity: 0.5; }
+/* collapsed / slim map-open: search versteckt */
+#sidebar.collapsed .sidebar-search-wrap                   { display: none; }
+#app.map-open .sidebar-search-wrap                        { display: none; }
+#app.map-open.sidebar-expanded .sidebar-search-wrap       { display: block; }
+/* Object results badge */
+.sidebar-obj-type {
+  font-size: 9px; color: var(--text-dim); flex-shrink: 0;
+  font-family: var(--mono); background: var(--bg-alt);
+  padding: 1px 4px; border-radius: 2px; border: 1px solid var(--border);
+}
+.sidebar-obj-entry:hover .sidebar-obj-type { color: var(--text-mid); }
+/* Highlight-Puls beim Click-to-focus */
+.obj-search-highlight {
+  outline: 2px solid var(--acc) !important;
+  outline-offset: 3px;
+  animation: _srch-pulse 0.5s ease forwards;
+}
+@keyframes _srch-pulse {
+  0%   { outline-width: 5px; }
+  100% { outline-width: 2px; }
+}
+
 .map-pip {
   width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; cursor: default;
 }

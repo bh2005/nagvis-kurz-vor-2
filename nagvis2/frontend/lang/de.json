@@ -131,6 +131,9 @@
     "import_btn":              "Importieren",
 
     "no_maps":                 "Keine Maps vorhanden",
+    "no_search_results":       "Keine Treffer",
+    "search_maps_placeholder": "Maps / Objekte suchen…",
+    "sidebar_objects":         "Objekte",
     "no_hosts":                "Keine Hosts",
     "loading":                 "Lade…",
     "map_not_found":           "Map nicht gefunden",

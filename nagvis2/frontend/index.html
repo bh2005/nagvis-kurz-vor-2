@@ -32,7 +32,18 @@
       </button>
 
       <div class="nav-section" data-i18n="maps">Maps</div>
+
+      <div class="sidebar-search-wrap" id="sidebar-search-wrap">
+        <input id="sidebar-search" class="sidebar-search-input" type="search"
+               autocomplete="off" spellcheck="false"
+               placeholder="Maps / Objekte suchen…"
+               oninput="filterSidebarMaps(this.value)">
+      </div>
+
       <div id="sidebar-maps" class="map-list"></div>
+
+      <div id="sidebar-obj-section" class="nav-section" style="display:none" data-i18n="sidebar_objects">Objekte</div>
+      <div id="sidebar-obj-results" class="map-list" style="display:none"></div>
 
       <div class="nav-section" id="layer-section" style="display:none" data-i18n="layer">Layer</div>
       <div id="sidebar-layers" class="layer-list" style="display:none"></div>

@@ -26,7 +26,7 @@
 - [x] Copy / Paste / Duplicate (Ctrl+C / Ctrl+V / Ctrl+D; +3% Versatz, kaskadierendes Einfügen)
 - [x] Align & Distribute: Toolbar bei ≥ 2 selektierten Nodes; 6 Ausrichte- + 2 Verteile-Funktionen
 - [x] Smart Guides beim Drag: automatisches Einrasten + blaue Hilfslinien
-- [ ] Suche/Filter in der Sidebar (Maps und Hosts durchsuchen)
+- [x] Suche/Filter in der Sidebar (Maps nach Titel/ID filtern; Objekte der aktiven Map durchsuchen, Click-to-focus)
 - [x] Favoriten: bestimmte Maps als Favoriten markieren
 - [ ] Map-Minimap / Übersichtsfenster bei großen Karten
 - [x] Node-Größe per Drag-Handle ändern (statt nur über Dialog)
@@ -46,7 +46,7 @@
 - [x] Map-Duplikat-Funktion: Map klonen (POST `/api/maps/{id}/clone`)
 - [x] Audit-Log: wer hat was wann geändert (`core/audit.py`, `GET /api/audit`, UI-Dialog)
 - [ ] Objekt-Kopieren zwischen Maps
-- [ ] API-Versionierung (z.B. `/api/v1/`)
+- [x] API-Versionierung (`/api/v1/`) — Backend-Prefix + 308-Redirect + `api()`-Helper normalisiert Pfade automatisch
 - [ ] Rate-Limiting für Action-Endpoints (ACK, Downtime)
 - [ ] SQLite statt JSON-Files (SQLAlchemy, Migration per Script)
 
