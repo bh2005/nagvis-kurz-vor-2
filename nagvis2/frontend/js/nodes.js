@@ -2281,6 +2281,16 @@ function showNodeContextMenu(e, el, obj) {
     hdr.style.cssText = 'padding:6px 12px 4px;font-size:10px;color:var(--text-dim);font-weight:600;text-transform:uppercase;letter-spacing:0.5px';
     hdr.textContent = `${selectedNodes.size} Objekte ausgewählt`;
     menu.appendChild(hdr);
+    // ── Auf andere Map kopieren ─────────────────────────────────────
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'ctx-item';
+    copyBtn.textContent = '⧉ Auf andere Map kopieren…';
+    copyBtn.onclick = () => {
+      closeContextMenu();
+      const ids = [...selectedNodes].map(n => n.dataset.objectId).filter(Boolean);
+      window.openCopyToMapDlg(ids);
+    };
+    menu.appendChild(copyBtn);
     const delBtn = document.createElement('button');
     delBtn.className = 'ctx-item ctx-danger';
     delBtn.textContent = '🗑 Alle entfernen';
@@ -2322,6 +2332,7 @@ function showNodeContextMenu(e, el, obj) {
     { label:'🖼 Iconset wechseln',    action:() => openIconsetDialog(el, obj),            hide:!isMonitoring },
     { label:'◫ Layer zuweisen',       action:() => openLayerDialog(el, obj) },
     { label:'⧉ Duplizieren',          action:() => { clearSelection(); selectedNodes.add(el); el.classList.add('nv2-selected'); NV2_CLIPBOARD.duplicate(); } },
+    { label:'⧉ Auf andere Map…',     action:() => window.openCopyToMapDlg([obj.object_id]) },
     { label:'🗑 Entfernen',           action:() => removeNode(el, obj), cls:'ctx-danger' },
   ];
   items.forEach(item => {

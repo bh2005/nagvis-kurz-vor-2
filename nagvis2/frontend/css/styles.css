@@ -348,6 +348,35 @@ body, #sidebar, #topbar, #overview, .ov-card, .nav-btn, .map-entry,
 }
 .sidebar-obj-entry:hover .sidebar-obj-type { color: var(--text-mid); }
 /* Highlight-Puls beim Click-to-focus */
+/* ── Minimap ── */
+#nv2-minimap {
+  position: absolute; bottom: 48px; right: 14px; z-index: 120;
+  background: rgba(14,18,26,0.92); border: 1px solid var(--border-hi);
+  border-radius: var(--r); box-shadow: 0 4px 18px rgba(0,0,0,0.55);
+  flex-direction: column; overflow: hidden;
+  user-select: none;
+  backdrop-filter: blur(4px);
+}
+.minimap-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 4px 8px; border-bottom: 1px solid var(--border);
+  background: rgba(255,255,255,0.04);
+}
+.minimap-title {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--text-dim);
+}
+.minimap-close {
+  background: none; border: none; color: var(--text-dim); cursor: pointer;
+  font-size: 11px; padding: 1px 3px; line-height: 1;
+  border-radius: 2px; transition: color var(--t);
+}
+.minimap-close:hover { color: var(--text); }
+#minimap-canvas {
+  display: block; cursor: crosshair;
+}
+#btn-minimap.active { background: var(--bg-active); color: var(--acc); }
+
 .obj-search-highlight {
   outline: 2px solid var(--acc) !important;
   outline-offset: 3px;
