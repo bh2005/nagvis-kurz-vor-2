@@ -51,6 +51,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btn-zoom-in') ?.addEventListener('click', () => NV2_ZOOM.zoomIn());
   document.getElementById('btn-zoom-out')?.addEventListener('click', () => NV2_ZOOM.zoomOut());
 
+  NV2_MINIMAP.init();
+
   // Auth initialisieren – zeigt Login-Overlay wenn AUTH_ENABLED=true und kein Token
   await nv2Auth.init();
 

@@ -28,7 +28,7 @@
 - [x] Smart Guides beim Drag: automatisches Einrasten + blaue Hilfslinien
 - [x] Suche/Filter in der Sidebar (Maps nach Titel/ID filtern; Objekte der aktiven Map durchsuchen, Click-to-focus)
 - [x] Favoriten: bestimmte Maps als Favoriten markieren
-- [ ] Map-Minimap / Übersichtsfenster bei großen Karten
+- [x] Map-Minimap / Übersichtsfenster bei großen Karten — Floating Panel, Status-Dots, Viewport-Rect, Click-to-pan, Taste M
 - [x] Node-Größe per Drag-Handle ändern (statt nur über Dialog)
 
 ---
@@ -45,7 +45,7 @@
 - [x] Bulk-Operationen: mehrere Objekte in einem Request anlegen/verschieben/löschen → PATCH `/api/maps/{id}/objects/bulk`
 - [x] Map-Duplikat-Funktion: Map klonen (POST `/api/maps/{id}/clone`)
 - [x] Audit-Log: wer hat was wann geändert (`core/audit.py`, `GET /api/audit`, UI-Dialog)
-- [ ] Objekt-Kopieren zwischen Maps
+- [x] Objekt-Kopieren zwischen Maps — Rechtsklick → "Auf andere Map kopieren…"; Multi-Select + Einzel-Node; Dialog mit Map-Auswahl
 - [x] API-Versionierung (`/api/v1/`) — Backend-Prefix + 308-Redirect + `api()`-Helper normalisiert Pfade automatisch
 - [ ] Rate-Limiting für Action-Endpoints (ACK, Downtime)
 - [ ] SQLite statt JSON-Files (SQLAlchemy, Migration per Script)

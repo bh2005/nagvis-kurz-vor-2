@@ -132,6 +132,9 @@
 
     "no_maps":                 "No maps available",
     "no_search_results":       "No results",
+    "dlg_copy_to_map":         "Copy objects to another map",
+    "dlg_copy_target_map":     "Target map",
+    "dlg_copy_btn":            "Copy",
     "search_maps_placeholder": "Search maps / objects…",
     "sidebar_objects":         "Objects",
     "no_hosts":                "No hosts",

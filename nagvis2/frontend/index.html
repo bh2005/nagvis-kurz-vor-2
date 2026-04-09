@@ -169,6 +169,8 @@
                    min-width:40px; text-align:center; user-select:none;">100%</span>
       <button class="tb-btn" id="btn-zoom-in"    title="Vergrößern (+)">＋</button>
       <button class="tb-btn" id="btn-zoom-reset" title="Zoom zurücksetzen (0)" disabled>⊙</button>
+      <div class="tb-sep"></div>
+      <button class="tb-btn" id="btn-minimap" title="Minimap (M)" onclick="NV2_MINIMAP.toggle()">⊞</button>
     </div>
 
     <div class="tb-gap"></div>
@@ -431,6 +433,15 @@
 
       <!-- OSM-Modus: Leaflet füllt dieses Element (position:absolute, inset:0) -->
       <div id="osm-map" style="display:none; position:absolute; inset:0; z-index:1;"></div>
+
+      <!-- Floating Minimap -->
+      <div id="nv2-minimap" style="display:none;">
+        <div class="minimap-head">
+          <span class="minimap-title">Minimap</span>
+          <button class="minimap-close" onclick="NV2_MINIMAP.toggle()" title="Schließen">✕</button>
+        </div>
+        <canvas id="minimap-canvas"></canvas>
+      </div>
 
       <div id="nv2-canvas" data-map-id="">
         <div id="map-canvas-wrapper"></div>
@@ -852,6 +863,23 @@
 </div>
 
 
+<!-- DIALOG – Objekte auf andere Map kopieren -->
+<div class="dlg-overlay" id="dlg-copy-to-map" style="display:none">
+  <div class="dlg" style="width:360px">
+    <h3 data-i18n="dlg_copy_to_map">Objekte auf andere Map kopieren</h3>
+    <div style="margin-bottom:14px">
+      <label class="f-label" data-i18n="dlg_copy_target_map">Ziel-Map</label>
+      <select class="f-select" id="copy-target-map-sel" style="width:100%"></select>
+    </div>
+    <div id="copy-to-map-info" style="font-size:11px; color:var(--text-dim); margin-bottom:14px;"></div>
+    <div class="dlg-actions">
+      <button class="btn-ok" onclick="execCopyToMap()" data-i18n="dlg_copy_btn">Kopieren</button>
+      <button class="btn-cancel" onclick="closeDlg('dlg-copy-to-map')" data-i18n="cancel">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+
 <!-- DIALOG – Neue Map (mit Canvas-Format-Auswahl) -->
 <div class="dlg-overlay" id="dlg-new-map">
   <div class="dlg" style="width:380px">
@@ -1268,6 +1296,7 @@
 <script src="js/nodes.js"></script>      <!-- Node-Rendering, Edit-Mode, Aktionen -->
 <script src="js/osm.js"></script>        <!-- OpenStreetMap Canvas-Modus (Leaflet) -->
 <script src="js/map-core.js"></script>   <!-- Maps, openMap, Canvas, Dialoge, Export -->
+<script src="js/minimap.js"></script>   <!-- Floating Minimap -->
 <script src="js/kiosk.js"></script>      <!-- Kiosk-Rotation, Token-Login, F11-Modus -->
 <script src="js/app.js"></script>        <!-- Einstiegspunkt: DOMContentLoaded -->
 

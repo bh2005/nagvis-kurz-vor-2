@@ -539,7 +539,8 @@ function showOverview({ skipHistory = false } = {}) {
   activeMapId = null;
   window.activeMapCfg = null;
   if (editActive) toggleEdit();
-  _renderSidebarObjResults(); // Objekte-Sektion zurücksetzen
+  _renderSidebarObjResults();   // Objekte-Sektion zurücksetzen
+  window.NV2_MINIMAP?.reset();  // Minimap schließen
 
   const zoomControls = document.getElementById('nv2-zoom-controls');
   if (zoomControls) zoomControls.style.display = 'none';
@@ -739,6 +740,72 @@ async function confirmDeleteMapById() {
   _deleteMapId = _deleteMapTitle = null;
   await loadMaps();
 }
+
+// ─────────────────────────────────────────────────────────────────────
+//  COPY OBJECTS TO ANOTHER MAP
+// ─────────────────────────────────────────────────────────────────────
+
+/** Öffnet den Dialog "Auf andere Map kopieren" für die übergebenen Object-IDs */
+window.openCopyToMapDlg = function(objectIds) {
+  if (!objectIds?.length) return;
+  window._copyObjectIds = objectIds;
+
+  // Dropdown mit allen Maps außer der aktuellen befüllen
+  const sel = document.getElementById('copy-target-map-sel');
+  if (!sel) return;
+  const others = (window._allMaps ?? []).filter(m => m.id !== activeMapId);
+  if (!others.length) {
+    showToast('Keine andere Map vorhanden', 'warn');
+    return;
+  }
+  sel.innerHTML = others.map(m =>
+    `<option value="${esc(m.id)}">${esc(m.title)} (${esc(m.id)})</option>`
+  ).join('');
+
+  const info = document.getElementById('copy-to-map-info');
+  if (info) info.textContent = `${objectIds.length} Objekt${objectIds.length !== 1 ? 'e' : ''} werden kopiert.`;
+
+  // Overlay anzeigen
+  const dlg = document.getElementById('dlg-copy-to-map');
+  if (dlg) dlg.style.display = 'flex';
+};
+
+/** Führt den Kopier-Vorgang aus */
+window.execCopyToMap = async function() {
+  const sel       = document.getElementById('copy-target-map-sel');
+  const targetId  = sel?.value;
+  const objectIds = window._copyObjectIds ?? [];
+  if (!targetId || !objectIds.length) return;
+
+  const targetMap = (window._allMaps ?? []).find(m => m.id === targetId);
+  const objects   = objectIds.map(id =>
+    activeMapCfg?.objects?.find(o => o.object_id === id)
+  ).filter(Boolean);
+
+  if (!objects.length) {
+    showToast('Keine Objekte gefunden', 'error');
+    return;
+  }
+
+  const dlg = document.getElementById('dlg-copy-to-map');
+  if (dlg) dlg.style.display = 'none';
+
+  const results = await Promise.all(objects.map(o => {
+    const { object_id, ...payload } = o; // backend vergibt neue ID
+    return api(`/api/maps/${targetId}/objects`, 'POST', payload);
+  }));
+
+  const ok = results.filter(Boolean).length;
+  const mapTitle = targetMap?.title ?? targetId;
+  showToast(`${ok} Objekt${ok !== 1 ? 'e' : ''} nach „${mapTitle}" kopiert`, 'success');
+  window._copyObjectIds = [];
+};
+
+window.closeCopyToMapDlg = function() {
+  const dlg = document.getElementById('dlg-copy-to-map');
+  if (dlg) dlg.style.display = 'none';
+  window._copyObjectIds = [];
+};
 
 function dlgNewMap() {
   document.getElementById('nm-title').value = '';

@@ -517,6 +517,7 @@ function onKeyDown(e) {
     if (selectedNodes?.size) { clearSelection(); return; }
     closeBurgerMenu();
     window.closeDlg('dlg-add-object'); window.closeDlg('dlg-new-map'); window.closeDlg('dlg-user-settings');
+    window.closeCopyToMapDlg?.();
     closeResizeDialog(); closeContextMenu();
     if (editActive) toggleEdit();
     closeSnapin(activeSnapin);
@@ -546,6 +547,7 @@ function onKeyDown(e) {
   if (e.key === 'F11' && activeMapId) { e.preventDefault(); toggleKiosk(); }
   if ((e.metaKey || e.ctrlKey) && e.key === 'e' && activeMapId) { e.preventDefault(); toggleEdit(); }
   if (e.key === 'r' && activeMapId && !e.ctrlKey && !e.metaKey && !inInput) wsClient?.forceRefresh();
+  if (e.key === 'm' && activeMapId && !e.ctrlKey && !e.metaKey && !inInput) window.NV2_MINIMAP?.toggle();
 }
 
 

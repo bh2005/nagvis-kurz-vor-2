@@ -132,6 +132,9 @@
 
     "no_maps":                 "Keine Maps vorhanden",
     "no_search_results":       "Keine Treffer",
+    "dlg_copy_to_map":         "Objekte auf andere Map kopieren",
+    "dlg_copy_target_map":     "Ziel-Map",
+    "dlg_copy_btn":            "Kopieren",
     "search_maps_placeholder": "Maps / Objekte suchen…",
     "sidebar_objects":         "Objekte",
     "no_hosts":                "Keine Hosts",
