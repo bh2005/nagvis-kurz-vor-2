@@ -28,9 +28,11 @@ evalGlobal('constants.js')
 // nodes.js ist ~2500 Zeilen lang und hat DOM-Abhängigkeiten.
 // Wir laden nur den oberen Block, der resolveMacros enthält und
 // keine DOM-Elemente referenziert.
+// HINWEIS: 'use strict' in nodes.js verhindert, dass function-Deklarationen
+// bei indirektem eval automatisch auf globalThis landen → explizit zuweisen.
 const nodesSrc   = readFileSync(resolve(JS_DIR, 'nodes.js'), 'utf-8')
 const macroLines = nodesSrc.split('\n').slice(0, 51).join('\n')
-;(0, eval)(macroLines)
+;(0, eval)(macroLines + '\nglobalThis.resolveMacros = resolveMacros')
 
 // window.activeMapId standardmäßig auf null setzen (für $MAPNAME$-Tests)
 globalThis.activeMapId = null
