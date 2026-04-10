@@ -254,26 +254,47 @@ window._demoMaps = [
 ];
 
 async function detectDemoMode() {
-  try {
-    const r = await fetch('/api/health', { signal: AbortSignal.timeout(600) });
-    if (r.ok) {
-      _backendReachable = true;
-      const data = await r.json().catch(() => ({}));
-      // Backend meldet sich selbst als Demo (kein Livestatus konfiguriert)
-      if (data.demo_mode) {
-        _demoMode = true;
-        _activateDemoUI();
-      } else {
-        _demoMode = false;
-        // Backend läuft, aber kein Monitoring verfügbar → Demo-Map als Startpunkt öffnen
-        const anyBackendOk = (data.backends ?? []).some(b => b.reachable);
-        if (!data.livestatus?.connected && !anyBackendOk) {
-          setTimeout(() => { if (!activeMapId) openMap('demo-features'); }, 300);
+  // Retry-Loop: wartet bis zu 90s auf das Backend (wichtig für Cold-Start z.B. render.com Free Tier)
+  const MAX_WAIT_MS   = 90_000;
+  const RETRY_DELAY   = 3_000;
+  const SINGLE_TIMEOUT = 5_000;
+  const started = Date.now();
+
+  // "Connecting…" in Statusbar anzeigen, solange wir warten
+  setStatusBar(t('connecting'));
+
+  while (true) {
+    try {
+      const r = await fetch('/api/health', { signal: AbortSignal.timeout(SINGLE_TIMEOUT) });
+      if (r.ok) {
+        _backendReachable = true;
+        const data = await r.json().catch(() => ({}));
+        // Backend meldet sich selbst als Demo (kein Livestatus konfiguriert)
+        if (data.demo_mode) {
+          _demoMode = true;
+          _activateDemoUI();
+        } else {
+          _demoMode = false;
+          // Backend läuft, aber kein Monitoring verfügbar → Demo-Map als Startpunkt öffnen
+          const anyBackendOk = (data.backends ?? []).some(b => b.reachable);
+          if (!data.livestatus?.connected && !anyBackendOk) {
+            setTimeout(() => { if (!activeMapId) openMap('demo-features'); }, 300);
+          }
         }
+        return;
       }
-      return;
+    } catch { }
+
+    // Noch Zeit übrig → nochmal versuchen
+    if (Date.now() - started < MAX_WAIT_MS - RETRY_DELAY) {
+      const elapsed = Math.round((Date.now() - started) / 1000);
+      setStatusBar(`${t('connecting')} (${elapsed}s…)`);
+      await new Promise(res => setTimeout(res, RETRY_DELAY));
+    } else {
+      break;
     }
-  } catch { }
+  }
+
   // Kein Backend erreichbar → Demo-Modus
   _demoMode = true;
   _activateDemoUI();
