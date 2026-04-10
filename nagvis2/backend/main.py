@@ -44,13 +44,19 @@ for _uv_log in ("uvicorn", "uvicorn.access", "uvicorn.error"):
     logging.getLogger(_uv_log).addHandler(_file_handler)
 
 # ── Lokale Auth initialisieren ─────────────────────────────────────────────────
-from core.auth  import AuthManager,  set_auth_manager
-from core.users import UserManager,  set_user_manager
+from core.auth          import AuthManager,    set_auth_manager
+from core.users         import UserManager,    set_user_manager
+from core.ldap_manager  import LdapManager,    set_ldap_manager
+from core.presets       import PresetsManager, set_presets_manager
 
-_auth_mgr = AuthManager()
-_user_mgr = UserManager()
+_auth_mgr    = AuthManager()
+_user_mgr    = UserManager()
+_ldap_mgr    = LdapManager(settings.DATA_DIR / "ldap.json")
+_presets_mgr = PresetsManager(settings.DATA_DIR / "presets.json")
 set_auth_manager(_auth_mgr)
 set_user_manager(_user_mgr)
+set_ldap_manager(_ldap_mgr)
+set_presets_manager(_presets_mgr)
 
 # Erster Start: Default-Admin anlegen wenn noch keine Benutzer vorhanden
 if _user_mgr.count() == 0:

@@ -287,21 +287,27 @@
         </button>
         <div class="burger-divider"></div>
 
-        <!-- ── Darstellung ───────────────────────────────────────────────── -->
-        <div class="burger-head" data-i18n="appearance">Darstellung</div>
-        <button class="burger-item"
-                onclick="setTheme(currentTheme==='dark'?'light':'dark'); closeBurgerMenu()">
-          <span class="burger-ico" id="burger-theme-ico">☀</span>
-          <span id="burger-theme-label" data-i18n="light_theme">Light-Theme</span>
-        </button>
-        <button class="burger-item" onclick="openUserSettingsDlg(); closeBurgerMenu()">
-          <span class="burger-ico">⚙</span><span data-i18n="settings"> Einstellungen…</span>
-        </button>
-        <div class="burger-divider"></div>
-
         <!-- ── Administration (nur für Admins sichtbar) ──────────────────── -->
         <div id="burger-admin-section" style="display:none;">
           <div class="burger-head" data-i18n="administration">Administration</div>
+
+          <div class="burger-sub-head" data-i18n="admin_users">Benutzer &amp; Zugriff</div>
+          <button class="burger-item" id="btn-manage-users"
+                  onclick="nv2Auth.openUserMgmtDlg(); closeBurgerMenu()">
+            <span class="burger-ico">👥</span><span data-i18n="manage_users"> Benutzer verwalten</span>
+          </button>
+          <button class="burger-item" onclick="openRoleMgmtDlg(); closeBurgerMenu()">
+            <span class="burger-ico">🛡</span><span data-i18n="manage_roles"> Rollen verwalten</span>
+          </button>
+          <button class="burger-item" onclick="openLdapMgmtDlg(); closeBurgerMenu()">
+            <span class="burger-ico">🔗</span><span data-i18n="manage_ldap"> LDAP-Verbindungen</span>
+          </button>
+          <button class="burger-item" onclick="openUserPresetsDlg(); closeBurgerMenu()">
+            <span class="burger-ico">📋</span><span data-i18n="user_presets"> Voreinstellungen</span>
+          </button>
+
+          <div class="burger-divider" style="margin:4px 0 2px;"></div>
+          <div class="burger-sub-head" data-i18n="admin_infra">Infrastruktur</div>
           <button class="burger-item" id="btn-backend-mgmt" onclick="openBackendMgmtDlg(); closeBurgerMenu()">
             <span class="burger-ico">🗄</span><span data-i18n="manage_backends"> Datenquellen verwalten</span>
           </button>
@@ -311,46 +317,31 @@
           <button class="burger-item" id="btn-action-config" onclick="openActionConfigDlg(); closeBurgerMenu()">
             <span class="burger-ico">⚡</span><span data-i18n="configure_actions"> Aktionen konfigurieren</span>
           </button>
-          <button class="burger-item" id="btn-manage-users"
-                  onclick="nv2Auth.openUserMgmtDlg(); closeBurgerMenu()">
-            <span class="burger-ico">👥</span><span data-i18n="manage_users"> Benutzer verwalten</span>
+
+          <div class="burger-divider" style="margin:4px 0 2px;"></div>
+          <div class="burger-sub-head" data-i18n="admin_logs">Diagnose</div>
+          <button class="burger-item" onclick="openLogViewer(); closeBurgerMenu()">
+            <span class="burger-ico">📄</span><span data-i18n="show_log"> Log anzeigen</span>
+          </button>
+          <button class="burger-item" onclick="downloadLog(); closeBurgerMenu()">
+            <span class="burger-ico">⬇</span><span data-i18n="download_log"> Log herunterladen</span>
+          </button>
+          <button class="burger-item" onclick="nv2AuditOpen(); closeBurgerMenu()">
+            <span class="burger-ico">📜</span><span data-i18n="audit_log"> Audit-Log</span>
+          </button>
+          <button class="burger-item" onclick="window.open('/api/v1/docs','_blank'); closeBurgerMenu()">
+            <span class="burger-ico">⊞</span> Swagger API
           </button>
           <div class="burger-divider"></div>
         </div>
 
-        <!-- ── System ────────────────────────────────────────────────────── -->
+        <!-- ── System (Health – immer sichtbar) ─────────────────────────── -->
         <div class="burger-head" data-i18n="system">System</div>
         <button class="burger-item burger-item-noaction">
           <span class="burger-ico">⊙</span> Health
           <span class="nav-chip ok" id="health-chip" style="margin-left:auto">OK</span>
         </button>
-        <button class="burger-item" onclick="openLogViewer(); closeBurgerMenu()">
-          <span class="burger-ico">📋</span><span data-i18n="show_log"> Log anzeigen</span>
-        </button>
-        <button class="burger-item" onclick="downloadLog(); closeBurgerMenu()">
-          <span class="burger-ico">⬇</span><span data-i18n="download_log"> Log herunterladen</span>
-        </button>
-        <button class="burger-item" onclick="nv2AuditOpen(); closeBurgerMenu()">
-          <span class="burger-ico">📜</span><span data-i18n="audit_log"> Audit-Log</span>
-        </button>
-        <button class="burger-item" onclick="window.open('/api/v1/docs','_blank'); closeBurgerMenu()">
-          <span class="burger-ico">⊞</span> Swagger API
-        </button>
         <div class="burger-divider"></div>
-
-        <!-- ── Konto (nur wenn Auth aktiviert) ──────────────────────────── -->
-        <div id="auth-burger-section" style="display:none">
-          <div class="burger-head" data-i18n="account">Konto</div>
-          <button class="burger-item" id="btn-change-own-pw" style="display:none"
-                  onclick="nv2AuthChangeOwnPw(); closeBurgerMenu()">
-            <span class="burger-ico">🔑</span><span data-i18n="change_password"> Passwort ändern</span>
-          </button>
-          <button class="burger-item" id="btn-logout" style="display:none"
-                  onclick="nv2Auth.logout(); closeBurgerMenu()">
-            <span class="burger-ico">⏻</span><span data-i18n="logout"> Abmelden</span> (<span id="burger-username"></span>)
-          </button>
-          <div class="burger-divider"></div>
-        </div>
 
         <!-- ── Hilfe ─────────────────────────────────────────────────────── -->
         <div class="burger-head" data-i18n="help">Hilfe</div>
@@ -618,6 +609,156 @@
 
     <div class="dlg-actions" style="flex-shrink:0">
       <button class="btn-cancel" onclick="nv2AuthCloseUserMgmt()">Schließen</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- DIALOG – LDAP-Verbindungen -->
+<div id="dlg-ldap-mgmt" class="dlg-overlay" style="display:none">
+  <div class="dlg-box" style="width:580px; max-height:85vh; display:flex; flex-direction:column">
+    <h3 style="flex-shrink:0" data-i18n="manage_ldap">LDAP-Verbindungen</h3>
+
+    <div id="ldap-conn-list"
+         style="flex:1; overflow-y:auto; margin-bottom:14px;
+                border:1px solid var(--border); border-radius:var(--r);
+                min-height:60px; padding:6px">
+      <div style="color:var(--text-mid); font-size:12px; padding:8px" id="ldap-empty-hint">
+        Keine Verbindungen konfiguriert.
+      </div>
+    </div>
+
+    <!-- Neue Verbindung / Bearbeiten -->
+    <div id="ldap-form" style="border:1px solid var(--border); border-radius:var(--r); padding:12px; margin-bottom:12px">
+      <div style="font-size:11px; font-weight:600; color:var(--text-mid); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px"
+           id="ldap-form-title">Neue Verbindung</div>
+      <input type="hidden" id="ldap-edit-id" value="">
+      <div class="f-row">
+        <label class="f-label">Name</label>
+        <input class="f-input" id="ldap-name" placeholder="z.B. Firmen-AD">
+      </div>
+      <div class="f-row">
+        <label class="f-label">Server-URL</label>
+        <input class="f-input" id="ldap-url" placeholder="ldap://dc.example.com:389">
+      </div>
+      <div class="f-row">
+        <label class="f-label">Bind-DN</label>
+        <input class="f-input" id="ldap-bind-dn" placeholder="CN=svc-nagvis,OU=Service,DC=example,DC=com">
+      </div>
+      <div class="f-row">
+        <label class="f-label">Bind-Passwort</label>
+        <input class="f-input" id="ldap-bind-pw" type="password" placeholder="(leer lassen = unverändert)">
+      </div>
+      <div class="f-row">
+        <label class="f-label">User Base DN</label>
+        <input class="f-input" id="ldap-user-base" placeholder="OU=Users,DC=example,DC=com">
+      </div>
+      <div class="f-row">
+        <label class="f-label">User-Filter</label>
+        <input class="f-input" id="ldap-user-filter" placeholder="(sAMAccountName={username})">
+      </div>
+      <div class="f-row">
+        <label class="f-label">Standard-Rolle</label>
+        <select class="f-select" id="ldap-default-role">
+          <option value="viewer">viewer</option>
+          <option value="editor">editor</option>
+          <option value="admin">admin</option>
+        </select>
+      </div>
+      <div style="margin-top:8px; font-size:11px; color:var(--text-mid); margin-bottom:6px">
+        Gruppen → Rollen (eine pro Zeile, Format: <code>CN=...,DC=...|admin</code>)
+      </div>
+      <textarea class="f-input" id="ldap-group-map" rows="3"
+                style="font-family:var(--mono); font-size:11px; resize:vertical"
+                placeholder="CN=NagVis-Admins,OU=Groups,DC=example,DC=com|admin&#10;CN=NagVis-Editors,OU=Groups,DC=example,DC=com|editor"></textarea>
+      <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap">
+        <button class="dlg-btn dlg-btn-primary" onclick="ldapSave()">Speichern</button>
+        <button class="dlg-btn" onclick="ldapTestCurrent()">Verbindung testen</button>
+        <button class="dlg-btn" onclick="ldapFormReset()">Zurücksetzen</button>
+      </div>
+      <div id="ldap-test-result" style="margin-top:8px; font-size:12px; display:none"></div>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end">
+      <button class="dlg-btn" onclick="closeDlg('dlg-ldap-mgmt')">Schließen</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- DIALOG – Rollen verwalten -->
+<div id="dlg-role-mgmt" class="dlg-overlay" style="display:none">
+  <div class="dlg-box" style="width:540px; max-height:80vh; display:flex; flex-direction:column">
+    <h3 style="flex-shrink:0" data-i18n="manage_roles">Rollen verwalten</h3>
+
+    <div style="flex:1; overflow-y:auto">
+      <div id="role-list" style="display:flex; flex-direction:column; gap:10px; padding:4px 2px"></div>
+    </div>
+
+    <div style="margin-top:14px; font-size:11.5px; color:var(--text-mid); line-height:1.5">
+      Die drei Rollen sind kumulativ: <strong>admin</strong> umfasst alle Rechte von
+      <strong>editor</strong> und <strong>viewer</strong>.
+      Rollen werden Benutzern über die
+      <a href="#" onclick="closeDlg('dlg-role-mgmt'); nv2Auth.openUserMgmtDlg()" style="color:var(--acc)">Benutzerverwaltung</a>
+      oder über LDAP-Gruppenzuordnungen zugewiesen.
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; margin-top:14px">
+      <button class="dlg-btn" onclick="closeDlg('dlg-role-mgmt')">Schließen</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- DIALOG – Voreinstellungen -->
+<div id="dlg-user-presets" class="dlg-overlay" style="display:none">
+  <div class="dlg-box" style="width:480px">
+    <h3 data-i18n="user_presets">Voreinstellungen für neue Benutzer</h3>
+
+    <div style="display:grid; grid-template-columns:160px 1fr; gap:10px 14px; align-items:center; margin-bottom:16px">
+      <label class="f-label" style="margin:0">Standard-Theme</label>
+      <select class="f-select" id="preset-theme">
+        <option value="dark">Dark</option>
+        <option value="light">Light</option>
+      </select>
+
+      <label class="f-label" style="margin:0">Standard-Sprache</label>
+      <select class="f-select" id="preset-lang">
+        <option value="de">Deutsch</option>
+        <option value="en">English</option>
+      </select>
+
+      <label class="f-label" style="margin:0">Standard-Map</label>
+      <input class="f-input" id="preset-map" placeholder="Map-ID oder leer">
+
+      <label class="f-label" style="margin:0">Sidebar</label>
+      <select class="f-select" id="preset-sidebar">
+        <option value="expanded">Aufgeklappt</option>
+        <option value="collapsed">Eingeklappt</option>
+      </select>
+
+      <label class="f-label" style="margin:0">Session-Timeout</label>
+      <div style="display:flex; align-items:center; gap:8px">
+        <input class="f-input" id="preset-timeout" type="number" min="0" max="8760"
+               style="width:80px" placeholder="168">
+        <span style="font-size:12px; color:var(--text-mid)">Stunden (0 = kein Ablauf)</span>
+      </div>
+
+      <label class="f-label" style="margin:0">Map-Aktualisierung</label>
+      <div style="display:flex; align-items:center; gap:8px">
+        <input class="f-input" id="preset-refresh" type="number" min="5" max="300"
+               style="width:80px" placeholder="10">
+        <span style="font-size:12px; color:var(--text-mid)">Sekunden</span>
+      </div>
+
+      <label class="f-label" style="margin:0; align-self:start">Willkommenstext</label>
+      <textarea class="f-input" id="preset-welcome" rows="2"
+                style="resize:vertical" placeholder="Optionaler Willkommenstext beim Login"></textarea>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:8px">
+      <button class="dlg-btn" onclick="closeDlg('dlg-user-presets')">Abbrechen</button>
+      <button class="dlg-btn dlg-btn-primary" onclick="saveUserPresets()">Speichern</button>
     </div>
   </div>
 </div>
