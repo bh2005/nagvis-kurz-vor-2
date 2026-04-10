@@ -202,7 +202,7 @@
     "notify_not_supported":    "⚠ Dieser Browser unterstützt keine Benachrichtigungen.",
     "notify_granted":          "✔ Berechtigung erteilt",
     "notify_denied":           "✖ Berechtigung verweigert – in Browser-Einstellungen freigeben",
-    "notify_pending":          "Berechtigung noch nicht erteilt – oben auf „Erlauben" klicken",
+    "notify_pending":          "Berechtigung noch nicht erteilt – oben auf \u201eErlauben\u201c klicken",
 
     "log_no_entries":          "(keine passenden Log-Einträge)",
     "log_lines_shown":         "{count} Zeilen angezeigt · {buffered} im Puffer",

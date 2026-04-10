@@ -6,6 +6,7 @@ GET /ws/map/{map_id}
 import json
 import time
 import asyncio
+import uuid
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
@@ -18,19 +19,25 @@ ws_router = APIRouter()
 
 @ws_router.websocket("/ws/map/{map_id}")
 async def ws_map(websocket: WebSocket, map_id: str):
-    await websocket.accept()
+    client_id = str(uuid.uuid4())
+
+    # Verbindung im Manager registrieren (accept() wird dort aufgerufen)
+    await manager.connect(websocket, client_id, map_id)
 
     # Poller starten falls noch nicht laufend
     start_poller()
-
-    manager.connect(map_id, websocket)
 
     from ws.demo_data import DEMO_STATUS, DEMO_SERVICES
     from connectors.registry import registry
 
     async def _send_snapshot():
-        # Demo-Modus: kein Backend konfiguriert ODER DEMO_MODE Flag ODER demo-features Map
-        if settings.DEMO_MODE or registry.is_empty() or map_id == "demo-features":
+        # Demo-Modus: kein Backend konfiguriert ODER DEMO_MODE Flag ODER demo-*-Map
+        use_demo = (
+            settings.DEMO_MODE
+            or registry.is_empty()
+            or map_id.startswith("demo-")
+        )
+        if use_demo:
             await websocket.send_text(json.dumps({
                 "event":    "snapshot",
                 "ts":       time.time(),
@@ -77,4 +84,4 @@ async def ws_map(websocket: WebSocket, map_id: str):
     except Exception:
         pass
     finally:
-        manager.disconnect(map_id, websocket)
+        await manager.disconnect(client_id)
