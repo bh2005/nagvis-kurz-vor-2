@@ -172,7 +172,9 @@ window.NV2_HISTORY = (() => {
 
   // ── Öffentliche API ──────────────────────────────────────────────
 
-  return { push, undo, redo };
+  function clear() { _undo = []; _redo = []; _updateUI(); }
+
+  return { push, undo, redo, clear };
 })();
 
 
