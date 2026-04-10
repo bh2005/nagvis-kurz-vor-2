@@ -226,6 +226,7 @@
 
       <div id="burger-dropdown" class="burger-dropdown" style="display:none;">
 
+        <!-- ── Aktive Map (nur wenn eine Map geöffnet ist) ────────────── -->
         <div id="burger-map-section" style="display:none;">
           <div class="burger-head" data-i18n="active_map">Aktive Map</div>
           <button class="burger-item" id="btn-edit" onclick="toggleEdit(); closeBurgerMenu()">
@@ -251,10 +252,6 @@
             <span id="burger-kiosk-label" data-i18n="kiosk_mode">Kiosk-Modus</span>
             <kbd class="burger-kbd">F11</kbd>
           </button>
-          <button class="burger-item burger-item-danger" id="btn-delete-map"
-                  onclick="confirmDeleteMap(); closeBurgerMenu()" data-i18n-title="delete_map">
-            <span class="burger-ico">🗑</span><span data-i18n="delete_map"> Map löschen</span>
-          </button>
           <button class="burger-item" onclick="openCanvasModeDialog(activeMapId, activeMapCfg?.title, activeMapCfg?.canvas); closeBurgerMenu()">
             <span class="burger-ico">⊡</span><span data-i18n="change_canvas"> Canvas-Format ändern</span>
           </button>
@@ -264,54 +261,68 @@
           <button class="burger-item" onclick="exportActiveMap(); closeBurgerMenu()">
             <span class="burger-ico">📤</span><span data-i18n="export_map_zip"> Map exportieren (.zip)</span>
           </button>
+          <button class="burger-item burger-item-danger" id="btn-delete-map" style="display:none"
+                  onclick="confirmDeleteMap(); closeBurgerMenu()" data-i18n-title="delete_map">
+            <span class="burger-ico">🗑</span><span data-i18n="delete_map"> Map löschen</span>
+          </button>
           <div class="burger-divider"></div>
         </div>
 
-        <div class="burger-head" id="burger-head-maps" data-i18n="manage_maps">Maps verwalten</div>
-        <button class="burger-item" id="btn-new-map" onclick="dlgNewMap(); closeBurgerMenu()">
-          <span class="burger-ico">＋</span><span data-i18n="create_new_map"> Neue Map erstellen</span>
-        </button>
+        <!-- ── Maps ─────────────────────────────────────────────────────── -->
+        <div class="burger-head" id="burger-head-maps" data-i18n="manage_maps">Maps</div>
         <button class="burger-item" onclick="openManageMapsOverlay(); closeBurgerMenu()">
           <span class="burger-ico">⊟</span><span data-i18n="manage_all_maps"> Alle Maps verwalten</span>
         </button>
-        <button class="burger-item" id="btn-import-map" onclick="dlgMigrate(); closeBurgerMenu()">
+        <button class="burger-item" id="btn-new-map" style="display:none" onclick="dlgNewMap(); closeBurgerMenu()">
+          <span class="burger-ico">＋</span><span data-i18n="create_new_map"> Neue Map erstellen</span>
+        </button>
+        <button class="burger-item" id="btn-import-map" style="display:none" onclick="dlgMigrate(); closeBurgerMenu()">
           <span class="burger-ico">↑</span><span data-i18n="import_nagvis1"> NagVis&#x202F;1 importieren</span>
         </button>
-        <button class="burger-item" id="btn-import-zip" onclick="dlgImportZip(); closeBurgerMenu()">
+        <button class="burger-item" id="btn-import-zip" style="display:none" onclick="dlgImportZip(); closeBurgerMenu()">
           <span class="burger-ico">📥</span><span data-i18n="import_map_zip"> Map importieren (.zip)</span>
         </button>
-        <button class="burger-item" id="btn-import-drawio" onclick="dlgImportDrawio(); closeBurgerMenu()">
+        <button class="burger-item" id="btn-import-drawio" style="display:none" onclick="dlgImportDrawio(); closeBurgerMenu()">
           <span class="burger-ico">🗂</span><span data-i18n="import_drawio"> draw.io importieren (.drawio / .xml)</span>
         </button>
         <div class="burger-divider"></div>
 
-        <div class="burger-head" data-i18n="user_settings_section">Benutzereinstellungen</div>
+        <!-- ── Darstellung ───────────────────────────────────────────────── -->
+        <div class="burger-head" data-i18n="appearance">Darstellung</div>
         <button class="burger-item"
                 onclick="setTheme(currentTheme==='dark'?'light':'dark'); closeBurgerMenu()">
           <span class="burger-ico" id="burger-theme-ico">☀</span>
           <span id="burger-theme-label" data-i18n="light_theme">Light-Theme</span>
-        </button>
-        <button class="burger-item" id="btn-backend-mgmt" onclick="openBackendMgmtDlg(); closeBurgerMenu()">
-          <span class="burger-ico">🗄</span><span data-i18n="manage_backends"> Datenquellen verwalten</span>
-        </button>
-        <button class="burger-item" id="btn-kiosk-users" onclick="openKioskUsersDlg(); closeBurgerMenu()">
-          <span class="burger-ico">⬛</span><span data-i18n="manage_kiosk_users"> Kiosk-User verwalten</span>
-        </button>
-        <button class="burger-item" id="btn-action-config" onclick="openActionConfigDlg(); closeBurgerMenu()">
-          <span class="burger-ico">⚡</span><span data-i18n="configure_actions"> Aktionen konfigurieren</span>
         </button>
         <button class="burger-item" onclick="openUserSettingsDlg(); closeBurgerMenu()">
           <span class="burger-ico">⚙</span><span data-i18n="settings"> Einstellungen…</span>
         </button>
         <div class="burger-divider"></div>
 
+        <!-- ── Administration (nur für Admins sichtbar) ──────────────────── -->
+        <div id="burger-admin-section" style="display:none;">
+          <div class="burger-head" data-i18n="administration">Administration</div>
+          <button class="burger-item" id="btn-backend-mgmt" onclick="openBackendMgmtDlg(); closeBurgerMenu()">
+            <span class="burger-ico">🗄</span><span data-i18n="manage_backends"> Datenquellen verwalten</span>
+          </button>
+          <button class="burger-item" id="btn-kiosk-users" onclick="openKioskUsersDlg(); closeBurgerMenu()">
+            <span class="burger-ico">⬛</span><span data-i18n="manage_kiosk_users"> Kiosk-User verwalten</span>
+          </button>
+          <button class="burger-item" id="btn-action-config" onclick="openActionConfigDlg(); closeBurgerMenu()">
+            <span class="burger-ico">⚡</span><span data-i18n="configure_actions"> Aktionen konfigurieren</span>
+          </button>
+          <button class="burger-item" id="btn-manage-users"
+                  onclick="nv2Auth.openUserMgmtDlg(); closeBurgerMenu()">
+            <span class="burger-ico">👥</span><span data-i18n="manage_users"> Benutzer verwalten</span>
+          </button>
+          <div class="burger-divider"></div>
+        </div>
+
+        <!-- ── System ────────────────────────────────────────────────────── -->
         <div class="burger-head" data-i18n="system">System</div>
         <button class="burger-item burger-item-noaction">
           <span class="burger-ico">⊙</span> Health
           <span class="nav-chip ok" id="health-chip" style="margin-left:auto">OK</span>
-        </button>
-        <button class="burger-item" onclick="window.open('/api/v1/docs','_blank'); closeBurgerMenu()">
-          <span class="burger-ico">⊞</span> Swagger API
         </button>
         <button class="burger-item" onclick="openLogViewer(); closeBurgerMenu()">
           <span class="burger-ico">📋</span><span data-i18n="show_log"> Log anzeigen</span>
@@ -322,15 +333,14 @@
         <button class="burger-item" onclick="nv2AuditOpen(); closeBurgerMenu()">
           <span class="burger-ico">📜</span><span data-i18n="audit_log"> Audit-Log</span>
         </button>
-
+        <button class="burger-item" onclick="window.open('/api/v1/docs','_blank'); closeBurgerMenu()">
+          <span class="burger-ico">⊞</span> Swagger API
+        </button>
         <div class="burger-divider"></div>
 
+        <!-- ── Konto (nur wenn Auth aktiviert) ──────────────────────────── -->
         <div id="auth-burger-section" style="display:none">
           <div class="burger-head" data-i18n="account">Konto</div>
-          <button class="burger-item" id="btn-manage-users" style="display:none"
-                  onclick="nv2Auth.openUserMgmtDlg(); closeBurgerMenu()">
-            <span class="burger-ico">👥</span><span data-i18n="manage_users"> Benutzer verwalten</span>
-          </button>
           <button class="burger-item" id="btn-change-own-pw" style="display:none"
                   onclick="nv2AuthChangeOwnPw(); closeBurgerMenu()">
             <span class="burger-ico">🔑</span><span data-i18n="change_password"> Passwort ändern</span>
@@ -342,6 +352,7 @@
           <div class="burger-divider"></div>
         </div>
 
+        <!-- ── Hilfe ─────────────────────────────────────────────────────── -->
         <div class="burger-head" data-i18n="help">Hilfe</div>
         <button class="burger-item" onclick="window.open('help/index.html','_blank'); closeBurgerMenu()">
           <span class="burger-ico">📖</span><span data-i18n="documentation"> Dokumentation</span>

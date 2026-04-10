@@ -38,7 +38,7 @@
     "duplicate_map":           "Map duplizieren",
     "export_map_zip":          "Map exportieren (.zip)",
 
-    "manage_maps":             "Maps verwalten",
+    "manage_maps":             "Maps",
     "create_new_map":          "Neue Map erstellen",
     "manage_all_maps":         "Alle Maps verwalten",
     "import_nagvis1":          "NagVis\u202F1 importieren",
@@ -46,6 +46,8 @@
     "import_drawio":           "draw.io importieren (.drawio\u202F/\u202F.xml)",
 
     "user_settings_section":   "Benutzereinstellungen",
+    "appearance":              "Darstellung",
+    "administration":          "Administration",
     "light_theme":             "Light-Theme",
     "dark_theme":              "Dark-Theme",
     "manage_backends":         "Datenquellen verwalten",

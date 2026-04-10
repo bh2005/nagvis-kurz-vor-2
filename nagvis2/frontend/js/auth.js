@@ -206,7 +206,6 @@ async function _verifyToken(token) {
 function _updateAuthUI() {
   const u     = nv2Auth.currentUser;
   const chip  = document.getElementById('nv2-user-chip');
-  const btnMgmt   = document.getElementById('btn-manage-users');
   const btnLogout = document.getElementById('btn-logout');
   const lblUser   = document.getElementById('burger-username');
   const authDiv   = document.getElementById('auth-burger-section');
@@ -241,7 +240,6 @@ function _updateAuthUI() {
 
   const btnOwnPw = document.getElementById('btn-change-own-pw');
 
-  if (btnMgmt)   btnMgmt.style.display   = (u?.role === 'admin') ? 'flex' : 'none';
   if (btnOwnPw)  btnOwnPw.style.display  = u ? 'flex' : 'none';
   // Logout nur anzeigen wenn Auth tatsächlich aktiviert ist (sonst sinnlos)
   if (btnLogout) btnLogout.style.display  = (nv2Auth.enabled && u) ? 'flex' : 'none';
@@ -291,24 +289,26 @@ function _applyRoleUI(role) {
     'btn-new-map',         // Neue Map erstellen
     'btn-import-map',      // NagVis 1 importieren
     'btn-import-zip',      // Map importieren (.zip)
+    'btn-import-drawio',   // draw.io importieren
     'btn-edit',            // Bearbeiten / Edit-Mode
   ];
-  // Elemente die admin erfordern
+  // Elemente die admin erfordern (einzelne Buttons außerhalb der Admin-Sektion)
   const adminIds = [
-    'btn-delete-map',      // Map löschen
-    'btn-backend-mgmt',    // Backends verwalten
-    'btn-action-config',   // Aktionen konfigurieren
-    'btn-kiosk-users',     // Kiosk-User verwalten
+    'btn-delete-map',      // Map löschen (im Map-Kontext-Abschnitt)
   ];
 
   editorIds.forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.style.display = rank >= 2 ? '' : 'none';
+    if (el) el.style.display = rank >= 2 ? 'flex' : 'none';
   });
   adminIds.forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.style.display = rank >= 3 ? '' : 'none';
+    if (el) el.style.display = rank >= 3 ? 'flex' : 'none';
   });
+
+  // Gesamte Admin-Sektion ein-/ausblenden
+  const adminSection = document.getElementById('burger-admin-section');
+  if (adminSection) adminSection.style.display = rank >= 3 ? 'block' : 'none';
 }
 
 function _roleIcon(role) {
