@@ -58,10 +58,7 @@ function openBurgerMenu() {
   dd.style.display = 'block';
   const mapSec = document.getElementById('burger-map-section');
   if (mapSec) mapSec.style.display = activeMapId ? 'block' : 'none';
-  const ico   = document.getElementById('burger-theme-ico');
-  const label = document.getElementById('burger-theme-label');
-  if (ico)   ico.textContent   = currentTheme === 'dark' ? '☀' : '☽';
-  if (label) label.textContent = currentTheme === 'dark' ? t('light_theme') : t('dark_theme');
+  // Theme-Label im User-Chip-Dropdown aktualisieren
   const ucdIco   = document.getElementById('ucd-theme-ico');
   const ucdLabel = document.getElementById('ucd-theme-label');
   if (ucdIco)   ucdIco.textContent   = currentTheme === 'dark' ? '☀' : '☽';
@@ -83,11 +80,6 @@ window.closeBurgerMenu     = closeBurgerMenu;
 function setTheme(theme, save = true) {
   currentTheme = theme;
   document.documentElement.setAttribute('data-theme', theme);
-  const ico   = document.getElementById('burger-theme-ico');
-  const label = document.getElementById('burger-theme-label');
-  if (ico)   ico.textContent   = theme === 'dark' ? '☀' : '☽';
-  if (label) label.textContent = theme === 'dark' ? t('light_theme') : t('dark_theme');
-  // Chip-Dropdown synchron halten
   const ucdIco   = document.getElementById('ucd-theme-ico');
   const ucdLabel = document.getElementById('ucd-theme-label');
   if (ucdIco)   ucdIco.textContent   = theme === 'dark' ? '☀' : '☽';

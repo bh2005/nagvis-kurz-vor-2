@@ -204,46 +204,33 @@ async function _verifyToken(token) {
 // ═══════════════════════════════════════════════════════════════════════
 
 function _updateAuthUI() {
-  const u     = nv2Auth.currentUser;
-  const chip  = document.getElementById('nv2-user-chip');
-  const btnLogout = document.getElementById('btn-logout');
-  const lblUser   = document.getElementById('burger-username');
-  const authDiv   = document.getElementById('auth-burger-section');
+  const u    = nv2Auth.currentUser;
+  const chip = document.getElementById('nv2-user-chip');
 
+  // User-Chip (Topbar-Button) ein-/ausblenden
   if (chip) {
     if (u) {
-      chip.textContent = `${_roleIcon(u.role)} ${u.username}`;
+      chip.textContent   = `${_roleIcon(u.role)} ${u.username}`;
       chip.style.display = 'inline-flex';
     } else {
       chip.style.display = 'none';
     }
   }
 
-  // User-Chip-Dropdown Items
-  const ucdHeader    = document.getElementById('user-chip-header');
-  const ucdOwnPw     = document.getElementById('ucd-own-pw');
-  const ucdMgmt      = document.getElementById('ucd-manage-users');
-  const ucdLogout    = document.getElementById('ucd-logout');
-  const ucdDivider   = document.getElementById('ucd-divider-logout');
-  const ucdDivAuth   = document.getElementById('ucd-divider-auth');
+  // User-Chip-Dropdown: Konto-Bereich (PW, Benutzer, Logout)
+  const ucdHeader  = document.getElementById('user-chip-header');
+  const ucdOwnPw   = document.getElementById('ucd-own-pw');
+  const ucdMgmt    = document.getElementById('ucd-manage-users');
+  const ucdLogout  = document.getElementById('ucd-logout');
+  const ucdDivider = document.getElementById('ucd-divider-logout');
+  const ucdDivAuth = document.getElementById('ucd-divider-auth');
 
-  if (ucdHeader) ucdHeader.textContent = u
-    ? `${_roleIcon(u.role)} ${u.username}  ·  ${u.role}`
-    : '';
-  if (ucdDivAuth) ucdDivAuth.style.display = (nv2Auth.enabled && u) ? 'block' : 'none';
-  if (ucdOwnPw)   ucdOwnPw.style.display  = (nv2Auth.enabled && u) ? 'flex' : 'none';
-  if (ucdMgmt)    ucdMgmt.style.display   = (nv2Auth.enabled && u?.role === 'admin') ? 'flex' : 'none';
-  if (ucdDivider) ucdDivider.style.display = (nv2Auth.enabled && u) ? 'block' : 'none';
-  if (ucdLogout)  ucdLogout.style.display  = (nv2Auth.enabled && u) ? 'flex' : 'none';
-
-  if (authDiv) authDiv.style.display = u ? 'block' : 'none';
-
-  const btnOwnPw = document.getElementById('btn-change-own-pw');
-
-  if (btnOwnPw)  btnOwnPw.style.display  = u ? 'flex' : 'none';
-  // Logout nur anzeigen wenn Auth tatsächlich aktiviert ist (sonst sinnlos)
-  if (btnLogout) btnLogout.style.display  = (nv2Auth.enabled && u) ? 'flex' : 'none';
-  if (lblUser)   lblUser.textContent      = u?.username ?? '';
+  if (ucdHeader)  ucdHeader.textContent     = u ? `${_roleIcon(u.role)} ${u.username}  ·  ${u.role}` : '';
+  if (ucdDivAuth) ucdDivAuth.style.display  = (nv2Auth.enabled && u) ? 'block' : 'none';
+  if (ucdOwnPw)   ucdOwnPw.style.display    = (nv2Auth.enabled && u) ? 'flex'  : 'none';
+  if (ucdMgmt)    ucdMgmt.style.display     = (nv2Auth.enabled && u?.role === 'admin') ? 'flex' : 'none';
+  if (ucdDivider) ucdDivider.style.display  = (nv2Auth.enabled && u) ? 'block' : 'none';
+  if (ucdLogout)  ucdLogout.style.display   = (nv2Auth.enabled && u) ? 'flex'  : 'none';
 
   _applyRoleUI(u?.role ?? 'viewer');
 }
@@ -601,4 +588,188 @@ window.nv2AuditLoad = async function() {
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="5" style="color:var(--err);padding:16px">Netzwerkfehler: ${_esc(String(err))}</td></tr>`;
   }
+};
+
+
+// ══════════════════════════════════════════════════════════════════════
+//  LDAP-Verbindungen
+// ══════════════════════════════════════════════════════════════════════
+
+window.openLdapMgmtDlg = async function() {
+  openDlg('dlg-ldap-mgmt');
+  ldapFormReset();
+  await _renderLdapList();
+};
+
+async function _renderLdapList() {
+  const list = document.getElementById('ldap-conn-list');
+  const hint = document.getElementById('ldap-empty-hint');
+  try {
+    const conns = await apiFetch('/api/v1/auth/ldap');
+    if (!conns?.length) {
+      list.innerHTML = '<div style="color:var(--text-mid);font-size:12px;padding:8px">Keine Verbindungen konfiguriert.</div>';
+      return;
+    }
+    list.innerHTML = conns.map(c => `
+      <div style="display:flex; align-items:center; gap:8px; padding:8px; border-bottom:1px solid var(--border)">
+        <span style="font-size:14px">${c.enabled ? '🟢' : '⚫'}</span>
+        <div style="flex:1; min-width:0">
+          <div style="font-weight:600; font-size:13px">${_esc(c.name)}</div>
+          <div style="font-size:11px; color:var(--text-mid); font-family:var(--mono)">${_esc(c.server_url)}</div>
+          <div style="font-size:11px; color:var(--text-mid)">
+            Standard-Rolle: <b>${_esc(c.default_role)}</b>
+            · Gruppen: ${Object.keys(c.group_role_map || {}).length}
+          </div>
+        </div>
+        <button class="dlg-btn" style="padding:3px 8px;font-size:11px" onclick="ldapTestById('${_esc(c.id)}', this)">Test</button>
+        <button class="dlg-btn" style="padding:3px 8px;font-size:11px" onclick="ldapEdit(${JSON.stringify(c).replace(/"/g,'&quot;')})">✎</button>
+        <button class="dlg-btn dlg-btn-danger" style="padding:3px 8px;font-size:11px" onclick="ldapDelete('${_esc(c.id)}', '${_esc(c.name)}')">✕</button>
+      </div>`).join('');
+  } catch (e) {
+    list.innerHTML = `<div style="color:var(--err);font-size:12px;padding:8px">Fehler: ${_esc(String(e))}</div>`;
+  }
+}
+
+window.ldapFormReset = function() {
+  document.getElementById('ldap-edit-id').value       = '';
+  document.getElementById('ldap-form-title').textContent = 'Neue Verbindung';
+  document.getElementById('ldap-name').value          = '';
+  document.getElementById('ldap-url').value           = '';
+  document.getElementById('ldap-bind-dn').value       = '';
+  document.getElementById('ldap-bind-pw').value       = '';
+  document.getElementById('ldap-user-base').value     = '';
+  document.getElementById('ldap-user-filter').value   = '(sAMAccountName={username})';
+  document.getElementById('ldap-default-role').value  = 'viewer';
+  document.getElementById('ldap-group-map').value     = '';
+  const res = document.getElementById('ldap-test-result');
+  if (res) res.style.display = 'none';
+};
+
+window.ldapEdit = function(c) {
+  document.getElementById('ldap-edit-id').value      = c.id;
+  document.getElementById('ldap-form-title').textContent = `Verbindung bearbeiten: ${c.name}`;
+  document.getElementById('ldap-name').value         = c.name;
+  document.getElementById('ldap-url').value          = c.server_url;
+  document.getElementById('ldap-bind-dn').value      = c.bind_dn;
+  document.getElementById('ldap-bind-pw').value      = '';
+  document.getElementById('ldap-user-base').value    = c.user_base_dn;
+  document.getElementById('ldap-user-filter').value  = c.user_filter;
+  document.getElementById('ldap-default-role').value = c.default_role;
+  // Gruppen-Map: "dn|role" je Zeile
+  document.getElementById('ldap-group-map').value    =
+    Object.entries(c.group_role_map || {}).map(([k, v]) => `${k}|${v}`).join('\n');
+};
+
+window.ldapSave = async function() {
+  const id      = document.getElementById('ldap-edit-id').value;
+  const mapRaw  = document.getElementById('ldap-group-map').value.trim();
+  const groupMap = {};
+  mapRaw.split('\n').forEach(line => {
+    const [dn, role] = line.split('|');
+    if (dn?.trim() && role?.trim()) groupMap[dn.trim()] = role.trim();
+  });
+  const body = {
+    name:          document.getElementById('ldap-name').value.trim(),
+    server_url:    document.getElementById('ldap-url').value.trim(),
+    bind_dn:       document.getElementById('ldap-bind-dn').value.trim(),
+    bind_password: document.getElementById('ldap-bind-pw').value,
+    user_base_dn:  document.getElementById('ldap-user-base').value.trim(),
+    user_filter:   document.getElementById('ldap-user-filter').value.trim(),
+    default_role:  document.getElementById('ldap-default-role').value,
+    group_role_map: groupMap,
+  };
+  if (!body.name || !body.server_url || !body.user_base_dn) {
+    alert('Name, Server-URL und User Base DN sind Pflichtfelder.');
+    return;
+  }
+  const method = id ? 'PATCH' : 'POST';
+  const url    = id ? `/api/v1/auth/ldap/${id}` : '/api/v1/auth/ldap';
+  if (!body.bind_password) delete body.bind_password;
+  const res = await apiFetch(url, { method, body: JSON.stringify(body) });
+  if (res) { ldapFormReset(); await _renderLdapList(); }
+};
+
+window.ldapDelete = async function(id, name) {
+  if (!confirm(`LDAP-Verbindung "${name}" wirklich löschen?`)) return;
+  await apiFetch(`/api/v1/auth/ldap/${id}`, { method: 'DELETE' });
+  await _renderLdapList();
+};
+
+window.ldapTestById = async function(id, btn) {
+  btn.disabled = true;
+  btn.textContent = '…';
+  const res = await apiFetch(`/api/v1/auth/ldap/${id}/test`, { method: 'POST' });
+  btn.disabled = false;
+  btn.textContent = 'Test';
+  if (res) alert(res.ok ? `✅ ${res.message}` : `❌ ${res.message}`);
+};
+
+window.ldapTestCurrent = async function() {
+  const id  = document.getElementById('ldap-edit-id').value;
+  const res = document.getElementById('ldap-test-result');
+  if (!id) { alert('Zuerst eine bestehende Verbindung auswählen (✎ Bearbeiten).'); return; }
+  const r = await apiFetch(`/api/v1/auth/ldap/${id}/test`, { method: 'POST' });
+  if (r) {
+    res.style.display  = 'block';
+    res.style.color    = r.ok ? 'var(--ok)' : 'var(--err)';
+    res.textContent    = (r.ok ? '✅ ' : '❌ ') + r.message;
+  }
+};
+
+
+// ══════════════════════════════════════════════════════════════════════
+//  Rollen verwalten
+// ══════════════════════════════════════════════════════════════════════
+
+window.openRoleMgmtDlg = async function() {
+  openDlg('dlg-role-mgmt');
+  const list = document.getElementById('role-list');
+  list.innerHTML = '<div style="color:var(--text-mid);font-size:12px">Lade…</div>';
+  const roles = await apiFetch('/api/v1/auth/roles');
+  if (!roles) return;
+  list.innerHTML = roles.map(r => `
+    <div style="border:1px solid var(--border); border-left:3px solid ${_esc(r.color)};
+                border-radius:var(--r); padding:12px 14px">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px">
+        <span style="font-weight:700; font-size:14px; color:${_esc(r.color)}">${_esc(r.display_name)}</span>
+        <code style="font-size:11px; background:var(--bg-hover); padding:1px 6px; border-radius:3px">${_esc(r.name)}</code>
+        <span style="margin-left:auto; font-size:11px; color:var(--text-mid)">Rang ${r.rank}</span>
+      </div>
+      <div style="font-size:12px; color:var(--text-mid); margin-bottom:6px">${_esc(r.description)}</div>
+      <div style="font-size:11px; color:var(--text-dim,var(--text-mid)); font-family:var(--mono)">
+        ${(r.permissions || []).join(' · ')}
+      </div>
+    </div>`).join('');
+};
+
+
+// ══════════════════════════════════════════════════════════════════════
+//  Globale Voreinstellungen
+// ══════════════════════════════════════════════════════════════════════
+
+window.openUserPresetsDlg = async function() {
+  openDlg('dlg-user-presets');
+  const p = await apiFetch('/api/v1/auth/presets');
+  if (!p) return;
+  document.getElementById('preset-theme').value   = p.default_theme    || 'dark';
+  document.getElementById('preset-lang').value    = p.default_language || 'de';
+  document.getElementById('preset-map').value     = p.default_map      || '';
+  document.getElementById('preset-sidebar').value = p.sidebar_default  || 'expanded';
+  document.getElementById('preset-timeout').value = p.session_timeout  ?? 168;
+  document.getElementById('preset-refresh').value = p.map_refresh      ?? 10;
+  document.getElementById('preset-welcome').value = p.welcome_message  || '';
+};
+
+window.saveUserPresets = async function() {
+  const body = {
+    default_theme:    document.getElementById('preset-theme').value,
+    default_language: document.getElementById('preset-lang').value,
+    default_map:      document.getElementById('preset-map').value.trim(),
+    sidebar_default:  document.getElementById('preset-sidebar').value,
+    session_timeout:  parseInt(document.getElementById('preset-timeout').value) || 168,
+    map_refresh:      parseInt(document.getElementById('preset-refresh').value)  || 10,
+    welcome_message:  document.getElementById('preset-welcome').value.trim(),
+  };
+  const res = await apiFetch('/api/v1/auth/presets', { method: 'PATCH', body: JSON.stringify(body) });
+  if (res) { closeDlg('dlg-user-presets'); }
 };

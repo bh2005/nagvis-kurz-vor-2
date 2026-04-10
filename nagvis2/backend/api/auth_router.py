@@ -15,9 +15,19 @@ GET   /api/v1/auth/users              – Alle lokalen User (admin)
 POST  /api/v1/auth/users              – Neuen User anlegen (admin)
 PATCH /api/v1/auth/users/{username}   – Rolle / Passwort ändern (admin)
 DELETE /api/v1/auth/users/{username}  – User löschen (admin)
+
+GET   /api/v1/auth/ldap               – LDAP-Verbindungen anzeigen (admin)
+POST  /api/v1/auth/ldap               – LDAP-Verbindung anlegen (admin)
+PATCH /api/v1/auth/ldap/{conn_id}     – LDAP-Verbindung ändern (admin)
+DELETE /api/v1/auth/ldap/{conn_id}    – LDAP-Verbindung löschen (admin)
+POST  /api/v1/auth/ldap/{conn_id}/test – Verbindung testen (admin)
+
+GET   /api/v1/auth/roles              – Rollendefinitionen anzeigen (admin)
+GET   /api/v1/auth/presets            – Globale Voreinstellungen (admin)
+PATCH /api/v1/auth/presets            – Voreinstellungen speichern (admin)
 """
 
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -202,3 +212,147 @@ async def delete_user(
         raise HTTPException(404, detail=f"Benutzer '{username}' nicht gefunden")
     audit_log(request, "user.delete", username=username)
     return {"ok": True}
+
+
+# ── Admin: LDAP-Verbindungen ──────────────────────────────────────────────────
+
+class LdapConnRequest(BaseModel):
+    name:           str
+    server_url:     str
+    bind_dn:        str
+    bind_password:  str  = ""
+    user_base_dn:   str
+    user_filter:    str  = "(sAMAccountName={username})"
+    group_base_dn:  str  = ""
+    group_filter:   str  = "(member={user_dn})"
+    group_role_map: dict = {}
+    default_role:   str  = "viewer"
+    enabled:        bool = True
+    verify_cert:    bool = True
+    timeout:        int  = 5
+
+
+class LdapConnPatch(BaseModel):
+    name:           Optional[str]  = None
+    server_url:     Optional[str]  = None
+    bind_dn:        Optional[str]  = None
+    bind_password:  Optional[str]  = None
+    user_base_dn:   Optional[str]  = None
+    user_filter:    Optional[str]  = None
+    group_base_dn:  Optional[str]  = None
+    group_filter:   Optional[str]  = None
+    group_role_map: Optional[dict] = None
+    default_role:   Optional[str]  = None
+    enabled:        Optional[bool] = None
+    verify_cert:    Optional[bool] = None
+    timeout:        Optional[int]  = None
+
+
+@auth_router.get("/ldap")
+async def list_ldap(_: AuthUser = Depends(require_admin)):
+    """Alle LDAP-Verbindungen anzeigen (Passwörter maskiert)."""
+    from core.ldap_manager import get_ldap_manager
+    return get_ldap_manager().list_connections()
+
+
+@auth_router.post("/ldap", status_code=201)
+async def create_ldap(body: LdapConnRequest, request: Request, _: AuthUser = Depends(require_admin)):
+    """Neue LDAP-Verbindung anlegen."""
+    from core.ldap_manager import get_ldap_manager
+    c = get_ldap_manager().add(**body.model_dump())
+    audit_log(request, "ldap.create", name=c.name)
+    return c.safe_dict()
+
+
+@auth_router.patch("/ldap/{conn_id}")
+async def update_ldap(conn_id: str, body: LdapConnPatch, request: Request, _: AuthUser = Depends(require_admin)):
+    """LDAP-Verbindung aktualisieren."""
+    from core.ldap_manager import get_ldap_manager
+    updates = {k: v for k, v in body.model_dump().items() if v is not None}
+    c = get_ldap_manager().update(conn_id, **updates)
+    if not c:
+        raise HTTPException(404, detail=f"Verbindung '{conn_id}' nicht gefunden")
+    audit_log(request, "ldap.update", id=conn_id)
+    return c.safe_dict()
+
+
+@auth_router.delete("/ldap/{conn_id}", status_code=204)
+async def delete_ldap(conn_id: str, request: Request, _: AuthUser = Depends(require_admin)):
+    """LDAP-Verbindung löschen."""
+    from core.ldap_manager import get_ldap_manager
+    if not get_ldap_manager().delete(conn_id):
+        raise HTTPException(404, detail=f"Verbindung '{conn_id}' nicht gefunden")
+    audit_log(request, "ldap.delete", id=conn_id)
+
+
+@auth_router.post("/ldap/{conn_id}/test")
+async def test_ldap(conn_id: str, _: AuthUser = Depends(require_admin)):
+    """LDAP-Verbindung testen (Bind-Test)."""
+    from core.ldap_manager import get_ldap_manager
+    return get_ldap_manager().test_connection(conn_id)
+
+
+# ── Admin: Rollen ─────────────────────────────────────────────────────────────
+
+_ROLE_DEFS = [
+    {
+        "name":         "viewer",
+        "rank":         1,
+        "display_name": "Betrachter",
+        "description":  "Kann Maps anzeigen und Status abrufen. Kein Schreibzugriff.",
+        "color":        "#4a90d9",
+        "permissions":  ["maps.view", "ws.connect", "audit.read"],
+    },
+    {
+        "name":         "editor",
+        "rank":         2,
+        "display_name": "Editor",
+        "description":  "Kann Maps bearbeiten, Objekte anlegen/verschieben, Hintergründe hochladen.",
+        "color":        "#27ae60",
+        "permissions":  ["maps.view", "maps.edit", "objects.create", "objects.delete",
+                         "background.upload", "ws.connect", "audit.read"],
+    },
+    {
+        "name":         "admin",
+        "rank":         3,
+        "display_name": "Administrator",
+        "description":  "Vollzugriff: Maps erstellen/löschen, Backends verwalten, Benutzer verwalten.",
+        "color":        "#e67e22",
+        "permissions":  ["*"],
+    },
+]
+
+
+@auth_router.get("/roles")
+async def list_roles(_: AuthUser = Depends(require_admin)):
+    """Rollendefinitionen anzeigen."""
+    return _ROLE_DEFS
+
+
+# ── Admin: Globale Voreinstellungen ───────────────────────────────────────────
+
+class PresetsPatch(BaseModel):
+    default_theme:    Optional[str] = None
+    default_language: Optional[str] = None
+    default_map:      Optional[str] = None
+    sidebar_default:  Optional[str] = None
+    session_timeout:  Optional[int] = None
+    welcome_message:  Optional[str] = None
+    map_refresh:      Optional[int] = None
+
+
+@auth_router.get("/presets")
+async def get_presets(_: AuthUser = Depends(require_admin)):
+    """Globale Voreinstellungen abrufen."""
+    from core.presets import get_presets_manager
+    return get_presets_manager().get()
+
+
+@auth_router.patch("/presets")
+async def update_presets(body: PresetsPatch, request: Request, _: AuthUser = Depends(require_admin)):
+    """Globale Voreinstellungen aktualisieren."""
+    from core.presets import get_presets_manager
+    updates = {k: v for k, v in body.model_dump().items() if v is not None}
+    result  = get_presets_manager().update(**updates)
+    audit_log(request, "presets.update", fields=list(updates.keys()))
+    return result

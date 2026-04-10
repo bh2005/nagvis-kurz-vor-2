@@ -1172,6 +1172,7 @@ img.nv2-icon { display: block; width: 100%; height: 100%; object-fit: contain; t
   max-height: calc(100dvh - 60px); overflow-y: auto; overscroll-behavior: contain;
 }
 .burger-head { font-family: var(--mono); font-size: 8.5px; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase; color: var(--text-mid); padding: 8px 14px 3px; user-select: none; }
+.burger-sub-head { font-family: var(--mono); font-size: 7.5px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-dim, var(--text-mid)); opacity: 0.6; padding: 6px 14px 2px 20px; user-select: none; }
 .burger-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 14px; background: transparent; border: none; color: var(--text); font-family: var(--sans); font-size: 12.5px; text-align: left; cursor: pointer; transition: background var(--t); }
 .burger-item:hover { background: var(--bg-hover); }
 .burger-item.on { color: var(--acc); background: var(--bg-active); }
