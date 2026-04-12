@@ -65,7 +65,7 @@ window.updateGadget = function(el, data) {
   if (type === 'sparkline') {
     _updateSparkline(el, data.value, data.warning, data.critical, data.max);
   } else if (type === 'weather') {
-    _updateWeather(el, data.value, data.max);
+    _updateWeather(el, data.value, data.max, data);
   } else {
     // radial
     const arc = el.querySelector('.g-arc');
@@ -359,30 +359,45 @@ function _weatherOne(cfg) {
   const col   = _color(pct);
   const wX = (8  + _pct(cfg.warning  ?? max*.7, 0, max) / 100 * 80).toFixed(1);
   const cX = (8  + _pct(cfg.critical ?? max*.9, 0, max) / 100 * 80).toFixed(1);
-  // Richtung: 'in' dreht den Pfeil um
-  const isIn = cfg.direction === 'in';
-  const arrow = isIn
-    ? `<polygon points="10,18 10,32 24,25" fill="${col}" class="g-warrow"/>`
-    : `<polygon points="96,18 110,25 96,32" fill="${col}" class="g-warrow"/>`;
-  const line = isIn
-    ? `<line x1="96" y1="25" x2="20" y2="25" stroke="${col}" stroke-width="${thick.toFixed(1)}" stroke-linecap="round" class="g-wline"/>`
-    : `<line x1="8"  y1="25" x2="92" y2="25" stroke="${col}" stroke-width="${thick.toFixed(1)}" stroke-linecap="round" class="g-wline"/>`;
+  const isIn  = cfg.direction === 'in';
+  const utilPct = Math.round(pct);
+  const bwLabel = _fmtBw(cfg.value, cfg.unit);
+  // Animierte Dash-Linie: Richtung durch animationDirection gesteuert
+  const dashLen = 6, gapLen = 4, totalDash = dashLen + gapLen;
+  const animDir = isIn ? 'reverse' : 'normal';
 
   return `
-    <svg viewBox="0 0 120 50" width="120" height="50" style="display:block;overflow:visible">
-      <line x1="${wX}" y1="10" x2="${wX}" y2="40"
-            stroke="var(--warn)" stroke-width="1" stroke-dasharray="2,2" opacity="0.7"/>
-      <line x1="${cX}" y1="10" x2="${cX}" y2="40"
-            stroke="var(--crit)" stroke-width="1" stroke-dasharray="2,2" opacity="0.7"/>
-      ${line}
-      ${arrow}
-      <text x="60" y="14" text-anchor="middle" font-family="monospace"
-            font-size="8" fill="${col}" class="g-val">${_fmt(cfg.value)}${_gesc(cfg.unit||'')}</text>
+    <svg viewBox="0 0 120 56" width="130" height="56" style="display:block;overflow:visible">
+      <defs>
+        <style>
+          @keyframes wm-flow { from { stroke-dashoffset: ${totalDash}; } to { stroke-dashoffset: 0; } }
+          .g-wflow { animation: wm-flow 0.6s linear infinite; animation-direction: ${animDir}; }
+        </style>
+      </defs>
+      <!-- Warn/Crit Marker -->
+      <line x1="${wX}" y1="8" x2="${wX}" y2="44" stroke="var(--warn)" stroke-width="1" stroke-dasharray="2,2" opacity="0.7"/>
+      <line x1="${cX}" y1="8" x2="${cX}" y2="44" stroke="var(--crit)" stroke-width="1" stroke-dasharray="2,2" opacity="0.7"/>
+      <!-- Track (dunkel) -->
+      <line x1="8" y1="28" x2="96" y2="28" stroke="${col}" stroke-width="${thick.toFixed(1)}" stroke-linecap="round" opacity="0.2"/>
+      <!-- Animierte Flowlinie -->
+      <line x1="8" y1="28" x2="96" y2="28"
+            stroke="${col}" stroke-width="${thick.toFixed(1)}" stroke-linecap="round"
+            stroke-dasharray="${dashLen},${gapLen}" class="g-wflow g-wline"/>
+      <!-- Pfeilspitze -->
+      ${isIn
+        ? `<polygon points="10,21 10,35 22,28" fill="${col}" class="g-warrow"/>`
+        : `<polygon points="96,21 110,28 96,35" fill="${col}" class="g-warrow"/>`}
+      <!-- Bandbreite oben -->
+      <text x="52" y="16" text-anchor="middle" font-family="monospace"
+            font-size="8" fill="${col}" class="g-val g-val-bw">${_gesc(bwLabel)}</text>
+      <!-- Auslastung % unten -->
+      <text x="52" y="50" text-anchor="middle" font-family="monospace"
+            font-size="7" fill="${col}" opacity="0.75" class="g-val-pct">${utilPct}%</text>
     </svg>
     <div class="nv2-label">${_gesc(cfg.metric||'Flow')}</div>`;
 }
 
-/** Bidirektionaler Flow (⇄) – Pfeil rechts + Pfeil links */
+/** Bidirektionaler Flow (⇄) */
 function _weatherBoth(cfg) {
   const max    = cfg.max  || 1000;
   const valOut = cfg.value_out ?? cfg.value ?? 0;
@@ -395,72 +410,93 @@ function _weatherBoth(cfg) {
   const colIn  = _color(pctIn);
   const wX = (12 + _pct(cfg.warning  ?? max*.7, 0, max) / 100 * 76).toFixed(1);
   const cX = (12 + _pct(cfg.critical ?? max*.9, 0, max) / 100 * 76).toFixed(1);
-  const unit = _gesc(cfg.unit || '');
-
-  // Abstand zwischen den Pfeilen: Out obere Hälfte (y=20), In untere Hälfte (y=44)
-  // Out: Linie von links → rechts, Pfeilspitze rechts
-  // In:  Linie von rechts → links, Pfeilspitze links
+  const unit = cfg.unit || '';
+  const bwOut  = _fmtBw(valOut, unit);
+  const bwIn   = _fmtBw(valIn,  unit);
+  const pctOutR = Math.round(pctOut), pctInR = Math.round(pctIn);
+  const dashLen = 5, gapLen = 4;
 
   return `
-    <svg viewBox="0 0 120 64" width="130" height="64" style="display:block;overflow:visible">
+    <svg viewBox="0 0 120 70" width="132" height="70" style="display:block;overflow:visible">
+      <defs>
+        <style>
+          @keyframes wm-out { from { stroke-dashoffset: ${dashLen+gapLen}; } to { stroke-dashoffset: 0; } }
+          @keyframes wm-in  { from { stroke-dashoffset: 0; } to { stroke-dashoffset: ${dashLen+gapLen}; } }
+          .g-wflow-out { animation: wm-out 0.6s linear infinite; }
+          .g-wflow-in  { animation: wm-in  0.6s linear infinite; }
+        </style>
+      </defs>
 
-      <!-- Warn/Crit Marker (durchgehend) -->
-      <line x1="${wX}" y1="4"  x2="${wX}" y2="60"
-            stroke="var(--warn)" stroke-width="1" stroke-dasharray="2,2" opacity="0.55"/>
-      <line x1="${cX}" y1="4"  x2="${cX}" y2="60"
-            stroke="var(--crit)" stroke-width="1" stroke-dasharray="2,2" opacity="0.55"/>
+      <!-- Warn/Crit Marker -->
+      <line x1="${wX}" y1="2"  x2="${wX}" y2="68" stroke="var(--warn)" stroke-width="1" stroke-dasharray="2,2" opacity="0.45"/>
+      <line x1="${cX}" y1="2"  x2="${cX}" y2="68" stroke="var(--crit)" stroke-width="1" stroke-dasharray="2,2" opacity="0.45"/>
 
       <!-- ── AUSGEHEND (→) oben ── -->
-      <!-- Linie links → rechts -->
-      <line x1="8" y1="20" x2="94" y2="20"
-            stroke="${colOut}" stroke-width="${thkOut.toFixed(1)}"
-            stroke-linecap="round" class="g-wline-out"/>
-      <!-- Pfeilspitze rechts -->
-      <polygon points="96,13 112,20 96,27"
-               fill="${colOut}" class="g-warrow-out"/>
-      <!-- Wert-Label über der Linie -->
-      <text x="50" y="13" text-anchor="middle"
-            font-family="monospace" font-size="7.5"
-            fill="${colOut}" class="g-val-out">
-        → ${_fmt(valOut)}${unit}
-      </text>
+      <line x1="8" y1="22" x2="96" y2="22" stroke="${colOut}" stroke-width="${thkOut.toFixed(1)}" stroke-linecap="round" opacity="0.2"/>
+      <line x1="8" y1="22" x2="96" y2="22" stroke="${colOut}" stroke-width="${thkOut.toFixed(1)}" stroke-linecap="round"
+            stroke-dasharray="${dashLen},${gapLen}" class="g-wflow-out g-wline-out"/>
+      <polygon points="96,15 112,22 96,29" fill="${colOut}" class="g-warrow-out"/>
+      <text x="50" y="13" text-anchor="middle" font-family="monospace" font-size="7.5" fill="${colOut}" class="g-val-out g-val-bw-out">↑ ${_gesc(bwOut)}</text>
+      <text x="50" y="33" text-anchor="middle" font-family="monospace" font-size="6.5" fill="${colOut}" opacity="0.7" class="g-val-pct-out">${pctOutR}%</text>
 
       <!-- Trennlinie -->
-      <line x1="4" y1="32" x2="116" y2="32"
-            stroke="var(--border)" stroke-width="0.5" opacity="0.4"/>
+      <line x1="4" y1="36" x2="116" y2="36" stroke="var(--border)" stroke-width="0.5" opacity="0.35"/>
 
       <!-- ── EINGEHEND (←) unten ── -->
-      <!-- Linie rechts → links -->
-      <line x1="112" y1="44" x2="26" y2="44"
-            stroke="${colIn}" stroke-width="${thkIn.toFixed(1)}"
-            stroke-linecap="round" class="g-wline-in"/>
-      <!-- Pfeilspitze links -->
-      <polygon points="24,37 8,44 24,51"
-               fill="${colIn}" class="g-warrow-in"/>
-      <!-- Wert-Label unter der Linie -->
-      <text x="64" y="57" text-anchor="middle"
-            font-family="monospace" font-size="7.5"
-            fill="${colIn}" class="g-val-in">
-        ← ${_fmt(valIn)}${unit}
-      </text>
+      <line x1="112" y1="48" x2="24" y2="48" stroke="${colIn}" stroke-width="${thkIn.toFixed(1)}" stroke-linecap="round" opacity="0.2"/>
+      <line x1="112" y1="48" x2="24" y2="48" stroke="${colIn}" stroke-width="${thkIn.toFixed(1)}" stroke-linecap="round"
+            stroke-dasharray="${dashLen},${gapLen}" class="g-wflow-in g-wline-in"/>
+      <polygon points="24,41 8,48 24,55" fill="${colIn}" class="g-warrow-in"/>
+      <text x="62" y="42" text-anchor="middle" font-family="monospace" font-size="7.5" fill="${colIn}" class="g-val-in g-val-bw-in">↓ ${_gesc(bwIn)}</text>
+      <text x="62" y="62" text-anchor="middle" font-family="monospace" font-size="6.5" fill="${colIn}" opacity="0.7" class="g-val-pct-in">${pctInR}%</text>
 
     </svg>
     <div class="nv2-label">${_gesc(cfg.metric||'Flow')}</div>`;
 }
 
-function _updateWeather(el, newVal, max) {
-  // Unidirektional
-  const pct   = _pct(newVal, 0, max || 1000);
-  const col   = _color(pct);
-  const thick = Math.min(8, Math.max(1.5, pct / 12));
-  el.querySelector('.g-wline')  ?.setAttribute('stroke',       col);
-  el.querySelector('.g-wline')  ?.setAttribute('stroke-width', thick.toFixed(1));
-  el.querySelector('.g-warrow') ?.setAttribute('fill',         col);
-  const v = el.querySelector('.g-val');
-  if (v) v.textContent = `${_fmt(newVal)}`;
-  // Bidirektional
-  const vOut = el.querySelector('.g-val-out');
-  if (vOut) vOut.textContent = `↑ ${_fmt(newVal)}`;
+function _updateWeather(el, newVal, max, cfg) {
+  const svg = el.querySelector('svg');
+  if (!svg) return;
+  const isBoth = !!svg.querySelector('.g-wline-out');
+  const _max   = max || 1000;
+  const unit   = cfg?.unit || '';
+
+  if (isBoth) {
+    // Bidirektional: newVal = value_out, cfg.value_in für Gegenseite
+    const valOut = newVal ?? 0;
+    const valIn  = cfg?.value_in ?? 0;
+    const pctOut = _pct(valOut, 0, _max), colOut = _color(pctOut);
+    const pctIn  = _pct(valIn,  0, _max), colIn  = _color(pctIn);
+    const thkOut = Math.min(7, Math.max(1.5, pctOut / 14));
+    const thkIn  = Math.min(7, Math.max(1.5, pctIn  / 14));
+
+    for (const cls of ['.g-wline-out', '.g-wflow-out']) {
+      const ln = svg.querySelector(cls);
+      if (ln) { ln.setAttribute('stroke', colOut); ln.setAttribute('stroke-width', thkOut.toFixed(1)); }
+    }
+    svg.querySelector('.g-warrow-out')  ?.setAttribute('fill',  colOut);
+    svg.querySelector('.g-val-bw-out')  && (svg.querySelector('.g-val-bw-out').textContent  = `↑ ${_fmtBw(valOut, unit)}`);
+    svg.querySelector('.g-val-pct-out') && (svg.querySelector('.g-val-pct-out').textContent = `${Math.round(pctOut)}%`);
+    for (const cls of ['.g-wline-in', '.g-wflow-in']) {
+      const ln = svg.querySelector(cls);
+      if (ln) { ln.setAttribute('stroke', colIn); ln.setAttribute('stroke-width', thkIn.toFixed(1)); }
+    }
+    svg.querySelector('.g-warrow-in')   ?.setAttribute('fill',  colIn);
+    svg.querySelector('.g-val-bw-in')   && (svg.querySelector('.g-val-bw-in').textContent   = `↓ ${_fmtBw(valIn,  unit)}`);
+    svg.querySelector('.g-val-pct-in')  && (svg.querySelector('.g-val-pct-in').textContent  = `${Math.round(pctIn)}%`);
+  } else {
+    // Unidirektional
+    const pct   = _pct(newVal, 0, _max);
+    const col   = _color(pct);
+    const thick = Math.min(8, Math.max(1.5, pct / 12));
+    for (const cls of ['.g-wline', '.g-wflow']) {
+      const ln = svg.querySelector(cls);
+      if (ln) { ln.setAttribute('stroke', col); ln.setAttribute('stroke-width', thick.toFixed(1)); }
+    }
+    svg.querySelector('.g-warrow')   ?.setAttribute('fill', col);
+    svg.querySelector('.g-val-bw')   && (svg.querySelector('.g-val-bw').textContent   = _fmtBw(newVal, unit));
+    svg.querySelector('.g-val-pct')  && (svg.querySelector('.g-val-pct').textContent  = `${Math.round(pct)}%`);
+  }
 }
 
 
@@ -481,6 +517,31 @@ function _fmt(v) {
   const n = parseFloat(v);
   if (isNaN(n)) return '–';
   return n % 1 === 0 ? String(n) : n.toFixed(1);
+}
+
+/**
+ * Bandbreite human-readable formatieren.
+ * Erkennt Einheiten: bit/s, Bit/s, bps, B/s, Byte/s, Mbps, Gbps, …
+ * Gibt immer eine kompakte Darstellung zurück: "1.2 Gbit/s", "850 Mbit/s", "320 kbit/s"
+ */
+function _fmtBw(val, unit) {
+  const n = parseFloat(val);
+  if (isNaN(n)) return '–';
+  const u = (unit || '').toLowerCase().replace(/\s/g, '');
+  // Faktor zu bit/s normalisieren
+  let bits = n;
+  if      (u.startsWith('gbit') || u === 'gbps' || u === 'gib/s') bits = n * 1e9;
+  else if (u.startsWith('mbit') || u === 'mbps' || u === 'mib/s') bits = n * 1e6;
+  else if (u.startsWith('kbit') || u === 'kbps' || u === 'kib/s') bits = n * 1e3;
+  else if (u.startsWith('byte') || u === 'b/s')                    bits = n * 8;
+  else if (u.startsWith('mbyte')|| u === 'mb/s')                   bits = n * 8e6;
+  else if (u.startsWith('gbyte')|| u === 'gb/s')                   bits = n * 8e9;
+  // sonst: Wert schon in bit/s (bps, bit/s) oder unbekannte Einheit → direkt verwenden
+
+  if (bits >= 1e9)       return `${(bits / 1e9).toFixed(bits >= 100e9 ? 0 : 1)} Gbit/s`;
+  if (bits >= 1e6)       return `${(bits / 1e6).toFixed(bits >= 100e6 ? 0 : 1)} Mbit/s`;
+  if (bits >= 1e3)       return `${(bits / 1e3).toFixed(bits >= 100e3 ? 0 : 1)} kbit/s`;
+  return `${Math.round(bits)} bit/s`;
 }
 
 function _gesc(s) {
