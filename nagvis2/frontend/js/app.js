@@ -59,6 +59,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   await detectDemoMode();
   await loadMaps();
 
+  // Backend-Liste laden (für Checkmk-Links im Kontextmenü)
+  api('/api/backends').then(list => {
+    if (Array.isArray(list)) window.backendList = list;
+  }).catch(() => {});
+
   // ── URL-Routing: Hash beim Start auswerten ──────────────────────────
   _routeFromHash();
 

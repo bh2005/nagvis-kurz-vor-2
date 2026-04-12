@@ -122,3 +122,16 @@
 | ~~F7~~ | ~~**DRAW.io Import**~~ ✅ | `.drawio`/`.xml`-Dateien als Map-Grundlage importieren; Shapes zu NagVis-Objekten mappen | Mittel |
 | F8 | **Visualisierung von BI (Business Intelligence)** | BI-Aggregationen aus Checkmk als eigenen Node-Typ; Status via Checkmk BI REST API | Mittel |
 | F9 | **3D Maps** | Räumliche Darstellung (z.B. Über- und Untertage im Bergbau); Godot-Engine als Renderer-Backend oder WebGL-Szene | Sehr hoch |
+
+---
+
+## NagVis3D Integration (integration-nv2)
+
+| # | Aufgabe | Details | Aufwand |
+|---|---------|---------|---------|
+| 3D-1 | **Add-Hosts-UI** | Dialog zum Hinzufügen / Entfernen von Hosts aus der 3D-Szene; Suche über NagVis2-Host-Liste (`GET /api/v1/hosts`); Zuweisung zu Floor + Node-Typ; Speichern via `POST /api/3d/{model_id}/mapping` | 3–4 Tage |
+| 3D-2 | **ACK aus 3D-Ansicht** | Rechtsklick-Kontextmenü auf 3D-Node → ACK-Dialog (Pflichtfeld Grund); `POST /api/v1/hosts/{host}/ack`; Node-Badge zeigt ✔ nach Bestätigung | 2–3 Tage |
+| 3D-3 | **Downtime aus 3D-Ansicht** | Rechtsklick → Downtime-Dialog (Start/Ende/Grund); `POST /api/v1/hosts/{host}/downtime`; Node zeigt 🔧-Overlay während Downtime | 2–3 Tage |
+| 3D-4 | **Link zur Datenquelle (Checkmk)** | „In Checkmk öffnen"-Eintrag im Kontextmenü; URL aus Backend-Konfiguration bauen (`checkmk_url/{site}/...`); öffnet neuen Tab | 1–2 Tage |
+| 3D-5 | **Reschedule Check** | Sofortiger Re-Check via `POST /api/v1/hosts/{host}/reschedule`; visuelles Feedback (Spinner am Node) | 1 Tag |
+| 3D-6 | **Service-Liste im Inspector** | Aufklapper zeigt alle Services des Hosts mit Status-Badge; Klick auf Service öffnet Checkmk-Link | 2–3 Tage |

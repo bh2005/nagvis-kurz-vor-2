@@ -2267,6 +2267,32 @@ window.openAcknowledgeDlg   = openAcknowledgeDlg;
 window.openDowntimeDlg      = openDowntimeDlg;
 window.openActionConfigDlg  = openActionConfigDlg;
 
+/**
+ * Baut die Checkmk-UI-URL für einen Host oder Service.
+ * Gibt null zurück wenn kein Checkmk-Backend für diesen Node konfiguriert ist.
+ */
+function _checkmkViewUrl(obj) {
+  const backendId = obj.backend_id || el?.dataset?.backendId || '';
+  // Backend aus gecachter Liste holen – backendList wird in app.js geladen
+  const backends = window.backendList ?? [];
+  const backend  = backendId
+    ? backends.find(b => b.backend_id === backendId && b.type === 'checkmk')
+    : backends.find(b => b.type === 'checkmk');
+  if (!backend) return null;
+
+  // address = "http://host/site/check_mk/api/1.0"
+  // → UI-Base: alles bis einschl. /check_mk (strip /api/1.0)
+  const uiBase = (backend.address || '').replace(/\/api\/[^/]+\/?$/, '');
+  if (!uiBase) return null;
+
+  const hostname = obj.type === 'service' ? (obj.host_name || '') : (obj.name || '');
+  if (obj.type === 'service') {
+    const svc = obj.name || '';
+    return `${uiBase}/view.py?view_name=service&host=${encodeURIComponent(hostname)}&service=${encodeURIComponent(svc)}`;
+  }
+  return `${uiBase}/view.py?view_name=hoststatus&host=${encodeURIComponent(hostname)}`;
+}
+
 function showNodeContextMenu(e, el, obj) {
   closeContextMenu();
 
@@ -2322,10 +2348,13 @@ function showNodeContextMenu(e, el, obj) {
   menu.style.left = `${e.clientX}px`; menu.style.top = `${e.clientY}px`;
   const isTextbox = obj.type === 'textbox', isGadget = obj.type === 'gadget';
   const isMonitoring = ['host','service','hostgroup','servicegroup','map'].includes(obj.type);
+  const isHostSvc    = obj.type === 'host' || obj.type === 'service';
+  const cmkUrl       = isHostSvc ? _checkmkViewUrl(obj) : null;
   const items = [
     { label:'✏ Text bearbeiten',      action:() => openTextboxDialog(el, obj),           hide:!isTextbox },
     { label:'⚙ Gadget konfigurieren', action:() => openGadgetConfigDialog(el, obj),       hide:!isGadget },
     { label:'⚙ Eigenschaften',        action:() => openNodePropsDialog(el, obj),          hide:!isMonitoring },
+    { label:'🔗 In Checkmk öffnen',   action:() => window.open(cmkUrl, '_blank'),         hide:!cmkUrl },
     { label:'⤢ Größe ändern',        action:() => openResizeDialog(el, obj),             hide:isTextbox || isGadget },
     { label:'🖼 Iconset wechseln',    action:() => openIconsetDialog(el, obj),            hide:!isMonitoring },
     { label:'◫ Layer zuweisen',       action:() => openLayerDialog(el, obj) },
