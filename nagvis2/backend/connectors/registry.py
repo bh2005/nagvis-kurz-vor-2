@@ -65,6 +65,10 @@ class UnifiedRegistry:
     # ── Persistenz ───────────────────────────────────────────────────────
 
     def _load(self):
+        from core.config import settings
+        if settings.DEMO_MODE:
+            log.info("Demo-Modus aktiv – backends.json wird nicht geladen")
+            return
         if not self._path.exists():
             log.info("backends.json nicht gefunden – starte ohne Backends")
             return
