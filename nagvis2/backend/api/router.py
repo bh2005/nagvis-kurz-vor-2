@@ -203,6 +203,15 @@ async def get_changelog():
 
 @api_router.get("/health")
 async def health():
+    if settings.DEMO_MODE:
+        return {
+            "status":      "ok",
+            "environment": settings.ENVIRONMENT,
+            "demo_mode":   True,
+            "livestatus":  {"connected": False},
+            "backends":    [],
+            "version":     "2.0-beta",
+        }
     ls = await livestatus.check_connection()
     backends = registry.list_backends()
     backend_health = await registry.health()
@@ -214,7 +223,7 @@ async def health():
     return {
         "status":      "ok",
         "environment": settings.ENVIRONMENT,
-        "demo_mode":   settings.DEMO_MODE or (not ls["connected"] and not backends),
+        "demo_mode":   not ls["connected"] and not backends,
         "livestatus":  ls,
         "backends":    backends_with_status,
         "version":     "2.0-beta",
