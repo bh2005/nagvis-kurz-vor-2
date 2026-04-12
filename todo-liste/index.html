@@ -748,6 +748,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#nagvis3d-integration-integration-nv2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        NagVis3D Integration (integration-nv2)
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -930,6 +941,56 @@
 <td><strong>3D Maps</strong></td>
 <td>Räumliche Darstellung (z.B. Über- und Untertage im Bergbau); Godot-Engine als Renderer-Backend oder WebGL-Szene</td>
 <td>Sehr hoch</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="nagvis3d-integration-integration-nv2">NagVis3D Integration (integration-nv2)</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Aufgabe</th>
+<th>Details</th>
+<th>Aufwand</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>3D-1</td>
+<td><strong>Add-Hosts-UI</strong></td>
+<td>Dialog zum Hinzufügen / Entfernen von Hosts aus der 3D-Szene; Suche über NagVis2-Host-Liste (<code>GET /api/v1/hosts</code>); Zuweisung zu Floor + Node-Typ; Speichern via <code>POST /api/3d/{model_id}/mapping</code></td>
+<td>3–4 Tage</td>
+</tr>
+<tr>
+<td>3D-2</td>
+<td><strong>ACK aus 3D-Ansicht</strong></td>
+<td>Rechtsklick-Kontextmenü auf 3D-Node → ACK-Dialog (Pflichtfeld Grund); <code>POST /api/v1/hosts/{host}/ack</code>; Node-Badge zeigt ✔ nach Bestätigung</td>
+<td>2–3 Tage</td>
+</tr>
+<tr>
+<td>3D-3</td>
+<td><strong>Downtime aus 3D-Ansicht</strong></td>
+<td>Rechtsklick → Downtime-Dialog (Start/Ende/Grund); <code>POST /api/v1/hosts/{host}/downtime</code>; Node zeigt 🔧-Overlay während Downtime</td>
+<td>2–3 Tage</td>
+</tr>
+<tr>
+<td>3D-4</td>
+<td><strong>Link zur Datenquelle (Checkmk)</strong></td>
+<td>„In Checkmk öffnen"-Eintrag im Kontextmenü; URL aus Backend-Konfiguration bauen (<code>checkmk_url/{site}/...</code>); öffnet neuen Tab</td>
+<td>1–2 Tage</td>
+</tr>
+<tr>
+<td>3D-5</td>
+<td><strong>Reschedule Check</strong></td>
+<td>Sofortiger Re-Check via <code>POST /api/v1/hosts/{host}/reschedule</code>; visuelles Feedback (Spinner am Node)</td>
+<td>1 Tag</td>
+</tr>
+<tr>
+<td>3D-6</td>
+<td><strong>Service-Liste im Inspector</strong></td>
+<td>Aufklapper zeigt alle Services des Hosts mit Status-Badge; Klick auf Service öffnet Checkmk-Link</td>
+<td>2–3 Tage</td>
 </tr>
 </tbody>
 </table>
