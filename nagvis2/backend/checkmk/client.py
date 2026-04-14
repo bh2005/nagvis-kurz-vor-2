@@ -67,12 +67,16 @@ def _parse_svc_state(val) -> int:
 
 def _to_perf_str(val) -> str:
     """Stellt sicher, dass perf_data immer ein String ist.
-    Checkmk REST API kann performance_data als Dict oder String liefern."""
+    Checkmk REST API kann performance_data als String oder Liste von Strings liefern."""
     if val is None:
         return ""
     if isinstance(val, str):
         return val
-    return ""   # Dict/Liste → leer; parse_perfdata kann das nicht verwenden
+    if isinstance(val, list):
+        # Liste von Strings: ["rta=1.234ms;3000;5000;0;", "pl=0%;80;100;0;"]
+        parts = [str(item) for item in val if item]
+        return " ".join(parts)
+    return ""
 
 
 def _parse_timestamp(val) -> int:
@@ -183,7 +187,7 @@ class CheckmkClient:
             labels = {str(k).lower(): str(v) for k, v in raw_labels.items()}
             result.append(HostStatus(
                 name              = name,
-                alias             = ext.get("alias", name),
+                alias             = ext.get("alias") or name,
                 state             = state,
                 state_label       = HOST_STATE_LABEL.get(state, "PENDING"),
                 plugin_output     = ext.get("output") or ext.get("plugin_output", ""),
@@ -361,6 +365,35 @@ class CheckmkClient:
             return True
         except Exception as e:
             log.error("schedule_service_downtime failed [%s]: %s", self.cfg.backend_id, e)
+            return False
+
+    async def remove_host_downtime(self, host_name: str) -> bool:
+        """Löscht aktive Host-Downtimes via Checkmk REST API."""
+        try:
+            await self._post("/domain-types/downtime/actions/delete/invoke", {
+                "delete_type": "params",
+                "host_name":   host_name,
+            })
+            return True
+        except Exception as e:
+            log.error("remove_host_downtime failed [%s]: %s", self.cfg.backend_id, e)
+            return False
+
+    async def remove_service_downtime(
+        self,
+        host_name:           str,
+        service_description: str,
+    ) -> bool:
+        """Löscht aktive Service-Downtimes via Checkmk REST API."""
+        try:
+            await self._post("/domain-types/downtime/actions/delete/invoke", {
+                "delete_type":         "params",
+                "host_name":           host_name,
+                "service_description": service_description,
+            })
+            return True
+        except Exception as e:
+            log.error("remove_service_downtime failed [%s]: %s", self.cfg.backend_id, e)
             return False
 
     async def reschedule_host_check(self, host_name: str) -> bool:

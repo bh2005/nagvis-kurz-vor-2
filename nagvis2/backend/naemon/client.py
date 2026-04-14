@@ -328,6 +328,18 @@ class NaemonClient:
             log.error("Naemon reschedule_host_check '%s' fehlgeschlagen: %s", host_name, e)
             return False
 
+    async def remove_host_downtime(self, host_name: str) -> bool:
+        if self._ls:
+            return await self._ls.remove_host_downtime(host_name)
+        log.info("[naemon] remove_host_downtime: REST-Implementierung fehlt noch")
+        return False
+
+    async def remove_service_downtime(self, host_name: str, service_description: str) -> bool:
+        if self._ls:
+            return await self._ls.remove_service_downtime(host_name, service_description)
+        log.info("[naemon] remove_service_downtime: REST-Implementierung fehlt noch")
+        return False
+
     # ── Ping / Health ────────────────────────────────────────────────────
 
     async def ping(self) -> BackendHealth:

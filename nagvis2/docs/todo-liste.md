@@ -1,6 +1,6 @@
 # NagVis 2 – Todo-Liste
 
-> Stand: 2026-04-08
+> Stand: 2026-04-14
 
 ---
 
@@ -11,11 +11,24 @@
 - [x] **`.nv2-type-pill` Kontrast** — `styles.css` auf `--text-dim-surf` umgestellt (WCAG AA ✓)
 - [x] **Zoom-Reset-Button** — `disabled` im HTML ist korrekt (Initialzustand); `zoom_pan.js:52` aktiviert den Button dynamisch beim Zoomen/Pannen; Click-Listener vorhanden (`zoom_pan.js:221`)
 - [x] **Browser-Notifikationen** — `new Notification()` wird in `ws-client.js:180` aufgerufen; `requestPermission()` in `ui-core.js:325` vorhanden — vollständig implementiert
+- [x] **`+`-Button in Übersichtskarte** — doppelte `id="btn-new-map"` verhinderte Karten-Erstellung aus der Übersicht; ID in `ov-btn-new-map` umbenannt
+- [x] **Service-Dropdown leer beim Platzieren** — `serviceCache` wurde nicht ans Platzierungs-Formular gebunden; input-Listener für `dlg-svc-host` und `dlg-svc-name` ergänzt
+- [x] **Gadget-Werte nicht angezeigt (Checkmk)** — Checkmk REST API liefert Perfdata als Array; `_to_perf_str()` gab `""` zurück; fix: Array-Elemente mit Leerzeichen verbinden
+- [x] **`$HOSTALIAS$` nicht aufgelöst** — Makros funktionierten nur im Label-Template-Feld, nicht im Label-Feld; `_nodeLabel` und `_applyLabelTemplate` erweitert
+- [x] **Service-Anzahl im Tooltip immer 0** — Checkmk REST API liefert `num_services_*` in Hosts-Collection nicht; fix: Live-Zählung aus `hostCache`
+- [x] **„undefined" in Host/Problem-Panel** — `Object.values(hostCache)` enthält Services ohne `name`; fix: Panels filtern nach `type`
+- [x] **Kontextmenü-Aktionen fehlen** — `h` war `null` durch direkten `hostCache`-Lookup; fix: `_resolveStatus` verwenden; `_actionConfig.enabled` Migration für alte localStorage-Stände
+- [x] **`backend_id` vs. `_backend_id`** — `applyStatuses` befüllte `backendStatusCache` nie (falscher Feldname); fix: `h.backend_id || h._backend_id`
 
 ---
 
 ## UX / Frontend
 
+- [x] **Live-Perfdata in Tooltips** — Gadgets und Service-Objekte zeigen Live-Werte aus `perfdataCache`; alle Metriken mit Warn/Crit-Farbcodierung; aktive Metrik fett hervorgehoben
+- [x] **Service-Objekte mit `perf_label`** — Perfdata-Metrik pro Service-Objekt konfigurierbar; Live-Wert im Node-Label; Autocomplete für Service + Metrik; `$PERFVALUE$`-Macro
+- [x] **Eigenschaften im View-Mode** — „⚙ Eigenschaften" im Rechtsklick-Menü für Rolle `editor`/`admin`
+- [x] **Probleme-Panel zeigt auch Services** — nicht nur Host-Probleme, sondern auch Service-Probleme werden angezeigt
+- [x] **„Im Monitoring öffnen" automatische URL** — Checkmk: URL aus API-Base-URL abgeleitet; Fallback auf globale URL; ohne Konfig → Konfig-Dialog öffnet sich
 - [x] Multi-Select: mehrere Nodes gleichzeitig auswählen und verschieben (Shift+Klick oder Lasso)
 - [x] Multi-Select: Delete/Backspace zum Löschen aller ausgewählten Nodes
 - [x] Multi-Select: Escape hebt Selektion auf

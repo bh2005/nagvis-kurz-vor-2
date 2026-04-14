@@ -15,6 +15,8 @@ Vollständige Liste aller implementierten Features, geordnet nach Bereich.
 | Heartbeat | Regelmäßige Lebenszeichen-Nachricht wenn keine Statusänderungen vorliegen |
 | Status-Badge | Farbcodiertes Badge (UP/DOWN/CRITICAL/WARNING/UNKNOWN/UNREACHABLE) auf jedem Node |
 | ACK / Downtime | Visuelle Kennzeichnung (gedimmt + Symbol) für bestätigte Probleme und Wartungsfenster |
+| Live-Tooltips | Mouseover zeigt Status, Plugin-Ausgabe, Service-Anzahl (Live-Zählung), Perfdata-Metriken mit Warn/Crit-Farbcodierung |
+| Probleme-Panel | Zeigt Host- UND Service-Probleme in Echtzeit |
 
 ---
 
@@ -67,6 +69,8 @@ Vollständige Liste aller implementierten Features, geordnet nach Bereich.
 
 - **Host / Service / Hostgruppe / Servicegruppe** — Statusanzeige mit farbigen Icons, Badge, Tooltip
 - **Map (nested)** — referenziert eine andere Map; zeigt schlechtesten Status der Ziel-Map
+- **Service `perf_label`** — Service-Objekte können eine Perfdata-Metrik konfigurieren; Live-Wert wird automatisch im Node-Label angezeigt (`"Label: 1.234ms"`)
+- **`$PERFVALUE$`-Macro** — Label-Template-Macro gibt den Live-Wert der konfigurierten Metrik zurück
 
 ### Visuelle Elemente
 
@@ -91,6 +95,7 @@ Alle Gadgets:
 - Datenquelle: Live-Perfdata (Monitoring-Host + Service + Perfdata-Metrik) oder statischer Demo-Wert
 - Backend pro Gadget wählbar
 - Live-Vorschau im Konfigurations-Dialog
+- **Live-Tooltip**: Mouseover zeigt aktuellen Wert aus `perfdataCache`, alle Metriken des Services, Service-Status und Plugin-Ausgabe
 
 **Graph-Gadget** zusätzlich:
 - Einbettung via `<iframe>` (Standard) oder `<img>` (für PNG-Render-APIs)
@@ -105,15 +110,25 @@ Rechtsklick auf einen Monitoring-Node öffnet ein Aktionsmenü:
 
 | Aktion | Beschreibung |
 |---|---|
-| ✔ Problem bestätigen | ACK mit Kommentar, sticky, Benachrichtigung |
-| ✖ Bestätigung aufheben | Remove-ACK |
+| 🔍 Im Monitoring öffnen | Öffnet Host/Service direkt in der Monitoring-UI; URL wird automatisch pro Backend abgeleitet (Checkmk: aus API-URL; Fallback: globale URL) |
+| ✔ Problem bestätigen | ACK mit Kommentar, sticky, Benachrichtigung (nur bei Problem-Zustand) |
+| ✖ Bestätigung aufheben | Remove-ACK (nur wenn bereits ACK gesetzt) |
 | 🔧 Wartung einplanen | Downtime mit Start-/Endzeit und Kommentar |
+| 🔧 Wartung aufheben | Remove-Downtime (nur wenn Downtime aktiv) |
 | ↻ Check erzwingen | Reschedule-Check |
-| 🔍 Im Monitoring öffnen | Öffnet den Host/Service in der Monitoring-UI |
 | 🖥 SSH / 🌐 HTTP / 🔒 HTTPS | Direkte Verbindung zum Host |
 | 📊 Grafana öffnen | Grafana-Dashboard per konfigurierter URL |
+| ⚙ Eigenschaften | Öffnet Eigenschaften-Dialog (nur für Rolle `editor`/`admin`) |
 
 Aktionen konfigurierbar: Burger-Menü → ⚡ Aktionen konfigurieren
+
+**„Im Monitoring öffnen" — URL-Ableitung pro Backend:**
+
+| Backend | URL-Quelle |
+|---|---|
+| Checkmk REST API | Automatisch aus API-Base-URL: `{site_base}/index.py?...` (Host) bzw. `{site_base}/view.py?...` (Service) |
+| Andere Backends | Globale `monitoring_url` aus Aktions-Konfig |
+| Nicht konfiguriert | Aktions-Konfig-Dialog öffnet sich automatisch |
 
 ---
 
@@ -193,7 +208,7 @@ Aktionen konfigurierbar: Burger-Menü → ⚡ Aktionen konfigurieren
 | Zoom/Pan | CSS-Transform-basiert; funktioniert mit allen Node-Typen inkl. SVG-Linien |
 | Offline-Modus | Demo-Mode läuft vollständig im Browser (localStorage-basiert) |
 | Browser-Benachrichtigungen | Bei CRITICAL/DOWN — Web-Push-API + Hinweiston (Web Audio API) |
-| Label-Templates | Nagios-Macros (`$HOSTNAME$` etc.) + Monitoring-Labels in Node-Beschriftungen |
+| Label-Templates | Nagios-Macros (`$HOSTNAME$`, `$HOSTALIAS$`, `$HOSTSTATE$`, `$PERFVALUE$` etc.) + Monitoring-Labels in Node-Beschriftungen; funktionieren auch im regulären Label-Feld |
 | **Mehrsprachigkeit (i18n)** | `window.t(key, vars)` — Schlüssel-basierte Übersetzung mit `{var}`-Interpolation; DE + EN eingebaut; beliebige Sprachen per JSON-Lang-Pack-Import erweiterbar; `data-i18n`-Attribute im DOM; localStorage-Cache für blitzschnellen Warm-Start ohne Flash |
 
 ---

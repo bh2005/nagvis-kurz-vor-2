@@ -433,6 +433,27 @@ class UnifiedRegistry:
         results = await asyncio.gather(*[_one(c) for c in self._clients.values()])
         return any(results)
 
+    async def remove_downtime(
+        self,
+        host_name:    str,
+        service_name: str | None = None,
+    ) -> bool:
+        """Löscht aktive Downtimes – True wenn mindestens ein Backend erfolgreich."""
+        async def _one(client: AnyClient) -> bool:
+            try:
+                if service_name:
+                    return await client.remove_service_downtime(host_name, service_name)
+                return await client.remove_host_downtime(host_name)
+            except Exception as e:
+                log.error("remove_downtime failed on %s: %s",
+                          getattr(getattr(client, "cfg", None), "backend_id", "?"), e)
+                return False
+
+        if self.is_empty():
+            return False
+        results = await asyncio.gather(*[_one(c) for c in self._clients.values()])
+        return any(results)
+
     async def acknowledge_host(
         self,
         host_name: str,

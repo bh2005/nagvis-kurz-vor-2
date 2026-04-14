@@ -105,5 +105,11 @@ class DemoClient:
     ) -> bool:
         return True
 
+    async def remove_host_downtime(self, host_name: str) -> bool:
+        return True
+
+    async def remove_service_downtime(self, host_name: str, service_description: str) -> bool:
+        return True
+
     async def reschedule_host_check(self, host_name: str) -> bool:
         return True

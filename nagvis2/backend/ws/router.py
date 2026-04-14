@@ -21,8 +21,9 @@ ws_router = APIRouter()
 async def ws_map(websocket: WebSocket, map_id: str):
     client_id = str(uuid.uuid4())
 
-    # Verbindung im Manager registrieren (accept() wird dort aufgerufen)
-    await manager.connect(websocket, client_id, map_id)
+    # WebSocket-Handshake akzeptieren, dann im Manager registrieren
+    await websocket.accept()
+    manager.connect(map_id, websocket)
 
     # Poller starten falls noch nicht laufend
     start_poller()
@@ -84,4 +85,4 @@ async def ws_map(websocket: WebSocket, map_id: str):
     except Exception:
         pass
     finally:
-        await manager.disconnect(client_id)
+        manager.disconnect(map_id, websocket)

@@ -13,14 +13,14 @@ Eine komplette Neuentwicklung von NagVis mit FastAPI-Backend, WebSocket-Livestat
 | **Echtzeit-Updates** | WebSocket-Livestatus, automatischer Reconnect, Offline-Banner |
 | **Edit-Mode** | Drag & Drop, Multi-Select, Gruppen-Drag, Layer-System, **Undo/Redo**, **Copy/Paste/Duplicate**, **Align & Distribute**, **Smart Guides** |
 | **Map-Duplikat** | Map klonen inkl. aller Objekte + Hintergrundbild |
-| **Label-Templates** | Nagios-Macros (`$HOSTNAME$`, `$HOSTSTATE$`) + Checkmk-Labels als Node-Beschriftung |
+| **Label-Templates** | Nagios-Macros (`$HOSTNAME$`, `$HOSTALIAS$`, `$HOSTSTATE$`, `$PERFVALUE$`) + Checkmk-Labels; funktionieren in Template- und Label-Feld |
 | **Gadgets** | Radial, Linear (H/V), Sparkline, Thermometer, Flow/Weather, Raw-Number, **Graph/iframe** |
 | **Graph-Gadget** | Grafana-Panels, Checkmk-Graphen oder beliebige URLs per `<iframe>` / `<img>` einbetten |
-| **Perfdata** | Nagios/Checkmk Performance-Daten automatisch in Gadgets eingespeist |
+| **Perfdata** | Nagios/Checkmk Performance-Daten automatisch in Gadgets + Service-Objekten; Live-Werte im Tooltip und Node-Label |
 | **Weathermap-Linien** | Statusfarbe, Bandbreiten-Labels, bidirektionale Pfeile |
 | **Multi-Backend** | Livestatus, Checkmk REST API, Icinga2 REST API, **Naemon** (Livestatus/REST), Zabbix JSON-RPC, Prometheus / VictoriaMetrics, **SolarWinds Orion** (SWIS) |
 | **draw.io Import** | `.drawio`/`.xml`-Diagramme direkt als Map importieren |
-| **Authentifizierung** | JWT (7 Tage), Auto-Refresh, Login-Overlay, Rollen (viewer/editor/admin) |
+| **Authentifizierung** | JWT (30 Tage), Auto-Refresh, Login-Overlay, Rollen (viewer/editor/admin) |
 | **Benutzerverwaltung** | Lokale Benutzer, LDAP/AD, Checkmk-Auth-Kette; Admin-UI im Browser |
 | **Audit-Log** | Wer hat was wann geändert (JSONL, Rotation, Download) |
 | **Kiosk-Modus** | Token-URL, automatische Map-Rotation, Vollbild mit Zoom/Pan |

@@ -119,10 +119,10 @@ function updateTopbarPills(hosts) {
 //  HOSTS SNAP-IN
 // ═══════════════════════════════════════════════════════════════════════
 
-function renderProblemsPanel(hosts) {
+function renderProblemsPanel(items) {
   const body = document.getElementById('body-problems');
   if (!body) return;
-  const problems = hosts.filter(h => {
+  const problems = items.filter(h => {
     const l = h.state_label;
     return l !== 'UP' && l !== 'OK';
   }).sort((a, b) => b.state - a.state);
@@ -135,10 +135,16 @@ function renderProblemsPanel(hosts) {
   }
   body.innerHTML = problems.map(h => {
     const c = STATE_CHIP[h.state_label] ?? 'unkn';
-    return `<div class="host-row" data-host="${esc(h.name)}">
+    // Hosts haben .name, Services haben .host_name + .description
+    const isService = h.type === 'service';
+    const displayName = isService
+      ? `${esc(h.host_name)} / ${esc(h.description)}`
+      : esc(h.name ?? h.host_name ?? '–');
+    const focusKey = isService ? `${h.host_name}::${h.description}` : (h.name ?? '');
+    return `<div class="host-row" data-host="${esc(focusKey)}">
       <div class="hr-pip ${c}"></div>
       <div class="hr-body">
-        <div class="hr-name">${esc(h.name)}</div>
+        <div class="hr-name">${displayName}</div>
         <div class="hr-out">${esc((h.output ?? '–').substring(0, 55))}</div>
       </div>
       <div class="hr-tag ${c}">${h.state_label}</div>

@@ -14,16 +14,18 @@ services:
       # Persistente Daten (Maps, Hintergründe, Kiosk-User)
       # Pfad muss mit WORKDIR /app/backend übereinstimmen (BASE_DIR/data)
       - nagvis2-data:/app/backend/data
+      # Livestatus Unix-Socket vom monitoring-Container
+      - cmk-tmp:/livestatus:ro
     environment:
       ENVIRONMENT: production
       DEBUG: "false"
       DEMO_MODE: "false"
-      # Livestatus – eine der folgenden Optionen:
-      LIVESTATUS_TYPE: auto        # auto | tcp | unix | disabled
-      LIVESTATUS_HOST: localhost   # für tcp
-      LIVESTATUS_PORT: "6557"      # für tcp
-      LIVESTATUS_PATH: /var/run/nagios/live  # für unix
-      LIVESTATUS_SITE: ""          # OMD-Site-Name (leer = alle probieren)
+      # Livestatus – Unix-Socket direkt (zuverlässiger als TCP via liveproxyd)
+      LIVESTATUS_TYPE: unix
+      LIVESTATUS_HOST: host.docker.internal
+      LIVESTATUS_PORT: "6557"
+      LIVESTATUS_PATH: /livestatus/run/live
+      LIVESTATUS_SITE: ""
       # WebSocket-Polling
       WS_POLL_INTERVAL: "10"
       # CORS (komma-getrennt)
@@ -36,6 +38,8 @@ services:
 
 volumes:
   nagvis2-data:
+  cmk-tmp:
+    external: true
 
 networks:
   nagvis2-net:

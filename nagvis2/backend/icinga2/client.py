@@ -332,6 +332,14 @@ class Icinga2Client:
             "fixed":      True,
         })
 
+    async def remove_host_downtime(self, host_name: str) -> bool:
+        log.info("[%s] remove_host_downtime: nicht implementiert für Icinga2", self.cfg.backend_id)
+        return False
+
+    async def remove_service_downtime(self, host_name: str, service_description: str) -> bool:
+        log.info("[%s] remove_service_downtime: nicht implementiert für Icinga2", self.cfg.backend_id)
+        return False
+
     async def reschedule_host_check(self, host_name: str) -> bool:
         """Alias für das einheitliche Backend-Interface."""
         return await self.reschedule_check(host_name)
