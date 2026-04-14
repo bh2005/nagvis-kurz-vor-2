@@ -126,7 +126,7 @@ Aktionen konfigurierbar: Burger-Menü → ⚡ Aktionen konfigurieren
 
 | Backend | URL-Quelle |
 |---|---|
-| Checkmk REST API | Automatisch aus API-Base-URL: `{site_base}/index.py?...` (Host) bzw. `{site_base}/view.py?...` (Service) |
+| Checkmk REST API | Automatisch aus API-Base-URL: `view.py?host=…&view_name=host` / `view.py?host=…&service=…&view_name=service` / `view.py?hostgroup=…` / `view.py?servicegroup=…` |
 | Andere Backends | Globale `monitoring_url` aus Aktions-Konfig |
 | Nicht konfiguriert | Aktions-Konfig-Dialog öffnet sich automatisch |
 
