@@ -85,6 +85,9 @@ class ObjectPosition(BaseModel):
     y2: Optional[float] = None
 
 class ObjectProps(BaseModel):
+    name: Optional[str] = None
+    host_name: Optional[str] = None
+    perf_label: Optional[str] = None
     label: Optional[str] = None
     label_template: Optional[str] = None
     show_label: Optional[bool] = None
@@ -112,6 +115,7 @@ class ObjectProps(BaseModel):
 
 class ActionRequest(BaseModel):
     action: str                        # "downtime_host" | "downtime_service" | "schedule_downtime"
+                                       # | "remove_downtime"
                                        # | "ack_host" | "ack_service" | "remove_ack" | "reschedule"
     # Canonical field names
     host_name:    str      = ""
@@ -767,6 +771,15 @@ async def api_action(body: ActionRequest):
         ok = await registry.reschedule_check(host)
         if not ok:
             ok = await livestatus.reschedule_host_check(host)
+
+    elif body.action == "remove_downtime":
+        ok = await registry.remove_downtime(host, svc if svc else None)
+        if not ok:
+            # Fallback auf direkten Livestatus
+            if svc:
+                ok = await livestatus.remove_service_downtime(host, svc)
+            else:
+                ok = await livestatus.remove_host_downtime(host)
 
     else:
         raise HTTPException(400, f"Unbekannte Aktion: {body.action}")

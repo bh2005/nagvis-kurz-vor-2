@@ -45,6 +45,16 @@ function resolveMacros(template, obj, status) {
       case 'SERVICESTATE':  return s.state_label || '';
       case 'SERVICEOUTPUT': return s.output      || '';
       case 'MAPNAME':       return window.activeMapId || '';
+      case 'PERFVALUE': {
+        const _pl  = obj.perf_label || '';
+        const _key = obj.type === 'service'
+          ? `${obj.host_name || ''}::${obj.name || ''}`
+          : obj.name || '';
+        const _pd  = perfdataCache[_key];
+        if (!_pd || !_pl) return '';
+        const _m = _pd[_pl] ?? Object.entries(_pd).find(([k]) => k.toLowerCase() === _pl.toLowerCase())?.[1];
+        return _m ? `${_m.value}${_m.unit || ''}` : '';
+      }
       default:              return match; // unbekannte Macros unveraendert lassen
     }
   });
@@ -52,8 +62,9 @@ function resolveMacros(template, obj, status) {
 
 /** Berechnet den anzuzeigenden Label-Text für einen Node. */
 function _nodeLabel(obj, status) {
-  if (obj.label_template) return resolveMacros(obj.label_template, obj, status);
-  return obj.label || obj.name || '';
+  const tmpl = obj.label_template || obj.label;
+  if (tmpl) return resolveMacros(tmpl, obj, status);
+  return obj.name || '';
 }
 
 //  NODE RENDERING
@@ -94,6 +105,7 @@ function _renderMonitoringNode(obj) {
   el.dataset.iconset       = iconset;
   el.dataset.labelTemplate = obj.label_template || '';
   el.dataset.backendId     = obj.backend_id || '';
+  el.dataset.perfLabel     = obj.perf_label  || '';
   el.style.left       = `${obj.x}%`;
   el.style.top        = `${obj.y}%`;
   el.style.setProperty('--node-size', `${size}px`);
@@ -203,7 +215,7 @@ function _renderContainer(obj) {
 
 /** Aktualisiert das Label eines Nodes wenn ein label_template gesetzt ist. */
 function _applyLabelTemplate(el, obj, status) {
-  const tmpl = el.dataset.labelTemplate || obj?.label_template;
+  const tmpl = el.dataset.labelTemplate || obj?.label_template || obj?.label;
   if (!tmpl) return;
   const labelEl = el.querySelector('.nv2-label');
   if (!labelEl) return;
@@ -229,18 +241,19 @@ function applyStatuses(hosts, services) {
   for (const h of hosts) {
     // Allgemeiner Cache (Fallback für Nodes ohne backend_id)
     hostCache[h.name] = h;
-    // Backend-spezifischer Cache
-    if (h._backend_id) {
-      if (!backendStatusCache[h._backend_id]) backendStatusCache[h._backend_id] = {};
-      backendStatusCache[h._backend_id][h.name] = h;
+    // Backend-spezifischer Cache (WS sendet backend_id, registry _backend_id – beide unterstützen)
+    const hBid = h.backend_id || h._backend_id;
+    if (hBid) {
+      if (!backendStatusCache[hBid]) backendStatusCache[hBid] = {};
+      backendStatusCache[hBid][h.name] = h;
     }
     document.querySelectorAll(`[data-name="${esc(h.name)}"]`).forEach(el => {
       const elBid = el.dataset.backendId;
       // Überspringen wenn Element einen anderen Backend-Filter hat
-      if (elBid && h._backend_id && elBid !== h._backend_id) return;
+      if (elBid && hBid && elBid !== hBid) return;
       applyNodeStatus(el, h.state_label, h.acknowledged, h.in_downtime);
-      if (el.dataset.labelTemplate) {
-        const obj = activeMapCfg?.objects?.find(o => o.object_id === el.dataset.objectId);
+      const obj = activeMapCfg?.objects?.find(o => o.object_id === el.dataset.objectId);
+      if (el.dataset.labelTemplate || (obj?.label && obj.label.includes('$'))) {
         _applyLabelTemplate(el, obj, h);
       }
     });
@@ -249,18 +262,30 @@ function applyStatuses(hosts, services) {
     const key = `${s.host_name}::${s.description}`;
     // Allgemeiner Cache
     hostCache[key] = s;
-    // Backend-spezifischer Cache
-    if (s._backend_id) {
-      if (!backendStatusCache[s._backend_id]) backendStatusCache[s._backend_id] = {};
-      backendStatusCache[s._backend_id][key] = s;
+    // Backend-spezifischer Cache (WS sendet backend_id, registry _backend_id – beide unterstützen)
+    const sBid = s.backend_id || s._backend_id;
+    if (sBid) {
+      if (!backendStatusCache[sBid]) backendStatusCache[sBid] = {};
+      backendStatusCache[sBid][key] = s;
     }
     document.querySelectorAll(`[data-name="${esc(key)}"]`).forEach(el => {
       const elBid = el.dataset.backendId;
-      if (elBid && s._backend_id && elBid !== s._backend_id) return;
+      if (elBid && sBid && elBid !== sBid) return;
       applyNodeStatus(el, s.state_label, s.acknowledged, s.in_downtime);
-      if (el.dataset.labelTemplate) {
-        const obj = activeMapCfg?.objects?.find(o => o.object_id === el.dataset.objectId);
+      const obj = activeMapCfg?.objects?.find(o => o.object_id === el.dataset.objectId);
+      if (el.dataset.labelTemplate || (obj?.label && obj.label.includes('$'))) {
         _applyLabelTemplate(el, obj, s);
+      } else if (el.dataset.perfLabel) {
+        // Kein Label-Template aber perf_label: Metrikwert an Label anhängen
+        const pl = el.dataset.perfLabel;
+        const pd = perfdataCache[key];
+        const m  = pd && (pd[pl] ?? Object.entries(pd).find(([k]) => k.toLowerCase() === pl.toLowerCase())?.[1]);
+        if (m) {
+          const labelEl = el.querySelector('.nv2-label');
+          const base    = obj?.label || obj?.name || s.description || '';
+          const text    = `${base}: ${m.value}${m.unit || ''}`;
+          if (labelEl) { labelEl.textContent = text; labelEl.title = text; }
+        }
       }
     });
     if (s.host_name && s.description) {
@@ -782,6 +807,8 @@ window._gcSave = async function(objectId) {
 
   document.getElementById('dlg-gadget-cfg')?.remove();
   setStatusBar(`Gadget „${metric}" aktualisiert`);
+  // Bereits gecachte Perfdata sofort anwenden
+  if (typeof _applyGadgetPerfdata === 'function') _applyGadgetPerfdata();
 };
 
 
@@ -1261,6 +1288,9 @@ function showLineViewContextMenu(e, obj) {
       actions.push({ label: '✖ Bestätigung aufheben', fn: () => _apiAction('remove_ack', name, null) });
     }
     actions.push({ label: '🔧 Wartung einplanen', fn: () => openDowntimeDlg({ type:'host', name }, h) });
+    if (h?.in_downtime) {
+      actions.push({ label: '🔧 Wartung aufheben', fn: () => _apiAction('remove_downtime', name, null) });
+    }
     actions.push({ label: '↻ Check jetzt erzwingen', fn: () => _apiAction('reschedule_check', name, null) });
 
     actions.forEach(({ label, fn }) => {
@@ -1628,15 +1658,24 @@ function showTooltip(el, obj) {
   tt.className = 'nv2-tooltip';
 
   if (obj.type === 'gadget') {
-    const cfg  = obj.gadget_config ?? {};
-    const val  = cfg.value ?? 0;
-    const unit = cfg.unit  ?? '';
-    const min  = cfg.min   ?? 0;
-    const max  = cfg.max   ?? 100;
-    const warn = cfg.warning  ?? 70;
-    const crit = cfg.critical ?? 90;
+    const cfg    = obj.gadget_config ?? {};
+    // Live-Wert aus perfdataCache, Fallback auf gespeicherten Wert
+    const pdKey  = cfg.host_name && cfg.service_description
+      ? `${cfg.host_name}::${cfg.service_description}` : null;
+    const pd     = pdKey ? perfdataCache[pdKey] : null;
+    const pl     = cfg.perf_label || cfg.metric || '';
+    const liveM  = pd && pl
+      ? (pd[pl] ?? Object.entries(pd).find(([k]) => k.toLowerCase() === pl.toLowerCase())?.[1] ?? Object.values(pd)[0])
+      : (pd ? Object.values(pd)[0] : null);
+    const val  = liveM?.value  ?? cfg.value  ?? 0;
+    const unit = liveM?.unit   ?? cfg.unit   ?? '';
+    const min  = liveM?.min    ?? cfg.min    ?? 0;
+    const max  = liveM?.max    ?? cfg.max    ?? 100;
+    const warn = liveM?.warn   ?? cfg.warning  ?? 70;
+    const crit = liveM?.crit   ?? cfg.critical ?? 90;
     const pct  = Math.min(100, Math.max(0, ((val - min) / ((max - min) || 1)) * 100));
     const col  = pct >= 90 ? 'crit' : pct >= 70 ? 'warn' : 'ok';
+    const svcData  = pdKey ? hostCache[pdKey] : null;
     const hostData = cfg.host_name ? hostCache[cfg.host_name] : null;
 
     let rows = `
@@ -1654,11 +1693,24 @@ function showTooltip(el, obj) {
       <div class="tt-row"><span>↑ Ausgehend</span><b>${_fmtVal(cfg.value_out ?? val)}${unit}</b></div>
       <div class="tt-row"><span>↓ Eingehend</span><b>${_fmtVal(cfg.value_in  ?? 0  )}${unit}</b></div>`;
     }
-    if (cfg.host_name)            rows += `<div class="tt-row"><span>Host</span><b>${esc(cfg.host_name)}</b></div>`;
-    if (cfg.service_description)  rows += `<div class="tt-row"><span>Service</span><b>${esc(cfg.service_description)}</b></div>`;
-    if (hostData) {
+    if (cfg.host_name)           rows += `<div class="tt-row"><span>Host</span><b>${esc(cfg.host_name)}</b></div>`;
+    if (cfg.service_description) rows += `<div class="tt-row"><span>Service</span><b>${esc(cfg.service_description)}</b></div>`;
+    if (svcData) {
+      const slbl = svcData.state_label ?? 'UNKNOWN';
+      rows += `<div class="tt-row"><span>Service-Status</span><b class="tt-${STATE_CHIP[slbl] ?? 'unkn'}">${slbl}</b></div>`;
+      if (svcData.output) rows += `<div class="tt-row"><span>Output</span><b>${esc(svcData.output.substring(0, 48))}</b></div>`;
+    } else if (hostData) {
       const lbl = hostData.state_label ?? 'UNKNOWN';
       rows += `<div class="tt-row"><span>Host-Status</span><b class="tt-${STATE_CHIP[lbl] ?? 'unkn'}">${lbl}</b></div>`;
+    }
+    // Alle Perfdata-Metriken anzeigen
+    if (pd && Object.keys(pd).length) {
+      rows += `<div class="tt-row" style="margin-top:4px;border-top:1px solid var(--border);padding-top:4px"><span style="color:var(--text-dim);font-size:10px">Perfdata</span><b></b></div>`;
+      Object.entries(pd).forEach(([k, m]) => {
+        const mCol = m.crit != null && m.value >= m.crit ? 'crit'
+                   : m.warn != null && m.value >= m.warn ? 'warn' : 'ok';
+        rows += `<div class="tt-row"><span>${esc(k)}</span><b class="tt-${mCol}">${_fmtVal(m.value)}${m.unit || ''}</b></div>`;
+      });
     }
     if (cfg.type === 'sparkline' && cfg.history?.length) {
       const hist = cfg.history;
@@ -1668,15 +1720,59 @@ function showTooltip(el, obj) {
     }
     tt.innerHTML = rows;
   } else {
-    const h     = hostCache[obj.name];
+    // Für Services: Cache-Key ist "host::service", für alles andere obj.name
+    const cacheKey = obj.type === 'service' ? `${obj.host_name}::${obj.name}` : obj.name;
+    const h     = _resolveStatus(obj.backend_id || '', cacheKey);
     const label = h?.state_label ?? 'UNKNOWN';
     const tc    = STATE_CHIP[label] ?? 'unkn';
-    tt.innerHTML = `
-      <div class="tt-name">${esc(obj.name)}</div>
+
+    let rows = `
+      <div class="tt-name">${esc(obj.type === 'service' ? obj.name : obj.name)}</div>
       <div class="tt-row"><span>Status</span><b class="tt-${tc}">${label}</b></div>
-      ${h ? `<div class="tt-row"><span>Output</span><b>${esc((h.output ?? '–').substring(0, 48))}</b></div>` : ''}
-      ${h ? `<div class="tt-row"><span>Services</span><b><span class="tt-ok">${h.services_ok ?? 0}ok</span> <span class="tt-warn">${h.services_warn ?? 0}w</span> <span class="tt-crit">${h.services_crit ?? 0}c</span></b></div>` : ''}
-      <div class="tt-row"><span>Typ</span><b>${esc(obj.type)}</b></div>`;
+      ${h ? `<div class="tt-row"><span>Output</span><b>${esc((h.output ?? '–').substring(0, 48))}</b></div>` : ''}`;
+
+    if (obj.type === 'host') {
+      // Anzahl Services live aus hostCache zählen (Checkmk REST API liefert num_services_* oft nicht)
+      let sOk = 0, sWarn = 0, sCrit = 0, sUnkn = 0;
+      const pfx = `${obj.name}::`;
+      for (const [ck, sv] of Object.entries(hostCache)) {
+        if (!ck.startsWith(pfx)) continue;
+        const sl = sv.state_label ?? 'UNKNOWN';
+        if (sl === 'OK')           sOk++;
+        else if (sl === 'WARNING') sWarn++;
+        else if (sl === 'CRITICAL') sCrit++;
+        else                       sUnkn++;
+      }
+      // Fallback auf Backend-Daten wenn Service-Cache leer
+      if (sOk + sWarn + sCrit + sUnkn === 0 && h) {
+        sOk   = h.services_ok   ?? 0;
+        sWarn = h.services_warn ?? 0;
+        sCrit = h.services_crit ?? 0;
+        sUnkn = h.services_unkn ?? 0;
+      }
+      rows += `<div class="tt-row"><span>Services</span><b><span class="tt-ok">${sOk} ok</span> <span class="tt-warn">${sWarn} w</span> <span class="tt-crit">${sCrit} c</span>${sUnkn ? ` <span class="tt-unkn">${sUnkn} u</span>` : ''}</b></div>`;
+    }
+    if (obj.type === 'service' && h) {
+      rows += `<div class="tt-row"><span>Host</span><b>${esc(obj.host_name || '')}</b></div>`;
+    }
+
+    // Perfdata für Services (und Hosts sofern vorhanden)
+    const pdKey = obj.type === 'service' ? cacheKey : null;
+    const pd    = pdKey ? perfdataCache[pdKey] : null;
+    if (pd && Object.keys(pd).length) {
+      const pl = obj.perf_label || '';
+      rows += `<div class="tt-row" style="margin-top:4px;border-top:1px solid var(--border);padding-top:4px"><span style="color:var(--text-dim);font-size:10px">Perfdata</span><b></b></div>`;
+      Object.entries(pd).forEach(([k, m]) => {
+        const isActive = pl && (k === pl || k.toLowerCase() === pl.toLowerCase());
+        const mCol = m.crit != null && m.value >= m.crit ? 'crit'
+                   : m.warn != null && m.value >= m.warn ? 'warn' : 'ok';
+        rows += `<div class="tt-row"${isActive ? ' style="font-weight:600"' : ''}>` +
+                `<span>${esc(k)}</span><b class="tt-${mCol}">${_fmtVal(m.value)}${m.unit || ''}</b></div>`;
+      });
+    }
+
+    rows += `<div class="tt-row"><span>Typ</span><b>${esc(obj.type)}</b></div>`;
+    tt.innerHTML = rows;
   }
 
   const cvRect = document.getElementById('nv2-canvas').getBoundingClientRect();
@@ -1954,10 +2050,11 @@ let _ctxMenu = null;
 // ═══════════════════════════════════════════════════════════════════════
 
 const DEFAULT_ACTIONS = [
-  { id:'view_host',         label:'🔍 Im Monitoring öffnen', icon:'🔍', obj_type:['host','service','hostgroup','servicegroup','map'], url:'[monitoring_url]/[host_name]', target:'_blank', condition:(obj,h) => !!_actionConfig.monitoring_url },
+  { id:'view_host',         label:'🔍 Im Monitoring öffnen', icon:'🔍', obj_type:['host','service','hostgroup','servicegroup','map'], action:'view_host', condition: null },
   { id:'acknowledge',       label:'✔ Problem bestätigen',    icon:'✔',  obj_type:['host','service'], action:'acknowledge',       condition:(obj,h) => h && ['CRITICAL','DOWN','WARNING','UNKNOWN','UNREACHABLE'].includes(h.state_label) && !h.acknowledged },
   { id:'remove_ack',        label:'✖ Bestätigung aufheben',  icon:'✖',  obj_type:['host','service'], action:'remove_ack',        condition:(obj,h) => h?.acknowledged === true },
   { id:'schedule_downtime', label:'🔧 Wartung einplanen',    icon:'🔧', obj_type:['host','service'], action:'schedule_downtime', condition: null },
+  { id:'remove_downtime',   label:'🔧 Wartung aufheben',     icon:'🔧', obj_type:['host','service'], action:'remove_downtime',   condition:(obj,h) => h?.in_downtime === true },
   { id:'reschedule_check',  label:'↻ Check jetzt erzwingen', icon:'↻',  obj_type:['host','service'], action:'reschedule_check',  condition: null },
   { id:'ssh',               label:'🖥 SSH (ssh://)',          icon:'🖥', obj_type:['host','service'], url:'ssh://[host_address]', target:'_self', condition:(obj,h) => !!(h?.address || obj.name) },
   { id:'rdp',               label:'🖥 RDP (Remote Desktop)',  icon:'🖥', obj_type:['host','service'], action:'rdp',               condition: null },
@@ -1969,10 +2066,58 @@ const DEFAULT_ACTIONS = [
 window._actionConfig = JSON.parse(localStorage.getItem('nv2-action-config') || '{}');
 if (!_actionConfig.monitoring_url) _actionConfig.monitoring_url = '';
 if (!_actionConfig.grafana_url)    _actionConfig.grafana_url    = '';
-if (!_actionConfig.enabled)        _actionConfig.enabled = ['view_host','acknowledge','remove_ack','schedule_downtime','reschedule_check','ssh'];
 if (!_actionConfig.rdp_enabled)    _actionConfig.rdp_enabled = false;
+// Sicherstellen dass alle Standard-Aktionen im enabled-Array sind (Migration für alte localStorage-Stände)
+const _defaultEnabledIds = ['view_host','acknowledge','remove_ack','schedule_downtime','remove_downtime','reschedule_check','ssh'];
+if (!_actionConfig.enabled) {
+  _actionConfig.enabled = [..._defaultEnabledIds];
+} else {
+  _defaultEnabledIds.forEach(id => { if (!_actionConfig.enabled.includes(id)) _actionConfig.enabled.push(id); });
+}
 
 function _saveActionConfig() { localStorage.setItem('nv2-action-config', JSON.stringify(_actionConfig)); }
+
+/**
+ * Baut die Monitoring-URL für "Im Monitoring öffnen" basierend auf dem Backend-Typ des Objekts.
+ * Checkmk: URL wird aus der API-Base-URL abgeleitet, kein manuelles Konfigurieren nötig.
+ * Fallback: globale monitoring_url aus _actionConfig.
+ */
+function _buildMonitoringUrl(obj, h) {
+  const isService = obj.type === 'service';
+  const hostname  = isService ? (obj.host_name || '') : (obj.name || '');
+  const svcDesc   = isService ? (obj.name || '') : '';
+
+  // Backend-Info aus globalem backendList (geladen in app.js)
+  const bid     = obj.backend_id || (h?.backend_id) || '';
+  const backend = (window.backendList ?? []).find(b => b.backend_id === bid);
+
+  if (backend?.type === 'checkmk' && backend.address) {
+    // address = API-URL: http://host:port/site/check_mk/api/1.0
+    const apiUrl  = backend.address.replace(/\/+$/, '');
+    const siteBase = apiUrl.replace(/\/api\/1\.0$/, ''); // http://host:port/site/check_mk
+    // Site-Name: Pfad-Segment direkt vor /check_mk
+    const siteMatch = siteBase.match(/\/([^/]+)\/check_mk$/);
+    const siteName  = siteMatch ? siteMatch[1] : 'cmk';
+
+    if (isService) {
+      return `${siteBase}/view.py?host=${encodeURIComponent(hostname)}&service=${encodeURIComponent(svcDesc)}&site=${siteName}&view_name=service`;
+    } else {
+      const basePath  = new URL(siteBase).pathname; // /site/check_mk
+      const innerPath = `${basePath}/view.py?host=${encodeURIComponent(hostname)}&site=${siteName}&view_name=host`;
+      return `${siteBase}/index.py?start_url=${encodeURIComponent(innerPath)}`;
+    }
+  }
+
+  // Fallback: globale monitoring_url aus Aktion-Config
+  if (_actionConfig.monitoring_url) {
+    const base = _actionConfig.monitoring_url.replace(/\/+$/, '');
+    return isService
+      ? `${base}/view.py?host=${encodeURIComponent(hostname)}&service=${encodeURIComponent(svcDesc)}&view_name=service`
+      : `${base}/${encodeURIComponent(hostname)}`;
+  }
+
+  return null; // kein URL konfiguriert
+}
 
 function _expandActionUrl(url, obj, h) {
   const hostname = obj.type === 'service' ? obj.host_name : obj.name;
@@ -1990,7 +2135,8 @@ function showViewContextMenu(e, el, obj) {
   const types = ['host','service','hostgroup','servicegroup','map'];
   if (!types.includes(obj.type)) return;
 
-  const h = hostCache[obj.name] ?? hostCache[`${obj.host_name}::${obj.name}`];
+  const _ck = obj.type === 'service' ? `${obj.host_name}::${obj.name}` : obj.name;
+  const h   = _resolveStatus(obj.backend_id || '', _ck);
   const menu = document.createElement('div');
   menu.id = 'nv2-ctx-menu'; menu.className = 'ctx-menu';
   menu.style.left = `${e.clientX}px`; menu.style.top = `${e.clientY}px`;
@@ -2032,6 +2178,17 @@ function showViewContextMenu(e, el, obj) {
   div.style.cssText = 'height:1px;background:var(--border);margin:3px 0';
   menu.appendChild(div);
 
+  // "Eigenschaften" für Nutzer mit Editor/Admin-Rolle auch im View-Mode anbieten
+  const _role = window.nv2Auth?.currentUser?.role ?? 'viewer';
+  const _rank = { viewer: 1, editor: 2, admin: 3 }[_role] ?? 1;
+  if (_rank >= 2) {
+    const propsBtn = document.createElement('button');
+    propsBtn.className = 'ctx-item';
+    propsBtn.textContent = '⚙ Eigenschaften';
+    propsBtn.onclick = () => { closeContextMenu(); openNodePropsDialog(el, obj); };
+    menu.appendChild(propsBtn);
+  }
+
   const cfgBtn = document.createElement('button');
   cfgBtn.className = 'ctx-item'; cfgBtn.style.color = 'var(--text-dim)';
   cfgBtn.textContent = '⚙ Aktionen konfigurieren…';
@@ -2046,13 +2203,24 @@ function showViewContextMenu(e, el, obj) {
 
 function _performAction(action, obj, h) {
   const hostname = obj.type === 'service' ? obj.host_name : obj.name;
-  if (action.url) { const url = _expandActionUrl(action.url, obj, h); if (url) window.open(url, action.target ?? '_blank'); return; }
   switch (action.action) {
-    case 'acknowledge':       openAcknowledgeDlg(obj, h); break;
-    case 'remove_ack':        _apiAction('remove_ack', hostname, obj.type === 'service' ? obj.name : null); break;
-    case 'reschedule_check':  _apiAction('reschedule_check', hostname, obj.type === 'service' ? obj.name : null); break;
-    case 'schedule_downtime': openDowntimeDlg(obj, h); break;
-    case 'rdp': { const addr = h?.address || hostname; window.open(`rdp://full%20address=s:${encodeURIComponent(addr)}&audiomode=i:2`, '_self'); break; }
+    case 'view_host': {
+      const url = _buildMonitoringUrl(obj, h);
+      if (url) { window.open(url, '_blank'); }
+      else     { openActionConfigDlg(); }   // keine URL konfiguriert → Config-Dialog
+      return;
+    }
+    case 'acknowledge':       openAcknowledgeDlg(obj, h); return;
+    case 'remove_ack':        _apiAction('remove_ack',       hostname, obj.type === 'service' ? obj.name : null); return;
+    case 'reschedule_check':  _apiAction('reschedule_check', hostname, obj.type === 'service' ? obj.name : null); return;
+    case 'schedule_downtime': openDowntimeDlg(obj, h); return;
+    case 'remove_downtime':   _apiAction('remove_downtime',  hostname, obj.type === 'service' ? obj.name : null); return;
+    case 'rdp': { const addr = h?.address || hostname; window.open(`rdp://full%20address=s:${encodeURIComponent(addr)}&audiomode=i:2`, '_self'); return; }
+  }
+  // Generische URL-Aktionen (custom actions, ssh, http, …)
+  if (action.url) {
+    const url = _expandActionUrl(action.url, obj, h);
+    if (url) window.open(url, action.target ?? '_blank');
   }
 }
 
@@ -2272,7 +2440,7 @@ window.openActionConfigDlg  = openActionConfigDlg;
  * Gibt null zurück wenn kein Checkmk-Backend für diesen Node konfiguriert ist.
  */
 function _checkmkViewUrl(obj) {
-  const backendId = obj.backend_id || el?.dataset?.backendId || '';
+  const backendId = obj.backend_id || '';
   // Backend aus gecachter Liste holen – backendList wird in app.js geladen
   const backends = window.backendList ?? [];
   const backend  = backendId
@@ -2398,7 +2566,15 @@ async function openNodePropsDialog(el, obj) {
                list="np-hosts-dl" autocomplete="off">
         <datalist id="np-hosts-dl">${hostOptions}</datalist>
         <label class="f-label" style="margin-top:8px">Service-Name</label>
-        <input class="f-input" id="np-name" type="text" value="${esc(obj.name ?? '')}" autocomplete="off">
+        <input class="f-input" id="np-name" type="text" value="${esc(obj.name ?? '')}" autocomplete="off"
+               list="np-svc-dl">
+        <datalist id="np-svc-dl"></datalist>
+        <label class="f-label" style="margin-top:8px">
+          Perfdata-Metrik <span style="color:var(--text-dim);font-weight:400">(optional – für Label-Wert und <code>$PERFVALUE$</code>)</span>
+        </label>
+        <input class="f-input" id="np-perf-label" type="text" value="${esc(obj.perf_label ?? '')}"
+               placeholder="z.B. rta, load1, used" autocomplete="off" list="np-perf-dl">
+        <datalist id="np-perf-dl"></datalist>
       ` : `
         <label class="f-label">${nameLabel}</label>
         <input class="f-input" id="np-name" type="text" value="${esc(obj.name ?? '')}"
@@ -2415,7 +2591,7 @@ async function openNodePropsDialog(el, obj) {
       <div style="font-size:11px;color:var(--text-dim);margin-top:4px;line-height:1.5">
         Macros: <code>$HOSTNAME$</code> <code>$HOSTALIAS$</code> <code>$HOSTSTATE$</code>
         <code>$HOSTOUTPUT$</code> <code>$SERVICEDESC$</code> <code>$SERVICESTATE$</code>
-        <code>$SERVICEOUTPUT$</code> <code>$LABEL:key$</code>
+        <code>$SERVICEOUTPUT$</code> <code>$PERFVALUE$</code> <code>$LABEL:key$</code>
       </div>
       <label class="f-label" style="margin-top:8px">
         Statisches Label <span style="color:var(--text-dim);font-weight:400">(ignoriert wenn Template gesetzt)</span>
@@ -2462,14 +2638,41 @@ async function openNodePropsDialog(el, obj) {
 
   const inName      = dlg.querySelector('#np-name');
   const inHost      = isService ? dlg.querySelector('#np-host') : null;
+  const inPerfLabel = isService ? dlg.querySelector('#np-perf-label') : null;
   const inLabelTmpl = dlg.querySelector('#np-label-tmpl');
   const inLabel     = dlg.querySelector('#np-label');
   const inShowLabel = dlg.querySelector('#np-show-label');
+
+  // Service-Dropdown und Perfdata-Datalist dynamisch befüllen
+  if (isService && inHost) {
+    const _fillSvcDl = () => {
+      const h = inHost.value.trim();
+      const svcDl = dlg.querySelector('#np-svc-dl');
+      if (svcDl) svcDl.innerHTML = (h && window.serviceCache?.[h] || [])
+        .map(s => `<option value="${esc(s)}">`).join('');
+    };
+    const _fillPerfDl = () => {
+      const h = inHost.value.trim();
+      const s = inName.value.trim();
+      const perfDl = dlg.querySelector('#np-perf-dl');
+      if (!perfDl) return;
+      const pd = h && s && perfdataCache[`${h}::${s}`];
+      perfDl.innerHTML = pd
+        ? Object.entries(pd).sort(([a],[b]) => a.localeCompare(b))
+            .map(([k, m]) => `<option value="${esc(k)}" label="${esc(k)} = ${m.value}${m.unit||''}">`)
+            .join('')
+        : '';
+    };
+    inHost.addEventListener('input', () => { _fillSvcDl(); _fillPerfDl(); });
+    inName.addEventListener('input', _fillPerfDl);
+    _fillSvcDl(); _fillPerfDl();
+  }
 
   dlg.querySelector('#np-cancel').onclick = () => dlg.remove();
   dlg.querySelector('#np-ok').onclick = async () => {
     const newName      = inName.value.trim();
     const newHost      = inHost?.value.trim() ?? null;
+    const newPerfLabel = inPerfLabel?.value.trim() || null;
     const newLabelTmpl = inLabelTmpl.value.trim() || null;
     const newLabel     = newLabelTmpl ? null : (inLabel.value.trim() || null);
     const newShowLabel = inShowLabel.checked;
@@ -2477,18 +2680,19 @@ async function openNodePropsDialog(el, obj) {
 
     const newBackendId = dlg.querySelector('#np-backend-id').value || null;
     const patch = { name: newName, label: newLabel, label_template: newLabelTmpl, show_label: newShowLabel, backend_id: newBackendId };
-    if (isService) patch.host_name = newHost;
+    if (isService) { patch.host_name = newHost; patch.perf_label = newPerfLabel; }
 
     obj.name           = newName;
     obj.label          = newLabel;
     obj.label_template = newLabelTmpl;
     obj.show_label     = newShowLabel;
     obj.backend_id     = newBackendId;
-    if (isService) obj.host_name = newHost;
+    if (isService) { obj.host_name = newHost; obj.perf_label = newPerfLabel; }
 
     el.dataset.name          = isService ? `${newHost}::${newName}` : newName;
     el.dataset.labelTemplate = newLabelTmpl || '';
     el.dataset.backendId     = newBackendId || '';
+    el.dataset.perfLabel     = newPerfLabel || '';
 
     const labelEl = el.querySelector('.nv2-label');
     if (labelEl) {

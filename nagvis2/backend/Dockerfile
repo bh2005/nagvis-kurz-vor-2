@@ -11,7 +11,9 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Unprivilegierter Runtime-User
-RUN useradd -r -u 1000 -m nagvis
+# GID 1000 = cmk-Gruppe im monitoring-Container (für Livestatus-Socket-Zugriff)
+RUN groupadd -g 1000 cmk-live \
+    && useradd -r -u 1000 -m -G cmk-live nagvis
 
 # WICHTIG: /app/backend als WORKDIR damit BASE_DIR.parent == /app
 # → Frontend wird bei /app/frontend erwartet (Volume oder COPY)

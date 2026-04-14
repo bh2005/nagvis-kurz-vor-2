@@ -234,11 +234,12 @@ Rechtsklick auf ein Objekt im Edit-Mode:
 
 ### Eigenschaften-Dialog (Monitoring-Nodes)
 
-Über **⚙ Eigenschaften** im Kontext-Menü:
+Über **⚙ Eigenschaften** im Kontext-Menü (Edit-Mode) oder im Rechtsklick-Menü des View-Mode (Rolle `editor`/`admin`):
 - **Name** – Hostname, Hostgruppen-Name oder Map-ID (mit Autocomplete aus Livestatus)
-- **Hostname + Service-Name** – bei Services
+- **Hostname + Service-Name** – bei Services (mit Autocomplete aus Live-Daten)
+- **Perfdata-Metrik** – bei Services: Metrik-Schlüssel aus den Perfdata des Services (z.B. `rta`, `load1`); Autocomplete zeigt verfügbare Metriken mit aktuellem Wert; Live-Wert erscheint automatisch im Node-Label
 - **Label-Template** – dynamische Beschriftung mit Nagios-Macros und Checkmk-Labels (siehe unten)
-- **Statisches Label** – fester Anzeigename; wird ignoriert wenn ein Template gesetzt ist
+- **Statisches Label** – fester Anzeigename; Nagios-Macros funktionieren auch hier; wird ignoriert wenn ein Template gesetzt ist
 - **Label anzeigen** – Checkbox zum Ein-/Ausblenden des Labels
 
 ### Label-Templates
@@ -258,6 +259,9 @@ Nodes können dynamische Beschriftungen erhalten, die bei jedem Status-Update ne
 | `$SERVICEOUTPUT$` | Plugin-Ausgabe des Services |
 | `$LABEL:key$` | Checkmk-Label oder Nagios-Custom-Variable (lowercase) |
 | `$MAPNAME$` | ID der aktiven Map |
+| `$PERFVALUE$` | Live-Wert der konfigurierten Perfdata-Metrik (nur wenn `perf_label` gesetzt) |
+
+> **Hinweis:** Macros funktionieren auch im regulären **Label-Feld** — nicht nur im Label-Template-Feld. Beim ersten Laden kann das Label kurz leer erscheinen, bis der erste Status eingetroffen ist.
 
 **Beispiele:**
 
@@ -267,6 +271,7 @@ $HOSTALIAS$                       → "Webserver Hamburg"
 $LABEL:os$ / $LABEL:location$     → "linux / hamburg"
 $LABEL:env$ – $HOSTNAME$          → "production – webserver-01"
 $SERVICESTATE$: $SERVICEOUTPUT$   → "CRITICAL: HTTP timeout after 30s"
+$HOSTNAME$: $PERFVALUE$           → "ping-host: 1.2ms"
 ```
 
 Labels werden je nach Backend-Typ automatisch importiert:
@@ -391,15 +396,25 @@ Im normalen Anzeigemodus (kein Edit-Mode) öffnet Rechtsklick auf einen Host/Ser
 
 | Aktion | Bedingung |
 |---|---|
-| 🔍 Im Monitoring öffnen | Monitoring-URL konfiguriert |
-| ✔ Problem bestätigen (ACK) | Status nicht OK, nicht bereits ACK |
-| ✖ Bestätigung aufheben | Bereits ACK |
+| 🔍 Im Monitoring öffnen | Immer sichtbar; URL wird pro Backend automatisch abgeleitet (Checkmk: aus API-URL) |
+| ✔ Problem bestätigen (ACK) | Status ist Problem (DOWN/CRITICAL/WARNING/UNKNOWN), noch kein ACK |
+| ✖ Bestätigung aufheben | Bereits ACK gesetzt |
 | 🔧 Wartung einplanen | Immer verfügbar |
+| 🔧 Wartung aufheben | Downtime aktiv |
 | ↻ Check jetzt erzwingen | Immer verfügbar |
 | 🖥 SSH / 🌐 HTTP / 🔒 HTTPS | Immer verfügbar |
 | 📊 Grafana öffnen | Grafana-URL konfiguriert |
+| ⚙ Eigenschaften | Nur für Rolle `editor`/`admin` |
 
-Aktionen konfigurieren: Burger-Menü → ⚡ Aktionen konfigurieren
+### „Im Monitoring öffnen" konfigurieren
+
+Für **Checkmk**-Backends wird die URL automatisch aus der konfigurierten API-Base-URL abgeleitet — keine manuelle Konfiguration nötig.
+
+Für andere Backends: Burger-Menü → ⚡ **Aktionen konfigurieren** → Feld **Monitoring-URL** ausfüllen (z.B. `http://nagios.example.com/nagios`).
+
+Wenn weder Backend-URL noch manuelle URL vorhanden ist, öffnet sich beim Klick direkt der Konfig-Dialog.
+
+Aktionen aktivieren/deaktivieren: Burger-Menü → ⚡ Aktionen konfigurieren
 
 ---
 

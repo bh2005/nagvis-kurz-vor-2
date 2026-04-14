@@ -375,6 +375,14 @@ class SolarWindsClient:
                       host_name, service_name, e)
             return False
 
+    async def remove_host_downtime(self, host_name: str) -> bool:
+        log.info("[%s] remove_host_downtime: nicht implementiert für SolarWinds", self.cfg.backend_id)
+        return False
+
+    async def remove_service_downtime(self, host_name: str, service_description: str) -> bool:
+        log.info("[%s] remove_service_downtime: nicht implementiert für SolarWinds", self.cfg.backend_id)
+        return False
+
     async def reschedule_host_check(self, host_name: str) -> bool:
         """SolarWinds: Check sofort neu planen (Poll Now)."""
         node_id = await self._get_node_id(host_name)

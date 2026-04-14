@@ -931,7 +931,15 @@
       </div>
       <div class="f-row">
         <label class="f-label" for="dlg-svc-name">Service</label>
-        <input class="f-input" id="dlg-svc-name" type="text" placeholder="z.B. CPU Load">
+        <input class="f-input" id="dlg-svc-name" type="text" placeholder="z.B. CPU Load"
+               autocomplete="off" list="known-svc">
+        <datalist id="known-svc"></datalist>
+      </div>
+      <div class="f-row">
+        <label class="f-label" for="dlg-svc-perf-label">Perfdata-Metrik <span class="f-opt">(optional)</span></label>
+        <input class="f-input" id="dlg-svc-perf-label" type="text" placeholder="z.B. rta, load1, used"
+               autocomplete="off" list="known-svc-perf">
+        <datalist id="known-svc-perf"></datalist>
       </div>
       <div class="f-row">
         <label class="f-label" for="dlg-svc-label">Label <span class="f-opt">(optional)</span></label>

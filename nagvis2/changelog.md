@@ -2,6 +2,97 @@
 
 ---
 
+## [2026-04-14]
+
+### Feature: Live-Perfdata in Tooltips (Gadgets + Service-Objekte)
+
+- **Gadgets**: Mouseover zeigt jetzt Live-Wert aus `perfdataCache` (statt gespeichertem Demo-Wert); alle Perfdata-Metriken des Services werden im Tooltip aufgelistet; Service-Status und Plugin-Ausgabe werden zusätzlich angezeigt
+- **Service-Objekte**: Mouseover zeigt alle Perfdata-Metriken mit Warn/Crit-Farbcodierung; die konfigurierte `perf_label`-Metrik wird fett hervorgehoben
+- `js/nodes.js`: `showTooltip` komplett überarbeitet — beide Pfade (Gadget / Monitoring-Node) nutzen `perfdataCache` und `_resolveStatus`
+
+### Feature: Service-Objekte mit Perfdata-Metrik (`perf_label`)
+
+- Service-Objekte können jetzt eine Perfdata-Metrik (`perf_label`) konfigurieren
+- Der Live-Wert erscheint automatisch im Node-Label: `"Labelname: 1.234ms"`
+- Platzierungs-Dialog: Autocomplete für Service-Name aus `serviceCache`; Autocomplete für Metrik-Name + aktueller Wert aus `perfdataCache`
+- `$PERFVALUE$`-Macro in Label-Templates gibt den Live-Wert der konfigurierten Metrik zurück
+- `js/nodes.js`: `_renderMonitoringNode` setzt `el.dataset.perfLabel`; `applyStatuses` aktualisiert Label automatisch bei jedem Status-Update
+- `index.html`: neues „Perfdata-Metrik"-Feld im Objekt-Platzierungs-Dialog mit `<datalist>`
+- `backend/api/router.py`: `ObjectProps` um `perf_label` erweitert
+
+### Feature: Eigenschaften-Dialog im View-Mode (Editor/Admin)
+
+- Im View-Mode erscheint „⚙ Eigenschaften" im Rechtsklick-Kontextmenü für Benutzer mit Rolle `editor` oder `admin`
+- `js/nodes.js`: `showViewContextMenu` prüft `window.nv2Auth.currentUser.role`
+
+### Feature: „Im Monitoring öffnen" — automatische URL pro Backend
+
+- Aktion ist jetzt immer sichtbar (war: nur wenn `monitoring_url` konfiguriert)
+- Für **Checkmk**-Backends wird die URL automatisch aus der API-Base-URL abgeleitet — keine manuelle Konfiguration nötig:
+  - Host: `{site_base}/index.py?start_url=/site/check_mk/view.py?host=...&view_name=host`
+  - Service: `{site_base}/view.py?host=...&service=...&site=...&view_name=service`
+- Fallback auf globale `monitoring_url` aus dem Aktions-Konfig-Dialog
+- Ohne jegliche Konfiguration öffnet sich direkt der Aktions-Konfig-Dialog
+- `js/nodes.js`: neue Funktion `_buildMonitoringUrl(obj, h)`; `_performAction` ruft diese für `view_host` auf
+- `js/app.js`: lädt Backend-Liste beim Start in `window.backendList` (war schon vorhanden)
+
+### Feature: Probleme-Panel zeigt Host- UND Service-Probleme
+
+- Bisher wurden nur Hosts im Probleme-Panel angezeigt
+- Jetzt werden auch Services in Problem-Zustand (nicht OK) angezeigt: `"hostname / service_description"`
+- `js/ui-core.js`: `renderProblemsPanel` erkennt `h.type === 'service'` und zeigt entsprechende Beschriftung
+- `js/ws-client.js`: `snapshot` und `status_update` übergeben jetzt alle Cache-Einträge an `renderProblemsPanel`
+
+### Feature: Makros in regulärem Label-Feld
+
+- `$HOSTALIAS$`, `$HOSTSTATE$` etc. funktionieren jetzt auch wenn sie im **Label**-Feld (statt im Label-Template-Feld) gesetzt sind
+- `js/nodes.js`: `_nodeLabel` und `_applyLabelTemplate` nutzen `obj.label` als Fallback-Template; `applyStatuses` triggert Makro-Auflösung auch wenn nur `obj.label` Makros enthält
+
+### Bugfix: `+`-Button in der Übersichtskarte öffnete keine neue Map
+
+- Ursache: doppelte `id="btn-new-map"` — sowohl Burger-Menü (statisch in HTML) als auch die dynamisch gerenderte Übersichtskarte verwendeten dieselbe ID; `getElementById` fand immer das Burger-Menü-Element
+- Fix: Übersichtskarte verwendet jetzt `id="ov-btn-new-map"`
+- `js/map-core.js`: querySelector angepasst; `confirmNewMap()` ruft `loadMaps()` vor `openMap()` auf
+
+### Bugfix: Service-Dropdown beim Platzieren blieb leer
+
+- Ursache: `serviceCache` war nicht mit den bekannten Services verbunden
+- Fix: Host-Input-Feld im Platzierungs-Dialog löst `input`-Event aus und befüllt `<datalist>` aus `window.serviceCache`
+- `js/map-core.js`: `dlg-svc-host` und `dlg-svc-name` input-Listener ergänzt
+
+### Bugfix: Gadget-Werte wurden nicht angezeigt (Checkmk Perfdata als Liste)
+
+- Ursache: Checkmk REST API liefert `performance_data` teils als Array statt String; `_to_perf_str()` gab `""` zurück → `parse_perfdata("")` lieferte `{}`
+- Fix: `_to_perf_str()` verbindet Array-Elemente mit Leerzeichen
+- `backend/checkmk/client.py`: `_to_perf_str` + `alias = ext.get("alias") or name` (leerer Alias-String als Fallback)
+
+### Bugfix: Service-Anzahl im Host-Tooltip immer 0
+
+- Ursache: Checkmk REST API liefert `num_services_ok/warn/crit` in der Hosts-Collection nicht
+- Fix: Service-Anzahl wird jetzt live aus `hostCache` gezählt (alle `"host::*"`-Einträge)
+- `js/nodes.js`: `showTooltip` zählt dynamisch; Fallback auf Backend-Daten wenn Cache leer
+
+### Bugfix: „undefined" in Hosts- und Probleme-Panel nach Status-Update
+
+- Ursache: `Object.values(hostCache)` enthält sowohl Host- als auch Service-Einträge; Service-Einträge haben kein `name`-Feld
+- Fix: `renderHostsPanel` / `updateTopbarPills` erhalten gefilterte Liste (`type === 'host'`); `renderProblemsPanel` erhält alle Einträge und rendert Host/Service korrekt
+- `js/ws-client.js`: getrenntes Filtern für die verschiedenen Panels
+
+### Bugfix: Kontextmenü-Aktionen (ACK, DT, …) erschienen nicht
+
+- Ursache 1: `showViewContextMenu` nutzte direktes `hostCache`-Lookup statt `_resolveStatus` → `h` war bei backend-spezifischen Einträgen `null`; alle state-basierten Bedingungen schlugen fehl
+- Ursache 2: `_actionConfig.enabled` aus altem `localStorage`-Stand enthielt neue Standard-IDs nicht
+- Fix: `_resolveStatus` statt direktem Lookup; Migration die fehlende Default-IDs ergänzt
+- `js/nodes.js`: `showViewContextMenu`, `_actionConfig`-Initialisierung
+
+### Bugfix: `backend_id` vs. `_backend_id` in Status-Cache
+
+- WS-Broadcasts vom Poller senden `backend_id` (aus `to_dict()`); `applyStatuses` prüfte aber `h._backend_id` → Backend-spezifischer Cache (`backendStatusCache`) wurde nie befüllt
+- Fix: `applyStatuses` nutzt `h.backend_id || h._backend_id` für Cache-Schlüssel und Filter
+- `js/nodes.js`: `applyStatuses` (Hosts- und Services-Schleife)
+
+---
+
 ## [2026-04-09]
 
 ### Feature: Suche/Filter in der Sidebar ✅

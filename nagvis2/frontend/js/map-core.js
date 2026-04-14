@@ -249,7 +249,7 @@ function renderOverview(maps) {
   }).join('');
 
   grid.innerHTML = cards + `
-    <div class="ov-new" id="btn-new-map">
+    <div class="ov-new" id="ov-btn-new-map">
       <span style="font-size:18px;line-height:1">＋</span> ${t('new_map_card')}
     </div>`;
 
@@ -260,7 +260,13 @@ function renderOverview(maps) {
       openCardMenu(e, card.dataset.mapId, card.dataset.title, card.dataset.canvas);
     });
   });
-  document.getElementById('btn-new-map')?.addEventListener('click', dlgNewMap);
+  const btnNewMap = document.getElementById('ov-btn-new-map');
+  if (btnNewMap) {
+    btnNewMap.addEventListener('click', dlgNewMap);
+    const _role = window.nv2Auth?.currentUser?.role ?? 'viewer';
+    const _rank = { viewer: 1, editor: 2, admin: 3 }[_role] ?? 1;
+    btnNewMap.style.display = _rank >= 2 ? '' : 'none';
+  }
 }
 
 function openCardMenu(e, mapId, mapTitle, canvasJson) {
@@ -661,10 +667,11 @@ async function confirmAddObject() {
   let payload = { type, x: parseFloat(pos.x), y: parseFloat(pos.y) };
 
   if (type === 'service') {
-    const hostName = document.getElementById('dlg-svc-host').value.trim();
-    const svcName  = document.getElementById('dlg-svc-name').value.trim();
+    const hostName  = document.getElementById('dlg-svc-host').value.trim();
+    const svcName   = document.getElementById('dlg-svc-name').value.trim();
+    const perfLabel = document.getElementById('dlg-svc-perf-label').value.trim();
     if (!hostName || !svcName) { document.getElementById(!hostName ? 'dlg-svc-host' : 'dlg-svc-name').focus(); return; }
-    Object.assign(payload, { name: svcName, host_name: hostName, iconset: 'default', label: document.getElementById('dlg-svc-label').value.trim() || svcName });
+    Object.assign(payload, { name: svcName, host_name: hostName, iconset: 'default', label: document.getElementById('dlg-svc-label').value.trim() || svcName, ...(perfLabel ? { perf_label: perfLabel } : {}) });
   } else if (['host','hostgroup','servicegroup','map'].includes(type)) {
     const name = document.getElementById('dlg-obj-name').value.trim();
     if (!name) { document.getElementById('dlg-obj-name').focus(); return; }
@@ -720,6 +727,7 @@ async function confirmNewMap() {
   closeDlg('dlg-new-map');
   const created = await api('/api/maps', 'POST', { title, map_id: mapId, canvas });
   if (created) {
+    await loadMaps();
     try { await openMap(created.id); } catch(e) { console.error('[NV2] openMap Fehler:', e); }
     if (!editActive) toggleEdit();
   }
@@ -1128,6 +1136,30 @@ function fillHostDatalist(hosts) {
   document.getElementById('known-hosts')    .innerHTML = opts;
   document.getElementById('known-hosts-svc').innerHTML = opts;
 }
+
+// Service-Datalist aktualisieren wenn Host im Dienst-Dialog eingetippt wird
+document.getElementById('dlg-svc-host')?.addEventListener('input', function () {
+  const host = this.value.trim();
+  const dl   = document.getElementById('known-svc');
+  if (!dl) return;
+  const svcs = (host && window.serviceCache?.[host]) ?? [];
+  dl.innerHTML = svcs.map(s => `<option value="${esc(s)}">`).join('');
+  document.getElementById('known-svc-perf').innerHTML = '';
+});
+
+// Perfdata-Metrik-Datalist aktualisieren wenn Service im Dienst-Dialog eingetippt wird
+document.getElementById('dlg-svc-name')?.addEventListener('input', function () {
+  const host = document.getElementById('dlg-svc-host')?.value.trim() ?? '';
+  const svc  = this.value.trim();
+  const dl   = document.getElementById('known-svc-perf');
+  if (!dl) return;
+  const pd = (host && svc && window.perfdataCache?.[`${host}::${svc}`]) ?? null;
+  dl.innerHTML = pd
+    ? Object.entries(pd).sort(([a],[b]) => a.localeCompare(b))
+        .map(([k, m]) => `<option value="${esc(k)}" label="${esc(k)} = ${m.value}${m.unit||''}">`)
+        .join('')
+    : '';
+});
 
 window.confirmAddObject = confirmAddObject;
 window.selectObjType    = selectObjType;

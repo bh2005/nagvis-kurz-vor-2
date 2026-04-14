@@ -265,6 +265,48 @@ async def remove_service_ack(host: str, svc: str) -> bool:
     return await send_command(cmd)
 
 
+async def _get_downtime_ids(host: str, svc: str = "") -> list[int]:
+    """Liefert aktive Downtime-IDs für Host oder Service (CSV-Fallback)."""
+    lql = "GET downtimes\nColumns: id\n"
+    lql += f"Filter: host_name = {host}\n"
+    if svc:
+        lql += f"Filter: service_description = {svc}\n"
+    else:
+        lql += "Filter: service_description = \n"
+    lql += "OutputFormat: csv\n\n"
+    try:
+        raw = await _query(lql)
+        ids = []
+        for line in raw.strip().splitlines():
+            line = line.strip()
+            if line.isdigit():
+                ids.append(int(line))
+        return ids
+    except Exception as e:
+        log.warning("_get_downtime_ids failed: %s", e)
+        return []
+
+
+async def remove_host_downtime(host: str) -> bool:
+    """Löscht alle aktiven Downtimes eines Hosts."""
+    ids = await _get_downtime_ids(host)
+    if not ids:
+        log.warning("remove_host_downtime: keine aktiven Downtimes für '%s'", host)
+        return False
+    results = [await send_command(f"DEL_HOST_DOWNTIME;{dt_id}") for dt_id in ids]
+    return any(results)
+
+
+async def remove_service_downtime(host: str, svc: str) -> bool:
+    """Löscht alle aktiven Downtimes eines Services."""
+    ids = await _get_downtime_ids(host, svc)
+    if not ids:
+        log.warning("remove_service_downtime: keine Downtimes für '%s'/'%s'", host, svc)
+        return False
+    results = [await send_command(f"DEL_SVC_DOWNTIME;{dt_id}") for dt_id in ids]
+    return any(results)
+
+
 async def reschedule_host_check(host: str) -> bool:
     import time
     cmd = f"SCHEDULE_FORCED_HOST_CHECK;{host};{int(time.time())}"

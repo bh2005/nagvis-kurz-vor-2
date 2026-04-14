@@ -372,6 +372,29 @@ class LivestatusClient:
         log.debug("get_hostgroups: %d from '%s'", len(result), self.cfg.backend_id)
         return result
 
+    async def schedule_host_downtime(
+        self,
+        host_name:   str,
+        start_time:  int,
+        end_time:    int,
+        comment:     str = "NagVis 2",
+        author:      str = "nagvis2",
+        child_hosts: bool = False,
+    ) -> bool:
+        import time as _time
+        cmd_name = "SCHEDULE_AND_PROPAGATE_HOST_DOWNTIME" if child_hosts else "SCHEDULE_HOST_DOWNTIME"
+        cmd = (
+            f"{cmd_name};{host_name};"
+            f"{start_time};{end_time};1;0;0;{author};{comment}"
+        )
+        lql = f"COMMAND [{int(_time.time())}] {cmd}\n\n"
+        try:
+            await self.query(lql)
+            return True
+        except Exception as e:
+            log.error("schedule_host_downtime failed: %s", e)
+            return False
+
     async def schedule_service_downtime(
         self,
         host_name:           str,
@@ -393,6 +416,66 @@ class LivestatusClient:
         except Exception as e:
             log.error("schedule_service_downtime failed: %s", e)
             return False
+
+    async def _get_downtime_ids(
+        self,
+        host_name:           str,
+        service_description: str = "",
+    ) -> list[int]:
+        """Liefert alle aktiven Downtime-IDs für einen Host oder Service."""
+        q = "GET downtimes\nColumns: id\n"
+        q += f"Filter: host_name = {host_name}\n"
+        if service_description:
+            q += f"Filter: service_description = {service_description}\n"
+        else:
+            q += "Filter: service_description = \n"
+        try:
+            rows = await self.query(q)
+            return [r[0] for r in rows if r]
+        except Exception as e:
+            log.error("_get_downtime_ids failed: %s", e)
+            return []
+
+    async def remove_host_downtime(self, host_name: str) -> bool:
+        """Löscht alle aktiven Downtimes eines Hosts."""
+        import time as _time
+        ids = await self._get_downtime_ids(host_name)
+        if not ids:
+            log.warning("remove_host_downtime: keine aktiven Downtimes für '%s'", host_name)
+            return False
+        ok = True
+        for dt_id in ids:
+            lql = f"COMMAND [{int(_time.time())}] DEL_HOST_DOWNTIME;{dt_id}\n\n"
+            try:
+                await self.query(lql)
+            except Exception as e:
+                log.error("DEL_HOST_DOWNTIME %d failed: %s", dt_id, e)
+                ok = False
+        return ok
+
+    async def remove_service_downtime(
+        self,
+        host_name:           str,
+        service_description: str,
+    ) -> bool:
+        """Löscht alle aktiven Downtimes eines Services."""
+        import time as _time
+        ids = await self._get_downtime_ids(host_name, service_description)
+        if not ids:
+            log.warning(
+                "remove_service_downtime: keine aktiven Downtimes für '%s' / '%s'",
+                host_name, service_description,
+            )
+            return False
+        ok = True
+        for dt_id in ids:
+            lql = f"COMMAND [{int(_time.time())}] DEL_SVC_DOWNTIME;{dt_id}\n\n"
+            try:
+                await self.query(lql)
+            except Exception as e:
+                log.error("DEL_SVC_DOWNTIME %d failed: %s", dt_id, e)
+                ok = False
+        return ok
 
     async def ping(self) -> BackendHealth:
         """Verbindungstest mit Latenz-Messung."""
