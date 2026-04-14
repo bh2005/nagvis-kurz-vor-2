@@ -1,5 +1,5 @@
 # Projekt-Statistik: NagVis 2
-> Stand: 8. April 2026 · Alle Zahlen sind Schätzungen auf Basis von Git-Log, Code-Analyse und Kontext-Protokollen
+> Stand: 14. April 2026 · Alle Zahlen sind Schätzungen auf Basis von Git-Log, Code-Analyse und Kontext-Protokollen
 
 ---
 
@@ -8,8 +8,8 @@
 | | |
 |---|---|
 | **Erster Commit** | 12. März 2026 |
-| **Stand heute** | 8. April 2026 |
-| **Laufzeit** | 28 Kalendertage / **18 aktive Arbeitstage** |
+| **Stand heute** | 14. April 2026 |
+| **Laufzeit** | 34 Kalendertage / **21 aktive Arbeitstage** |
 
 ### Commit-Aktivität pro Tag
 
@@ -26,7 +26,9 @@
 | 24.03. | 24 | Auth komplett, install.sh, Graph-Gadget, draw.io |
 | 25.03. | 4 | Demo-Maps, Seed-Mechanismus, Sidebar-Fix |
 | 26.03.–07.04. | 18 | Undo/Redo, Copy/Paste, Align & Distribute, Smart Guides, Naemon + SolarWinds Connector |
-| **Gesamt** | **144** | |
+| 08.04.–13.04. | 15 | Mehrsprachigkeit (i18n DE/EN), WCAG-AA-Kontrast-Fixes, Sprachpaket-Import, i18n-Engine |
+| 14.04. | 8 | Bug-Fixes (Macros, Tooltip-Service-Zählung, Kontextmenü, „Im Monitoring öffnen" per Backend), Doku-Update |
+| **Gesamt** | **167** | |
 
 ---
 
@@ -34,13 +36,13 @@
 
 | Sprache | Dateien | Zeilen | Anteil |
 |---|---|---|---|
-| Python (Backend) | 47 | ~10 200 | 38 % |
-| JavaScript (Frontend) | 16 | ~9 100 | 34 % |
-| Markdown (Docs) | 19 | ~3 400 | 13 % |
+| Python (Backend) | 47 | ~10 300 | 37 % |
+| JavaScript (Frontend) | 17 | ~9 400 | 34 % |
+| Markdown (Docs) | 20 | ~3 800 | 14 % |
 | CSS | 2 | ~1 550 | 6 % |
 | HTML | 1 | ~1 200 | 4 % |
-| JSON / YAML / Sonstige | 28 | ~1 453 | 5 % |
-| **Gesamt** | **113** | **~26 900** | 100 % |
+| JSON / YAML / Sonstige | 30 | ~1 600 | 6 % |
+| **Gesamt** | **117** | **~27 850** | 100 % |
 
 ---
 
@@ -48,13 +50,14 @@
 
 ### Backend (Python / FastAPI)
 - FastAPI-Anwendung mit WebSocket-Livestatus und Poll-Loop
-- 7 Monitoring-Backends: Livestatus, Checkmk REST, Icinga2 REST, Naemon (Livestatus/REST), Zabbix JSON-RPC, Prometheus/VictoriaMetrics, SolarWinds Orion (SWIS)
-- JWT-Authentifizierung mit Rollen (viewer / editor / admin) + Auto-Refresh
+- 8 Monitoring-Backends: Livestatus, Checkmk REST, Icinga2 REST, Naemon (Livestatus/REST), Zabbix JSON-RPC, Prometheus/VictoriaMetrics, SolarWinds Orion (SWIS), Demo
+- JWT-Authentifizierung mit Rollen (viewer / editor / admin) + Auto-Refresh; LDAP/AD + Checkmk-Auth-Kette
 - REST-API (/api/v1) mit vollständiger CRUD für Maps, Objekte, Backends, Benutzer, Kiosk
 - Prometheus-Metriken-Endpoint (/metrics), Liveness/Readiness-Probes
 - NagVis-1-Import, draw.io-Import, Map-Clone, Map-Export/ZIP
 - Audit-Log (JSONL, Rotation), strukturiertes Logging (JSON/Text)
 - pytest-Testsuite: 6 Test-Dateien, Coverage ≥ 70 %
+- Automatische Hostalias-Auflösung (Checkmk: `alias` statt leerem Feld)
 
 ### Frontend (Vanilla JS, kein Framework)
 - Single Page Application ohne Build-Step
@@ -65,6 +68,9 @@
 - Kiosk-Modus (Vollbild, Auto-Refresh, Token-URL)
 - Dark/Light-Theme, Browser-Benachrichtigungen, WebAudio-Hinweiston
 - Zoom/Pan (CSS Transform), Keyboard-Shortcuts
+- **Mehrsprachigkeit (i18n)**: DE/EN eingebaut; beliebige Sprachen per JSON-Pack importierbar; `window.t()`, `data-i18n`-Attribute, localStorage-Cache
+- **WCAG-AA-Kontrast**: alle sekundären Textelemente ≥ 4,5:1 auf Panel-Hintergründen
+- **Kontextmenü-Aktionen**: „Im Monitoring öffnen" mit automatischer URL-Ableitung pro Backend (Checkmk: aus API-URL; andere: globale Basis-URL)
 
 ### DevOps / Infrastruktur
 - `install.sh` (vollautomatische Linux-Installation, Systemd, venv, Berechtigungen)
@@ -96,13 +102,13 @@
 ### Claude (KI-Assistent)
 | Tätigkeit | Schätzung |
 |---|---|
-| Sessions gesamt | ~12–15 Konversationen |
+| Sessions gesamt | ~16–20 Konversationen |
 | Durchschnittliche Session-Dauer | ~45–90 min Antwortzeit |
-| Code geschrieben / editiert | ~18 000 Zeilen |
-| Dateien erstellt / geändert | ~85 Dateien |
-| **Gesamt KI-Arbeitszeit (Äquivalent)** | **~120–160 h** |
+| Code geschrieben / editiert | ~20 000 Zeilen |
+| Dateien erstellt / geändert | ~95 Dateien |
+| **Gesamt KI-Arbeitszeit (Äquivalent)** | **~140–180 h** |
 
-> **Gesamtprojekt-Äquivalent:** ~160–200 Personenstunden
+> **Gesamtprojekt-Äquivalent:** ~180–220 Personenstunden
 
 ---
 
@@ -144,9 +150,9 @@ Würde der gleiche Umfang bei einer externen Software-Agentur beauftragt:
 
 | Kennzahl | Wert |
 |---|---|
-| Code pro aktivem Arbeitstag | ~2 360 Zeilen |
+| Code pro aktivem Arbeitstag | ~2 370 Zeilen |
 | Features pro Woche | ~10–12 signifikante Features |
-| Commits pro Tag (Ø) | 12,6 |
+| Commits pro Tag (Ø) | 7,9 |
 | KI-Hebel (Agentur-Wert / API-Kosten) | **~1 770×** |
 | KI-Hebel (Agentur-Wert / Gesamtkosten inkl. Entwickler) | **~12×** |
 
@@ -154,9 +160,9 @@ Würde der gleiche Umfang bei einer externen Software-Agentur beauftragt:
 
 ## Fazit
 
-In **14 Kalendertagen** wurde mit ca. **€21 API-Kosten** und **~38 h Entwicklerzeit**
+In **34 Kalendertagen** wurde mit ca. **€21 API-Kosten** und **~38 h Entwicklerzeit**
 ein vollständiges Monitoring-Frontend gebaut, dessen Marktwert bei externer Vergabe
-bei schätzungsweise **€35 000–45 000** liegt.
+bei schätzungsweise **€37 000–47 000** liegt.
 
 Der KI-Einsatz hat die Entwicklungsgeschwindigkeit im Vergleich zu klassischer
 Solo-Entwicklung (gleicher Entwickler, ohne KI) um den Faktor **5–8×** erhöht –
