@@ -4,6 +4,15 @@
 
 ## [2026-04-14]
 
+### Bugfix: „Im Monitoring öffnen" — falsche URLs für Host, Hostgroup, Servicegroup
+
+- Host-Link verwendete fälschlich `index.py?start_url=…`-Wrapper; korrekt ist direktes `view.py?host=…&view_name=host`
+- Hostgroup und Servicegroup sind jetzt ebenfalls vorbereitet:
+  - Hostgroup:    `{base}/view.py?hostgroup={name}&site={site}&view_name=hostgroup`
+  - Servicegroup: `{base}/view.py?servicegroup={name}&site={site}&view_name=servicegroup`
+- `js/nodes.js`: `_buildMonitoringUrl` komplett überarbeitet — switch über `obj.type` (host / service / hostgroup / servicegroup); gleiche Logik im Checkmk- und im globalen Fallback-Pfad
+- Gleiche URL-Muster gelten auch für den `monitoring_url`-Fallback (andere Backends)
+
 ### Feature: Live-Perfdata in Tooltips (Gadgets + Service-Objekte)
 
 - **Gadgets**: Mouseover zeigt jetzt Live-Wert aus `perfdataCache` (statt gespeichertem Demo-Wert); alle Perfdata-Metriken des Services werden im Tooltip aufgelistet; Service-Status und Plugin-Ausgabe werden zusätzlich angezeigt

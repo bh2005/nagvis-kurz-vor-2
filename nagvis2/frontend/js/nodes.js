@@ -2082,41 +2082,64 @@ function _saveActionConfig() { localStorage.setItem('nv2-action-config', JSON.st
  * Checkmk: URL wird aus der API-Base-URL abgeleitet, kein manuelles Konfigurieren nötig.
  * Fallback: globale monitoring_url aus _actionConfig.
  */
+/**
+ * Baut die Checkmk-Monitoring-URL für "Im Monitoring öffnen" pro Objekt-Typ.
+ *
+ * URL-Muster (Checkmk 2.x):
+ *   Host:         {base}/view.py?host={name}&site={site}&view_name=host
+ *   Service:      {base}/view.py?host={host}&service={svc}&site={site}&view_name=service
+ *   Hostgroup:    {base}/view.py?hostgroup={name}&site={site}&view_name=hostgroup
+ *   Servicegroup: {base}/view.py?servicegroup={name}&site={site}&view_name=servicegroup
+ *
+ * base  = API-URL ohne "/api/1.0"  (z.B. http://localhost:8080/cmk/check_mk)
+ * site  = Pfad-Segment vor "/check_mk"  (z.B. "cmk")
+ */
 function _buildMonitoringUrl(obj, h) {
-  const isService = obj.type === 'service';
-  const hostname  = isService ? (obj.host_name || '') : (obj.name || '');
-  const svcDesc   = isService ? (obj.name || '') : '';
+  const type = obj.type || '';
 
   // Backend-Info aus globalem backendList (geladen in app.js)
-  const bid     = obj.backend_id || (h?.backend_id) || '';
+  const bid     = obj.backend_id || h?.backend_id || '';
   const backend = (window.backendList ?? []).find(b => b.backend_id === bid);
 
   if (backend?.type === 'checkmk' && backend.address) {
-    // address = API-URL: http://host:port/site/check_mk/api/1.0
-    const apiUrl  = backend.address.replace(/\/+$/, '');
-    const siteBase = apiUrl.replace(/\/api\/1\.0$/, ''); // http://host:port/site/check_mk
-    // Site-Name: Pfad-Segment direkt vor /check_mk
+    const apiUrl   = backend.address.replace(/\/+$/, '');
+    const siteBase = apiUrl.replace(/\/api\/1\.0$/, '');          // http://host:port/site/check_mk
     const siteMatch = siteBase.match(/\/([^/]+)\/check_mk$/);
-    const siteName  = siteMatch ? siteMatch[1] : 'cmk';
+    const site      = siteMatch ? siteMatch[1] : 'cmk';
+    const b         = siteBase;
+    const enc       = encodeURIComponent;
 
-    if (isService) {
-      return `${siteBase}/view.py?host=${encodeURIComponent(hostname)}&service=${encodeURIComponent(svcDesc)}&site=${siteName}&view_name=service`;
-    } else {
-      const basePath  = new URL(siteBase).pathname; // /site/check_mk
-      const innerPath = `${basePath}/view.py?host=${encodeURIComponent(hostname)}&site=${siteName}&view_name=host`;
-      return `${siteBase}/index.py?start_url=${encodeURIComponent(innerPath)}`;
+    switch (type) {
+      case 'host':
+        return `${b}/view.py?host=${enc(obj.name)}&site=${site}&view_name=host`;
+      case 'service':
+        return `${b}/view.py?host=${enc(obj.host_name)}&service=${enc(obj.name)}&site=${site}&view_name=service`;
+      case 'hostgroup':
+        return `${b}/view.py?hostgroup=${enc(obj.name)}&site=${site}&view_name=hostgroup`;
+      case 'servicegroup':
+        return `${b}/view.py?servicegroup=${enc(obj.name)}&site=${site}&view_name=servicegroup`;
+      default:
+        return `${b}/view.py?host=${enc(obj.name)}&site=${site}&view_name=host`;
     }
   }
 
   // Fallback: globale monitoring_url aus Aktion-Config
   if (_actionConfig.monitoring_url) {
     const base = _actionConfig.monitoring_url.replace(/\/+$/, '');
-    return isService
-      ? `${base}/view.py?host=${encodeURIComponent(hostname)}&service=${encodeURIComponent(svcDesc)}&view_name=service`
-      : `${base}/${encodeURIComponent(hostname)}`;
+    const enc  = encodeURIComponent;
+    switch (type) {
+      case 'service':
+        return `${base}/view.py?host=${enc(obj.host_name)}&service=${enc(obj.name)}&view_name=service`;
+      case 'hostgroup':
+        return `${base}/view.py?hostgroup=${enc(obj.name)}&view_name=hostgroup`;
+      case 'servicegroup':
+        return `${base}/view.py?servicegroup=${enc(obj.name)}&view_name=servicegroup`;
+      default:
+        return `${base}/view.py?host=${enc(obj.name)}&view_name=host`;
+    }
   }
 
-  return null; // kein URL konfiguriert
+  return null; // kein URL konfiguriert → Konfig-Dialog
 }
 
 function _expandActionUrl(url, obj, h) {
