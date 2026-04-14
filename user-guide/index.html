@@ -723,6 +723,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="View-Mode Aktionen (Rechtsklick auf Hosts/Services)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#im-monitoring-offnen-konfigurieren" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        „Im Monitoring öffnen" konfigurieren
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1735,6 +1752,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="View-Mode Aktionen (Rechtsklick auf Hosts/Services)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#im-monitoring-offnen-konfigurieren" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        „Im Monitoring öffnen" konfigurieren
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2378,11 +2412,12 @@ Dieses Verhalten kann unter <strong>Canvas-Format ändern → Node-Verhalten</st
 </tbody>
 </table>
 <h3 id="eigenschaften-dialog-monitoring-nodes">Eigenschaften-Dialog (Monitoring-Nodes)</h3>
-<p>Über <strong>⚙ Eigenschaften</strong> im Kontext-Menü:
+<p>Über <strong>⚙ Eigenschaften</strong> im Kontext-Menü (Edit-Mode) oder im Rechtsklick-Menü des View-Mode (Rolle <code>editor</code>/<code>admin</code>):
 - <strong>Name</strong> – Hostname, Hostgruppen-Name oder Map-ID (mit Autocomplete aus Livestatus)
-- <strong>Hostname + Service-Name</strong> – bei Services
+- <strong>Hostname + Service-Name</strong> – bei Services (mit Autocomplete aus Live-Daten)
+- <strong>Perfdata-Metrik</strong> – bei Services: Metrik-Schlüssel aus den Perfdata des Services (z.B. <code>rta</code>, <code>load1</code>); Autocomplete zeigt verfügbare Metriken mit aktuellem Wert; Live-Wert erscheint automatisch im Node-Label
 - <strong>Label-Template</strong> – dynamische Beschriftung mit Nagios-Macros und Checkmk-Labels (siehe unten)
-- <strong>Statisches Label</strong> – fester Anzeigename; wird ignoriert wenn ein Template gesetzt ist
+- <strong>Statisches Label</strong> – fester Anzeigename; Nagios-Macros funktionieren auch hier; wird ignoriert wenn ein Template gesetzt ist
 - <strong>Label anzeigen</strong> – Checkbox zum Ein-/Ausblenden des Labels</p>
 <h3 id="label-templates">Label-Templates</h3>
 <p>Nodes können dynamische Beschriftungen erhalten, die bei jedem Status-Update neu aufgelöst werden.</p>
@@ -2431,14 +2466,22 @@ Dieses Verhalten kann unter <strong>Canvas-Format ändern → Node-Verhalten</st
 <td><code>$MAPNAME$</code></td>
 <td>ID der aktiven Map</td>
 </tr>
+<tr>
+<td><code>$PERFVALUE$</code></td>
+<td>Live-Wert der konfigurierten Perfdata-Metrik (nur wenn <code>perf_label</code> gesetzt)</td>
+</tr>
 </tbody>
 </table>
+<blockquote>
+<p><strong>Hinweis:</strong> Macros funktionieren auch im regulären <strong>Label-Feld</strong> — nicht nur im Label-Template-Feld. Beim ersten Laden kann das Label kurz leer erscheinen, bis der erste Status eingetroffen ist.</p>
+</blockquote>
 <p><strong>Beispiele:</strong></p>
 <pre><code>$HOSTNAME$ ($HOSTSTATE$)          → &quot;webserver-01 (DOWN)&quot;
 $HOSTALIAS$                       → &quot;Webserver Hamburg&quot;
 $LABEL:os$ / $LABEL:location$     → &quot;linux / hamburg&quot;
 $LABEL:env$ – $HOSTNAME$          → &quot;production – webserver-01&quot;
 $SERVICESTATE$: $SERVICEOUTPUT$   → &quot;CRITICAL: HTTP timeout after 30s&quot;
+$HOSTNAME$: $PERFVALUE$           → &quot;ping-host: 1.2ms&quot;
 </code></pre>
 <p>Labels werden je nach Backend-Typ automatisch importiert:
 - <strong>Checkmk</strong>: <code>extensions.labels</code> aus der REST API
@@ -2708,19 +2751,23 @@ Mit Option <strong>🌡 Weathermap</strong>: Linie färbt sich nach dem Status d
 <tbody>
 <tr>
 <td>🔍 Im Monitoring öffnen</td>
-<td>Monitoring-URL konfiguriert</td>
+<td>Immer sichtbar; URL wird pro Backend automatisch abgeleitet (Checkmk: aus API-URL)</td>
 </tr>
 <tr>
 <td>✔ Problem bestätigen (ACK)</td>
-<td>Status nicht OK, nicht bereits ACK</td>
+<td>Status ist Problem (DOWN/CRITICAL/WARNING/UNKNOWN), noch kein ACK</td>
 </tr>
 <tr>
 <td>✖ Bestätigung aufheben</td>
-<td>Bereits ACK</td>
+<td>Bereits ACK gesetzt</td>
 </tr>
 <tr>
 <td>🔧 Wartung einplanen</td>
 <td>Immer verfügbar</td>
+</tr>
+<tr>
+<td>🔧 Wartung aufheben</td>
+<td>Downtime aktiv</td>
 </tr>
 <tr>
 <td>↻ Check jetzt erzwingen</td>
@@ -2734,9 +2781,17 @@ Mit Option <strong>🌡 Weathermap</strong>: Linie färbt sich nach dem Status d
 <td>📊 Grafana öffnen</td>
 <td>Grafana-URL konfiguriert</td>
 </tr>
+<tr>
+<td>⚙ Eigenschaften</td>
+<td>Nur für Rolle <code>editor</code>/<code>admin</code></td>
+</tr>
 </tbody>
 </table>
-<p>Aktionen konfigurieren: Burger-Menü → ⚡ Aktionen konfigurieren</p>
+<h3 id="im-monitoring-offnen-konfigurieren">„Im Monitoring öffnen" konfigurieren</h3>
+<p>Für <strong>Checkmk</strong>-Backends wird die URL automatisch aus der konfigurierten API-Base-URL abgeleitet — keine manuelle Konfiguration nötig.</p>
+<p>Für andere Backends: Burger-Menü → ⚡ <strong>Aktionen konfigurieren</strong> → Feld <strong>Monitoring-URL</strong> ausfüllen (z.B. <code>http://nagios.example.com/nagios</code>).</p>
+<p>Wenn weder Backend-URL noch manuelle URL vorhanden ist, öffnet sich beim Klick direkt der Konfig-Dialog.</p>
+<p>Aktionen aktivieren/deaktivieren: Burger-Menü → ⚡ Aktionen konfigurieren</p>
 <hr />
 <h2 id="zoom-pan">Zoom &amp; Pan</h2>
 <table>

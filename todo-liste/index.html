@@ -778,7 +778,7 @@
 
 <h1 id="nagvis-2-todo-liste">NagVis 2 – Todo-Liste</h1>
 <blockquote>
-<p>Stand: 2026-04-08</p>
+<p>Stand: 2026-04-14</p>
 </blockquote>
 <hr />
 <h2 id="offen-bugs-technische-schulden">Offen – Bugs / Technische Schulden</h2>
@@ -788,10 +788,23 @@
 <li>[x] <strong><code>.nv2-type-pill</code> Kontrast</strong> — <code>styles.css</code> auf <code>--text-dim-surf</code> umgestellt (WCAG AA ✓)</li>
 <li>[x] <strong>Zoom-Reset-Button</strong> — <code>disabled</code> im HTML ist korrekt (Initialzustand); <code>zoom_pan.js:52</code> aktiviert den Button dynamisch beim Zoomen/Pannen; Click-Listener vorhanden (<code>zoom_pan.js:221</code>)</li>
 <li>[x] <strong>Browser-Notifikationen</strong> — <code>new Notification()</code> wird in <code>ws-client.js:180</code> aufgerufen; <code>requestPermission()</code> in <code>ui-core.js:325</code> vorhanden — vollständig implementiert</li>
+<li>[x] <strong><code>+</code>-Button in Übersichtskarte</strong> — doppelte <code>id="btn-new-map"</code> verhinderte Karten-Erstellung aus der Übersicht; ID in <code>ov-btn-new-map</code> umbenannt</li>
+<li>[x] <strong>Service-Dropdown leer beim Platzieren</strong> — <code>serviceCache</code> wurde nicht ans Platzierungs-Formular gebunden; input-Listener für <code>dlg-svc-host</code> und <code>dlg-svc-name</code> ergänzt</li>
+<li>[x] <strong>Gadget-Werte nicht angezeigt (Checkmk)</strong> — Checkmk REST API liefert Perfdata als Array; <code>_to_perf_str()</code> gab <code>""</code> zurück; fix: Array-Elemente mit Leerzeichen verbinden</li>
+<li>[x] <strong><code>$HOSTALIAS$</code> nicht aufgelöst</strong> — Makros funktionierten nur im Label-Template-Feld, nicht im Label-Feld; <code>_nodeLabel</code> und <code>_applyLabelTemplate</code> erweitert</li>
+<li>[x] <strong>Service-Anzahl im Tooltip immer 0</strong> — Checkmk REST API liefert <code>num_services_*</code> in Hosts-Collection nicht; fix: Live-Zählung aus <code>hostCache</code></li>
+<li>[x] <strong>„undefined" in Host/Problem-Panel</strong> — <code>Object.values(hostCache)</code> enthält Services ohne <code>name</code>; fix: Panels filtern nach <code>type</code></li>
+<li>[x] <strong>Kontextmenü-Aktionen fehlen</strong> — <code>h</code> war <code>null</code> durch direkten <code>hostCache</code>-Lookup; fix: <code>_resolveStatus</code> verwenden; <code>_actionConfig.enabled</code> Migration für alte localStorage-Stände</li>
+<li>[x] <strong><code>backend_id</code> vs. <code>_backend_id</code></strong> — <code>applyStatuses</code> befüllte <code>backendStatusCache</code> nie (falscher Feldname); fix: <code>h.backend_id || h._backend_id</code></li>
 </ul>
 <hr />
 <h2 id="ux-frontend">UX / Frontend</h2>
 <ul>
+<li>[x] <strong>Live-Perfdata in Tooltips</strong> — Gadgets und Service-Objekte zeigen Live-Werte aus <code>perfdataCache</code>; alle Metriken mit Warn/Crit-Farbcodierung; aktive Metrik fett hervorgehoben</li>
+<li>[x] <strong>Service-Objekte mit <code>perf_label</code></strong> — Perfdata-Metrik pro Service-Objekt konfigurierbar; Live-Wert im Node-Label; Autocomplete für Service + Metrik; <code>$PERFVALUE$</code>-Macro</li>
+<li>[x] <strong>Eigenschaften im View-Mode</strong> — „⚙ Eigenschaften" im Rechtsklick-Menü für Rolle <code>editor</code>/<code>admin</code></li>
+<li>[x] <strong>Probleme-Panel zeigt auch Services</strong> — nicht nur Host-Probleme, sondern auch Service-Probleme werden angezeigt</li>
+<li>[x] <strong>„Im Monitoring öffnen" automatische URL</strong> — Checkmk: URL aus API-Base-URL abgeleitet; Fallback auf globale URL; ohne Konfig → Konfig-Dialog öffnet sich</li>
 <li>[x] Multi-Select: mehrere Nodes gleichzeitig auswählen und verschieben (Shift+Klick oder Lasso)</li>
 <li>[x] Multi-Select: Delete/Backspace zum Löschen aller ausgewählten Nodes</li>
 <li>[x] Multi-Select: Escape hebt Selektion auf</li>
