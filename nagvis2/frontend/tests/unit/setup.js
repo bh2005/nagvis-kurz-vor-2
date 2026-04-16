@@ -31,14 +31,19 @@ globalThis.svgToDataUri   = globalThis.svgToDataUri   ?? globalThis.window?.svgT
 globalThis.iconSrc        = globalThis.iconSrc        ?? globalThis.window?.iconSrc
 globalThis.updateNodeIcon = globalThis.updateNodeIcon ?? globalThis.window?.updateNodeIcon
 
-// ── nodes.js (nur Zeilen 1-51: resolveMacros) ─────────────────────────
+// ── nodes.js (nur resolveMacros-Block) ────────────────────────────────
 // nodes.js ist ~2500 Zeilen lang und hat DOM-Abhängigkeiten.
-// Wir laden nur den oberen Block, der resolveMacros enthält und
-// keine DOM-Elemente referenziert.
+// Wir laden nur den oberen Block bis zur schließenden } von resolveMacros,
+// damit der Slice auch nach Erweiterungen der Funktion korrekt bleibt.
 // HINWEIS: 'use strict' in nodes.js verhindert, dass function-Deklarationen
 // bei indirektem eval automatisch auf globalThis landen → explizit zuweisen.
-const nodesSrc   = readFileSync(resolve(JS_DIR, 'nodes.js'), 'utf-8')
-const macroLines = nodesSrc.split('\n').slice(0, 51).join('\n')
+const nodesSrc = readFileSync(resolve(JS_DIR, 'nodes.js'), 'utf-8')
+const lines    = nodesSrc.split('\n')
+// Ende von resolveMacros dynamisch ermitteln: erste Leerzeile nach
+// der schließenden } der Funktion (erkennbar an '^}' in Spalte 0).
+let endLine = lines.findIndex((l, i) => i > 30 && /^\}/.test(l))
+if (endLine < 0) endLine = 80   // Fallback falls Suche fehlschlägt
+const macroLines = lines.slice(0, endLine + 1).join('\n')
 ;(0, eval)(macroLines + '\nglobalThis.resolveMacros = resolveMacros')
 
 // window.activeMapId standardmäßig auf null setzen (für $MAPNAME$-Tests)

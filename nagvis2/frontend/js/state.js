@@ -25,7 +25,8 @@ window.eventLog      = [];
 window.activeSnapin  = null;
 window.currentTheme  = 'dark';
 window.mapStatusCache  = {};   // mapId → { ok, warn, crit, unkn } – befüllt von applyStatuses()
-window.hostgroupCache  = {};   // groupName → [host_name, …]  – befüllt von loadHostgroups()
+window.hostgroupCache     = {};   // groupName → [host_name, …]    – befüllt von loadHostgroups()
+window.servicegroupCache  = {};   // groupName → [svc_key, …]      – befüllt von loadServicegroups()
 window.backendStatusCache = {}; // backend_id → { cacheKey: statusDict } – befüllt von applyStatuses()
 window.backendList     = [];   // [{ backend_id, type, label }] – befüllt von loadBackendList()
 
