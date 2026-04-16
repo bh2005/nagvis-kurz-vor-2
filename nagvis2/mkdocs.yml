@@ -36,4 +36,4 @@ nav:
       - Migration: help/migrate.md
       - ZIP Import: help/zip-import.md
       - OSM / Weltkarte: osm-guide.md
-  - Changelog: ../changelog.md
+  - Changelog: changelog.md
