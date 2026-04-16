@@ -3,6 +3,11 @@ name: Deploy Frontend to Pages
 on:
   push:
     branches: ["main"]
+    paths:
+      - "nagvis2/frontend/**"
+      - "nagvis2/docs/**"
+      - "nagvis2/mkdocs.yml"
+      - ".github/workflows/static.yml"
   workflow_dispatch:
 
 permissions:
@@ -16,23 +21,38 @@ concurrency:
 
 jobs:
   deploy:
+    name: Build & Deploy Frontend
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Python einrichten (für MkDocs)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: nagvis2/backend/requirements.txt
+
+      - name: MkDocs installieren
+        run: pip install mkdocs>=1.5.0 mkdocs-material>=9.0.0
+
+      - name: Docs bauen → nagvis2/frontend/help/
+        working-directory: nagvis2
+        run: mkdocs build --clean --strict --site-dir frontend/help
+
       - name: Setup Pages
-        uses: actions/configure-pages@v6
+        uses: actions/configure-pages@v5
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v3
         with:
-          # Hier sagen wir GitHub: Nimm einfach diesen Ordner so wie er ist
           path: './nagvis2/frontend'
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@v4

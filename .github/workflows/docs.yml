@@ -1,14 +1,14 @@
-name: Docs – MkDocs → GitHub Pages
+# DEAKTIVIERT – Docs-Build ist jetzt in static.yml integriert.
+# Dieser Workflow pushed via mkdocs gh-deploy in den gh-pages-Branch,
+# was mit der GitHub-Actions-Deployment-Methode in static.yml kollidiert.
+name: Docs – MkDocs → GitHub Pages (DEAKTIVIERT)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "nagvis2/docs/**"
-      - "nagvis2/mkdocs.yml"
-      - ".github/workflows/docs.yml"
-  # Manueller Trigger (z.B. nach Logo-Update ohne Datei-Änderung)
   workflow_dispatch:
+    inputs:
+      disabled:
+        description: "Dieser Workflow ist deaktiviert. Docs werden via static.yml gebaut."
+        required: false
 
 # Nur eine Docs-Deployment gleichzeitig
 concurrency:
