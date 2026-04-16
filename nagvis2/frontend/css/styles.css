@@ -764,10 +764,11 @@ img.nv2-icon { display: block; width: 100%; height: 100%; object-fit: contain; t
 .tt-name { font-size: 11.5px; font-weight: 500; color: var(--text); padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1px solid var(--border); }
 .tt-row  { display: flex; justify-content: space-between; gap: 10px; font-family: var(--mono); font-size: 9.5px; color: var(--text-mid); margin-bottom: 2px; }
 .tt-row b { color: var(--text); font-weight: 500; }
-.tt-ok   { color: var(--ok)   !important; }
-.tt-warn { color: var(--warn) !important; }
-.tt-crit { color: var(--crit) !important; }
-.tt-unkn { color: var(--unkn) !important; }
+.tt-ok       { color: var(--ok)       !important; }
+.tt-warn     { color: var(--warn)     !important; }
+.tt-crit     { color: var(--crit)     !important; }
+.tt-unkn     { color: var(--unkn)     !important; }
+.tt-downtime { color: var(--downtime) !important; }
 
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -1003,7 +1004,7 @@ img.nv2-icon { display: block; width: 100%; height: 100%; object-fit: contain; t
 .nv2-textbox {
   position: absolute; transform: translate(-50%, -50%);
   padding: 5px 10px; border-radius: var(--r); white-space: pre-wrap;
-  word-break: break-word; cursor: default; user-select: none; min-width: 60px; min-height: 24px;
+  word-break: break-word; cursor: default; -webkit-user-select: none; user-select: none; min-width: 60px; min-height: 24px;
 }
 .nv2-textbox:hover { outline: 1px dashed var(--acc); }
 
@@ -1132,7 +1133,7 @@ img.nv2-icon { display: block; width: 100%; height: 100%; object-fit: contain; t
 .layer-row:hover { background: var(--bg-hover); }
 .layer-row.layer-drag-over { border-top: 2px solid var(--acc); }
 .layer-row.layer-dragging { opacity: 0.4; }
-.layer-drag-handle { font-size: 13px; opacity: 0.35; cursor: grab; flex-shrink: 0; line-height: 1; user-select: none; }
+.layer-drag-handle { font-size: 13px; opacity: 0.35; cursor: grab; flex-shrink: 0; line-height: 1; -webkit-user-select: none; user-select: none; }
 .layer-drag-handle:hover { opacity: 0.8; }
 .layer-drag-handle:active { cursor: grabbing; }
 .layer-toggle { display: flex; align-items: center; cursor: pointer; flex-shrink: 0; }
@@ -1193,8 +1194,8 @@ img.nv2-icon { display: block; width: 100%; height: 100%; object-fit: contain; t
   box-shadow: 0 8px 28px var(--dlg-shadow); min-width: 210px; padding: 6px 0; animation: dlgIn 0.12s ease;
   max-height: calc(100dvh - 60px); overflow-y: auto; overscroll-behavior: contain;
 }
-.burger-head { font-family: var(--mono); font-size: 8.5px; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase; color: var(--text-mid); padding: 8px 14px 3px; user-select: none; }
-.burger-sub-head { font-family: var(--mono); font-size: 7.5px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-dim, var(--text-mid)); opacity: 0.6; padding: 6px 14px 2px 20px; user-select: none; }
+.burger-head { font-family: var(--mono); font-size: 8.5px; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase; color: var(--text-mid); padding: 8px 14px 3px; -webkit-user-select: none; user-select: none; }
+.burger-sub-head { font-family: var(--mono); font-size: 7.5px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-dim, var(--text-mid)); opacity: 0.6; padding: 6px 14px 2px 20px; -webkit-user-select: none; user-select: none; }
 .burger-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 14px; background: transparent; border: none; color: var(--text); font-family: var(--sans); font-size: 12.5px; text-align: left; cursor: pointer; transition: background var(--t); }
 .burger-item:hover { background: var(--bg-hover); }
 .burger-item.on { color: var(--acc); background: var(--bg-active); }
@@ -1241,13 +1242,13 @@ img.nv2-icon { display: block; width: 100%; height: 100%; object-fit: contain; t
   border-radius: var(--r); border: 1px solid rgba(255,255,255,0.2);
   background: rgba(0,0,0,0.65); color: #ccc; font-size: 12px; cursor: pointer;
   opacity: 0; pointer-events: none; transition: opacity 0.25s ease, background 0.15s;
-  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
 }
 .kiosk-exit-btn.visible { opacity: 1; pointer-events: all; }
 .kiosk-exit-btn:hover { background: rgba(244,67,54,0.75); border-color: rgba(244,67,54,0.5); color: #fff; }
 .kiosk-status-bar {
   position: absolute; bottom: 0; left: 0; right: 0; height: 26px;
-  background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);
+  background: rgba(0,0,0,0.55); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
   display: flex; align-items: center; padding: 0 16px;
   font-family: var(--mono); font-size: 10px; color: rgba(255,255,255,0.45);
   letter-spacing: 0.5px; pointer-events: none;
@@ -1265,7 +1266,7 @@ img.nv2-icon { display: block; width: 100%; height: 100%; object-fit: contain; t
 ═══════════════════════════════════════════════════════════════════════ */
 #map-canvas-wrapper { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform-origin: 0 0; will-change: transform; }
 #nv2-zoom-controls { align-items: center; gap: 4px; margin-right: 4px; }
-#nv2-zoom-level { font-family: var(--mono); font-size: 12px; color: var(--text-mid); min-width: 40px; text-align: center; user-select: none; }
+#nv2-zoom-level { font-family: var(--mono); font-size: 12px; color: var(--text-mid); min-width: 40px; text-align: center; -webkit-user-select: none; user-select: none; }
 #btn-zoom-reset:disabled { opacity: 0.35; cursor: not-allowed; }
 
 
@@ -1332,7 +1333,7 @@ img.nv2-icon { display: block; width: 100%; height: 100%; object-fit: contain; t
   resize: none; overflow: hidden; font: inherit; color: inherit;
   padding: 0; margin: 0; cursor: text; line-height: inherit;
   caret-color: var(--acc, #29b6d4);
-  user-select: text !important; -webkit-user-select: text !important;
+  -webkit-user-select: text !important; user-select: text !important;
   white-space: pre-wrap;
 }
 .nv2-textbox:has(textarea.nv2-textbox-editor) {
@@ -1406,7 +1407,7 @@ img.nv2-icon { display: block; width: 100%; height: 100%; object-fit: contain; t
   stroke: var(--bg);
   stroke-width: 3px;
   pointer-events: none;
-  user-select: none;
+  -webkit-user-select: none; user-select: none;
 }
 .nv2-wm-line line { transition: stroke 0.35s ease; }
 .nv2-wm-line circle { transition: fill 0.35s ease; }
