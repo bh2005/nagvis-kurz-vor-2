@@ -76,6 +76,7 @@ function createNode(obj) {
     case 'host': case 'service': case 'hostgroup': case 'servicegroup': case 'map':
       return _renderMonitoringNode(obj);
     case 'textbox':   return _renderTextbox(obj);
+    case 'zone':      return _renderZone(obj);
     case 'line':      return _renderLine(obj);
     case 'container': return _renderContainer(obj);
     case 'gadget':
@@ -211,6 +212,83 @@ function _renderContainer(obj) {
   getNodeContainer().appendChild(el);
   if (editActive) makeDraggable(el);
   return el;
+}
+
+function _applyZoneStyle(el, obj) {
+  el.style.left         = `${obj.x}%`;
+  el.style.top          = `${obj.y}%`;
+  el.style.width        = `${obj.w ?? 20}%`;
+  el.style.height       = `${obj.h ?? 12}%`;
+  el.style.background   = obj.bg_color   || 'rgba(80,80,80,0.18)';
+  el.style.border       = `${obj.border_width ?? 2}px solid ${obj.border_color || obj.color || '#888'}`;
+  const lbl = el.querySelector('.nv2-zone-label');
+  if (lbl) {
+    lbl.textContent  = obj.text ?? '';
+    lbl.style.color  = obj.color || obj.border_color || '#ccc';
+    lbl.style.fontSize = `${obj.font_size ?? 13}px`;
+    lbl.style.fontWeight = obj.bold ? '700' : '600';
+  }
+}
+
+function _renderZone(obj) {
+  const el = document.createElement('div');
+  el.id               = `nv2-${obj.object_id}`;
+  el.className        = 'nv2-zone';
+  el.dataset.objectId = obj.object_id;
+  el.dataset.type     = 'zone';
+
+  el.innerHTML = `<span class="nv2-zone-label"></span>
+    <div class="nv2-resize-handle" style="position:absolute;bottom:0;right:0;width:12px;height:12px;cursor:nwse-resize"></div>`;
+  _applyZoneStyle(el, obj);
+
+  el.addEventListener('contextmenu', e => { e.preventDefault(); if (editActive) showNodeContextMenu(e, el, obj); });
+  _attachSelectHandler(el);
+
+  // Zones vor allen anderen einfügen → visuelle Hintergrund-Ebene
+  const container = getNodeContainer();
+  const firstNonZone = container.querySelector(':scope > :not(.nv2-zone)');
+  if (firstNonZone) container.insertBefore(el, firstNonZone);
+  else container.appendChild(el);
+
+  if (editActive) {
+    makeDraggable(el);
+    _makeZoneResizable(el, obj);
+  }
+  return el;
+}
+
+function _makeZoneResizable(el, obj) {
+  const handle = el.querySelector('.nv2-resize-handle');
+  if (!handle) return;
+  let startX, startY, startW, startH, canvasRect;
+
+  handle.addEventListener('mousedown', e => {
+    e.stopPropagation();
+    e.preventDefault();
+    const canvas = document.getElementById('nv2-canvas');
+    canvasRect = canvas.getBoundingClientRect();
+    startX = e.clientX;
+    startY = e.clientY;
+    startW = parseFloat(el.style.width)  || 20;
+    startH = parseFloat(el.style.height) || 12;
+
+    const onMove = ev => {
+      const dxPct = (ev.clientX - startX) / canvasRect.width  * 100;
+      const dyPct = (ev.clientY - startY) / canvasRect.height * 100;
+      el.style.width  = `${Math.max(4, startW + dxPct)}%`;
+      el.style.height = `${Math.max(3, startH + dyPct)}%`;
+    };
+    const onUp = async () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      const newW = parseFloat(el.style.width);
+      const newH = parseFloat(el.style.height);
+      obj.w = newW; obj.h = newH;
+      await api(`/api/maps/${activeMapId}/objects/${obj.object_id}/props`, 'PATCH', { w: newW, h: newH });
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
 }
 
 /** Aktualisiert das Label eines Nodes wenn ein label_template gesetzt ist. */
@@ -1900,13 +1978,18 @@ function toggleEdit() {
   addBtn.style.display = editActive ? 'flex' : 'none';
   document.getElementById('btn-undo').style.display = editActive ? '' : 'none';
   document.getElementById('btn-redo').style.display = editActive ? '' : 'none';
-  if (!editActive) { document.getElementById('nv2-align-bar').style.display = 'none'; }
+  window.NV2_ALIGN?.updateToolbar();
   banner.classList.toggle('show', editActive);
   canvas.classList.toggle('nv2-edit-mode', editActive);
   // OSM-Marker vom Canvas-Drag ausschließen (Leaflet übernimmt das)
   if (editActive) {
-    document.querySelectorAll('.nv2-node:not(.nv2-osm-marker), .nv2-textbox, .nv2-container').forEach(makeDraggable);
+    document.querySelectorAll('.nv2-node:not(.nv2-osm-marker), .nv2-textbox, .nv2-container, .nv2-zone').forEach(makeDraggable);
     document.querySelectorAll('.nv2-node:not(.nv2-osm-marker), .nv2-textbox').forEach(makeResizable);
+    document.querySelectorAll('.nv2-zone').forEach(el => {
+      const oid = el.dataset.objectId;
+      const obj = activeMapCfg?.objects?.find(o => o.object_id === oid);
+      if (obj) _makeZoneResizable(el, obj);
+    });
   }
   if (window.NV2_OSM?.isActive()) NV2_OSM.setEditMode(editActive);
 }
@@ -2141,7 +2224,7 @@ function onCanvasMouseDown(e) {
     lasso.remove();
     if (!moved) return;
     if (!ev.ctrlKey && !ev.metaKey) clearSelection();
-    document.querySelectorAll('.nv2-node,.nv2-textbox,.nv2-container').forEach(node => {
+    document.querySelectorAll('.nv2-node,.nv2-textbox,.nv2-container,.nv2-zone').forEach(node => {
       const nr = node.getBoundingClientRect();
       const cx = nr.left + nr.width / 2, cy = nr.top + nr.height / 2;
       if (cx >= lr.left && cx <= lr.right && cy >= lr.top && cy <= lr.bottom) {
@@ -2666,11 +2749,13 @@ function showNodeContextMenu(e, el, obj) {
   menu.id = 'nv2-ctx-menu'; menu.className = 'ctx-menu';
   menu.style.left = `${e.clientX}px`; menu.style.top = `${e.clientY}px`;
   const isTextbox = obj.type === 'textbox', isGadget = obj.type === 'gadget';
+  const isZone    = obj.type === 'zone';
   const isMonitoring = ['host','service','hostgroup','servicegroup','map'].includes(obj.type);
   const isHostSvc    = obj.type === 'host' || obj.type === 'service';
   const cmkUrl       = isHostSvc ? _checkmkViewUrl(obj) : null;
   const items = [
     { label:'✏ Text bearbeiten',      action:() => openTextboxDialog(el, obj),           hide:!isTextbox },
+    { label:'🟦 Zone bearbeiten',     action:() => openZoneDialog(el, obj),              hide:!isZone },
     { label:'⚙ Gadget konfigurieren', action:() => openGadgetConfigDialog(el, obj),       hide:!isGadget },
     { label:'⚙ Eigenschaften',        action:() => openNodePropsDialog(el, obj),          hide:!isMonitoring },
     { label:'🔗 In Checkmk öffnen',   action:() => window.open(cmkUrl, '_blank'),         hide:!cmkUrl },
@@ -2926,6 +3011,89 @@ function openTextboxDialog(el, obj) {
     dlg.remove();
   };
   dlg.addEventListener('click', e => { if (e.target === dlg) dlg.querySelector('#tbp-cancel').click(); });
+}
+
+function openZoneDialog(el, obj) {
+  document.getElementById('dlg-zone')?.remove();
+  const toHex = c => (c && c.startsWith('#')) ? c : '#888888';
+  const bgHex = (() => {
+    // rgba(r,g,b,a) → #rrggbb
+    const m = (obj.bg_color || '').match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    if (m) return '#' + [m[1],m[2],m[3]].map(v => parseInt(v).toString(16).padStart(2,'0')).join('');
+    return obj.bg_color?.startsWith('#') ? obj.bg_color : '#505050';
+  })();
+  const bgOpacity = (() => {
+    const m = (obj.bg_color || '').match(/rgba\(\d+,\s*\d+,\s*\d+,\s*([\d.]+)\)/);
+    return m ? Math.round(parseFloat(m[1]) * 100) : 18;
+  })();
+
+  const dlg = document.createElement('div');
+  dlg.id = 'dlg-zone';
+  dlg.className = 'float-panel';
+  dlg.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:500;width:300px;padding:16px;display:flex;flex-direction:column;gap:10px';
+  dlg.innerHTML = `
+    <div style="font-weight:600;font-size:14px">🟦 Zone bearbeiten</div>
+    <div><label class="f-label">Beschriftung</label>
+      <input class="f-input" id="zp-text" type="text" value="${esc(obj.text ?? '')}"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div><label class="f-label">Schriftgröße</label><input class="f-input" id="zp-size" type="number" value="${obj.font_size ?? 13}" min="8" max="72"></div>
+      <div><label class="f-label">Textfarbe</label><input class="f-input-color" id="zp-color" type="color" value="${toHex(obj.color || obj.border_color)}"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div><label class="f-label">Rahmenfarbe</label><input class="f-input-color" id="zp-border-color" type="color" value="${toHex(obj.border_color || obj.color)}"></div>
+      <div><label class="f-label">Rahmenbreite (px)</label><input class="f-input" id="zp-border-width" type="number" value="${obj.border_width ?? 2}" min="0" max="20"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div><label class="f-label">Hintergrundfarbe</label><input class="f-input-color" id="zp-bg-color" type="color" value="${bgHex}"></div>
+      <div><label class="f-label">Transparenz (0–100%)</label><input class="f-input" id="zp-bg-opacity" type="number" value="${bgOpacity}" min="0" max="100"></div>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px"><input type="checkbox" id="zp-bold" ${obj.bold ? 'checked':''}> Beschriftung fett</label>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn-cancel" id="zp-cancel" style="flex:1">Abbrechen</button>
+      <button class="btn-ok"     id="zp-ok"     style="flex:2">Übernehmen</button>
+    </div>`;
+  document.body.appendChild(dlg);
+
+  const hexToRgba = (hex, opacity) => {
+    const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+    return `rgba(${r},${g},${b},${(opacity/100).toFixed(2)})`;
+  };
+
+  const preview = () => {
+    const newBg = hexToRgba(dlg.querySelector('#zp-bg-color').value, parseInt(dlg.querySelector('#zp-bg-opacity').value) || 0);
+    const tmpObj = {
+      ...obj,
+      text: dlg.querySelector('#zp-text').value,
+      font_size: parseInt(dlg.querySelector('#zp-size').value) || 13,
+      color: dlg.querySelector('#zp-color').value,
+      border_color: dlg.querySelector('#zp-border-color').value,
+      border_width: parseInt(dlg.querySelector('#zp-border-width').value) || 2,
+      bg_color: newBg,
+      bold: dlg.querySelector('#zp-bold').checked,
+    };
+    _applyZoneStyle(el, tmpObj);
+  };
+  dlg.querySelectorAll('input').forEach(i => i.addEventListener('input', preview));
+
+  dlg.querySelector('#zp-cancel').onclick = () => { _applyZoneStyle(el, obj); dlg.remove(); };
+
+  dlg.querySelector('#zp-ok').onclick = async () => {
+    const newBg = hexToRgba(dlg.querySelector('#zp-bg-color').value, parseInt(dlg.querySelector('#zp-bg-opacity').value) || 0);
+    const newProps = {
+      text:         dlg.querySelector('#zp-text').value,
+      font_size:    parseInt(dlg.querySelector('#zp-size').value) || 13,
+      bold:         dlg.querySelector('#zp-bold').checked,
+      color:        dlg.querySelector('#zp-color').value,
+      border_color: dlg.querySelector('#zp-border-color').value,
+      border_width: parseInt(dlg.querySelector('#zp-border-width').value) ?? 2,
+      bg_color:     newBg,
+    };
+    Object.assign(obj, newProps);
+    _applyZoneStyle(el, obj);
+    await api(`/api/maps/${activeMapId}/objects/${obj.object_id}/props`, 'PATCH', newProps);
+    dlg.remove();
+  };
+  dlg.addEventListener('click', e => { if (e.target === dlg) dlg.querySelector('#zp-cancel').click(); });
 }
 
 function openWeathermapLineDlg(lineVis, obj) {

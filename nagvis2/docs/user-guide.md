@@ -29,7 +29,7 @@ NagVis 2 visualisiert den Status deiner Monitoring-Umgebung (Nagios / Checkmk / 
 | Verbindungspunkt | Grün = Livestatus verbunden |
 | Map-Titel / Untertitel | Name und Objekt-Anzahl der aktiven Map |
 | **Navigation** | Bei Kind-Map: `↑ Eltern-Map` als Link; bei Root-Map: `↳ Kind1` `↳ Kind2` als Chips |
-| Pills (●OK ●WARN ●CRIT) | Schnellübersicht aller Hosts |
+| Pills (●OK ●WARN ●CRIT) | Schnellübersicht aller Hosts; **Klick öffnet das Checkmk Problems-Dashboard** (sofern `web_url` konfiguriert) |
 | Zoom-Buttons (+ −) | Canvas vergrößern/verkleinern |
 | Burger-Menü (☰) | Alle Funktionen |
 
@@ -108,8 +108,8 @@ Die gewählte Sprache wird in `localStorage` gespeichert und bei jedem Besuch au
 | **Icinga2 REST API** | Icinga2 REST API v1 (Basic Auth) | Base-URL, API-Benutzer, Passwort, SSL (Standard: aus) |
 | **Zabbix JSON-RPC** | Zabbix 6.0+ (Bearer-Token) oder älter (Login) | URL, API-Token (bevorzugt) oder Benutzer + Passwort, SSL |
 | **Prometheus / VictoriaMetrics** | Prometheus HTTP API v1 — Targets als Hosts, Alerts als Services | URL, Bearer Token oder Basic Auth, Host-Label, SSL |
-| **Livestatus TCP** | Nagios/Checkmk via TCP-Verbindung | Host/IP, Port (Standard: 6557) |
-| **Livestatus Unix** | Nagios/Checkmk via Unix-Socket (lokal/OMD) | Socket-Pfad |
+| **Livestatus TCP** | Nagios/Checkmk via TCP-Verbindung | Host/IP, Port (Standard: 6557), Web-URL (optional) |
+| **Livestatus Unix** | Nagios/Checkmk via Unix-Socket (lokal/OMD) | Socket-Pfad, Web-URL (optional) |
 | **Demo** | Statische Musterdaten, keine Verbindung nötig | — |
 
 **Verbindungstest:** Der Button **🔌 Testen** prüft die Verbindung ohne das Backend zu speichern.
@@ -387,6 +387,29 @@ Der Typ **📊 Graph / iframe** bettet externe Grafiken direkt auf der Map ein �
 | Checkmk Graph | `https://checkmk.example.com/site/check_mk/graph_image.py?host=srv1&service=CPU` | `img` + Refresh |
 
 > **Tipp:** Bei `<img>` mit Auto-Refresh wird ein `?_t=<timestamp>`-Parameter angehängt, um den Browser-Cache zu umgehen.
+
+### Zone
+
+Eine Zone ist ein farbiges Rechteck, das **hinter allen anderen Objekten** auf der Karte liegt. Damit lassen sich Bereiche optisch kennzeichnen — z.B. „Rack 1", „Storage", „DMZ".
+
+**Zone platzieren:**
+1. Edit-Mode aktivieren (Stift-Symbol oder `E`)
+2. Objekt-Typ **🟦 Zone** auswählen
+3. Auf die Karte klicken — Zone erscheint mit Standard-Größe (20 × 12 %)
+
+**Zone anpassen (Rechtsklick → 🟦 Zone bearbeiten):**
+
+| Feld | Beschreibung |
+|---|---|
+| **Beschriftung** | Text in der linken oberen Ecke der Zone |
+| **Hintergrundfarbe** | RGBA-Farbe (Transparenz über Alpha-Kanal) |
+| **Rahmenfarbe** | Farbe des Rahmens |
+| **Rahmenbreite** | Breite des Rahmens in Pixeln |
+| **Schriftgröße** | Schriftgröße der Beschriftung |
+
+**Größe ändern:** Im Edit-Mode den Resize-Handle (unten rechts) ziehen.
+
+> **Tipp:** Zonen werden immer hinter Monitoring-Nodes, Textboxen und Containern angezeigt — unabhängig von der Einfügereihenfolge.
 
 ---
 

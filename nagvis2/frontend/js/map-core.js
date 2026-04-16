@@ -667,6 +667,7 @@ function selectObjType(type) {
   _sf('dlg-fields-line',       type === 'line');
   _sf('dlg-fields-container',  type === 'container');
   _sf('dlg-fields-gadget',     type === 'gadget');
+  _sf('dlg-fields-zone',       type === 'zone');
   const lbl = { host:'Hostname', hostgroup:'Gruppenname', servicegroup:'Gruppenname', map:'Map-ID' };
   const nameLabel = document.getElementById('dlg-name-label');
   if (nameLabel) nameLabel.textContent = lbl[type] ?? 'Name';
@@ -716,6 +717,17 @@ async function confirmAddObject() {
     Object.assign(payload, {
       label: metric,
       gadget_config: { type: 'radial', value: 0, unit: '%', min: 0, max: 100, warning: 70, critical: 90, metric },
+    });
+  } else if (type === 'zone') {
+    Object.assign(payload, {
+      text: document.getElementById('dlg-zone-text')?.value.trim() || '',
+      bg_color: 'rgba(80,80,80,0.18)',
+      border_color: '#888888',
+      border_width: 2,
+      font_size: 13,
+      bold: false,
+      w: 20,
+      h: 12,
     });
   }
 
@@ -1061,6 +1073,29 @@ async function _nmAmLoadSources(bid, source) {
   }
 }
 
+function _centerAutoMap() {
+  const nodes = document.querySelectorAll('#nv2-canvas .nv2-node, #nv2-canvas .nv2-textbox');
+  if (!nodes.length) return;
+  const clip    = document.getElementById('nv2-canvas');         // Clip-Container (wrapper)
+  const mapWrap = document.getElementById('map-canvas-wrapper'); // transformiertes Element
+  if (!clip || !mapWrap) return;
+
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  nodes.forEach(n => {
+    const x = parseFloat(n.style.left) || 0;
+    const y = parseFloat(n.style.top)  || 0;
+    minX = Math.min(minX, x); minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+  });
+
+  // Schwerpunkt in % → Pixel (relativ zu #map-canvas-wrapper)
+  const cxPx = (minX + maxX) / 2 / 100 * mapWrap.offsetWidth;
+  const cyPx = (minY + maxY) / 2 / 100 * mapWrap.offsetHeight;
+
+  // Pan so dass Schwerpunkt in der Mitte des Clip-Containers liegt
+  window.NV2_ZOOM?.setState(1, clip.clientWidth / 2 - cxPx, clip.clientHeight / 2 - cyPx);
+}
+
 window.confirmAutoMap = async function() {
   const title     = document.getElementById('nm-am-title')?.value.trim();
   const backendId = document.getElementById('nm-am-backend')?.value;
@@ -1081,6 +1116,7 @@ window.confirmAutoMap = async function() {
   closeDlg('dlg-new-map');
   showToast('Auto-Map wird generiert…', 'info');
 
+
   const result = await api('/api/maps/auto-generate', 'POST', {
     title, backend_id: backendId, source, filter_value: filter,
     layout, iconset, include_services: services,
@@ -1090,7 +1126,11 @@ window.confirmAutoMap = async function() {
   if (!result) return;
   await loadMaps();
   showToast(`${result.objects_created} Objekte erstellt`, 'success');
-  try { await openMap(result.map.id); } catch(e) { console.error('[NV2] openMap Fehler:', e); }
+  try {
+    await openMap(result.map.id);
+    // Kurz warten bis DOM gerendert, dann auf Inhalt zentrieren
+    setTimeout(_centerAutoMap, 80);
+  } catch(e) { console.error('[NV2] openMap Fehler:', e); }
 };
 
 
@@ -2309,6 +2349,7 @@ async function _bmAdd() {
       showToast(`Datenquelle "${body.backend_id}" gespeichert`, 'ok');
       _bmCancelEdit();
       _bmLoad();
+      api('/api/backends').then(list => { if (Array.isArray(list)) window.backendList = list; }).catch(() => {});
     }
   } else {
     // Neu anlegen
@@ -2317,6 +2358,7 @@ async function _bmAdd() {
       showToast(`Datenquelle "${body.backend_id}" hinzugefügt`, 'ok');
       _bmClearForm();
       _bmLoad();
+      api('/api/backends').then(list => { if (Array.isArray(list)) window.backendList = list; }).catch(() => {});
     }
   }
 }

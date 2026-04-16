@@ -17,6 +17,7 @@ Vollständige Liste aller implementierten Features, geordnet nach Bereich.
 | ACK / Downtime | Visuelle Kennzeichnung (gedimmt + Symbol) für bestätigte Probleme und Wartungsfenster |
 | Live-Tooltips | Mouseover zeigt Status, Plugin-Ausgabe, Service-Anzahl (Live-Zählung), Perfdata-Metriken mit Warn/Crit-Farbcodierung |
 | Probleme-Panel | Zeigt Host- UND Service-Probleme in Echtzeit |
+| **Topbar-Pills klickbar** | Klick auf ●OK / ●WARN / ●CRIT öffnet Checkmk Problems-Dashboard (benötigt `web_url` oder Checkmk REST Backend) |
 
 ---
 
@@ -24,8 +25,8 @@ Vollständige Liste aller implementierten Features, geordnet nach Bereich.
 
 | Backend | Protokoll | Besonderheiten |
 |---|---|---|
-| **Livestatus TCP** | Nagios/Checkmk TCP-Socket | Host, Port; Standard-Port 6557 |
-| **Livestatus Unix** | Nagios/Checkmk Unix-Socket | Socket-Pfad (z.B. OMD) |
+| **Livestatus TCP** | Nagios/Checkmk TCP-Socket | Host, Port (Standard: 6557); optionale `web_url` für Monitoring-Links |
+| **Livestatus Unix** | Nagios/Checkmk Unix-Socket | Socket-Pfad (z.B. OMD); optionale `web_url` für Monitoring-Links |
 | **Checkmk REST API** | Checkmk v2.0+ REST API v1 | Automation-User + Secret; Perfdata direkt aus API |
 | **Zabbix JSON-RPC** | Zabbix 5.x / 6.0+ | API-Token (6.0+) oder Benutzername/Passwort; Severity-Mapping |
 | **Icinga2 REST API** | Icinga2 2.11+ v1 | Basic Auth; Custom-Vars als Labels; ACK + Downtime-Aktionen |
@@ -52,9 +53,10 @@ Vollständige Liste aller implementierten Features, geordnet nach Bereich.
 | **Undo/Redo** | `Ctrl+Z` / `Ctrl+Y`; bis 50 Schritte; Verschieben, Resize, Properties, Löschen, Hinzufügen |
 | **Copy / Paste / Duplicate** | `Ctrl+C` / `Ctrl+V` / `Ctrl+D`; Einfügen mit +3 % Versatz; Mehrfach-Einfügen kaskadierend |
 | **Align & Distribute** | Toolbar bei ≥ 2 Nodes: Links/Mitte/Rechts/Oben/Mitte/Unten; Verteilen H/V (≥ 3 Nodes) |
+| **Auto-Layout (F4)** | Grid-Sortierung nach Objektgröße (⊞); sortiert Auswahl oder alle Nodes; zentriert auf Schwerpunkt der aktuellen Positionen |
 | **Smart Guides** | Einrasten an Kanten + Mittelpunkte beim Drag; blaue Hilfslinien |
 | Layer-System | Nodes auf verschiedene Layer (0–9) verteilen; Layer ein-/ausblenden; per Drag & Drop umsortieren |
-| Objekt-Typen | Host, Service, Hostgruppe, Servicegruppe, Map (nested), Textbox, Linie, Container, Gadget |
+| Objekt-Typen | Host, Service, Hostgruppe, Servicegruppe, Map (nested), Textbox, Linie, Container, Gadget, **Zone** |
 | Iconsets | `std_small`, `server`, `router`, `switch`, `firewall`, `storage`, `database`, `ups`, `ap` |
 | Canvas-Formate | Frei, Seitenverhältnis (16:9 / 4:3 / 21:9 / 3:2 / 1:1), Feste Auflösung, Hintergrundbild |
 | Hintergrundbild | Upload per Datei-Dialog oder Drag & Drop (PNG, JPG, SVG, WebP) |
@@ -78,6 +80,7 @@ Vollständige Liste aller implementierten Features, geordnet nach Bereich.
 - **Linie** — einfache Verbindungslinie (Farbe, Strichart, Breite)
 - **Weathermap-Linie** — Statusfarbe nach Host-Zustand; Bandbreiten-Labels; uni-/bidirektionale Pfeile
 - **Container** — zeigt Bild (PNG/SVG) auf der Karte
+- **Zone** — farbiges Rechteck als Hintergrund-Layer (z-index 1, hinter allen anderen Objekten); konfigurierbar: Beschriftung, Hintergrundfarbe (RGBA), Rahmenfarbe, Rahmenbreite; im Edit-Mode verschiebbar und größenveränderbar
 
 ### Gadgets
 
@@ -127,6 +130,7 @@ Aktionen konfigurierbar: Burger-Menü → ⚡ Aktionen konfigurieren
 | Backend | URL-Quelle |
 |---|---|
 | Checkmk REST API | Automatisch aus API-Base-URL: `view.py?host=…&view_name=host` / `view.py?host=…&service=…&view_name=service` / `view.py?hostgroup=…` / `view.py?servicegroup=…` |
+| Livestatus + `web_url` | Aus manuell konfigurierter `web_url` des Backends |
 | Andere Backends | Globale `monitoring_url` aus Aktions-Konfig |
 | Nicht konfiguriert | Aktions-Konfig-Dialog öffnet sich automatisch |
 
@@ -137,6 +141,7 @@ Aktionen konfigurierbar: Burger-Menü → ⚡ Aktionen konfigurieren
 | Feature | Details |
 |---|---|
 | Map erstellen | Titel + Canvas-Format wählen |
+| **Auto-Map** | Hostgruppe oder Servicegruppe → automatisch generierte Map; Layouts: Grid (zentriert) oder Hierarchie |
 | Map umbenennen | Über Burger-Menü |
 | Map duplizieren / klonen | Vollständige Kopie inklusive aller Objekte |
 | Map exportieren | ZIP-Archiv (map.json + Hintergrundbild) |
