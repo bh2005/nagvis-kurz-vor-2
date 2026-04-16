@@ -150,16 +150,18 @@
       <!-- Align & Distribute – nur bei ≥2 selektierten Nodes im Edit-Mode -->
       <div id="nv2-align-bar" style="display:none; align-items:center; gap:2px;">
         <div class="tb-sep"></div>
-        <button class="tb-btn tb-btn-icon" title="Links ausrichten"            onclick="NV2_ALIGN.alignLeft()">⬜︎⬜︎▏</button>
-        <button class="tb-btn tb-btn-icon" title="Horizontal zentrieren"       onclick="NV2_ALIGN.alignCenterH()">⬜︎▏⬜︎</button>
-        <button class="tb-btn tb-btn-icon" title="Rechts ausrichten"           onclick="NV2_ALIGN.alignRight()">▕⬜︎⬜︎</button>
+        <button class="tb-btn tb-btn-icon align-need2" title="Links ausrichten"            onclick="NV2_ALIGN.alignLeft()">⬜︎⬜︎▏</button>
+        <button class="tb-btn tb-btn-icon align-need2" title="Horizontal zentrieren"       onclick="NV2_ALIGN.alignCenterH()">⬜︎▏⬜︎</button>
+        <button class="tb-btn tb-btn-icon align-need2" title="Rechts ausrichten"           onclick="NV2_ALIGN.alignRight()">▕⬜︎⬜︎</button>
         <div class="tb-sep"></div>
-        <button class="tb-btn tb-btn-icon" title="Oben ausrichten"             onclick="NV2_ALIGN.alignTop()">⬜︎⬜︎▔</button>
-        <button class="tb-btn tb-btn-icon" title="Vertikal zentrieren"         onclick="NV2_ALIGN.alignMiddleV()">⬜︎▬⬜︎</button>
-        <button class="tb-btn tb-btn-icon" title="Unten ausrichten"            onclick="NV2_ALIGN.alignBottom()">⬜︎⬜︎▁</button>
+        <button class="tb-btn tb-btn-icon align-need2" title="Oben ausrichten"             onclick="NV2_ALIGN.alignTop()">⬜︎⬜︎▔</button>
+        <button class="tb-btn tb-btn-icon align-need2" title="Vertikal zentrieren"         onclick="NV2_ALIGN.alignMiddleV()">⬜︎▬⬜︎</button>
+        <button class="tb-btn tb-btn-icon align-need2" title="Unten ausrichten"            onclick="NV2_ALIGN.alignBottom()">⬜︎⬜︎▁</button>
         <div class="tb-sep"></div>
         <button class="tb-btn tb-btn-icon align-need3" title="Horizontal gleichmäßig verteilen (min. 3)" onclick="NV2_ALIGN.distributeH()">⇔</button>
         <button class="tb-btn tb-btn-icon align-need3" title="Vertikal gleichmäßig verteilen (min. 3)"   onclick="NV2_ALIGN.distributeV()">⇕</button>
+        <div class="tb-sep"></div>
+        <button class="tb-btn tb-btn-icon" title="Grid-Layout: nach Größe sortieren, zentrieren, 8 px Abstand" onclick="NV2_ALIGN.gridLayout()">⊞</button>
       </div>
 
       <button class="tb-btn" id="btn-kiosk" title="Kiosk-Modus (Vollbild)" onclick="toggleKiosk()">
@@ -893,6 +895,7 @@
         <button class="type-chip"        data-type="line"         onclick="selectObjType('line')">— Linie</button>
         <button class="type-chip"        data-type="container"    onclick="selectObjType('container')">🖼 Container</button>
         <button class="type-chip"        data-type="gadget"       onclick="selectObjType('gadget')">📊 Gadget</button>
+        <button class="type-chip"        data-type="zone"         onclick="selectObjType('zone')">🟦 Zone</button>
       </div>
     </div>
 
@@ -1024,6 +1027,12 @@
         <input class="f-input" id="dlg-gadget-metric" type="text" placeholder="z.B. CPU Auslastung">
       </div>
       <p class="f-hint">Nach dem Platzieren öffnet sich automatisch der Gadget-Konfigurations-Dialog.</p>
+    </div>
+
+    <div id="dlg-fields-zone" class="dlg-fields" style="display:none">
+      <div><label class="f-label">Beschriftung (optional)</label>
+        <input class="f-input" id="dlg-zone-text" type="text" placeholder="z.B. Rack 1, Storage …"></div>
+      <p class="f-hint">Größe und Farbe nach dem Platzieren per Rechtsklick → 🟦 Zone bearbeiten anpassen.</p>
     </div>
 
     <div class="dlg-foot">
@@ -1293,8 +1302,6 @@
         <label class="f-label" for="nm-am-layout">Layout</label>
         <select class="f-select" id="nm-am-layout">
           <option value="grid">Raster (Grid)</option>
-          <option value="circle">Kreis</option>
-          <option value="star">Stern (erster Host = Mitte)</option>
           <option value="hierarchy">Hierarchie (Gruppe oben)</option>
         </select>
       </div>

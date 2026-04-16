@@ -1015,6 +1015,25 @@ img.nv2-icon { display: block; width: 100%; height: 100%; object-fit: contain; t
 .nv2-container img, .nv2-container object { width: 100%; height: 100%; object-fit: contain; display: block; }
 .nv2-container:hover { outline: 1px dashed var(--acc); }
 
+/* ── Zone / Rechteck ── */
+.nv2-zone {
+  position: absolute; box-sizing: border-box;
+  border-radius: 4px; -webkit-user-select: none; user-select: none; cursor: default;
+  z-index: 1;          /* hinter Nodes (z-index: 10) */
+  overflow: hidden;
+}
+.nv2-zone-label {
+  position: absolute; top: 6px; left: 10px;
+  font-weight: 600; pointer-events: none; white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0,0,0,.5);
+}
+.nv2-zone:hover { outline: 1px dashed var(--acc); }
+.nv2-zone.nv2-selected { outline: 2px solid var(--accent, #3b82f6); outline-offset: 2px; z-index: 2 !important; }
+/* Resize-Handle für Zone */
+.nv2-zone .nv2-resize-handle { display: none; }
+.nv2-zone:hover .nv2-resize-handle,
+.nv2-zone.nv2-selected .nv2-resize-handle { display: block; }
+
 /* ── Gadget-Nodes ── */
 .nv2-node.gadget {
   background: var(--node-bg);

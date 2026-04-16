@@ -11,6 +11,9 @@ services:
     volumes:
       # Frontend-Dateien (index.html, css/, js/, src/)
       - ./frontend:/app/frontend:ro
+      # Changelog (liegt auf nagvis2/-Ebene, BASE_DIR.parent = /app)
+      - ./changelog.txt:/app/changelog.txt:ro
+      - ./changelog.md:/app/changelog.md:ro
       # Persistente Daten (Maps, Hintergründe, Kiosk-User)
       # Pfad muss mit WORKDIR /app/backend übereinstimmen (BASE_DIR/data)
       - nagvis2-data:/app/backend/data

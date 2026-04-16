@@ -1,6 +1,6 @@
 # NagVis 2 – Todo-Liste
 
-> Stand: 2026-04-14
+> Stand: 2026-04-16
 
 ---
 
@@ -29,6 +29,14 @@
 - [x] **Eigenschaften im View-Mode** — „⚙ Eigenschaften" im Rechtsklick-Menü für Rolle `editor`/`admin`
 - [x] **Probleme-Panel zeigt auch Services** — nicht nur Host-Probleme, sondern auch Service-Probleme werden angezeigt
 - [x] **„Im Monitoring öffnen" automatische URL** — Checkmk: URL aus API-Base-URL abgeleitet; Fallback auf globale URL; ohne Konfig → Konfig-Dialog öffnet sich
+- [x] **Lasso-Selektion durch Click-Event geleert** — `window._nv2LassoDone`-Flag verhindert, dass der nachfolgende Click-Event die Selektion löscht
+- [x] **„Im Monitoring öffnen" aus Snap-Tabs** — 5-stufige Backend-Suche inkl. `web_url` für Livestatus-Backends
+- [x] **web_url für Livestatus-Backends** — optionales Checkmk-Web-URL-Feld; wird für Monitoring-Links und Topbar-Pills genutzt
+- [x] **Topbar-Pills klickbar** — Klick öffnet Checkmk Problems-Dashboard (`openMonitoringDashboard()`)
+- [x] **Auto-Map Grid: nach Erstellung zentriert** — `_centerAutoMap()` berechnet Bounding-Box und zentriert via `NV2_ZOOM.setState`
+- [x] **Auto-Map Kreis/Stern entfernt** — nur noch Grid und Hierarchie verfügbar
+- [x] **Auto-Layout (F4) Grid-Sortierung** — Nodes nach Objektgröße im Raster anordnen; Teilselektion zentriert auf Schwerpunkt der aktuellen Positionen
+- [x] **Zonen-Objekt** — farbiges Rechteck als Hintergrund-Layer; Drag, Resize, Eigenschaften-Dialog, Lasso, Undo/Redo
 - [x] Multi-Select: mehrere Nodes gleichzeitig auswählen und verschieben (Shift+Klick oder Lasso)
 - [x] Multi-Select: Delete/Backspace zum Löschen aller ausgewählten Nodes
 - [x] Multi-Select: Escape hebt Selektion auf
@@ -129,7 +137,7 @@
 | F1 | **Checkmk BI & Event Console Widgets** | BI-Aggregate und Event-Console-Filter direkt als Gadget auf der Map anzeigen | Mittel |
 | F2 | **Checkmk Topology-Import** | Hosts + Verbindungen automatisch aus Checkmk Topology übernehmen (kein manuelles Platzieren) | Hoch |
 | ~~F3~~ | ~~**Custom Graph Gadget**~~ ✅ | Checkmk-Graphen (RRDtool) oder Grafana-Panels direkt in die Map einbetten (`<iframe>` oder PNG-URL) | Niedrig |
-| F4 | **Auto-Layout (Graphviz / Force-Directed)** | „Arrange selected hosts"-Button — Nodes automatisch anordnen; Graphviz DOT oder D3 Force-Simulation | Mittel |
+| ~~F4~~ | ~~**Auto-Layout (Graphviz / Force-Directed)**~~ ✅ | Grid-Sortierung nach Objektgröße; F4-Button; Teilselektion zentriert auf Schwerpunkt | Mittel |
 | ~~F5~~ | ~~**Prometheus & VictoriaMetrics Connector**~~ ✅ | Metrics-Backends für Hybrid-Umgebungen; PromQL-Ergebnis als Gadget-Wert | Mittel |
 | F6 | **Versioned Maps + Git-Integration** | Maps in einem Git-Repository speichern und versionieren; Diff-Ansicht, Rollback | Mittel |
 | ~~F7~~ | ~~**DRAW.io Import**~~ ✅ | `.drawio`/`.xml`-Dateien als Map-Grundlage importieren; Shapes zu NagVis-Objekten mappen | Mittel |

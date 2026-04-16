@@ -2,213 +2,152 @@
 
 ---
 
+## [2026-04-16]
+
+### Bugfix: Lasso-Selektion durch nachfolgenden Click-Event geleert
+- Browser feuert `click` nach `mouseup`; Click-Handler löschte Selektion
+- Fix: `window._nv2LassoDone`-Flag in `onUp` gesetzt; `onCanvasClick` prüft und löscht Flag
+- `js/nodes.js`
+
+### Bugfix: „Im Monitoring öffnen" aus Snap-Tabs nicht funktionsfähig
+- `_openInMonitoringOrFocus` fand kein Backend (Livestatus-Adressen haben kein `http://`-Präfix)
+- Fix: 5-stufige Backend-Suche (backend_id+checkmk → backend_id+web_url → checkmk → web_url → http)
+- `js/ui-core.js`
+
+### Feature: `web_url`-Feld für Livestatus-Backends
+- Livestatus TCP/Unix können optional eine Checkmk-Web-URL konfigurieren
+- Wird für „Im Monitoring öffnen" und Topbar-Pills genutzt
+- Backend: `LivestatusConfig.web_url`, `BackendCreate.web_url`, `connectors/registry.py`
+- Frontend: `map-core.js` — `bm-ls-web-url`-Feld im Backend-Dialog
+
+### Bugfix: `web_url` wurde nicht gespeichert (`BackendCreate`-Modell unvollständig)
+- `BackendCreate` deklarierte `web_url` nicht → `model_dump()` verwarf es stillschweigend
+- Fix: `web_url: Optional[str] = None` in `BackendCreate` ergänzt
+- `backend/api/router.py`
+
+### Feature: Topbar-Pills klickbar — öffnet Checkmk Problems-Dashboard
+- Klick auf Topbar-Pills öffnet Checkmk Problems-Dashboard
+- URL-Aufbau: `{web_url}/index.py?start_url=.../dashboard.py?name=problems&owner=`
+- `js/ui-core.js`: `openMonitoringDashboard()`, `_monitoringSiteBase()`
+- `css/styles.css`: `.pill` mit `cursor:pointer` + Hover-Effekt
+
+### Feature: CLAUDE.md Entwicklerdokumentation
+- Befehle, Backend-/Frontend-Architektur, Test-Details für Claude Code
+- `nagvis2/CLAUDE.md`
+
+### Bugfix: GitHub Pages Pipeline (`static.yml`) schlug fehl
+- `docs.yml` (`mkdocs gh-deploy`) konkurrierte mit `static.yml` um Concurrency-Gruppe
+- Fix: `docs.yml` auf `workflow_dispatch` umgestellt; MkDocs-Build in `static.yml` integriert
+- `changelog.md` wird vor Build nach `docs/` und `frontend/` kopiert
+
+### Bugfix: CI Vitest-Test — `SyntaxError: Unexpected identifier 'globalThis'`
+- `nodes.js` war über Zeile 51 hinausgewachsen; `slice(0,51)` schnitt Template-Literal
+- Fix: dynamisches `findIndex` nach erstem `}`-Zeichen auf Spalte 0 nach Zeile 30
+- `frontend/tests/unit/setup.js`
+
+### Bugfix: Auto-Map — Abstände zu groß; Grid nicht zentriert nach Erstellung
+- Radius-Formel: `r = max(STEP*3, n*STEP)` statt `STEP*n*1.5`
+- `_centerAutoMap()`: berechnet Bounding-Box aller Nodes, zentriert Canvas via `NV2_ZOOM.setState`
+- `js/map-core.js`
+
+### Feature: Auto-Map Layouts Kreis und Stern entfernt
+- Nur noch Grid und Hierarchie verfügbar (Kreis/Stern waren instabil)
+- `backend/api/router.py`: `_circle()`, `_star()` entfernt; `AutoMapRequest.layout` aktualisiert
+- `frontend/index.html`: Optionen aus `#nm-am-layout`-Select entfernt
+
+### Bugfix: Backend-Liste nicht aktualisiert nach Datasource-Änderung
+- `window.backendList` wurde nur beim App-Start geladen — kein Refresh nach Änderung
+- Fix: nach POST/PATCH Backend sofortiger Refresh aus `/api/backends`
+- `js/map-core.js`: `_bmAdd()`
+
+### Bugfix: Changelog im About-Dialog konnte nicht geladen werden (Docker)
+- `changelog.txt`/`.md` befanden sich nicht im Docker-Container (fehlende Volume-Mounts)
+- Fix: Volume-Mounts für `changelog.*` in `docker-compose.yml` ergänzt
+- Fallback-Fetch auf `/changelog.md` wenn `/api/v1/changelog` nicht erreichbar
+- `docker-compose.yml`, `js/ui-core.js`
+
+### Feature: Auto-Layout (F4) — Grid-Sortierung nach Objektgröße
+- F4-Button sortiert selektierte (oder alle) Nodes automatisch im Raster
+- Sortierung nach Pixel-Fläche absteigend (größte Objekte links oben)
+- Spaltenanzahl: `round(√n)`; Zellenabstand: Node-Größe + 8 px
+- Ohne Selektion: zentriert auf Canvas-Mitte (50 %/50 %)
+- Mit Teilselektion: zentriert auf Schwerpunkt der aktuellen Positionen (kein Drift)
+- Align-Toolbar: immer sichtbar im Edit-Mode
+- `js/align.js`, `frontend/index.html`
+
+### Feature: Zonen-Objekt — farbiges Rechteck als Hintergrund-Layer
+- Neuer Objekt-Typ `zone` — optisch beschriftbares Rechteck hinter allen anderen Objekten
+- Konfigurierbar: Beschriftung, Hintergrundfarbe (RGBA), Rahmenfarbe, Rahmenbreite, Schriftgröße
+- Im Edit-Mode verschiebbar (Drag) und größenveränderbar (Resize-Handle unten-rechts)
+- Z-Index 1 (hinter `.nv2-node` / `.nv2-textbox` / `.nv2-container` bei z-index 10)
+- DOM-Einfügung immer vor dem ersten Nicht-Zonen-Element — visuelles Layering korrekt
+- Lasso-Selektion, Ctrl+A, Kontextmenü, Undo/Redo vollständig unterstützt
+- `js/nodes.js`, `js/map-core.js`, `css/styles.css`, `frontend/index.html`, `backend/api/router.py`
+
+---
+
 ## [2026-04-14]
 
 ### Bugfix: „Im Monitoring öffnen" — falsche URLs für Host, Hostgroup, Servicegroup
-
-- Host-Link verwendete fälschlich `index.py?start_url=…`-Wrapper; korrekt ist direktes `view.py?host=…&view_name=host`
-- Hostgroup und Servicegroup sind jetzt ebenfalls vorbereitet:
-  - Hostgroup:    `{base}/view.py?hostgroup={name}&site={site}&view_name=hostgroup`
-  - Servicegroup: `{base}/view.py?servicegroup={name}&site={site}&view_name=servicegroup`
-- `js/nodes.js`: `_buildMonitoringUrl` komplett überarbeitet — switch über `obj.type` (host / service / hostgroup / servicegroup); gleiche Logik im Checkmk- und im globalen Fallback-Pfad
-- Gleiche URL-Muster gelten auch für den `monitoring_url`-Fallback (andere Backends)
+- Host-Link verwendete fälschlich `index.py?start_url=...`-Wrapper
+- Korrekt: `view.py?host={name}&site={site}&view_name=host` / `hostgroup` / `servicegroup`
+- `js/nodes.js`: `_buildMonitoringUrl` komplett überarbeitet (switch über `obj.type`)
 
 ### Feature: Live-Perfdata in Tooltips (Gadgets + Service-Objekte)
-
-- **Gadgets**: Mouseover zeigt jetzt Live-Wert aus `perfdataCache` (statt gespeichertem Demo-Wert); alle Perfdata-Metriken des Services werden im Tooltip aufgelistet; Service-Status und Plugin-Ausgabe werden zusätzlich angezeigt
-- **Service-Objekte**: Mouseover zeigt alle Perfdata-Metriken mit Warn/Crit-Farbcodierung; die konfigurierte `perf_label`-Metrik wird fett hervorgehoben
-- `js/nodes.js`: `showTooltip` komplett überarbeitet — beide Pfade (Gadget / Monitoring-Node) nutzen `perfdataCache` und `_resolveStatus`
+- Gadgets: Mouseover zeigt Live-Wert aus `perfdataCache`, alle Metriken, Service-Status
+- Service-Objekte: Perfdata-Metriken mit Warn/Crit-Farben; aktive Metrik fett
+- `js/nodes.js`: `showTooltip` komplett überarbeitet
 
 ### Feature: Service-Objekte mit Perfdata-Metrik (`perf_label`)
-
-- Service-Objekte können jetzt eine Perfdata-Metrik (`perf_label`) konfigurieren
-- Der Live-Wert erscheint automatisch im Node-Label: `"Labelname: 1.234ms"`
-- Platzierungs-Dialog: Autocomplete für Service-Name aus `serviceCache`; Autocomplete für Metrik-Name + aktueller Wert aus `perfdataCache`
-- `$PERFVALUE$`-Macro in Label-Templates gibt den Live-Wert der konfigurierten Metrik zurück
-- `js/nodes.js`: `_renderMonitoringNode` setzt `el.dataset.perfLabel`; `applyStatuses` aktualisiert Label automatisch bei jedem Status-Update
-- `index.html`: neues „Perfdata-Metrik"-Feld im Objekt-Platzierungs-Dialog mit `<datalist>`
+- Service-Objekte können eine Perfdata-Metrik konfigurieren
+- Live-Wert erscheint im Node-Label: `"Label: 1.234ms"`
+- Autocomplete für Service-Name und Metrik-Name + aktuellen Wert
+- `$PERFVALUE$`-Macro in Label-Templates
 - `backend/api/router.py`: `ObjectProps` um `perf_label` erweitert
 
 ### Feature: Eigenschaften-Dialog im View-Mode (Editor/Admin)
+- Rechtsklick-Kontextmenü zeigt „Eigenschaften" für Rolle `editor`/`admin`
 
-- Im View-Mode erscheint „⚙ Eigenschaften" im Rechtsklick-Kontextmenü für Benutzer mit Rolle `editor` oder `admin`
-- `js/nodes.js`: `showViewContextMenu` prüft `window.nv2Auth.currentUser.role`
-
-### Feature: „Im Monitoring öffnen" — automatische URL pro Backend
-
-- Aktion ist jetzt immer sichtbar (war: nur wenn `monitoring_url` konfiguriert)
-- Für **Checkmk**-Backends wird die URL automatisch aus der API-Base-URL abgeleitet — keine manuelle Konfiguration nötig:
-  - Host: `{site_base}/index.py?start_url=/site/check_mk/view.py?host=...&view_name=host`
-  - Service: `{site_base}/view.py?host=...&service=...&site=...&view_name=service`
-- Fallback auf globale `monitoring_url` aus dem Aktions-Konfig-Dialog
-- Ohne jegliche Konfiguration öffnet sich direkt der Aktions-Konfig-Dialog
-- `js/nodes.js`: neue Funktion `_buildMonitoringUrl(obj, h)`; `_performAction` ruft diese für `view_host` auf
-- `js/app.js`: lädt Backend-Liste beim Start in `window.backendList` (war schon vorhanden)
+### Feature: „Im Monitoring öffnen" — automatische URL pro Backend (Checkmk)
+- Immer sichtbar (war: nur wenn `monitoring_url` konfiguriert)
+- Checkmk: URL automatisch aus API-Base-URL abgeleitet (kein manuelles Konfigurieren)
 
 ### Feature: Probleme-Panel zeigt Host- UND Service-Probleme
+- Bisher: nur Hosts; jetzt: auch Services als `hostname / service_description`
+- `js/ui-core.js`: `renderProblemsPanel`; `js/ws-client.js`: vollständiger Cache-Transfer
 
-- Bisher wurden nur Hosts im Probleme-Panel angezeigt
-- Jetzt werden auch Services in Problem-Zustand (nicht OK) angezeigt: `"hostname / service_description"`
-- `js/ui-core.js`: `renderProblemsPanel` erkennt `h.type === 'service'` und zeigt entsprechende Beschriftung
-- `js/ws-client.js`: `snapshot` und `status_update` übergeben jetzt alle Cache-Einträge an `renderProblemsPanel`
+### Feature: Makros im Label-Feld (`$HOSTALIAS$`, `$HOSTSTATE$` etc.)
+- Makros funktionieren jetzt auch im Label-Feld (nicht nur im Label-Template-Feld)
+- `js/nodes.js`: `_nodeLabel`, `_applyLabelTemplate`, `applyStatuses`
 
-### Feature: Makros in regulärem Label-Feld
+### Bugfix: + Schaltfläche in Übersichtskarte öffnete keine neue Map
+- Ursache: doppelte `id="btn-new-map"`; Fix: `id="ov-btn-new-map"`
 
-- `$HOSTALIAS$`, `$HOSTSTATE$` etc. funktionieren jetzt auch wenn sie im **Label**-Feld (statt im Label-Template-Feld) gesetzt sind
-- `js/nodes.js`: `_nodeLabel` und `_applyLabelTemplate` nutzen `obj.label` als Fallback-Template; `applyStatuses` triggert Makro-Auflösung auch wenn nur `obj.label` Makros enthält
+### Bugfix: Service-Dropdown leer beim Platzieren
+- `serviceCache` nicht ans Platzierungs-Formular gebunden
+- `js/map-core.js`: input-Listener für `dlg-svc-host` und `dlg-svc-name`
 
-### Bugfix: `+`-Button in der Übersichtskarte öffnete keine neue Map
-
-- Ursache: doppelte `id="btn-new-map"` — sowohl Burger-Menü (statisch in HTML) als auch die dynamisch gerenderte Übersichtskarte verwendeten dieselbe ID; `getElementById` fand immer das Burger-Menü-Element
-- Fix: Übersichtskarte verwendet jetzt `id="ov-btn-new-map"`
-- `js/map-core.js`: querySelector angepasst; `confirmNewMap()` ruft `loadMaps()` vor `openMap()` auf
-
-### Bugfix: Service-Dropdown beim Platzieren blieb leer
-
-- Ursache: `serviceCache` war nicht mit den bekannten Services verbunden
-- Fix: Host-Input-Feld im Platzierungs-Dialog löst `input`-Event aus und befüllt `<datalist>` aus `window.serviceCache`
-- `js/map-core.js`: `dlg-svc-host` und `dlg-svc-name` input-Listener ergänzt
-
-### Bugfix: Gadget-Werte wurden nicht angezeigt (Checkmk Perfdata als Liste)
-
-- Ursache: Checkmk REST API liefert `performance_data` teils als Array statt String; `_to_perf_str()` gab `""` zurück → `parse_perfdata("")` lieferte `{}`
-- Fix: `_to_perf_str()` verbindet Array-Elemente mit Leerzeichen
-- `backend/checkmk/client.py`: `_to_perf_str` + `alias = ext.get("alias") or name` (leerer Alias-String als Fallback)
+### Bugfix: Gadget-Werte nicht angezeigt (Checkmk Perfdata als Liste)
+- Checkmk REST API liefert `performance_data` teils als Array
+- `_to_perf_str` verbindet Array-Elemente mit Leerzeichen
 
 ### Bugfix: Service-Anzahl im Host-Tooltip immer 0
+- Checkmk REST API liefert `num_services_*` in Hosts-Collection nicht
+- Live-Zählung aus `hostCache`; Fallback auf Backend-Daten
 
-- Ursache: Checkmk REST API liefert `num_services_ok/warn/crit` in der Hosts-Collection nicht
-- Fix: Service-Anzahl wird jetzt live aus `hostCache` gezählt (alle `"host::*"`-Einträge)
-- `js/nodes.js`: `showTooltip` zählt dynamisch; Fallback auf Backend-Daten wenn Cache leer
+### Bugfix: „undefined" in Hosts- und Probleme-Panel
+- `Object.values(hostCache)` enthält auch Service-Einträge ohne `name`-Feld
+- Panels filtern getrennt nach `type === 'host'`
 
-### Bugfix: „undefined" in Hosts- und Probleme-Panel nach Status-Update
-
-- Ursache: `Object.values(hostCache)` enthält sowohl Host- als auch Service-Einträge; Service-Einträge haben kein `name`-Feld
-- Fix: `renderHostsPanel` / `updateTopbarPills` erhalten gefilterte Liste (`type === 'host'`); `renderProblemsPanel` erhält alle Einträge und rendert Host/Service korrekt
-- `js/ws-client.js`: getrenntes Filtern für die verschiedenen Panels
-
-### Bugfix: Kontextmenü-Aktionen (ACK, DT, …) erschienen nicht
-
-- Ursache 1: `showViewContextMenu` nutzte direktes `hostCache`-Lookup statt `_resolveStatus` → `h` war bei backend-spezifischen Einträgen `null`; alle state-basierten Bedingungen schlugen fehl
-- Ursache 2: `_actionConfig.enabled` aus altem `localStorage`-Stand enthielt neue Standard-IDs nicht
-- Fix: `_resolveStatus` statt direktem Lookup; Migration die fehlende Default-IDs ergänzt
-- `js/nodes.js`: `showViewContextMenu`, `_actionConfig`-Initialisierung
+### Bugfix: Kontextmenü-Aktionen (ACK, Downtime …) erschienen nicht
+- `h` war `null` durch direkten `hostCache`-Lookup statt `_resolveStatus`
+- `_actionConfig.enabled`: Migration für alte localStorage-Stände
 
 ### Bugfix: `backend_id` vs. `_backend_id` in Status-Cache
-
-- WS-Broadcasts vom Poller senden `backend_id` (aus `to_dict()`); `applyStatuses` prüfte aber `h._backend_id` → Backend-spezifischer Cache (`backendStatusCache`) wurde nie befüllt
-- Fix: `applyStatuses` nutzt `h.backend_id || h._backend_id` für Cache-Schlüssel und Filter
-- `js/nodes.js`: `applyStatuses` (Hosts- und Services-Schleife)
+- `applyStatuses` befüllte `backendStatusCache` nie (falscher Feldname)
+- Fix: `h.backend_id || h._backend_id`
 
 ---
-
-## [2026-04-09]
-
-### Feature: Suche/Filter in der Sidebar ✅
-
-- `js/map-core.js`: `filterSidebarMaps(query)` — filtert Map-Liste nach Titel/ID; bei aktivem Query: flache Liste ohne Favoriten-Gruppierung
-- `js/map-core.js`: `_renderSidebarObjResults()` — durchsucht Objekte der aktiven Map nach Name/Hostname; `_focusMapObject(id)` — zentriert das Objekt auf der Canvas (Click-to-Focus)
-- `index.html`: `#sidebar-search`-Eingabefeld über der Map-Liste; `#sidebar-obj-section` / `#sidebar-obj-results` für Objekttreffer
-- `css/styles.css`: `.sidebar-search-wrap`, `.sidebar-search-input`, `.sidebar-obj-type`, `.obj-search-highlight` + `@keyframes _srch-pulse`
-- `lang/de.json` + `lang/en.json`: `search_maps_placeholder`, `sidebar_objects`, `no_search_results` ergänzt
-- `js/i18n.js`: Placeholder des Suchfelds nach Sprachwechsel aktualisiert
-
-### Feature: Map-Minimap (Übersichtsfenster) ✅
-
-- NEU `js/minimap.js`: `window.NV2_MINIMAP` — schwebendes Canvas-Panel (220×160 px), ~10 fps RAF-Loop
-  - `_draw()`: Hintergrund, Bounding-Box der Objekte, Skalierung, Status-Dots, Viewport-Rect (blauer Rahmen)
-  - `_onClick()`: Click-to-Pan via `NV2_ZOOM.setState()`
-  - Statusfarben: `OK=#4caf50`, `WARNING=#ffa726`, `CRITICAL/DOWN=#e53935`, `UNKNOWN=#9c27b0`, `PENDING=#757575`
-  - Public API: `init()`, `toggle()`, `show()`, `hide()`, `update()`, `reset()`
-- `index.html`: `#nv2-minimap`-Panel, `#minimap-canvas`, `#btn-minimap`-Schalter in Zoom-Controls
-- `css/styles.css`: `#nv2-minimap`, `.minimap-head`, `#minimap-canvas`, `#btn-minimap.active`
-- `js/ui-core.js`: Taste `M` öffnet/schließt Minimap (ohne Ctrl/Meta, nur wenn Map aktiv)
-- `js/app.js`: `NV2_MINIMAP.init()` nach Zoom-Button-Initialisierung
-
-### Feature: Objekt-Kopieren zwischen Maps ✅
-
-- `js/map-core.js`: `openCopyToMapDlg(objectIds)` — Dialog mit Map-Auswahl (alle Maps außer aktiver)
-- `js/map-core.js`: `execCopyToMap()` — POSTet Objekte einzeln zu `POST /api/v1/maps/{targetId}/objects` (ohne `object_id`, Backend vergibt neue ID); `closeCopyToMapDlg()`
-- `js/nodes.js`: Multi-Select-Kontextmenü — „⧉ Auf andere Map kopieren…"-Button (ruft `openCopyToMapDlg(ids)` auf)
-- `js/nodes.js`: Einzel-Node-Kontextmenü — `{ label:'⧉ Auf andere Map…', action:... }`
-- `index.html`: `#dlg-copy-to-map`-Dialog mit `#copy-target-map-sel` (Map-Selector) + Kopieren-Button
-- `lang/de.json` + `lang/en.json`: `dlg_copy_to_map`, `dlg_copy_target_map`, `dlg_copy_btn` ergänzt
-- `js/ui-core.js`: Escape-Handler schließt Copy-Dialog via `closeCopyToMapDlg?.()`
-
-### Refactor: Dead-Code entfernt (nodes.js)
-
-- `js/nodes.js`: doppelte `window.openGadgetConfigDialog`- und `window.openWeathermapLineDlg`-Exporte entfernt
-- Beide Funktionen hatten `window.*`-Zuweisung direkt nach der Definition UND nochmals im konsolidierten Export-Block am Dateiende — nur der Block am Ende bleibt
-
----
-
-## [2026-04-06]
-
-### Bugfix: alert() → showToast() (auth.js, map-core.js, kiosk.js)
-
-Alle Browser-`alert()`-Aufrufe durch nicht-blockierende `showToast()`-Notifikationen ersetzt:
-
-- **auth.js** (`nv2AuthCreateUser`, `nv2AuthChangeRole`, `nv2AuthChangePw`, `nv2AuthDeleteUser`, `nv2AuthChangeOwnPw`) — 6 Stellen
-- **map-core.js** (`loadMap`, `exportCurrentMap`, `exportMapById`, `cloneMap`, `uploadBackground`) — 7 Stellen
-- **kiosk.js** (`kioskSave`) — 1 Stelle
-
-Typ jeweils `'error'` (Fehler) oder `'ok'` (Erfolg).
-
-### Bugfix: CSS-Alias-Tokens für undefinierte Variablen
-
-`--bg2`, `--bg3`, `--hover`, `--err`, `--accent`, `--bg-base`, `--bg-alt` waren in `styles.css` nicht definiert.
-Statt alle Verwendungsstellen zu ändern, wurden CSS-Alias-Tokens in `:root` (Dark) und `[data-theme="light"]` eingefügt,
-die auf die korrekten Design-Tokens zeigen. Kein Breaking Change.
-
-### Bugfix: WCAG-Kontrast-Fixes (5 Selektoren)
-
-Sekundäre Textelemente auf Panel-Oberflächen (`--bg-card/--bg-panel: #2b2b2b`) verwendeten
-`--text-dim` (#828282), was dort nur ~3.76:1 Kontrast ergibt — WCAG AA erfordert 4.5:1 für
-kleine Texte (8–10 px).
-
-**Neuer Design-Token `--text-dim-surf`:**
-- Dark: `#a3a3a3` → ~5.6:1 auf `#2b2b2b`, ~4.6:1 auf `--bg-hover (#333333)` ✓
-- Light: `#636363` → ~5.0:1 auf `#ffffff`, ~4.6:1 auf `--bg-hover (#ebebeb)` ✓
-
-**Betroffene Selektoren (alle auf `--text-dim-surf` umgestellt):**
-- `.ov-card-meta` (9px, Overview-Karten)
-- `.ev-time` (8px, Event-Log)
-- `.f-label` (8px, Formular-Labels in Dialogen)
-- `.burger-kbd` (9px, Keyboard-Shortcut-Badges im Burger-Menü — Hintergrund `--bg-hover`)
-- `.manage-meta` (9.5px, Manage-Maps-Overlay)
-
----
-
-## [2026-03-26]
-
-### Feature: N1 Mehrsprachigkeit (i18n) vollständig ✅
-
-**i18n-Engine (`frontend/js/i18n.js`)** — neues Modul, wird als **erstes** Script geladen:
-- `window.t(key, vars)` — Schlüssel-basierte Übersetzung mit `{var}`-Interpolation; Fallback = Schlüssel selbst
-- `window.applyI18n()` — traversiert DOM und setzt alle `data-i18n`/`data-i18n-placeholder`/`data-i18n-title`-Attribute
-- `window.setLang(code)` — lädt `/lang/{code}.json`, aktualisiert `window.I18N`, speichert in localStorage, ruft `applyI18n()` und `_refreshDynamicUI()` auf
-- `window.importLangPack(file)` — liest JSON-Datei, validiert Format, lädt als aktive Sprache → beliebige Sprache per Datei-Upload erweiterbar
-- `window._i18nReady` — Promise; wird in `app.js` vor dem ersten Render awaited → kein Flash of Untranslated Content
-- **Warm-Start**: synchrone Cache-Ladung aus `localStorage` im Boot → Texte sofort übersetzt, auch wenn Fetch noch läuft
-
-**Sprachpakete**
-- `frontend/lang/de.json` — vollständiges deutsches Paket (~130 Schlüssel inkl. Meta-Block)
-- `frontend/lang/en.json` — vollständiges englisches Paket, identische Schlüssel
-- Format: `{ "meta": { "lang": "de", "name": "Deutsch", "version": "1" }, "strings": { ... } }`
-- FastAPI ServesFiles bereits `frontend/` → `/lang/de.json` automatisch erreichbar ohne Backend-Änderung
-
-**HTML (`frontend/index.html`)**
-- `data-i18n`, `data-i18n-placeholder`, `data-i18n-title` an allen statischen UI-Texten (Sidebar, Burger-Menü, Dialoge, Tabellen-Header, Keyboard-Shortcuts, Login, Benutzerverwaltung, Audit-Log)
-- Sprach-Picker im Dialog **⚙ Einstellungen** (`dlg-user-settings`): `<select>` DE/EN + „Lang-Pack importieren"-Button (File-Input)
-
-**JS-Module angepasst** — alle Hardcoded-Strings durch `t(key, vars)` ersetzt:
-- `ui-core.js`: Theme-Labels, Hosts-Panel, Benachrichtigungsstatus, Downtime-Banner, Log-Viewer, About-Dialog, Keyboard-Delete-Confirm; `openUserSettingsDlg()` synchronisiert Dropdown
-- `ws-client.js`: Verbindungsstatus, Status-Bar (Snapshot/Update/Heartbeat), Offline-Banner, Backend-Error-Toast, Demo-Mode-Meldungen; pluralisierter `{suffix}` jetzt sprachabhängig (`'en'`/`''` für DE, `'s'`/`''` für EN)
-- `map-core.js`: Kein-Maps-Zustand, Objekt-Zähler, Map-Not-Found, Kontextmenü-Einträge, „Neue Map"-Karte
-- `nodes.js`: Edit/Fertig-Label, leere Aktionen, Layer-Namen
-- `kiosk.js`: Ungültiger-Token-Fehlerscreen (via `t()` in Template-Literal, da `applyI18n()` nach `body.innerHTML`-Reset nicht automatisch läuft)
-- `app.js`: `await window._i18nReady; applyI18n();` als erste Zeile in `DOMContentLoaded`
-- `ui-core.js`: `window.nv2SetLangFromSelect(code)` + `window.nv2ImportLangPack(file)` — globale Handler für den Sprach-Picker
 
 ---
 
@@ -825,3 +764,5 @@ Einstellungen persistiert in `nv2-user-settings` (localStorage). Standard: deakt
 - Projekt-Grundstruktur angelegt
 - WebSocket-Grundgerüst, Docker-Vorbereitung
 - README erstellt
+
+---

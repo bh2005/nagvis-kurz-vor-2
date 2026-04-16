@@ -401,8 +401,8 @@ Burger-Menü → **⚙ Backends verwalten**
 | Typ | Konfiguration |
 |---|---|
 | **Checkmk REST API** | URL (z.B. `http://checkmk:5000/mysite/check_mk/api/1.0`), Automation-User, Secret |
-| **Livestatus TCP** | Host + Port (Standard: 6557) |
-| **Livestatus Unix** | Socket-Pfad (z.B. `/omd/sites/mysite/tmp/run/live`) |
+| **Livestatus TCP** | Host + Port (Standard: 6557); optional: Checkmk-Web-URL (`web_url`) |
+| **Livestatus Unix** | Socket-Pfad (z.B. `/omd/sites/mysite/tmp/run/live`); optional: Checkmk-Web-URL (`web_url`) |
 | **Naemon** | Unix-Socket (Standard: `/var/cache/naemon/live`), Livestatus TCP oder REST API URL |
 | **Zabbix** | URL (z.B. `https://zabbix.example.com`), API-Token (Zabbix 6.0+) oder Username/Password |
 | **Icinga2** | URL (z.B. `https://icinga2:5665/v1`), API-User + Passwort |
@@ -430,6 +430,23 @@ Setup → Users → Add user
 → Automation user aktivieren
 → Secret kopieren und in NagVis 2 eintragen
 ```
+
+### Livestatus TCP / Unix — `web_url` (optional)
+
+Livestatus-Backends sprechen das Livestatus-Protokoll (kein HTTP). Um dennoch „Im Monitoring öffnen" und die klickbaren Topbar-Pills zu nutzen, kann eine Checkmk-Web-URL hinterlegt werden:
+
+| Parameter | Beispiel | Beschreibung |
+|---|---|---|
+| `web_url` | `http://checkmk:8080/mysite/check_mk` | Basis-URL des Checkmk-Web-Interfaces (ohne abschließenden `/`) |
+
+**Beispiel:** Livestatus TCP auf `checkmk:6557` mit Checkmk-Web unter `http://checkmk:8080/cmk/check_mk`:
+```
+Host:    checkmk
+Port:    6557
+Web-URL: http://checkmk:8080/cmk/check_mk
+```
+
+NagVis 2 baut daraus automatisch Links für Host-Detail, Service-Detail und das Problems-Dashboard.
 
 ---
 

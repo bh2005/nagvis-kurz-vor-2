@@ -102,6 +102,10 @@ class ObjectProps(BaseModel):
     bold: Optional[bool] = None
     color: Optional[str] = None
     bg_color: Optional[str] = None
+    border_color: Optional[str] = None
+    border_width: Optional[int] = None
+    w: Optional[float] = None
+    h: Optional[float] = None
     line_style: Optional[str] = None
     line_width: Optional[int] = None
     line_type: Optional[str] = None
@@ -177,7 +181,7 @@ class AutoMapRequest(BaseModel):
     backend_id:       str
     source:           str   = "all"        # "hostgroup"|"label"|"tag"|"all"|"servicegroup"
     filter_value:     str   = ""
-    layout:           str   = "grid"       # "grid"|"circle"|"star"|"hierarchy"
+    layout:           str   = "grid"       # "grid"|"hierarchy"
     include_services: bool  = False
     iconset:          str   = "std_small"
     canvas:           Optional[dict] = None
@@ -397,25 +401,6 @@ async def api_automap_generate(req: AutoMapRequest, request: Request):
     def _grid(n, sx=_STEP, sy=_STEP, mx=50, my=50, cols=_COLS):
         return [(mx + (i % cols) * sx, my + (i // cols) * sy) for i in range(n)]
 
-    def _circle(n, cx=100, cy=100):
-        if n == 1: return [(cx, cy)]
-        r = max(_STEP * 4, min(n * _STEP * 3, 200))
-        cx2 = cx + r
-        cy2 = cy + r
-        return [(cx2 + r * math.cos(2 * math.pi * i / n - math.pi / 2),
-                 cy2 + r * math.sin(2 * math.pi * i / n - math.pi / 2)) for i in range(n)]
-
-    def _star(n, cx=100, cy=100):
-        if n == 1: return [(cx, cy)]
-        r = max(_STEP * 4, min((n - 1) * _STEP * 3, 200))
-        cx2 = cx + r
-        cy2 = cy + r
-        pts = [(cx2, cy2)]
-        for i in range(n - 1):
-            a = 2 * math.pi * i / (n - 1) - math.pi / 2
-            pts.append((cx2 + r * math.cos(a), cy2 + r * math.sin(a)))
-        return pts
-
     def _hierarchy(n, cpr=_COLS, sx=_STEP, sy=_STEP * 2, mx=50, ry=50):
         c = min(n, cpr)
         rx = mx + (c - 1) * sx / 2
@@ -426,10 +411,8 @@ async def api_automap_generate(req: AutoMapRequest, request: Request):
 
     layout = req.layout.lower()
     n = len(hosts)
-    if layout == "star":      positions = _star(n)
-    elif layout == "circle":  positions = _circle(n)
-    elif layout == "hierarchy": positions = _hierarchy(n)
-    else:                      positions = _grid(n)
+    if layout == "hierarchy": positions = _hierarchy(n)
+    else:                     positions = _grid(n)
 
     # ── 3. Map + Objekte anlegen ─────────────────────────────────────────
     new_map = create_map(req.title,

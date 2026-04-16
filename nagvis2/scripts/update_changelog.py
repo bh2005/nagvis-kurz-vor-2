@@ -828,6 +828,156 @@ NagVis 2 - Changelog
                - Folge: demo-europe und demo-appstack erschienen nie in der Seitenleiste auf Render
                - Fix: _backendReachable-Flag; wenn Backend erreichbar, werden Map-Calls ans echte Backend weitergeleitet
                - Fallback-Daten bleiben fuer rein statisches Frontend ohne Backend (nagvis2-frontend.onrender.com)
+
+[2026-04-14]   Bugfix: "Im Monitoring oeffnen" -- falsche URLs fuer Host, Hostgroup, Servicegroup
+               - Host-Link verwendete faelschlich index.py?start_url=...-Wrapper
+               - Korrekt: view.py?host={name}&site={site}&view_name=host
+               - Hostgroup:    view.py?hostgroup={name}&site={site}&view_name=hostgroup
+               - Servicegroup: view.py?servicegroup={name}&site={site}&view_name=servicegroup
+               - js/nodes.js: _buildMonitoringUrl komplett ueberarbeitet (switch ueber obj.type)
+               - Gleiche URL-Muster im Checkmk- und globalen Fallback-Pfad
+
+[2026-04-14]   Feature: Live-Perfdata in Tooltips (Gadgets + Service-Objekte)
+               - Gadgets: Mouseover zeigt Live-Wert aus perfdataCache, alle Metriken, Service-Status
+               - Service-Objekte: Perfdata-Metriken mit Warn/Crit-Farben; aktive Metrik fett
+               - js/nodes.js: showTooltip komplett ueberarbeitet
+
+[2026-04-14]   Feature: Service-Objekte mit Perfdata-Metrik (perf_label)
+               - Service-Objekte koennen eine Perfdata-Metrik konfigurieren
+               - Live-Wert erscheint im Node-Label: "Label: 1.234ms"
+               - Autocomplete fuer Service-Name und Metrik-Name + aktuellen Wert
+               - $PERFVALUE$-Macro in Label-Templates
+               - backend/api/router.py: ObjectProps um perf_label erweitert
+
+[2026-04-14]   Feature: Eigenschaften-Dialog im View-Mode (Editor/Admin)
+               - Rechtsklick-Kontextmenue zeigt "Eigenschaften" fuer Rolle editor/admin
+
+[2026-04-14]   Feature: "Im Monitoring oeffnen" -- automatische URL pro Backend (Checkmk)
+               - Immer sichtbar (war: nur wenn monitoring_url konfiguriert)
+               - Checkmk: URL automatisch aus API-Base-URL abgeleitet (kein manuelles Konfigurieren)
+               - js/nodes.js: neue Funktion _buildMonitoringUrl(obj, h)
+
+[2026-04-14]   Feature: Probleme-Panel zeigt Host- UND Service-Probleme
+               - Bisher: nur Hosts; jetzt: auch Services als "hostname / service_description"
+               - js/ui-core.js: renderProblemsPanel erkennt h.type === 'service'
+               - js/ws-client.js: snapshot + status_update uebergeben alle Cache-Eintraege
+
+[2026-04-14]   Feature: Makros im Label-Feld ($HOSTALIAS$, $HOSTSTATE$, etc.)
+               - Macros funktionieren jetzt auch im Label-Feld (nicht nur im Label-Template-Feld)
+               - js/nodes.js: _nodeLabel, _applyLabelTemplate, applyStatuses erweitert
+
+[2026-04-14]   Bugfix: + Schaltflaeche in Uebersichtskarte oeffnete keine neue Map
+               - Ursache: doppelte id="btn-new-map" (Burger-Menue + Uebersichtskarte)
+               - Fix: Uebersichtskarte verwendet id="ov-btn-new-map"
+
+[2026-04-14]   Bugfix: Service-Dropdown leer beim Platzieren
+               - serviceCache war nicht ans Platzierungs-Formular gebunden
+               - js/map-core.js: input-Listener fuer dlg-svc-host und dlg-svc-name ergaenzt
+
+[2026-04-14]   Bugfix: Gadget-Werte nicht angezeigt (Checkmk Perfdata als Liste)
+               - Checkmk REST API liefert performance_data teils als Array
+               - backend/checkmk/client.py: _to_perf_str verbindet Array-Elemente mit Leerzeichen
+               - alias = ext.get("alias") or name (leerer Alias-String als Fallback)
+
+[2026-04-14]   Bugfix: Service-Anzahl im Host-Tooltip immer 0
+               - Checkmk REST API liefert num_services_* in Hosts-Collection nicht
+               - js/nodes.js: showTooltip zaehlt live aus hostCache; Fallback auf Backend-Daten
+
+[2026-04-14]   Bugfix: "undefined" in Hosts- und Probleme-Panel nach Status-Update
+               - Object.values(hostCache) enthaelt Host- und Service-Eintraege
+               - Services haben kein name-Feld -> "undefined" in der Liste
+               - js/ws-client.js: Panels filtern getrennt nach type === 'host'
+
+[2026-04-14]   Bugfix: Kontextmenue-Aktionen (ACK, DT, ...) erschienen nicht
+               - h war null durch direkten hostCache-Lookup statt _resolveStatus
+               - _actionConfig.enabled aus altem localStorage fehlten neue Standard-IDs
+               - js/nodes.js: showViewContextMenu + _actionConfig-Migration
+
+[2026-04-14]   Bugfix: backend_id vs. _backend_id in Status-Cache
+               - applyStatuses befuellte backendStatusCache nie (falscher Feldname)
+               - js/nodes.js: h.backend_id || h._backend_id
+
+[2026-04-16]   Bugfix: Lasso-Selektion wurde durch nachfolgenden Click-Event geleert
+               - Browser feuert click nach mouseup; click-Handler loeschte Selektion
+               - Fix: window._nv2LassoDone-Flag in onUp gesetzt; onCanvasClick prueft und loescht Flag
+               - js/nodes.js: onUp, onCanvasClick
+
+[2026-04-16]   Bugfix: "Im Monitoring oeffnen" aus Snap-Tabs nicht funktionsfaehig
+               - _openInMonitoringOrFocus fand kein Backend (Livestatus hat kein http://-Praeffix)
+               - Fix: 5-stufige Backend-Suche (backend_id+checkmk, backend_id+web_url, checkmk, web_url, http)
+               - js/ui-core.js: _openInMonitoringOrFocus
+
+[2026-04-16]   Feature: web_url-Feld fuer Livestatus-Backends
+               - Livestatus TCP/Unix koennen optional eine Checkmk-Web-URL konfigurieren
+               - Wird fuer "Im Monitoring oeffnen" und Topbar-Pills genutzt
+               - Backend: LivestatusConfig.web_url, BackendCreate.web_url, connectors/registry.py
+               - Frontend: map-core.js: bm-ls-web-url Feld im Backend-Dialog
+
+[2026-04-16]   Bugfix: web_url wurde nicht gespeichert (BackendCreate-Modell unvollstaendig)
+               - BackendCreate deklarierte web_url nicht -> model_dump() verwarf es stillschweigend
+               - Fix: web_url: Optional[str] = None in BackendCreate ergaenzt
+               - backend/api/router.py: BackendCreate
+
+[2026-04-16]   Feature: Topbar-Pills klickbar -- oeffnet Checkmk Problems-Dashboard
+               - Klick auf tb-pill-Elemente oeffnet Checkmk Problems-Dashboard
+               - URL-Aufbau: {web_url}/index.py?start_url=.../dashboard.py?name=problems&owner=
+               - js/ui-core.js: openMonitoringDashboard(), _monitoringSiteBase()
+               - css/styles.css: .pill cursor:pointer + hover-Effekt
+
+[2026-04-16]   Feature: CLAUDE.md Entwicklerdokumentation
+               - Befehle, Backend-/Frontend-Architektur, Test-Details fuer Claude Code
+               - nagvis2/CLAUDE.md
+
+[2026-04-16]   Bugfix: GitHub Pages Pipeline (static.yml) schlug fehl
+               - docs.yml (mkdocs gh-deploy) konkurrierte mit static.yml um Concurrency-Gruppe
+               - Fix: docs.yml auf workflow_dispatch umgestellt; MkDocs-Build in static.yml integriert
+               - changelog.md wird vor Build nach docs/ und frontend/ kopiert
+               - .github/workflows/static.yml, .github/workflows/docs.yml
+
+[2026-04-16]   Bugfix: CI Vitest-Test -- SyntaxError: Unexpected identifier 'globalThis'
+               - nodes.js war ueber Zeile 51 hinausgewachsen; slice(0,51) schnitt Template-Literal
+               - Fix: dynamisches findIndex nach erstem }-Zeichen auf Spalte 0 nach Zeile 30
+               - frontend/tests/unit/setup.js
+
+[2026-04-16]   Bugfix: Auto-Map Abstaende zu gross; Grid nicht zentriert nach Erstellung
+               - Kreis/Stern-Radius-Formel: r = max(STEP*3, n*STEP) statt STEP*n*1.5
+               - _centerAutoMap(): berechnet Bounding-Box aller Nodes, zentriert Canvas
+               - js/map-core.js: _centerAutoMap(), setTimeout nach openMap()
+               - backend/api/router.py: Radius-Formel angepasst
+
+[2026-04-16]   Feature: Auto-Map Layouts Kreis und Stern entfernt
+               - Nur noch Grid und Hierarchie verfuegbar (Kreis/Stern waren instabil)
+               - backend/api/router.py: _circle(), _star() entfernt; AutoMapRequest.layout aktualisiert
+               - frontend/index.html: Optionen aus #nm-am-layout-Select entfernt
+
+[2026-04-16]   Bugfix: Backend-Liste nicht aktualisiert nach Datasource-Aenderung
+               - window.backendList wurde nur beim App-Start geladen (kein Refresh nach Aenderung)
+               - Fix: nach POST/PATCH Backend sofortiger Refresh aus /api/backends
+               - js/map-core.js: _bmAdd()
+
+[2026-04-16]   Bugfix: Changelog im About-Dialog konnte nicht geladen werden (Docker)
+               - changelog.txt/md befanden sich nicht im Docker-Container (/app fehlt Volumes)
+               - Fix: Volume-Mounts fuer changelog.* in docker-compose.yml
+               - Fallback-Fetch auf /changelog.md wenn /api/v1/changelog nicht erreichbar
+               - docker-compose.yml, js/ui-core.js
+
+[2026-04-16]   Feature: Auto-Layout (F4) -- Grid-Sortierung nach Objektgroesse
+               - F4-Button sortiert selektierte (oder alle) Nodes automatisch im Raster
+               - Sortierung nach Pixel-Flaeche (groesste Objekte links oben)
+               - Spaltenanzahl: round(sqrt(n)); Zellengroesse: Nodegroesse + 8px Abstand
+               - Ohne Selektion: Zentriert auf Canvas-Mitte (50%/50%)
+               - Mit Teilselektion: Zentriert auf Schwerpunkt der aktuellen Positionen
+               - Align-Toolbar: immer sichtbar im Edit-Mode (nicht nur bei >= 2 Nodes)
+               - js/align.js, frontend/index.html
+
+[2026-04-16]   Feature: Zonen-Objekt (Rechteck) als Hintergrund-Layer
+               - Neuer Objekt-Typ "zone" -- farbiges Rechteck hinter allen anderen Objekten
+               - Konfigurierbar: Beschriftung, Hintergrundfarbe (RGBA), Rahmenfarbe, Rahmenbreite
+               - Im Edit-Mode verschiebbar (Drag) und groessenveraenderbar (Resize-Handle)
+               - Z-Index: 1 (hinter .nv2-node, .nv2-textbox, .nv2-container bei z-index 10)
+               - DOM-Einfuerung immer vor dem ersten Nicht-Zonen-Element (visuelle Layering)
+               - Lasso-Selektion, Ctrl+A, Kontextmenue, Undo/Redo unterstuetzt
+               - js/nodes.js, js/map-core.js, css/styles.css, frontend/index.html, backend/api/router.py
 """
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1439,6 +1589,153 @@ Einstellungen persistiert in `nv2-user-settings` (localStorage). Standard: deakt
 - Projekt-Grundstruktur angelegt
 - WebSocket-Grundgerüst, Docker-Vorbereitung
 - README erstellt
+
+---
+
+## [2026-04-14]
+
+### Bugfix: „Im Monitoring öffnen" — falsche URLs für Host, Hostgroup, Servicegroup
+- Host-Link verwendete fälschlich `index.py?start_url=...`-Wrapper
+- Korrekt: `view.py?host={name}&site={site}&view_name=host` / `hostgroup` / `servicegroup`
+- `js/nodes.js`: `_buildMonitoringUrl` komplett überarbeitet (switch über `obj.type`)
+
+### Feature: Live-Perfdata in Tooltips (Gadgets + Service-Objekte)
+- Gadgets: Mouseover zeigt Live-Wert aus `perfdataCache`, alle Metriken, Service-Status
+- Service-Objekte: Perfdata-Metriken mit Warn/Crit-Farben; aktive Metrik fett
+- `js/nodes.js`: `showTooltip` komplett überarbeitet
+
+### Feature: Service-Objekte mit Perfdata-Metrik (`perf_label`)
+- Service-Objekte können eine Perfdata-Metrik konfigurieren
+- Live-Wert erscheint im Node-Label: `"Label: 1.234ms"`
+- Autocomplete für Service-Name und Metrik-Name + aktuellen Wert
+- `$PERFVALUE$`-Macro in Label-Templates
+- `backend/api/router.py`: `ObjectProps` um `perf_label` erweitert
+
+### Feature: Eigenschaften-Dialog im View-Mode (Editor/Admin)
+- Rechtsklick-Kontextmenü zeigt „Eigenschaften" für Rolle `editor`/`admin`
+
+### Feature: „Im Monitoring öffnen" — automatische URL pro Backend (Checkmk)
+- Immer sichtbar (war: nur wenn `monitoring_url` konfiguriert)
+- Checkmk: URL automatisch aus API-Base-URL abgeleitet (kein manuelles Konfigurieren)
+
+### Feature: Probleme-Panel zeigt Host- UND Service-Probleme
+- Bisher: nur Hosts; jetzt: auch Services als `hostname / service_description`
+- `js/ui-core.js`: `renderProblemsPanel`; `js/ws-client.js`: vollständiger Cache-Transfer
+
+### Feature: Makros im Label-Feld (`$HOSTALIAS$`, `$HOSTSTATE$` etc.)
+- Makros funktionieren jetzt auch im Label-Feld (nicht nur im Label-Template-Feld)
+- `js/nodes.js`: `_nodeLabel`, `_applyLabelTemplate`, `applyStatuses`
+
+### Bugfix: + Schaltfläche in Übersichtskarte öffnete keine neue Map
+- Ursache: doppelte `id="btn-new-map"`; Fix: `id="ov-btn-new-map"`
+
+### Bugfix: Service-Dropdown leer beim Platzieren
+- `serviceCache` nicht ans Platzierungs-Formular gebunden
+- `js/map-core.js`: input-Listener für `dlg-svc-host` und `dlg-svc-name`
+
+### Bugfix: Gadget-Werte nicht angezeigt (Checkmk Perfdata als Liste)
+- Checkmk REST API liefert `performance_data` teils als Array
+- `_to_perf_str` verbindet Array-Elemente mit Leerzeichen
+
+### Bugfix: Service-Anzahl im Host-Tooltip immer 0
+- Checkmk REST API liefert `num_services_*` in Hosts-Collection nicht
+- Live-Zählung aus `hostCache`; Fallback auf Backend-Daten
+
+### Bugfix: „undefined" in Hosts- und Probleme-Panel
+- `Object.values(hostCache)` enthält auch Service-Einträge ohne `name`-Feld
+- Panels filtern getrennt nach `type === 'host'`
+
+### Bugfix: Kontextmenü-Aktionen (ACK, Downtime …) erschienen nicht
+- `h` war `null` durch direkten `hostCache`-Lookup statt `_resolveStatus`
+- `_actionConfig.enabled`: Migration für alte localStorage-Stände
+
+### Bugfix: `backend_id` vs. `_backend_id` in Status-Cache
+- `applyStatuses` befüllte `backendStatusCache` nie (falscher Feldname)
+- Fix: `h.backend_id || h._backend_id`
+
+---
+
+## [2026-04-16]
+
+### Bugfix: Lasso-Selektion durch nachfolgenden Click-Event geleert
+- Browser feuert `click` nach `mouseup`; Click-Handler löschte Selektion
+- Fix: `window._nv2LassoDone`-Flag in `onUp` gesetzt; `onCanvasClick` prüft und löscht Flag
+- `js/nodes.js`
+
+### Bugfix: „Im Monitoring öffnen" aus Snap-Tabs nicht funktionsfähig
+- `_openInMonitoringOrFocus` fand kein Backend (Livestatus-Adressen haben kein `http://`-Präfix)
+- Fix: 5-stufige Backend-Suche (backend_id+checkmk → backend_id+web_url → checkmk → web_url → http)
+- `js/ui-core.js`
+
+### Feature: `web_url`-Feld für Livestatus-Backends
+- Livestatus TCP/Unix können optional eine Checkmk-Web-URL konfigurieren
+- Wird für „Im Monitoring öffnen" und Topbar-Pills genutzt
+- Backend: `LivestatusConfig.web_url`, `BackendCreate.web_url`, `connectors/registry.py`
+- Frontend: `map-core.js` — `bm-ls-web-url`-Feld im Backend-Dialog
+
+### Bugfix: `web_url` wurde nicht gespeichert (`BackendCreate`-Modell unvollständig)
+- `BackendCreate` deklarierte `web_url` nicht → `model_dump()` verwarf es stillschweigend
+- Fix: `web_url: Optional[str] = None` in `BackendCreate` ergänzt
+- `backend/api/router.py`
+
+### Feature: Topbar-Pills klickbar — öffnet Checkmk Problems-Dashboard
+- Klick auf Topbar-Pills öffnet Checkmk Problems-Dashboard
+- URL-Aufbau: `{web_url}/index.py?start_url=.../dashboard.py?name=problems&owner=`
+- `js/ui-core.js`: `openMonitoringDashboard()`, `_monitoringSiteBase()`
+- `css/styles.css`: `.pill` mit `cursor:pointer` + Hover-Effekt
+
+### Feature: CLAUDE.md Entwicklerdokumentation
+- Befehle, Backend-/Frontend-Architektur, Test-Details für Claude Code
+- `nagvis2/CLAUDE.md`
+
+### Bugfix: GitHub Pages Pipeline (`static.yml`) schlug fehl
+- `docs.yml` (`mkdocs gh-deploy`) konkurrierte mit `static.yml` um Concurrency-Gruppe
+- Fix: `docs.yml` auf `workflow_dispatch` umgestellt; MkDocs-Build in `static.yml` integriert
+- `changelog.md` wird vor Build nach `docs/` und `frontend/` kopiert
+
+### Bugfix: CI Vitest-Test — `SyntaxError: Unexpected identifier 'globalThis'`
+- `nodes.js` war über Zeile 51 hinausgewachsen; `slice(0,51)` schnitt Template-Literal
+- Fix: dynamisches `findIndex` nach erstem `}`-Zeichen auf Spalte 0 nach Zeile 30
+- `frontend/tests/unit/setup.js`
+
+### Bugfix: Auto-Map — Abstände zu groß; Grid nicht zentriert nach Erstellung
+- Radius-Formel: `r = max(STEP*3, n*STEP)` statt `STEP*n*1.5`
+- `_centerAutoMap()`: berechnet Bounding-Box aller Nodes, zentriert Canvas via `NV2_ZOOM.setState`
+- `js/map-core.js`
+
+### Feature: Auto-Map Layouts Kreis und Stern entfernt
+- Nur noch Grid und Hierarchie verfügbar (Kreis/Stern waren instabil)
+- `backend/api/router.py`: `_circle()`, `_star()` entfernt; `AutoMapRequest.layout` aktualisiert
+- `frontend/index.html`: Optionen aus `#nm-am-layout`-Select entfernt
+
+### Bugfix: Backend-Liste nicht aktualisiert nach Datasource-Änderung
+- `window.backendList` wurde nur beim App-Start geladen — kein Refresh nach Änderung
+- Fix: nach POST/PATCH Backend sofortiger Refresh aus `/api/backends`
+- `js/map-core.js`: `_bmAdd()`
+
+### Bugfix: Changelog im About-Dialog konnte nicht geladen werden (Docker)
+- `changelog.txt`/`.md` befanden sich nicht im Docker-Container (fehlende Volume-Mounts)
+- Fix: Volume-Mounts für `changelog.*` in `docker-compose.yml` ergänzt
+- Fallback-Fetch auf `/changelog.md` wenn `/api/v1/changelog` nicht erreichbar
+- `docker-compose.yml`, `js/ui-core.js`
+
+### Feature: Auto-Layout (F4) — Grid-Sortierung nach Objektgröße
+- F4-Button sortiert selektierte (oder alle) Nodes automatisch im Raster
+- Sortierung nach Pixel-Fläche absteigend (größte Objekte links oben)
+- Spaltenanzahl: `round(√n)`; Zellenabstand: Node-Größe + 8 px
+- Ohne Selektion: zentriert auf Canvas-Mitte (50 %/50 %)
+- Mit Teilselektion: zentriert auf Schwerpunkt der aktuellen Positionen (kein Drift)
+- Align-Toolbar: immer sichtbar im Edit-Mode
+- `js/align.js`, `frontend/index.html`
+
+### Feature: Zonen-Objekt — farbiges Rechteck als Hintergrund-Layer
+- Neuer Objekt-Typ `zone` — optisch beschriftbares Rechteck hinter allen anderen Objekten
+- Konfigurierbar: Beschriftung, Hintergrundfarbe (RGBA), Rahmenfarbe, Rahmenbreite, Schriftgröße
+- Im Edit-Mode verschiebbar (Drag) und größenveränderbar (Resize-Handle unten-rechts)
+- Z-Index 1 (hinter `.nv2-node` / `.nv2-textbox` / `.nv2-container` bei z-index 10)
+- DOM-Einfügung immer vor dem ersten Nicht-Zonen-Element — visuelles Layering korrekt
+- Lasso-Selektion, Ctrl+A, Kontextmenü, Undo/Redo vollständig unterstützt
+- `js/nodes.js`, `js/map-core.js`, `css/styles.css`, `frontend/index.html`, `backend/api/router.py`
 """
 
 

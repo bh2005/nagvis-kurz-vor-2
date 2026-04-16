@@ -121,19 +121,103 @@ window.NV2_ALIGN = (() => {
     await _commit(moves);
   }
 
+  // ══ GRID-LAYOUT ═════════════════════════════════════════════════════
+  // Sortiert Nodes nach Größe (größte zuerst), legt sie in ein Raster
+  // (Spaltenanzahl ≈ √n), zentriert das Ergebnis auf dem Canvas-Mittelpunkt.
+  // Ohne aktive Selektion werden ALLE Nodes der Map bearbeitet.
+
+  function _geomsOrAll() {
+    const canvas = document.getElementById('nv2-canvas');
+    if (!canvas) return [];
+    const cr = canvas.getBoundingClientRect();
+    const source = window.selectedNodes?.size >= 2
+      ? [...window.selectedNodes]
+      : [...document.querySelectorAll('#nv2-canvas .nv2-node, #nv2-canvas .nv2-textbox, #nv2-canvas .nv2-container')];
+    return source.map(el => {
+      const r  = el.getBoundingClientRect();
+      const x  = parseFloat(el.style.left) || 0;
+      const y  = parseFloat(el.style.top)  || 0;
+      const w  = (r.width  / cr.width)  * 100;
+      const h  = (r.height / cr.height) * 100;
+      return { el, objectId: el.dataset.objectId, x, y, w, h, pw: r.width, ph: r.height };
+    });
+  }
+
+  async function gridLayout() {
+    const gs = _geomsOrAll(); if (gs.length < 2) return;
+
+    const canvas = document.getElementById('nv2-canvas');
+    const cr     = canvas.getBoundingClientRect();
+    const GAP    = 8; // px zwischen Zellen
+
+    // Größte zuerst
+    const nodes = [...gs].sort((a, b) => (b.pw * b.ph) - (a.pw * a.ph));
+    const cols  = Math.max(2, Math.round(Math.sqrt(nodes.length)));
+
+    // Spaltenbreiten und Zeilenhöhen ermitteln
+    const colW = new Array(cols).fill(0);
+    const rowH = [];
+    nodes.forEach((n, i) => {
+      const c = i % cols;
+      const r = Math.floor(i / cols);
+      colW[c] = Math.max(colW[c], n.pw);
+      rowH[r] = Math.max(rowH[r] ?? 0, n.ph);
+    });
+
+    // Kumulierte X/Y-Offsets pro Spalte/Zeile
+    const colX = [0];
+    for (let c = 1; c < cols; c++) colX[c] = colX[c - 1] + colW[c - 1] + GAP;
+    const rowY = [0];
+    for (let r = 1; r < rowH.length; r++) rowY[r] = rowY[r - 1] + rowH[r - 1] + GAP;
+
+    // Gesamtgröße des Layouts in px
+    const totalW = colX[cols - 1] + colW[cols - 1];
+    const totalH = rowY[rowH.length - 1] + rowH[rowH.length - 1];
+
+    // Ziel-Mittelpunkt:
+    //   Selektion vorhanden → Schwerpunkt der aktuellen Positionen (kein Drift)
+    //   Alle Nodes          → Canvas-Mitte (50 % / 50 %)
+    const hasSelection = window.selectedNodes?.size >= 2;
+    const centerX = hasSelection
+      ? gs.reduce((s, g) => s + g.x + g.w / 2, 0) / gs.length
+      : 50;
+    const centerY = hasSelection
+      ? gs.reduce((s, g) => s + g.y + g.h / 2, 0) / gs.length
+      : 50;
+
+    const moves = nodes.map((n, i) => {
+      const c = i % cols;
+      const r = Math.floor(i / cols);
+      // Node innerhalb seiner Zelle zentrieren
+      const cellPxX = colX[c] + (colW[c] - n.pw) / 2;
+      const cellPxY = rowY[r] + (rowH[r]  - n.ph) / 2;
+      // Relative Position vom Layout-Mittelpunkt → in %
+      const newX = centerX + (cellPxX - totalW / 2) / cr.width  * 100;
+      const newY = centerY + (cellPxY - totalH / 2) / cr.height * 100;
+      return {
+        el: n.el, objectId: n.objectId,
+        oldX: n.x, oldY: n.y,
+        newX: Math.max(0.5, Math.min(97, newX)),
+        newY: Math.max(0.5, Math.min(97, newY)),
+      };
+    });
+
+    await _commit(moves);
+  }
+
   // ══ Align-Toolbar Sichtbarkeit ═══════════════════════════════════════
 
   function updateToolbar() {
     const bar = document.getElementById('nv2-align-bar');
     if (!bar) return;
-    const show = window.editActive && window.selectedNodes?.size >= 2;
-    bar.style.display = show ? 'flex' : 'none';
-    // Distribute-Buttons erst ab 3 Nodes aktiv
-    const need3 = bar.querySelectorAll('.align-need3');
-    need3.forEach(b => b.disabled = window.selectedNodes?.size < 3);
+    const n = window.selectedNodes?.size ?? 0;
+    bar.style.display = window.editActive ? 'flex' : 'none';
+    // Align/Distribute-Buttons nur bei ≥2 selektierten Nodes aktiv
+    bar.querySelectorAll('.align-need2').forEach(b => b.disabled = n < 2);
+    bar.querySelectorAll('.align-need3').forEach(b => b.disabled = n < 3);
   }
 
-  return { alignLeft, alignCenterH, alignRight, alignTop, alignMiddleV, alignBottom, distributeH, distributeV, updateToolbar };
+  return { alignLeft, alignCenterH, alignRight, alignTop, alignMiddleV, alignBottom, distributeH, distributeV, gridLayout, updateToolbar };
 })();
 
 

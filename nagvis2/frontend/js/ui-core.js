@@ -172,9 +172,17 @@ function _openInMonitoringOrFocus(obj) {
   // als letzten Ausweg jedes Backend mit einer HTTP-Adresse.
   const bid      = obj.backend_id || '';
   const backends = window.backendList ?? [];
-  const backend  = backends.find(b => b.backend_id === bid && b.type === 'checkmk')
-                ?? backends.find(b => b.type === 'checkmk')
-                ?? backends.find(b => (b.address || b.base_url || '').startsWith('http'));
+  const backend  =
+    // 1) Exakter Treffer: gleiche backend_id + Checkmk-REST
+    backends.find(b => b.backend_id === bid && b.type === 'checkmk') ??
+    // 2) Exakter Treffer: gleiche backend_id + web_url konfiguriert (Livestatus)
+    backends.find(b => b.backend_id === bid && b.web_url) ??
+    // 3) Irgendein Checkmk-REST-Backend
+    backends.find(b => b.type === 'checkmk') ??
+    // 4) Irgendein Backend mit web_url (Livestatus + Checkmk-URL)
+    backends.find(b => b.web_url) ??
+    // 5) Irgendein Backend mit HTTP-Adresse als letzter Ausweg
+    backends.find(b => (b.address || b.base_url || '').startsWith('http'));
 
   // web_url  = direkt eingetragene Checkmk-Web-Basis (Livestatus-Backends)
   // address  = API-URL (Checkmk-REST / Icinga2) → /api/1.0 oder /v1 abschneiden
@@ -645,6 +653,13 @@ function onKeyDown(e) {
       if (snapshots.length) window.NV2_HISTORY?.push({ type: 'delete', mapId: activeMapId, items: snapshots });
     });
   }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'a' && editActive && !inInput) {
+    e.preventDefault();
+    document.querySelectorAll('#nv2-canvas .nv2-node, #nv2-canvas .nv2-textbox, #nv2-canvas .nv2-container, #nv2-canvas .nv2-zone')
+      .forEach(el => { window.selectedNodes?.add(el); el.classList.add('nv2-selected'); });
+    window.NV2_ALIGN?.updateToolbar();
+    return;
+  }
   if ((e.ctrlKey || e.metaKey) && e.key === 'z' && editActive && !inInput) { e.preventDefault(); window.NV2_HISTORY?.undo(); return; }
   if ((e.ctrlKey || e.metaKey) && e.key === 'y' && editActive && !inInput) { e.preventDefault(); window.NV2_HISTORY?.redo(); return; }
   if ((e.ctrlKey || e.metaKey) && e.key === 'c' && editActive && !inInput) { e.preventDefault(); window.NV2_CLIPBOARD?.copy(); return; }
@@ -786,7 +801,8 @@ async function openAboutDlg() {
       if (!clLoaded) {
         view.textContent = t('loading');
         try {
-          const r = await fetch('/api/v1/changelog');
+          let r = await fetch('/api/v1/changelog');
+          if (!r.ok) r = await fetch('/changelog.md');
           if (!r.ok) throw new Error(r.status);
           view.textContent = await r.text();
         } catch {

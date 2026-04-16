@@ -18,7 +18,7 @@ Eine komplette Neuentwicklung von NagVis mit FastAPI-Backend, WebSocket-Livestat
 | **Graph-Gadget** | Grafana-Panels, Checkmk-Graphen oder beliebige URLs per `<iframe>` / `<img>` einbetten |
 | **Perfdata** | Nagios/Checkmk Performance-Daten automatisch in Gadgets + Service-Objekten; Live-Werte im Tooltip und Node-Label |
 | **Weathermap-Linien** | Statusfarbe, Bandbreiten-Labels, bidirektionale Pfeile |
-| **Multi-Backend** | Livestatus, Checkmk REST API, Icinga2 REST API, **Naemon** (Livestatus/REST), Zabbix JSON-RPC, Prometheus / VictoriaMetrics, **SolarWinds Orion** (SWIS) |
+| **Multi-Backend** | Livestatus (TCP/Unix + optionale `web_url`), Checkmk REST API, Icinga2 REST API, **Naemon** (Livestatus/REST), Zabbix JSON-RPC, Prometheus / VictoriaMetrics, **SolarWinds Orion** (SWIS) |
 | **draw.io Import** | `.drawio`/`.xml`-Diagramme direkt als Map importieren |
 | **Authentifizierung** | JWT (30 Tage), Auto-Refresh, Login-Overlay, Rollen (viewer/editor/admin) |
 | **Benutzerverwaltung** | Lokale Benutzer, LDAP/AD, Checkmk-Auth-Kette; Admin-UI im Browser |
@@ -170,15 +170,14 @@ mkdocs build           # Ausgabe: frontend/help/
 
 | Sprache | Dateien | Zeilen | Anteil |
 |---|---|---|---|
-| **Python** | 44 | 8 900 | 37 % |
-| **JavaScript** | 14 | 7 700 | 32 % |
-| **Markdown** (Docs) | 19 | 2 900 | 12 % |
-| **CSS** | 2 | 1 500 | 6 % |
-| **HTML** | 1 | 1 190 | 5 % |
-| **JSON** (Config/Data) | 12 | 680 | 3 % |
-| **YAML** (Docker/Helm) | 12 | 431 | 2 % |
-| **Sonstige** | 4 | 371 | 2 % |
-| **Gesamt** | **108** | **23 672** | 100 % |
+| **Python** | 65 | 16 914 | 39 % |
+| **JavaScript** | 21 | 11 136 | 26 % |
+| **JSON** (Config/Data) | 18 | 5 876 | 14 % |
+| **Markdown** (Docs) | 15 | 4 784 | 11 % |
+| **CSS** | 2 | 1 941 | 5 % |
+| **HTML** | 1 | 1 741 | 4 % |
+| **YAML** (Docker/Helm/CI) | 13 | 460 | 1 % |
+| **Gesamt** | **135** | **42 852** | 100 % |
 
 ---
 
@@ -190,9 +189,19 @@ Dieses Projekt steht unter der **MIT License** – siehe [LICENSE](LICENSE).
 
 **Projektstatus:** Beta (funktioniert stabil, aktive Weiterentwicklung)
 **Autor:** bh2005
-**Version:** 2.2 Beta (April 2026)
+**Version:** 2.3 Beta (April 2026)
 
 ---
+
+## Neu in 2.3
+
+- **`web_url` für Livestatus-Backends** — Livestatus TCP/Unix können optional eine Checkmk-Web-URL konfigurieren; ermöglicht „Im Monitoring öffnen" und klickbare Topbar-Pills auch ohne Checkmk REST API
+- **Topbar-Pills klickbar** — Klick öffnet das Checkmk Problems-Dashboard direkt
+- **Auto-Map verbessert** — Grid zentriert sich nach Erstellung automatisch; Kreis/Stern-Layouts entfernt (waren instabil)
+- **Lasso-Selektion zuverlässig** — Browser-Click-Event nach Drag-Ende löscht Selektion nicht mehr
+- **Backend-Liste sofort aktuell** — nach Speichern einer Datasource kein Strg+Shift+R mehr nötig
+- **Changelog im About-Dialog** — funktioniert jetzt auch unter Docker (Volume-Mounts + Fallback)
+- **GitHub Pages** — Pipeline neu strukturiert; MkDocs-Docs als Teil des Frontend-Deployments
 
 ## Neu in 2.2
 
