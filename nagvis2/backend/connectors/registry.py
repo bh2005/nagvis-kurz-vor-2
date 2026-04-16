@@ -112,6 +112,7 @@ class UnifiedRegistry:
                 "port":        c.port,
                 "timeout":     c.timeout,
                 "enabled":     c.enabled,
+                "web_url":     c.web_url,
             }
         if isinstance(client, CheckmkClient):
             c = client.cfg
@@ -287,6 +288,7 @@ class UnifiedRegistry:
                     timeout     = float(entry.get("timeout", 10.0)),
                     use_tcp     = (t == "livestatus_tcp"),
                     enabled     = bool(entry.get("enabled", True)),
+                    web_url     = entry.get("web_url", ""),
                 ))
         except Exception as e:
             log.error("Fehler beim Erstellen von Backend '%s': %s",
@@ -400,6 +402,28 @@ class UnifiedRegistry:
                 if hg["name"] not in seen:
                     seen.add(hg["name"])
                     merged.append(hg)
+        return merged
+
+    async def get_all_servicegroups(self) -> list[dict]:
+        """Servicegruppen aus allen Backends zusammenführen (nach Name dedupliziert)."""
+        async def safe(client: AnyClient):
+            fn = getattr(client, "get_servicegroups", None)
+            if fn is None:
+                return []
+            try:
+                return await fn()
+            except Exception as e:
+                bid = getattr(getattr(client, "cfg", None), "backend_id", "?")
+                log.error("Backend '%s' get_servicegroups fehlgeschlagen: %s", bid, e)
+                return []
+        results = await asyncio.gather(*[safe(c) for c in self._clients.values()])
+        seen: set[str] = set()
+        merged = []
+        for sub in results:
+            for sg in sub:
+                if sg["name"] not in seen:
+                    seen.add(sg["name"])
+                    merged.append(sg)
         return merged
 
     async def schedule_downtime(
@@ -604,6 +628,59 @@ class UnifiedRegistry:
             pass
         return None
 
+    # ── Auto-Map Helpers ─────────────────────────────────────────────────
+
+    def list_active_backend_ids(self) -> list[str]:
+        """Gibt IDs aller aktiven Backends zurück."""
+        return list(self._clients.keys())
+
+    async def get_hosts_for_backend(self, backend_id: str) -> list:
+        """Alle Hosts eines bestimmten Backends (HostStatus-Liste)."""
+        client = self._clients.get(backend_id)
+        if not client:
+            return []
+        try:
+            return await client.get_hosts()
+        except Exception as e:
+            log.error("get_hosts_for_backend '%s' fehlgeschlagen: %s", backend_id, e)
+            return []
+
+    async def get_services_for_backend(self, backend_id: str) -> list:
+        """Alle Services eines bestimmten Backends (ServiceStatus-Liste)."""
+        client = self._clients.get(backend_id)
+        if not client:
+            return []
+        try:
+            return await client.get_services()
+        except Exception as e:
+            log.error("get_services_for_backend '%s' fehlgeschlagen: %s", backend_id, e)
+            return []
+
+    async def get_hostgroups_for_backend(self, backend_id: str) -> list[dict]:
+        """Hostgruppen eines bestimmten Backends."""
+        client = self._clients.get(backend_id)
+        if not client:
+            return []
+        try:
+            return await client.get_hostgroups()
+        except Exception as e:
+            log.error("get_hostgroups_for_backend '%s' fehlgeschlagen: %s", backend_id, e)
+            return []
+
+    async def get_servicegroups_for_backend(self, backend_id: str) -> list[dict]:
+        """Servicegruppen eines bestimmten Backends (sofern der Client die Methode unterstützt)."""
+        client = self._clients.get(backend_id)
+        if not client:
+            return []
+        fn = getattr(client, "get_servicegroups", None)
+        if fn is None:
+            return []
+        try:
+            return await fn()
+        except Exception as e:
+            log.error("get_servicegroups_for_backend '%s' fehlgeschlagen: %s", backend_id, e)
+            return []
+
     def list_backends(self) -> list[dict]:
         active   = [self._client_info(c) for c in self._clients.values()]
         disabled = [self._entry_info(e)  for e in self._disabled.values()]
@@ -616,6 +693,7 @@ class UnifiedRegistry:
                 "backend_id": c.backend_id,
                 "type":       "livestatus_tcp" if c.use_tcp else "livestatus_unix",
                 "address":    f"{c.host}:{c.port}" if c.use_tcp else c.socket_path,
+                "web_url":    c.web_url,
                 "enabled":    True,
             }
         if isinstance(client, CheckmkClient):

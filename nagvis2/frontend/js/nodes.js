@@ -300,6 +300,7 @@ function applyStatuses(hosts, services) {
     }
   }
   _applyHostgroupStatuses();
+  _applyServicegroupStatuses();
   _updateWeathermapLines();
   _applyGadgetPerfdata();
 
@@ -354,6 +355,49 @@ function _applyHostgroupStatuses() {
     applyNodeStatus(el, worstLabel, anyAck, anyDT);
   });
 }
+
+function _applyServicegroupStatuses() {
+  // Für jeden Servicegroup-Node: Worst-State aus Mitglieds-Services berechnen
+  const SG_SEVERITY = { OK:0, WARNING:1, UNKNOWN:2, CRITICAL:3 };
+
+  document.querySelectorAll('.nv2-node[data-type="servicegroup"]').forEach(el => {
+    const groupName = el.dataset.name;
+    const elBid     = el.dataset.backendId;
+    const members   = servicegroupCache[groupName];
+    if (!members || !members.length) return;
+
+    let worstLabel = 'OK';
+    let worstSev   = -1;
+    let anyAck     = false;
+    let anyDT      = false;
+
+    for (const key of members) {
+      // Member-Keys können "host::svc", [host, svc] oder nur "svc" sein
+      let host = '', svc = '';
+      if (typeof key === 'string' && key.includes('::')) {
+        [host, svc] = key.split('::', 2);
+      } else if (Array.isArray(key) && key.length >= 2) {
+        [host, svc] = key;
+      } else {
+        svc = String(key);
+      }
+      const statusKey = host ? `${host}::${svc}` : svc;
+      const cache = elBid
+        ? (backendStatusCache[elBid] ?? backendStatusCache[''])
+        : (backendStatusCache[''] ?? Object.values(backendStatusCache)[0]);
+      const s = cache?.[statusKey];
+      if (!s) continue;
+      const sev = SG_SEVERITY[s.state_label] ?? 0;
+      if (sev > worstSev) { worstSev = sev; worstLabel = s.state_label; }
+      if (s.acknowledged) anyAck = true;
+      if (s.in_downtime)  anyDT  = true;
+    }
+
+    if (worstSev < 0) return;
+    applyNodeStatus(el, worstLabel, anyAck, anyDT);
+  });
+}
+window._applyServicegroupStatuses = _applyServicegroupStatuses;
 
 function _applyGadgetPerfdata() {
   if (!activeMapCfg?.objects) return;
@@ -1808,7 +1852,7 @@ function _attachSelectHandler(el) {
     if (!editActive) return;
     if (el._nv2wasDragged) { el._nv2wasDragged = false; return; }
     e.stopPropagation();
-    if (e.shiftKey) {
+    if (e.ctrlKey || e.metaKey) {
       if (selectedNodes.has(el)) { selectedNodes.delete(el); el.classList.remove('nv2-selected'); }
       else                       { selectedNodes.add(el);    el.classList.add('nv2-selected'); }
     } else {
@@ -1818,6 +1862,29 @@ function _attachSelectHandler(el) {
     }
     window.NV2_ALIGN?.updateToolbar();
   });
+
+  // Long-Press (500 ms) → Kontextmenü auf Touch-Geräten
+  let _lpTimer = null;
+  el.addEventListener('touchstart', ev => {
+    if (ev.touches.length !== 1) return;
+    const t = ev.touches[0];
+    _lpTimer = setTimeout(() => {
+      _lpTimer = null;
+      el._nv2wasDragged = true;   // click-Handler überspringen
+      const fakeE = {
+        clientX: t.clientX, clientY: t.clientY,
+        preventDefault: () => {}, stopPropagation: () => {}, target: el,
+      };
+      const objData = activeMapCfg?.objects?.find(o => o.object_id === el.dataset.objectId);
+      if (!objData) return;
+      if (editActive) showNodeContextMenu(fakeE, el, objData);
+      else            showViewContextMenu(fakeE, el, objData);
+    }, 500);
+  }, { passive: true });
+  const _cancelLp = () => { clearTimeout(_lpTimer); _lpTimer = null; };
+  el.addEventListener('touchend',    _cancelLp);
+  el.addEventListener('touchcancel', _cancelLp);
+  el.addEventListener('touchmove',   _cancelLp);
 }
 
 function toggleEdit() {
@@ -1847,6 +1914,64 @@ function toggleEdit() {
 function makeDraggable(el) {
   if (el._nv2drag) return;
   el._nv2drag = true;
+
+  // ── Touch-Drag ────────────────────────────────────────────────────────
+  el.addEventListener('touchstart', e => {
+    if (!editActive || e.touches.length !== 1) return;
+    e.stopPropagation();
+    hideTooltip();
+    el._nv2wasDragged = false;
+    const touch  = e.touches[0];
+    const canvas = document.getElementById('nv2-canvas');
+    const rect   = canvas.getBoundingClientRect();
+    const sx = touch.clientX, sy = touch.clientY;
+
+    const isGroup   = selectedNodes.size > 1 && selectedNodes.has(el);
+    const dragNodes = isGroup ? [...selectedNodes] : [el];
+    dragNodes.forEach(n => { n._dragX0 = parseFloat(n.style.left); n._dragY0 = parseFloat(n.style.top); });
+    dragNodes.forEach(n => { n.classList.add('nv2-dragging'); n.style.zIndex = '40'; });
+
+    const onMove = ev => {
+      if (ev.touches.length !== 1) return;
+      ev.preventDefault();
+      el._nv2wasDragged = true;
+      const t = ev.touches[0];
+      const zs    = window.NV2_ZOOM?.getState?.() ?? { zoom: 1 };
+      const clamp = (activeMapCfg?.canvas?.overflow ?? 'clamp') !== 'free';
+      const dx = (t.clientX - sx) / rect.width  * 100 / zs.zoom;
+      const dy = (t.clientY - sy) / rect.height * 100 / zs.zoom;
+      dragNodes.forEach(n => {
+        const nx = n._dragX0 + dx;
+        const ny = n._dragY0 + dy;
+        n.style.left = `${(clamp ? Math.max(0, Math.min(100, nx)) : nx).toFixed(2)}%`;
+        n.style.top  = `${(clamp ? Math.max(0, Math.min(97,  ny)) : ny).toFixed(2)}%`;
+      });
+    };
+    const onUp = async () => {
+      dragNodes.forEach(n => { n.classList.remove('nv2-dragging'); n.style.zIndex = ''; });
+      el.removeEventListener('touchmove', onMove);
+      el.removeEventListener('touchend',  onUp);
+      el.removeEventListener('touchcancel', onUp);
+      if (!el._nv2wasDragged) return;
+      await Promise.all(dragNodes.map(n =>
+        api(`/api/maps/${activeMapId}/objects/${n.dataset.objectId}/pos`, 'PATCH',
+          { x: parseFloat(n.style.left), y: parseFloat(n.style.top) })
+      ));
+      window.NV2_HISTORY?.push({
+        mapId: activeMapId,
+        items: dragNodes.map(n => ({
+          objectId: n.dataset.objectId,
+          before:   { x: n._dragX0, y: n._dragY0 },
+          after:    { x: parseFloat(n.style.left), y: parseFloat(n.style.top) },
+        })),
+      });
+    };
+    el.addEventListener('touchmove',   onMove,  { passive: false });
+    el.addEventListener('touchend',    onUp);
+    el.addEventListener('touchcancel', onUp);
+  }, { passive: true });
+
+  // ── Mouse-Drag ────────────────────────────────────────────────────────
   el.addEventListener('mousedown', e => {
     if (!editActive || e.button !== 0) return;
     if (e.target.tagName === 'TEXTAREA') return;
@@ -2015,7 +2140,7 @@ function onCanvasMouseDown(e) {
     const lr = lasso.getBoundingClientRect();
     lasso.remove();
     if (!moved) return;
-    if (!ev.shiftKey) clearSelection();
+    if (!ev.ctrlKey && !ev.metaKey) clearSelection();
     document.querySelectorAll('.nv2-node,.nv2-textbox,.nv2-container').forEach(node => {
       const nr = node.getBoundingClientRect();
       const cx = nr.left + nr.width / 2, cy = nr.top + nr.height / 2;
@@ -2024,6 +2149,7 @@ function onCanvasMouseDown(e) {
       }
     });
     window.NV2_ALIGN?.updateToolbar();
+    window._nv2LassoDone = true;   // verhindert, dass click → clearSelection die Selektion sofort löscht
   };
 
   document.addEventListener('mousemove', onMove);
@@ -2141,6 +2267,8 @@ function _buildMonitoringUrl(obj, h) {
 
   return null; // kein URL konfiguriert → Konfig-Dialog
 }
+
+window._buildMonitoringUrl = _buildMonitoringUrl;
 
 function _expandActionUrl(url, obj, h) {
   const hostname = obj.type === 'service' ? obj.host_name : obj.name;
@@ -3004,17 +3132,11 @@ function onCanvasClick(e) {
   if (document.getElementById('nv2-resize-panel')) { closeResizeDialog(); return; }
   if (_ctxMenu) { closeContextMenu(); return; }
   if (document.getElementById('nv2-iconset-dlg')) return;
+  // Wenn soeben ein Lasso-Drag beendet wurde, click-Event ignorieren (würde Selektion löschen)
+  if (window._nv2LassoDone) { window._nv2LassoDone = false; return; }
+  // Linksklick auf leere Canvas-Fläche → Selektion aufheben
+  // Objekte platzieren über Rechtsklick-Menü (showCanvasContextMenu)
   clearSelection();
-
-  const rect  = document.getElementById('nv2-canvas').getBoundingClientRect();
-  const state = window.NV2_ZOOM?.getState?.() ?? { zoom: 1, panX: 0, panY: 0 };
-  const localX = (e.clientX - rect.left - state.panX) / state.zoom;
-  const localY = (e.clientY - rect.top  - state.panY) / state.zoom;
-  pendingPos = {
-    x: (localX / rect.width  * 100).toFixed(2),
-    y: (localY / rect.height * 100).toFixed(2),
-  };
-  openDlg('dlg-add-object');
 }
 
 

@@ -32,7 +32,6 @@ function toggleSidebar() {
 }
 
 function restoreSidebar() {
-  // User-Settings sind die einzige Quelle für den Sidebar-Startzustand
   const pref = loadUserSettings().sidebarDefault;  // Default: 'expanded'
   if (pref === 'collapsed') {
     sidebarCollapsed = true;
@@ -40,6 +39,21 @@ function restoreSidebar() {
     document.getElementById('app').style.gridTemplateColumns = '44px 1fr';
   }
 }
+
+// ── Mobile Sidebar (Overlay-Modus) ───────────────────────────────────────
+function toggleMobileSidebar(forceOpen) {
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    const sidebar  = document.getElementById('sidebar');
+    const overlay  = document.getElementById('sidebar-overlay');
+    const isOpen   = sidebar.classList.contains('mobile-open');
+    const open     = forceOpen !== undefined ? forceOpen : !isOpen;
+    sidebar.classList.toggle('mobile-open', open);
+    overlay.classList.toggle('show', open);
+  } else {
+    toggleSidebar();
+  }
+}
+window.toggleMobileSidebar = toggleMobileSidebar;
 
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -115,9 +129,117 @@ function updateTopbarPills(hosts) {
 }
 
 
+// ── Monitoring-Basis-URL aus dem ersten nutzbaren Backend ─────────────
+function _monitoringSiteBase() {
+  const backends = window.backendList ?? [];
+  const b = backends.find(b => b.type === 'checkmk')
+          ?? backends.find(b => b.web_url)
+          ?? backends.find(b => (b.address || '').startsWith('http'));
+  if (!b) return null;
+  const webUrl  = b.web_url || '';
+  const rawAddr = webUrl || b.address || b.base_url || '';
+  if (!rawAddr) return null;
+  return webUrl
+    ? rawAddr.replace(/\/+$/, '')
+    : rawAddr.replace(/\/+$/, '').replace(/\/(api\/1\.0|v1)$/, '');
+}
+
+// Öffnet das Checkmk-Problems-Dashboard (neuer Tab).
+function openMonitoringDashboard() {
+  const base = _monitoringSiteBase();
+  if (!base) { showToast?.('Keine Monitoring-URL konfiguriert', 'warn'); return; }
+  try {
+    const pathname  = new URL(base).pathname.replace(/\/+$/, '');
+    const startUrl  = encodeURIComponent(`${pathname}/dashboard.py?name=problems&owner=`);
+    window.open(`${base}/index.py?start_url=${startUrl}`, '_blank');
+  } catch { /* ungültige URL */ }
+}
+window.openMonitoringDashboard = openMonitoringDashboard;
+
+
 // ═══════════════════════════════════════════════════════════════════════
 //  HOSTS SNAP-IN
 // ═══════════════════════════════════════════════════════════════════════
+
+// Öffnet Host-Übersicht im Checkmk-Monitoring (neuer Tab).
+// URL-Muster: {siteBase}/view.py?host={name}&view_name=host
+// Für Services:           ?host={host}&service={desc}&view_name=service
+function _openInMonitoringOrFocus(obj) {
+  const enc = encodeURIComponent;
+
+  // Checkmk-Backend-Basis-URL ermitteln.
+  // Bevorzuge backend_id des Objekts, sonst erstes verfügbares Checkmk-Backend,
+  // als letzten Ausweg jedes Backend mit einer HTTP-Adresse.
+  const bid      = obj.backend_id || '';
+  const backends = window.backendList ?? [];
+  const backend  = backends.find(b => b.backend_id === bid && b.type === 'checkmk')
+                ?? backends.find(b => b.type === 'checkmk')
+                ?? backends.find(b => (b.address || b.base_url || '').startsWith('http'));
+
+  // web_url  = direkt eingetragene Checkmk-Web-Basis (Livestatus-Backends)
+  // address  = API-URL (Checkmk-REST / Icinga2) → /api/1.0 oder /v1 abschneiden
+  // base_url = älteres Feld mancher Backend-Antworten
+  const webUrl  = backend?.web_url || '';
+  const rawAddr = webUrl || backend?.address || backend?.base_url || '';
+  if (rawAddr) {
+    const siteBase = webUrl
+      ? rawAddr.replace(/\/+$/, '')                                   // web_url ist bereits die korrekte Basis
+      : rawAddr.replace(/\/+$/, '').replace(/\/(api\/1\.0|v1)$/, ''); // API-URL → Basis ableiten
+    const base     = `${siteBase}/view.py`;
+    let url;
+    if (obj.type === 'service') {
+      url = `${base}?host=${enc(obj.host_name)}&service=${enc(obj.description || obj.name)}&view_name=service`;
+    } else {
+      url = `${base}?host=${enc(obj.name || obj.host_name)}&view_name=host`;
+    }
+    window.open(url, '_blank');
+    return;
+  }
+
+  // Fallback: Node auf der Map fokussieren
+  const focusKey = obj.type === 'service'
+    ? `${obj.host_name}::${obj.description}`
+    : (obj.name ?? '');
+  focusHost(focusKey);
+}
+
+function _buildPanelRow(h) {
+  const c         = STATE_CHIP[h.state_label] ?? 'unkn';
+  const isService = h.type === 'service';
+  const name      = isService
+    ? `${esc(h.host_name)} / ${esc(h.description)}`
+    : esc(h.name ?? h.host_name ?? '–');
+  const bid = esc(h.backend_id || h._backend_id || '');
+  const hn  = esc(h.name ?? '');
+  const hhn = esc(h.host_name ?? '');
+  const dsc = esc(h.description ?? '');
+  const typ = esc(h.type ?? 'host');
+  return `<div class="host-row nv2-mon-link"
+      data-type="${typ}" data-name="${hn}" data-host-name="${hhn}"
+      data-desc="${dsc}" data-backend-id="${bid}" title="Im Monitoring öffnen">
+    <div class="hr-pip ${c}"></div>
+    <div class="hr-body">
+      <div class="hr-name">${name}</div>
+      <div class="hr-out">${esc((h.output ?? '–').substring(0, 55))}</div>
+    </div>
+    <div class="hr-tag ${c}">${h.state_label}</div>
+  </div>`;
+}
+
+function _attachPanelRowClicks(body) {
+  body.querySelectorAll('.host-row.nv2-mon-link').forEach(row => {
+    row.addEventListener('click', () => {
+      const obj = {
+        type:        row.dataset.type,
+        name:        row.dataset.name,
+        host_name:   row.dataset.hostName,
+        description: row.dataset.desc,
+        backend_id:  row.dataset.backendId,
+      };
+      _openInMonitoringOrFocus(obj);
+    });
+  });
+}
 
 function renderProblemsPanel(items) {
   const body = document.getElementById('body-problems');
@@ -133,26 +255,8 @@ function renderProblemsPanel(items) {
     tab?.classList.remove('has-problems');
     return;
   }
-  body.innerHTML = problems.map(h => {
-    const c = STATE_CHIP[h.state_label] ?? 'unkn';
-    // Hosts haben .name, Services haben .host_name + .description
-    const isService = h.type === 'service';
-    const displayName = isService
-      ? `${esc(h.host_name)} / ${esc(h.description)}`
-      : esc(h.name ?? h.host_name ?? '–');
-    const focusKey = isService ? `${h.host_name}::${h.description}` : (h.name ?? '');
-    return `<div class="host-row" data-host="${esc(focusKey)}">
-      <div class="hr-pip ${c}"></div>
-      <div class="hr-body">
-        <div class="hr-name">${displayName}</div>
-        <div class="hr-out">${esc((h.output ?? '–').substring(0, 55))}</div>
-      </div>
-      <div class="hr-tag ${c}">${h.state_label}</div>
-    </div>`;
-  }).join('');
-  body.querySelectorAll('.host-row').forEach(row => {
-    row.addEventListener('click', () => focusHost(row.dataset.host));
-  });
+  body.innerHTML = problems.map(_buildPanelRow).join('');
+  _attachPanelRowClicks(body);
   tab?.classList.toggle('has-problems', problems.some(h => (STATE_CHIP[h.state_label] ?? '') === 'crit'));
 }
 
@@ -212,20 +316,8 @@ function renderHostsPanel(hosts) {
   const body = document.getElementById('body-hosts');
   if (!hosts.length) { body.innerHTML = `<div class="empty-hint">${t('no_hosts')}</div>`; return; }
   const sorted = [...hosts].sort((a, b) => b.state - a.state);
-  body.innerHTML = sorted.map(h => {
-    const c = STATE_CHIP[h.state_label] ?? 'unkn';
-    return `<div class="host-row" data-host="${esc(h.name)}">
-      <div class="hr-pip ${c}"></div>
-      <div class="hr-body">
-        <div class="hr-name">${esc(h.name)}</div>
-        <div class="hr-out">${esc((h.output ?? '–').substring(0, 55))}</div>
-      </div>
-      <div class="hr-tag ${c}">${h.state_label}</div>
-    </div>`;
-  }).join('');
-  body.querySelectorAll('.host-row').forEach(row => {
-    row.addEventListener('click', () => focusHost(row.dataset.host));
-  });
+  body.innerHTML = sorted.map(h => _buildPanelRow({ ...h, type: h.type ?? 'host' })).join('');
+  _attachPanelRowClicks(body);
 }
 
 function focusHost(name) {
@@ -244,18 +336,23 @@ function focusHost(name) {
 function appendEvents(hosts, services, ts) {
   const items = [
     ...hosts.map(h => ({
-      bar:  STATE_CHIP[h.state_label] === 'crit' ? 'crit' : STATE_CHIP[h.state_label] === 'warn' ? 'warn' : STATE_CHIP[h.state_label] === 'ok' ? 'ok' : 'info',
-      host: h.name, msg: `${h.state_label}: ${(h.output ?? '').substring(0, 60)}`, ts,
+      bar:       STATE_CHIP[h.state_label] === 'crit' ? 'crit' : STATE_CHIP[h.state_label] === 'warn' ? 'warn' : STATE_CHIP[h.state_label] === 'ok' ? 'ok' : 'info',
+      host:      h.name, msg: `${h.state_label}: ${(h.output ?? '').substring(0, 60)}`, ts,
+      type:      'host',    name: h.name, host_name: '',             description: '',            backend_id: h.backend_id || h._backend_id || '',
     })),
     ...services.map(s => ({
-      bar:  STATE_CHIP[s.state_label] === 'crit' ? 'crit' : STATE_CHIP[s.state_label] === 'warn' ? 'warn' : STATE_CHIP[s.state_label] === 'ok' ? 'ok' : 'info',
-      host: `${s.host_name} · ${s.description}`, msg: `${s.state_label}: ${(s.output ?? '').substring(0, 50)}`, ts,
+      bar:       STATE_CHIP[s.state_label] === 'crit' ? 'crit' : STATE_CHIP[s.state_label] === 'warn' ? 'warn' : STATE_CHIP[s.state_label] === 'ok' ? 'ok' : 'info',
+      host:      `${s.host_name} · ${s.description}`, msg: `${s.state_label}: ${(s.output ?? '').substring(0, 50)}`, ts,
+      type:      'service', name: s.description, host_name: s.host_name, description: s.description, backend_id: s.backend_id || s._backend_id || '',
     })),
   ];
   eventLog = [...items, ...eventLog].slice(0, 60);
   const body = document.getElementById('body-events');
   body.innerHTML = eventLog.map(e => `
-    <div class="ev-row">
+    <div class="ev-row nv2-mon-link" style="cursor:pointer"
+        data-type="${esc(e.type)}" data-name="${esc(e.name)}"
+        data-host-name="${esc(e.host_name)}" data-desc="${esc(e.description)}"
+        data-backend-id="${esc(e.backend_id)}" title="Im Monitoring öffnen">
       <div class="ev-bar ${e.bar}"></div>
       <div class="ev-body">
         <div class="ev-host">${esc(e.host)}</div>
@@ -263,6 +360,17 @@ function appendEvents(hosts, services, ts) {
         <div class="ev-time">${fmt(e.ts)}</div>
       </div>
     </div>`).join('');
+  body.querySelectorAll('.ev-row.nv2-mon-link').forEach(row => {
+    row.addEventListener('click', () => {
+      _openInMonitoringOrFocus({
+        type:        row.dataset.type,
+        name:        row.dataset.name,
+        host_name:   row.dataset.hostName,
+        description: row.dataset.desc,
+        backend_id:  row.dataset.backendId,
+      });
+    });
+  });
 }
 
 

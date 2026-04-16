@@ -385,9 +385,11 @@ async function openMap(mapId, { skipHistory = false } = {}) {
     initLayers(activeMapCfg.objects ?? []);
   }
 
-  // Hostgroup-Mitglieder laden wenn hg-Nodes auf der Map sind
+  // Gruppen-Caches laden wenn entsprechende Nodes auf der Map sind
   const hasHgNodes = (activeMapCfg.objects ?? []).some(o => o.type === 'hostgroup');
+  const hasSgNodes = (activeMapCfg.objects ?? []).some(o => o.type === 'servicegroup');
   if (hasHgNodes) loadHostgroups();
+  if (hasSgNodes) loadServicegroups();
   _renderSidebarObjResults(); // Objekte-Suche für die neue Map aktualisieren
 
   if (wsClient) {
@@ -632,11 +634,20 @@ async function loadHostgroups() {
   for (const g of groups) {
     hostgroupCache[g.name] = g.members ?? [];
   }
-  // Sofort Hostgroup-Status anwenden falls bereits WS-Daten vorhanden
   if (typeof _applyHostgroupStatuses === 'function') _applyHostgroupStatuses();
 }
 
-window.loadHostgroups = loadHostgroups;
+async function loadServicegroups() {
+  const groups = await api('/api/servicegroups') ?? [];
+  servicegroupCache = {};
+  for (const g of groups) {
+    servicegroupCache[g.name] = g.members ?? [];
+  }
+  if (typeof _applyServicegroupStatuses === 'function') _applyServicegroupStatuses();
+}
+
+window.loadHostgroups    = loadHostgroups;
+window.loadServicegroups = loadServicegroups;
 
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -659,6 +670,23 @@ function selectObjType(type) {
   const lbl = { host:'Hostname', hostgroup:'Gruppenname', servicegroup:'Gruppenname', map:'Map-ID' };
   const nameLabel = document.getElementById('dlg-name-label');
   if (nameLabel) nameLabel.textContent = lbl[type] ?? 'Name';
+
+  // Datalist je Typ mit passenden Namen befüllen
+  const dl = document.getElementById('known-hosts');
+  if (!dl) return;
+  if (type === 'hostgroup') {
+    dl.innerHTML = Object.keys(hostgroupCache).map(n => `<option value="${esc(n)}">`).join('');
+  } else if (type === 'servicegroup') {
+    dl.innerHTML = Object.keys(servicegroupCache).map(n => `<option value="${esc(n)}">`).join('');
+    // Falls Cache leer: Servicegruppen nachladen
+    if (!Object.keys(servicegroupCache).length) {
+      loadServicegroups().then(() => {
+        dl.innerHTML = Object.keys(servicegroupCache).map(n => `<option value="${esc(n)}">`).join('');
+      });
+    }
+  } else if (type === 'host') {
+    // wird durch fillHostDatalist() gesetzt – keine Änderung nötig
+  }
 }
 
 async function confirmAddObject() {
@@ -816,10 +844,20 @@ window.closeCopyToMapDlg = function() {
 };
 
 function dlgNewMap() {
-  document.getElementById('nm-title').value = '';
-  document.getElementById('nm-id').value    = '';
+  // Felder zurücksetzen
+  document.getElementById('nm-title').value    = '';
+  document.getElementById('nm-id').value       = '';
+  document.getElementById('nm-tpl-title').value = '';
+  document.getElementById('nm-am-title').value  = '';
   const freeRadio = document.querySelector('input[name="nm-canvas-mode"][value="free"]');
   if (freeRadio) { freeRadio.checked = true; _nmUpdateCanvasFields(); }
+  // Immer auf Tab "Leer" starten
+  _nmTab('blank');
+  // Template-Selektion zurücksetzen
+  document.querySelectorAll('.nm-template-card').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('.nm-tpl-opts').forEach(o => o.style.display = 'none');
+  const okBtn = document.getElementById('nm-tpl-ok');
+  if (okBtn) okBtn.disabled = true;
   openDlg('dlg-new-map');
   setTimeout(() => document.getElementById('nm-title').focus(), 80);
 }
@@ -832,6 +870,228 @@ function _nmUpdateCanvasFields() {
   document.getElementById('nm-fields-osm')?.style && (document.getElementById('nm-fields-osm').style.display         = mode === 'osm'        ? 'block' : 'none');
 }
 window._nmUpdateCanvasFields = _nmUpdateCanvasFields;
+
+
+// ═══════════════════════════════════════════════════════════════════════
+//  NEUE MAP – TAB-SWITCHING
+// ═══════════════════════════════════════════════════════════════════════
+
+window._nmTab = function(tab) {
+  ['blank', 'template', 'automap'].forEach(t => {
+    document.getElementById(`nm-panel-${t}`).style.display  = t === tab ? '' : 'none';
+    document.querySelector(`.nm-tab[data-tab="${t}"]`)?.classList.toggle('active', t === tab);
+  });
+  if (tab === 'automap') _nmAmPopulateBackends();
+};
+
+// ═══════════════════════════════════════════════════════════════════════
+//  NEUE MAP – VORLAGE
+// ═══════════════════════════════════════════════════════════════════════
+
+window._nmSelectTemplate = function(card) {
+  document.querySelectorAll('.nm-template-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  const tpl = card.dataset.tpl;
+  document.querySelectorAll('.nm-tpl-opts').forEach(o => o.style.display = 'none');
+  const opts = document.getElementById(`nm-tpl-opts-${tpl}`);
+  if (opts) opts.style.display = '';
+  const okBtn = document.getElementById('nm-tpl-ok');
+  if (okBtn) okBtn.disabled = false;
+};
+
+window.confirmNewMapFromTemplate = async function() {
+  const title = document.getElementById('nm-tpl-title').value.trim();
+  if (!title) { document.getElementById('nm-tpl-title').focus(); return; }
+  const card = document.querySelector('.nm-template-card.selected');
+  if (!card) { showToast('Bitte Vorlage auswählen', 'warn'); return; }
+  const tpl = card.dataset.tpl;
+
+  closeDlg('dlg-new-map');
+
+  // Map anlegen
+  const created = await api('/api/maps', 'POST', { title, canvas: { mode: 'free' } });
+  if (!created) return;
+  await loadMaps();
+
+  // Objekte gemäß Vorlage erzeugen
+  const mid = created.id;
+  const objs = _nmBuildTemplateObjects(tpl);
+  for (const o of objs) {
+    await api(`/api/maps/${mid}/objects`, 'POST', o);
+  }
+
+  try { await openMap(mid); } catch(e) { console.error('[NV2] openMap Fehler:', e); }
+  if (!editActive) toggleEdit();
+  showToast(`Map aus Vorlage „${tpl}" erstellt`, 'success');
+};
+
+function _nmBuildTemplateObjects(tpl) {
+  const iconset = 'std_small';
+  const STEP = 5;
+
+  if (tpl === 'star') {
+    const n      = Math.max(1, parseInt(document.getElementById('nm-tpl-star-count')?.value) || 6);
+    const center = document.getElementById('nm-tpl-star-center')?.value.trim() || 'Core';
+    const r  = Math.max(STEP * 2, n * STEP);
+    const cx = 50 + r, cy = 50 + r;
+    const objs = [{ type: 'host', name: center, x: cx, y: cy, iconset, size: 32 }];
+    for (let i = 0; i < n; i++) {
+      const a = 2 * Math.PI * i / n - Math.PI / 2;
+      const hx = Math.round(cx + r * Math.cos(a));
+      const hy = Math.round(cy + r * Math.sin(a));
+      objs.push({ type: 'host', name: `Host-${String(i + 1).padStart(2, '0')}`,
+        x: hx, y: hy, iconset, size: 32 });
+      objs.push({ type: 'line', name: '', x: cx + 14, y: cy + 14,
+        x2: hx + 14, y2: hy + 14,
+        line_type: 'line', line_style: 'solid', line_width: 1 });
+    }
+    return objs;
+  }
+
+  if (tpl === 'hierarchy') {
+    const cols = Math.max(1, parseInt(document.getElementById('nm-tpl-hier-children')?.value) || 4);
+    const root = document.getElementById('nm-tpl-hier-root')?.value.trim() || 'Gruppe';
+    const spX = STEP, spY = STEP * 2, marginX = 50, rootY = 50;
+    const rootX = Math.round(marginX + (cols - 1) * spX / 2);
+    const objs = [{ type: 'hostgroup', name: root, x: rootX, y: rootY, iconset, size: 32 }];
+    for (let i = 0; i < cols; i++) {
+      const hx = marginX + i * spX;
+      const hy = rootY + spY;
+      objs.push({ type: 'host', name: `Host-${String(i + 1).padStart(2, '0')}`,
+        x: hx, y: hy, iconset, size: 32 });
+      objs.push({ type: 'line', name: '', x: rootX + 14, y: rootY + 14,
+        x2: hx + 14, y2: hy + 14,
+        line_type: 'line', line_style: 'solid', line_width: 1 });
+    }
+    return objs;
+  }
+
+  if (tpl === 'datacenter') {
+    const zoneW    = 40;    // Breite je Zone (Icon-Spalte)
+    const zoneGap  = 5;     // Lücke zwischen Zonen
+    const startX   = 50;
+    const labelY   = 50;
+    const firstHostY = labelY + STEP * 2;
+    const hostSpY  = STEP;
+
+    const zones = [
+      { label: 'DMZ',     hosts: ['FW-01', 'Proxy-01', 'Proxy-02', 'VPN-01'] },
+      { label: 'Core',    hosts: ['Core-SW-01', 'Core-SW-02', 'Core-RTR-01', 'Mgmt-01'] },
+      { label: 'Storage', hosts: ['NAS-01', 'NAS-02', 'Backup-01', 'iSCSI-01'] },
+    ];
+    const objs = [];
+    zones.forEach((zone, zi) => {
+      const zx = startX + zi * (zoneW + zoneGap);
+      objs.push({
+        type: 'textbox', text: zone.label, x: zx, y: labelY,
+        font_size: 12, bold: true, color: '#e0e0e0', bg_color: '#2b2b2b',
+      });
+      zone.hosts.forEach((name, i) => {
+        objs.push({ type: 'host', name, x: zx, y: firstHostY + i * hostSpY, iconset, size: 32 });
+      });
+    });
+    return objs;
+  }
+
+  return [];
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════
+//  NEUE MAP – AUTO-MAP
+// ═══════════════════════════════════════════════════════════════════════
+
+async function _nmAmPopulateBackends() {
+  const sel = document.getElementById('nm-am-backend');
+  if (!sel) return;
+  const backends = await api('/api/backends') ?? [];
+  const active = backends.filter(b => b.enabled !== false && b.type !== 'demo');
+  sel.innerHTML = '<option value="">— Backend wählen —</option>' +
+    active.map(b => `<option value="${esc(b.backend_id)}">${esc(b.backend_id)} (${esc(b.type)})</option>`).join('');
+}
+
+window._nmAmBackendChanged = async function() {
+  const bid = document.getElementById('nm-am-backend')?.value;
+  if (!bid) return;
+  const source = document.getElementById('nm-am-source')?.value ?? 'all';
+  await _nmAmLoadSources(bid, source);
+};
+
+window._nmAmSourceChanged = function() {
+  const source = document.getElementById('nm-am-source')?.value ?? 'all';
+  const filterRow = document.getElementById('nm-am-filter-row');
+  if (filterRow) filterRow.style.display = source === 'all' ? 'none' : '';
+  const inp = document.getElementById('nm-am-filter');
+  if (inp) {
+    if      (source === 'hostgroup')    inp.placeholder = 'z.B. linux_servers';
+    else if (source === 'servicegroup') inp.placeholder = 'z.B. http-checks';
+    else if (source === 'label')        inp.placeholder = 'z.B. location:berlin';
+    else if (source === 'tag')          inp.placeholder = 'z.B. production';
+    inp.value = '';
+  }
+  const bid = document.getElementById('nm-am-backend')?.value;
+  if (bid) _nmAmLoadSources(bid, source);
+};
+
+async function _nmAmLoadSources(bid, source) {
+  const info = document.getElementById('nm-am-info');
+  try {
+    const data = await api(`/api/maps/automap-sources?backend_id=${encodeURIComponent(bid)}`);
+    if (!data) return;
+
+    // Datalist befüllen
+    const dl = document.getElementById('nm-am-filter-list');
+    if (dl) {
+      let opts = [];
+      if      (source === 'hostgroup')    opts = data.hostgroups    ?? [];
+      else if (source === 'servicegroup') opts = data.servicegroups ?? [];
+      else if (source === 'label')        opts = (data.label_keys ?? []).map(k => k + ':');
+      dl.innerHTML = opts.map(v => `<option value="${esc(v)}">`).join('');
+    }
+
+    if (info) {
+      info.style.display = '';
+      const parts = [`${data.host_count ?? 0} Hosts`];
+      if (data.hostgroups?.length)    parts.push(`${data.hostgroups.length} Hostgruppen`);
+      if (data.servicegroups?.length) parts.push(`${data.servicegroups.length} Servicegruppen`);
+      info.textContent = parts.join(' · ') + ' verfügbar';
+    }
+  } catch(e) {
+    if (info) { info.style.display = ''; info.textContent = 'Fehler beim Laden der Quellen'; }
+  }
+}
+
+window.confirmAutoMap = async function() {
+  const title     = document.getElementById('nm-am-title')?.value.trim();
+  const backendId = document.getElementById('nm-am-backend')?.value;
+  const source    = document.getElementById('nm-am-source')?.value ?? 'all';
+  const filter    = document.getElementById('nm-am-filter')?.value.trim() ?? '';
+  const layout    = document.getElementById('nm-am-layout')?.value ?? 'grid';
+  const iconset   = document.getElementById('nm-am-iconset')?.value ?? 'std_small';
+  const services  = document.getElementById('nm-am-services')?.checked ?? false;
+
+  if (!title)     { document.getElementById('nm-am-title').focus(); return; }
+  if (!backendId) { showToast('Bitte Backend auswählen', 'warn'); return; }
+  if (source !== 'all' && !filter) {
+    showToast('Bitte Filter-Wert eingeben', 'warn');
+    document.getElementById('nm-am-filter')?.focus();
+    return;
+  }
+
+  closeDlg('dlg-new-map');
+  showToast('Auto-Map wird generiert…', 'info');
+
+  const result = await api('/api/maps/auto-generate', 'POST', {
+    title, backend_id: backendId, source, filter_value: filter,
+    layout, iconset, include_services: services,
+    canvas: { mode: 'free' },
+  });
+
+  if (!result) return;
+  await loadMaps();
+  showToast(`${result.objects_created} Objekte erstellt`, 'success');
+  try { await openMap(result.map.id); } catch(e) { console.error('[NV2] openMap Fehler:', e); }
+};
 
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -1779,6 +2039,17 @@ function openBackendMgmtDlg() {
           </div>
         </div>
 
+        <div id="bm-fields-ls-common" style="display:none">
+          <div style="margin-bottom:8px">
+            <label class="f-label">Checkmk Web-URL <span style="color:var(--text-dim);font-weight:normal">(optional)</span></label>
+            <input class="f-input" id="bm-ls-web-url" type="text"
+                   placeholder="http://hostname/sitename/check_mk">
+            <div style="font-size:11px;color:var(--text-dim);margin-top:3px">
+              Ermöglicht Links aus dem Status-Panel direkt in die Checkmk-Oberfläche.
+            </div>
+          </div>
+        </div>
+
         <div style="margin-bottom:12px">
           <label class="f-label">Timeout (Sekunden)</label>
           <input class="f-input" id="bm-timeout" type="number" value="15" min="1" max="60"
@@ -1870,6 +2141,8 @@ function _bmUpdateFields() {
   document.getElementById('bm-fields-prometheus').style.display = t === 'prometheus'        ? '' : 'none';
   document.getElementById('bm-fields-tcp').style.display        = t === 'livestatus_tcp'   ? '' : 'none';
   document.getElementById('bm-fields-unix').style.display       = t === 'livestatus_unix'  ? '' : 'none';
+  const isLs = t === 'livestatus_tcp' || t === 'livestatus_unix';
+  document.getElementById('bm-fields-ls-common').style.display  = isLs ? '' : 'none';
   // Demo hat keine Verbindungsfelder
   const timeoutRow = document.getElementById('bm-timeout')?.closest('div[style]');
   if (timeoutRow) timeoutRow.style.display = t === 'demo' ? 'none' : '';
@@ -1994,12 +2267,14 @@ function _bmBuildEntry() {
   if (type === 'livestatus_tcp') {
     const host = document.getElementById('bm-host')?.value.trim();
     if (!host) { showToast('Host / IP fehlt', 'warn'); return null; }
-    return { ...base, host, port: parseInt(document.getElementById('bm-port')?.value || '6557') };
+    const web_url = document.getElementById('bm-ls-web-url')?.value.trim() || '';
+    return { ...base, host, port: parseInt(document.getElementById('bm-port')?.value || '6557'), web_url };
   }
   if (type === 'livestatus_unix') {
     const sock = document.getElementById('bm-socket')?.value.trim();
     if (!sock) { showToast('Socket-Pfad fehlt', 'warn'); return null; }
-    return { ...base, socket_path: sock };
+    const web_url = document.getElementById('bm-ls-web-url')?.value.trim() || '';
+    return { ...base, socket_path: sock, web_url };
   }
   return null;
 }
@@ -2066,7 +2341,7 @@ function _bmClearForm() {
     'bm-sw-host', 'bm-sw-username', 'bm-sw-password',
     'bm-zabbix-url', 'bm-zabbix-token', 'bm-zabbix-username', 'bm-zabbix-password',
     'bm-prom-url', 'bm-prom-token', 'bm-prom-username', 'bm-prom-password', 'bm-prom-host-label',
-    'bm-host', 'bm-socket',
+    'bm-host', 'bm-socket', 'bm-ls-web-url',
   ].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -2125,9 +2400,10 @@ async function _bmEditLoad(backendId) {
   set('bm-base-url', cfg.base_url);
   set('bm-username', cfg.username || 'automation');
   set('bm-secret',   cfg.secret);
-  set('bm-host',     cfg.host);
-  set('bm-port',     cfg.port || 6557);
-  set('bm-socket',   cfg.socket_path);
+  set('bm-host',        cfg.host);
+  set('bm-port',        cfg.port || 6557);
+  set('bm-socket',      cfg.socket_path);
+  set('bm-ls-web-url',  cfg.web_url);
 
   // Icinga2-spezifische Felder
   set('bm-icinga2-url',      cfg.base_url);

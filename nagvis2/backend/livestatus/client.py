@@ -96,6 +96,7 @@ class LivestatusConfig:
     timeout:     float = 10.0
     use_tcp:     bool  = False
     enabled:     bool  = True      # kann zur Laufzeit deaktiviert werden
+    web_url:     str   = ""        # optionale Checkmk-Web-URL für Monitoring-Links, z.B. http://host/cmk/check_mk
 
 
 @dataclass
@@ -370,6 +371,25 @@ class LivestatusClient:
                 members = []
             result.append({"name": name, "members": members})
         log.debug("get_hostgroups: %d from '%s'", len(result), self.cfg.backend_id)
+        return result
+
+    async def get_servicegroups(self) -> list[dict]:
+        """Alle Servicegruppen mit Mitglieder-Paaren (host_name::service_description)."""
+        rows = await self.query(
+            "GET servicegroups\n"
+            "Columns: name members\n"
+        )
+        result = []
+        for r in rows:
+            if not r or len(r) < 2:
+                continue
+            name, members = r[0], r[1]
+            if isinstance(members, str):
+                members = [m.strip() for m in members.split(",") if m.strip()]
+            elif not isinstance(members, list):
+                members = []
+            result.append({"name": name, "members": members})
+        log.debug("get_servicegroups: %d from '%s'", len(result), self.cfg.backend_id)
         return result
 
     async def schedule_host_downtime(

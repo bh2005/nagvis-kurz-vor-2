@@ -456,8 +456,9 @@ body, #sidebar, #topbar, #overview, .ov-card, .nav-btn, .map-entry,
 .pill {
   display: flex; align-items: center; gap: 4px; font-family: var(--mono);
   font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 2px;
-  flex-shrink: 0; white-space: nowrap;
+  flex-shrink: 0; white-space: nowrap; cursor: pointer; transition: filter var(--t);
 }
+.pill:hover { filter: brightness(1.25); }
 .pill.ok   { background: var(--ok-bg);   color: var(--ok);   border: 1px solid var(--ok-border);   }
 .pill.warn { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-border); }
 .pill.crit {
@@ -904,9 +905,11 @@ img.nv2-icon { display: block; width: 100%; height: 100%; object-fit: contain; t
 ═══════════════════════════════════════════════════════════════════════ */
 .host-row {
   display: flex; align-items: center; gap: 8px; padding: 6px 10px;
-  border-bottom: 1px solid var(--border); cursor: pointer; transition: background var(--t);
+  border-bottom: 1px solid var(--border); transition: background var(--t);
 }
-.host-row:hover { background: var(--bg-hover); }
+.host-row.nv2-mon-link { cursor: pointer; }
+.host-row.nv2-mon-link:hover { background: var(--bg-hover); }
+.host-row.nv2-mon-link:hover .hr-name { text-decoration: underline; text-decoration-style: dotted; }
 .hr-pip { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 .hr-pip.ok   { background: var(--ok);   }
 .hr-pip.warn { background: var(--warn); }
@@ -1627,3 +1630,186 @@ img.nv2-icon { display: block; width: 100%; height: 100%; object-fit: contain; t
 #sidebar.collapsed .sidebar-shortcuts,
 #app.map-open .sidebar-shortcuts { display: none; }
 #app.map-open.sidebar-expanded .sidebar-shortcuts { display: block; }
+
+/* ───────────────────────────────────────────────────────────────────────
+   NEUE MAP – TABS + VORLAGEN + AUTO-MAP
+─────────────────────────────────────────────────────────────────────── */
+
+.nm-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+}
+.nm-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-dim-surf);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 6px 14px 8px;
+  transition: color .15s, border-color .15s;
+  margin-bottom: -1px;
+}
+.nm-tab:hover  { color: var(--text); }
+.nm-tab.active { color: var(--acc); border-bottom-color: var(--acc); font-weight: 500; }
+
+.nm-panel { /* each tab content pane */ }
+
+/* Template-Karten-Grid */
+.nm-template-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 10px 0 14px;
+}
+.nm-template-card {
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 10px 8px 8px;
+  text-align: center;
+  transition: border-color .15s, background .15s;
+  background: var(--bg-panel);
+}
+.nm-template-card:hover    { border-color: var(--border-hi); background: var(--bg-hover); }
+.nm-template-card.selected { border-color: var(--acc); background: var(--acc-bg); }
+
+.nm-tpl-svg {
+  width: 72px;
+  height: 72px;
+  display: block;
+  margin: 0 auto 6px;
+}
+.nm-tpl-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.nm-tpl-desc {
+  font-size: 11px;
+  color: var(--text-dim-surf);
+  line-height: 1.35;
+}
+
+/* Template-Optionen */
+.nm-tpl-opts {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+/* Auto-Map Info-Hinweis */
+#nm-am-info {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-mid);
+  font-size: 12px;
+  margin: 6px 0;
+  padding: 6px 10px;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MOBILE / TOUCH  (max-width: 768px)
+═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* Layout: Sidebar als Overlay statt Grid-Spalte */
+  #app {
+    grid-template-columns: 0 1fr;
+    grid-template-areas: "topbar topbar" "sidebar content";
+  }
+
+  #sidebar {
+    position: fixed;
+    inset: var(--topbar) auto 0 0;
+    width: var(--sidebar) !important;
+    max-width: 85vw !important;
+    transform: translateX(-100%);
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
+    z-index: 300;
+    box-shadow: none;
+  }
+  #sidebar.mobile-open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0,0,0,0.45);
+  }
+  /* Tap-outside-Overlay zum Schließen */
+  #sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 299;
+    background: rgba(0,0,0,0.4);
+  }
+  #sidebar-overlay.show { display: block; }
+
+  /* Topbar: Sidebar-Toggle-Button immer sichtbar */
+  #btn-sidebar-mobile {
+    display: flex !important;
+    align-items: center; justify-content: center;
+    width: 36px; height: 36px;
+    background: transparent; border: none;
+    color: var(--text-mid); cursor: pointer;
+    border-radius: var(--r); flex-shrink: 0;
+  }
+  #btn-sidebar-mobile:hover { background: var(--bg-hover); }
+
+  /* Toolbar-Buttons kompakter */
+  .tb-btn { min-width: 32px; height: 32px; padding: 0 6px; font-size: 11px; }
+  .tb-sep  { margin: 0 2px; }
+
+  /* Titel kürzer */
+  .tb-title { max-width: 120px; }
+  .tb-sub   { display: none; }
+
+  /* Canvas nimmt volle Breite */
+  #main { width: 100vw; }
+
+  /* Dialoge: volle Breite auf kleinen Screens */
+  .dlg {
+    width: 96vw !important;
+    max-width: 96vw !important;
+    margin: 0 auto;
+  }
+  .dlg-wide {
+    width: 96vw !important;
+    max-width: 96vw !important;
+  }
+
+  /* Kontextmenü: größere Touch-Ziele */
+  .ctx-item {
+    padding: 11px 16px;
+    font-size: 13px;
+  }
+
+  /* Node-Inspector: volle Breite */
+  #node-inspector {
+    width: 96vw !important;
+    left: 2vw !important;
+    right: 2vw !important;
+  }
+
+  /* Tooltips auf Mobile deaktivieren (Touch-Hover unzuverlässig) */
+  .nv2-tooltip { display: none !important; }
+
+  /* Resize-Handle größer für Touch */
+  .nv2-resize-handle {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  /* Edit-Banner kleiner */
+  #nv2-edit-banner { font-size: 11px; padding: 3px 8px; }
+}
+
+/* Mobiler Sidebar-Toggle: auf Desktop verstecken */
+#btn-sidebar-mobile { display: none; }
+

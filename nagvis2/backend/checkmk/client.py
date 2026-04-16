@@ -333,7 +333,6 @@ class CheckmkClient:
                 name = item.get("id", "")
                 if not name:
                     continue
-                # Mitglieder: extensions.members oder leer
                 members = item.get("extensions", {}).get("members", [])
                 if isinstance(members, str):
                     members = [m.strip() for m in members.split(",") if m.strip()]
@@ -342,6 +341,25 @@ class CheckmkClient:
             return result
         except Exception as e:
             log.warning("get_hostgroups failed [%s]: %s", self.cfg.backend_id, e)
+            return []
+
+    async def get_servicegroups(self) -> list[dict]:
+        """Alle Servicegruppen via Checkmk REST API."""
+        try:
+            data = await self._get("/domain-types/service_group_config/collections/all")
+            result = []
+            for item in data.get("value", []):
+                name = item.get("id", "")
+                if not name:
+                    continue
+                members = item.get("extensions", {}).get("members", [])
+                if isinstance(members, str):
+                    members = [m.strip() for m in members.split(",") if m.strip()]
+                result.append({"name": name, "members": members})
+            log.debug("get_servicegroups: %d from '%s'", len(result), self.cfg.backend_id)
+            return result
+        except Exception as e:
+            log.warning("get_servicegroups failed [%s]: %s", self.cfg.backend_id, e)
             return []
 
     async def schedule_service_downtime(

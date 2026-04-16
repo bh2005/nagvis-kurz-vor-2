@@ -2,6 +2,7 @@
 NagVis 2 – API Router
 """
 
+import asyncio
 import base64
 import io
 import re
@@ -157,6 +158,8 @@ class BackendCreate(BaseModel):
     port:        Optional[int]  = None
     # Livestatus Unix
     socket_path: Optional[str]  = None
+    # Livestatus: optionale Checkmk-Web-URL für Monitoring-Links
+    web_url:     Optional[str]  = None
     # Checkmk REST API
     base_url:    Optional[str]  = None
     username:    Optional[str]  = None
@@ -168,6 +171,17 @@ class BackendCreate(BaseModel):
 
 class BackendEnabledUpdate(BaseModel):
     enabled: bool
+
+class AutoMapRequest(BaseModel):
+    title:            str
+    backend_id:       str
+    source:           str   = "all"        # "hostgroup"|"label"|"tag"|"all"|"servicegroup"
+    filter_value:     str   = ""
+    layout:           str   = "grid"       # "grid"|"circle"|"star"|"hierarchy"
+    include_services: bool  = False
+    iconset:          str   = "std_small"
+    canvas:           Optional[dict] = None
+    map_id:           Optional[str]  = None
 
 class KioskUser(BaseModel):
     label: str
@@ -248,6 +262,222 @@ async def api_create_map(body: MapCreate, request: Request):
     data = create_map(body.title, body.map_id, body.canvas)
     audit_log(request, "map.create", map_id=data["id"], title=body.title)
     return {**data, "object_count": 0}
+
+
+# ── Auto-Map: Quellen abfragen (VOR /maps/{map_id} registrieren!) ─────
+@api_router.get("/maps/automap-sources")
+async def api_automap_sources(backend_id: str = Query(..., description="Backend-ID")):
+    """Hostgruppen, Servicegruppen + Label-Keys eines Backends für das Auto-Map-Formular."""
+    hostgroups, servicegroups, hosts = await asyncio.gather(
+        registry.get_hostgroups_for_backend(backend_id),
+        registry.get_servicegroups_for_backend(backend_id),
+        registry.get_hosts_for_backend(backend_id),
+    )
+    label_keys: set[str] = set()
+    for h in hosts:
+        if hasattr(h, "labels") and isinstance(h.labels, dict):
+            label_keys.update(h.labels.keys())
+    return {
+        "hostgroups":    [hg.get("name", "") for hg in hostgroups],
+        "servicegroups": [sg.get("name", "") for sg in servicegroups],
+        "label_keys":    sorted(label_keys)[:200],
+        "host_count":    len(hosts),
+    }
+
+
+@api_router.post("/maps/auto-generate", status_code=201)
+async def api_automap_generate(req: AutoMapRequest, request: Request):
+    """Erstellt automatisch eine neue Map aus Monitoring-Daten."""
+    import math
+
+    # ── 1. Hosts abrufen und filtern ─────────────────────────────────────
+    hosts = await registry.get_hosts_for_backend(req.backend_id)
+
+    if req.source == "hostgroup" and req.filter_value:
+        hgroups = await registry.get_hostgroups_for_backend(req.backend_id)
+        members: set[str] = set()
+        for hg in hgroups:
+            if hg.get("name", "").lower() == req.filter_value.lower():
+                members.update(hg.get("members", []))
+        hosts = [h for h in hosts if h.name in members] if members else [
+            h for h in hosts if req.filter_value.lower() in h.name.lower()
+        ]
+
+    elif req.source == "label" and req.filter_value:
+        key, _, val = req.filter_value.partition(":")
+        key, val = key.strip(), val.strip()
+        if val:
+            hosts = [h for h in hosts if hasattr(h, "labels") and h.labels.get(key) == val]
+        else:
+            hosts = [h for h in hosts if hasattr(h, "labels") and key in h.labels]
+
+    elif req.source == "tag" and req.filter_value:
+        lv = req.filter_value.lower()
+        hosts = [h for h in hosts if hasattr(h, "labels") and any(
+            lv in str(v).lower() for v in h.labels.values()
+        )]
+
+    elif req.source == "servicegroup":
+        # Servicegroup-Pfad: eigene Logik mit frühem Return
+        hosts = []
+        sgroups = await registry.get_servicegroups_for_backend(req.backend_id)
+        services = await registry.get_services_for_backend(req.backend_id)
+        if req.filter_value:
+            lv = req.filter_value.lower()
+            sgroups = [sg for sg in sgroups if lv in sg.get("name", "").lower()]
+        if not sgroups:
+            sgroups = [{"name": req.filter_value or "Servicegruppe", "members": []}]
+
+        new_map = create_map(req.title,
+                             map_id=(req.map_id or "").strip().lower().replace(" ", "-") or None,
+                             canvas=req.canvas or {"mode": "free"})
+        map_id = new_map["id"]
+        _sg_step = 5
+        _sg_cols = 10
+        objects_to_add: list[dict] = []
+
+        def _parse_members(raw: list) -> set[tuple[str, str]]:
+            """Normalisiert Member-Listen aus Livestatus ([host, svc]),
+            Checkmk REST ({"host_name":..., "service_description":...})
+            und String-Format ("host::svc" oder nur "svc")."""
+            result: set[tuple[str, str]] = set()
+            for m in raw:
+                if isinstance(m, (list, tuple)) and len(m) >= 2:
+                    result.add((str(m[0]), str(m[1])))
+                elif isinstance(m, dict):
+                    result.add((
+                        m.get("host_name", "") or m.get("host", ""),
+                        m.get("service_description", "") or m.get("description", ""),
+                    ))
+                elif isinstance(m, str) and "::" in m:
+                    h, _, s = m.partition("::")
+                    result.add((h, s))
+                elif isinstance(m, str) and m:
+                    result.add(("", m))
+            return result
+
+        for i, sg in enumerate(sgroups):
+            gx = 50 + (i % _sg_cols) * _sg_step
+            gy = 50 + (i // _sg_cols) * _sg_step
+            # Servicegruppe als Kopf-Icon
+            objects_to_add.append({"type": "servicegroup", "name": sg["name"],
+                                    "x": gx, "y": gy, "backend_id": req.backend_id,
+                                    "iconset": req.iconset, "size": 32})
+            # Services immer anlegen (nicht nur wenn include_services=True)
+            mems = _parse_members(sg.get("members", []))
+            if mems:
+                svcs = [s for s in services
+                        if (s.host_name, s.description) in mems
+                        or ("", s.description) in mems]
+            else:
+                # Keine Member-Info → alle Services als Fallback
+                svcs = list(services)
+            for j, svc in enumerate(svcs):
+                objects_to_add.append({"type": "service", "name": svc.description,
+                                        "host_name": svc.host_name,
+                                        "x": gx + (j % _sg_cols) * _sg_step,
+                                        "y": gy + _sg_step + (j // _sg_cols) * _sg_step,
+                                        "backend_id": req.backend_id,
+                                        "iconset": req.iconset, "size": 32})
+        for o in objects_to_add:
+            add_object(map_id, o)
+        audit_log(request, "map.auto_generate", map_id,
+                  source=req.source, filter=req.filter_value,
+                  layout=req.layout, objects=len(objects_to_add))
+        return {"map": new_map, "objects_created": len(objects_to_add)}
+
+    # "all" → keine Filterung
+    if not hosts:
+        raise HTTPException(400, "Keine Hosts gefunden – Filter prüfen")
+
+    # ── 2. Layout-Positionen ──────────────────────────────────────────────
+    _STEP = 5
+    _COLS = 10
+
+    def _grid(n, sx=_STEP, sy=_STEP, mx=50, my=50, cols=_COLS):
+        return [(mx + (i % cols) * sx, my + (i // cols) * sy) for i in range(n)]
+
+    def _circle(n, cx=100, cy=100):
+        if n == 1: return [(cx, cy)]
+        r = max(_STEP * 4, min(n * _STEP * 3, 200))
+        cx2 = cx + r
+        cy2 = cy + r
+        return [(cx2 + r * math.cos(2 * math.pi * i / n - math.pi / 2),
+                 cy2 + r * math.sin(2 * math.pi * i / n - math.pi / 2)) for i in range(n)]
+
+    def _star(n, cx=100, cy=100):
+        if n == 1: return [(cx, cy)]
+        r = max(_STEP * 4, min((n - 1) * _STEP * 3, 200))
+        cx2 = cx + r
+        cy2 = cy + r
+        pts = [(cx2, cy2)]
+        for i in range(n - 1):
+            a = 2 * math.pi * i / (n - 1) - math.pi / 2
+            pts.append((cx2 + r * math.cos(a), cy2 + r * math.sin(a)))
+        return pts
+
+    def _hierarchy(n, cpr=_COLS, sx=_STEP, sy=_STEP * 2, mx=50, ry=50):
+        c = min(n, cpr)
+        rx = mx + (c - 1) * sx / 2
+        pts = [(rx, ry)]
+        for i in range(n):
+            pts.append((mx + (i % c) * sx, ry + sy + (i // c) * sy))
+        return pts
+
+    layout = req.layout.lower()
+    n = len(hosts)
+    if layout == "star":      positions = _star(n)
+    elif layout == "circle":  positions = _circle(n)
+    elif layout == "hierarchy": positions = _hierarchy(n)
+    else:                      positions = _grid(n)
+
+    # ── 3. Map + Objekte anlegen ─────────────────────────────────────────
+    new_map = create_map(req.title,
+                         map_id=(req.map_id or "").strip().lower().replace(" ", "-") or None,
+                         canvas=req.canvas or {"mode": "free"})
+    map_id = new_map["id"]
+    objects_to_add = []
+
+    if layout == "hierarchy":
+        gx, gy = positions[0]
+        objects_to_add.append({"type": "hostgroup", "name": req.filter_value or "Gruppe",
+                                "x": round(gx), "y": round(gy),
+                                "backend_id": req.backend_id, "iconset": req.iconset,
+                                "size": 32})
+        host_positions = positions[1:]
+    else:
+        host_positions = positions
+
+    for idx, h in enumerate(hosts):
+        if idx >= len(host_positions): break
+        hx, hy = host_positions[idx]
+        objects_to_add.append({"type": "host", "name": h.name,
+                                "x": round(hx), "y": round(hy),
+                                "backend_id": req.backend_id, "iconset": req.iconset,
+                                "size": 32})
+
+    if req.include_services:
+        services = await registry.get_services_for_backend(req.backend_id)
+        hnames = {h.name for h in hosts}
+        svc_list = [s for s in services if s.host_name in hnames]
+        max_hy = int(max((p[1] for p in host_positions), default=100))
+        svc_positions = _grid(len(svc_list), my=max_hy + 200)
+        for idx, svc in enumerate(svc_list):
+            if idx >= len(svc_positions): break
+            sx, sy = svc_positions[idx]
+            objects_to_add.append({"type": "service", "name": svc.description,
+                                    "host_name": svc.host_name,
+                                    "x": round(sx), "y": round(sy),
+                                    "backend_id": req.backend_id, "iconset": req.iconset,
+                                    "size": 32})
+
+    for o in objects_to_add:
+        add_object(map_id, o)
+
+    audit_log(request, "map.auto_generate", map_id,
+              source=req.source, filter=req.filter_value,
+              layout=req.layout, objects=len(objects_to_add))
+    return {"map": new_map, "objects_created": len(objects_to_add)}
 
 
 @api_router.get("/maps/{map_id}")
@@ -820,11 +1050,18 @@ async def api_hostgroups():
     """
     if settings.DEMO_MODE:
         return []
-    # Registry zuerst (Checkmk + Livestatus), Fallback auf direkten Livestatus
     result = await registry.get_all_hostgroups()
     if not result:
         result = await livestatus.get_hostgroups()
     return result
+
+
+@api_router.get("/servicegroups")
+async def api_servicegroups():
+    """Alle Servicegruppen mit Mitgliederliste."""
+    if settings.DEMO_MODE:
+        return []
+    return await registry.get_all_servicegroups()
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -993,3 +1230,5 @@ async def api_get_audit(
 ):
     """Gibt die letzten Audit-Log-Einträge zurück (neueste zuerst)."""
     return read_audit(limit=limit, map_id=map_id, action=action, user=user)
+
+
