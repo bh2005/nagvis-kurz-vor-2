@@ -41,6 +41,9 @@ jobs:
       - name: MkDocs installieren
         run: pip install mkdocs>=1.5.0 mkdocs-material>=9.0.0
 
+      - name: changelog.md in docs/ bereitstellen
+        run: cp nagvis2/changelog.md nagvis2/docs/changelog.md
+
       - name: Docs bauen → nagvis2/frontend/help/
         working-directory: nagvis2
         run: mkdocs build --clean --strict --site-dir frontend/help
