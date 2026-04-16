@@ -380,6 +380,7 @@ function applyStatuses(hosts, services) {
   _applyHostgroupStatuses();
   _applyServicegroupStatuses();
   _updateWeathermapLines();
+  _updateServiceLines();
   _applyGadgetPerfdata();
 
   // Status-Zähler für aktive Map cachen → Overview-Pills
@@ -526,7 +527,7 @@ function applyNodeStatus(el, label, ack, downtime) {
     el.classList.add('nv2-status-changed');
     setTimeout(() => el.classList.remove('nv2-status-changed'), 500);
   }
-  if (el.dataset.iconset) updateNodeIcon(el, label);
+  if (el.dataset.iconset) updateNodeIcon(el, label, downtime);
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -947,9 +948,8 @@ function _renderLine(obj) {
     getNodeContainer().appendChild(svg);
   }
 
-  if (obj.line_type === 'weathermap') {
-    return _renderWeathermapLine(obj, svg);
-  }
+  if (obj.line_type === 'weathermap') return _renderWeathermapLine(obj, svg);
+  if (obj.line_type === 'service')    return _renderServiceLine(obj, svg);
 
   const lineVis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
   lineVis.setAttribute('x1', `${obj.x}%`);
@@ -990,13 +990,15 @@ function _renderLine(obj) {
   svg.appendChild(line);
 
   const handles = _createLineHandles(lineVis, line, obj, svg);
-  obj._handles = handles;
+  obj._handles  = handles;
+  obj._lineVis  = lineVis;   // Referenz für sauberes Cleanup beim Typ-Wechsel
   return line;
 }
 
 function _worstStateColor(name) {
   const h = hostCache[name];
   if (!h) return 'var(--unkn)';
+  if (h.in_downtime) return 'var(--downtime)';
   const l = h.state_label;
   if (l === 'CRITICAL' || l === 'DOWN' || l === 'UNREACHABLE') return 'var(--crit)';
   if (l === 'WARNING')  return 'var(--warn)';
@@ -1012,6 +1014,138 @@ function _worstStateClass(name) {
   if (l === 'WARNING')  return 'warn';
   if (l === 'OK' || l === 'UP') return 'ok';
   return 'unkn';
+}
+
+function _serviceStateColor(hostName, svcName) {
+  if (!hostName || !svcName) return 'var(--unkn)';
+  const s = hostCache[`${hostName}::${svcName}`];
+  if (!s) return 'var(--unkn)';
+  if (s.in_downtime) return 'var(--downtime)';
+  const l = s.state_label;
+  if (l === 'CRITICAL') return 'var(--crit)';
+  if (l === 'WARNING')  return 'var(--warn)';
+  if (l === 'OK')       return 'var(--ok)';
+  return 'var(--unkn)';
+}
+
+function _renderServiceLine(obj, svg) {
+  const x1 = obj.x,  y1 = obj.y;
+  const x2 = obj.x2 ?? obj.x + 20;
+  const y2 = obj.y2  ?? obj.y;
+  const w  = obj.line_width ?? 3;
+  const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+  const col = _serviceStateColor(obj.host_name, obj.service_description);
+
+  const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  g.id               = `nv2-${obj.object_id}`;
+  g.dataset.objectId = obj.object_id;
+  g.dataset.type     = 'line';
+  g.dataset.lineType = 'service';
+  g.classList.add('nv2-svc-line');
+
+  // Zwei Segmente damit _wmUpdateGeometry die Geometrie korrekt aktualisiert
+  const seg1 = _wmSegment(x1, y1, mx, my, col, w, obj.line_style);
+  seg1.classList.add('wm-seg-from');
+  const seg2 = _wmSegment(mx, my, x2, y2, col, w, obj.line_style);
+  seg2.classList.add('wm-seg-to');
+  g.appendChild(seg1);
+  g.appendChild(seg2);
+
+  if (obj.show_arrow !== false) g.appendChild(_wmArrow(x1, y1, x2, y2, col, w));
+
+  // unsichtbare Hit-Fläche
+  const hit = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  hit.setAttribute('x1', `${x1}%`); hit.setAttribute('y1', `${y1}%`);
+  hit.setAttribute('x2', `${x2}%`); hit.setAttribute('y2', `${y2}%`);
+  hit.setAttribute('stroke-width', Math.max(w, 10));
+  hit.setAttribute('stroke-opacity', '0');
+  hit.style.cursor = 'pointer';
+  hit.addEventListener('contextmenu', e => {
+    e.preventDefault(); e.stopPropagation();
+    if (editActive) showLineContextMenu(e, seg1, obj);
+    else            showLineViewContextMenu(e, obj);
+  });
+  hit.addEventListener('mousedown', e => {
+    if (!editActive || e.button !== 0) return;
+    e.preventDefault(); e.stopPropagation();
+    const canvas = document.getElementById('nv2-canvas');
+    const r   = canvas.getBoundingClientRect();
+    const nx  = (e.clientX - r.left) / r.width  * 100;
+    const ny  = (e.clientY - r.top)  / r.height * 100;
+    const cx1 = obj.x, cy1 = obj.y;
+    const cx2 = obj.x2 ?? obj.x + 20, cy2 = obj.y2 ?? obj.y;
+    const cmx = (cx1 + cx2) / 2, cmy = (cy1 + cy2) / 2;
+    const d0  = Math.hypot(nx - cx1, ny - cy1);
+    const d1  = Math.hypot(nx - cmx, ny - cmy);
+    const d2  = Math.hypot(nx - cx2, ny - cy2);
+    const role = d0 < d1 && d0 < d2 ? 'start' : d2 < d1 ? 'end' : 'mid';
+    const hi   = obj._handles?.[role === 'start' ? 0 : role === 'mid' ? 1 : 2] ?? hit;
+    _dragWmHandle(e, g, hit, hi, role, obj, svg);
+  });
+  hit.addEventListener('mouseenter', () => _svcLineShowTooltip(obj));
+  hit.addEventListener('mouseleave', hideTooltip);
+  g.appendChild(hit);
+
+  const handles = _createWmHandles(g, hit, obj, svg);
+  obj._handles = handles;
+  obj._wmGroup = g;
+  obj._wmSvg   = svg;
+
+  svg.appendChild(g);
+  return hit;
+}
+
+function _svcLineShowTooltip(obj) {
+  hideTooltip();
+  const key = obj.host_name && obj.service_description
+    ? `${obj.host_name}::${obj.service_description}` : null;
+  const s   = key ? hostCache[key] : null;
+  const lbl = s?.state_label ?? 'UNKNOWN';
+  const tc  = s?.in_downtime ? 'downtime' : (STATE_CHIP[lbl] ?? 'unkn');
+
+  let rows = `<div class="tt-name">${esc(obj.service_description || 'Service-Linie')}</div>`;
+  rows += `<div class="tt-row"><span>Status</span><b class="tt-${tc}">${lbl}</b></div>`;
+  if (s?.output)    rows += `<div class="tt-row"><span>Output</span><b>${esc(s.output.substring(0, 80))}</b></div>`;
+  if (obj.host_name) rows += `<div class="tt-row"><span>Host</span><b>${esc(obj.host_name)}</b></div>`;
+  if (s?.in_downtime) rows += `<div class="tt-row"><span>Downtime</span><b class="tt-downtime">aktiv</b></div>`;
+  if (s?.acknowledged) rows += `<div class="tt-row"><span>ACK</span><b>ja</b></div>`;
+
+  // Perfdata – alle Metriken wie beim Service-Node
+  const pd = key ? perfdataCache[key] : null;
+  if (pd && Object.keys(pd).length) {
+    rows += `<div class="tt-row" style="margin-top:4px;border-top:1px solid var(--border);padding-top:4px"><span style="color:var(--text-dim);font-size:10px">Perfdata</span><b></b></div>`;
+    Object.entries(pd).forEach(([k, m]) => {
+      const mCol = m.crit != null && m.value >= m.crit ? 'crit'
+                 : m.warn != null && m.value >= m.warn ? 'warn' : 'ok';
+      rows += `<div class="tt-row"><span>${esc(k)}</span><b class="tt-${mCol}">${_fmtVal(m.value)}${m.unit || ''}</b></div>`;
+    });
+  }
+
+  const tt = document.createElement('div');
+  tt.className = 'nv2-tooltip';
+  tt.innerHTML = rows;
+  const cvRect = document.getElementById('nv2-canvas').getBoundingClientRect();
+  const tmx = (obj.x + (obj.x2 ?? obj.x + 20)) / 2;
+  const tmy = (obj.y + (obj.y2 ?? obj.y))       / 2;
+  tt.style.left = `${cvRect.width  * tmx / 100}px`;
+  tt.style.top  = `${cvRect.height * tmy / 100}px`;
+  document.getElementById('nv2-canvas').appendChild(tt);
+  _activeTooltip = tt;
+}
+
+function _updateServiceLines() {
+  document.querySelectorAll('.nv2-svc-line').forEach(g => {
+    const oid = g.dataset.objectId;
+    const obj = activeMapCfg?.objects?.find(o => o.object_id === oid);
+    if (!obj) return;
+    const col  = _serviceStateColor(obj.host_name, obj.service_description);
+    const seg1 = g.querySelector('.wm-seg-from');
+    const seg2 = g.querySelector('.wm-seg-to');
+    const arrows = g.querySelectorAll('.wm-arrow');
+    if (seg1) seg1.setAttribute('stroke', col);
+    if (seg2) seg2.setAttribute('stroke', col);
+    arrows.forEach(a => a.setAttribute('fill', col));
+  });
 }
 
 function _renderWeathermapLine(obj, svg) {
@@ -1353,7 +1487,7 @@ function showLineContextMenu(e, lineVis, obj) {
   menu.style.left = `${e.clientX}px`; menu.style.top = `${e.clientY}px`;
   const items = [
     { label: '↔ Linienstil',         action: () => openLineStyleDialog(lineVis, obj) },
-    { label: '🌡 Weathermap-Konfig.', action: () => openWeathermapLineDlg(lineVis, obj) },
+    { label: '⚙ Linie konfigurieren', action: () => openWeathermapLineDlg(lineVis, obj) },
     { label: '◫ Layer zuweisen',      action: () => openLayerDialog(lineVis, obj) },
     { label: '🗑 Entfernen', action: async () => {
         const snapshot = JSON.parse(JSON.stringify(obj));
@@ -3108,9 +3242,10 @@ function openWeathermapLineDlg(lineVis, obj) {
       <h3>Weathermap-Linie konfigurieren</h3>
       <div class="f-row">
         <label class="f-label">Linientyp</label>
-        <div style="display:flex;gap:10px">
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="wm-type" value="static" ${obj.line_type !== 'weathermap' ? 'checked' : ''} onchange="_wmDlgUpdate()">⬛ Statisch</label>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="wm-type" value="static" ${!['weathermap','service'].includes(obj.line_type) ? 'checked' : ''} onchange="_wmDlgUpdate()">⬛ Statisch</label>
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="wm-type" value="weathermap" ${obj.line_type === 'weathermap' ? 'checked' : ''} onchange="_wmDlgUpdate()">🌡 Weathermap</label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="wm-type" value="service" ${obj.line_type === 'service' ? 'checked' : ''} onchange="_wmDlgUpdate()">🔵 Service</label>
         </div>
       </div>
       <div id="wm-fields" style="${obj.line_type==='weathermap'?'':'display:none'}">
@@ -3141,6 +3276,37 @@ function openWeathermapLineDlg(lineVis, obj) {
           </svg>
         </div>
       </div>
+      <div id="svc-fields" style="${obj.line_type === 'service' ? '' : 'display:none'}">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+          <div><label class="f-label">Host</label>
+            <select class="f-select" id="svc-host" onchange="_svcDlgUpdateServices()">
+              <option value="">(keiner)</option>
+              ${Object.keys(hostCache).filter(k => !k.includes('::')).map(h => `<option value="${esc(h)}" ${(obj.host_name??'')===h?'selected':''}>${esc(h)}</option>`).join('')}
+            </select>
+          </div>
+          <div><label class="f-label">Service</label>
+            <select class="f-select" id="svc-service">
+              <option value="">(keiner)</option>
+              ${(serviceCache[obj.host_name??'']??[]).map(s => `<option value="${esc(s)}" ${(obj.service_description??'')===s?'selected':''}>${esc(s)}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+          <div><label class="f-label">Linienbreite</label><input class="f-input" id="svc-width" type="number" value="${obj.line_width ?? 3}" min="1" max="12"></div>
+          <div><label class="f-label">Stil</label>
+            <select class="f-select" id="svc-style">
+              <option value="solid"  ${(obj.line_style??'solid')==='solid' ?'selected':''}>Durchgezogen</option>
+              <option value="dashed" ${obj.line_style==='dashed'?'selected':''}>Gestrichelt</option>
+              <option value="dotted" ${obj.line_style==='dotted'?'selected':''}>Gepunktet</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:8px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
+            <input type="checkbox" id="svc-arrow" ${obj.show_arrow !== false ? 'checked' : ''}> Pfeilkopf anzeigen
+          </label>
+        </div>
+      </div>
       <div class="dlg-actions" style="margin-top:16px">
         <button class="btn-cancel" onclick="document.getElementById('dlg-wm-line').remove()">Abbrechen</button>
         <button class="btn-ok" onclick="_wmDlgSave('${esc(obj.object_id)}')">Übernehmen</button>
@@ -3151,10 +3317,20 @@ function openWeathermapLineDlg(lineVis, obj) {
   _wmDlgPreview();
 }
 
+window._svcDlgUpdateServices = function() {
+  const host = document.getElementById('svc-host')?.value;
+  const sel  = document.getElementById('svc-service');
+  if (!sel) return;
+  const svcs = (host && serviceCache[host]) ?? [];
+  sel.innerHTML = `<option value="">(keiner)</option>${svcs.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('')}`;
+};
+
 window._wmDlgUpdate = function() {
-  const type = document.querySelector('input[name="wm-type"]:checked')?.value;
-  const fields = document.getElementById('wm-fields');
-  if (fields) fields.style.display = type === 'weathermap' ? 'block' : 'none';
+  const type      = document.querySelector('input[name="wm-type"]:checked')?.value;
+  const fields    = document.getElementById('wm-fields');
+  const svcFields = document.getElementById('svc-fields');
+  if (fields)    fields.style.display    = type === 'weathermap' ? 'block' : 'none';
+  if (svcFields) svcFields.style.display = type === 'service'    ? 'block' : 'none';
 };
 
 window._wmDlgPreview = function() {
@@ -3177,17 +3353,33 @@ document.addEventListener('change', e => { if (e.target.closest('#dlg-wm-line'))
 document.addEventListener('input',  e => { if (e.target.closest('#dlg-wm-line')) _wmDlgPreview(); });
 
 window._wmDlgSave = async function(objectId) {
-  const type      = document.querySelector('input[name="wm-type"]:checked')?.value ?? 'static';
-  const hostFrom  = document.getElementById('wm-host-from')?.value  || undefined;
-  const hostTo    = document.getElementById('wm-host-to')?.value    || undefined;
-  const labelFrom = document.getElementById('wm-label-from')?.value.trim() || undefined;
-  const labelTo   = document.getElementById('wm-label-to')?.value.trim()   || undefined;
-  const lineWidth = parseInt(document.getElementById('wm-width')?.value)   || 4;
-  const lineStyle = document.getElementById('wm-style')?.value             || 'solid';
-  const split     = document.getElementById('wm-split')?.checked   ?? true;
-  const arrow     = document.getElementById('wm-arrow')?.checked   ?? true;
+  const type = document.querySelector('input[name="wm-type"]:checked')?.value ?? 'static';
+  let props;
 
-  const props = { line_type: type==='weathermap'?'weathermap':undefined, host_from:type==='weathermap'?hostFrom:undefined, host_to:type==='weathermap'?hostTo:undefined, label_from:type==='weathermap'?labelFrom:undefined, label_to:type==='weathermap'?labelTo:undefined, line_split:split, show_arrow:arrow, line_width:lineWidth, line_style:lineStyle };
+  if (type === 'service') {
+    const hostName  = document.getElementById('svc-host')?.value    || undefined;
+    const svcName   = document.getElementById('svc-service')?.value || undefined;
+    const lineWidth = parseInt(document.getElementById('svc-width')?.value) || 3;
+    const lineStyle = document.getElementById('svc-style')?.value   || 'solid';
+    const arrow     = document.getElementById('svc-arrow')?.checked ?? true;
+    props = { line_type: 'service', host_name: hostName, service_description: svcName,
+              line_width: lineWidth, line_style: lineStyle, show_arrow: arrow };
+  } else {
+    const hostFrom  = document.getElementById('wm-host-from')?.value.trim()  || undefined;
+    const hostTo    = document.getElementById('wm-host-to')?.value.trim()    || undefined;
+    const labelFrom = document.getElementById('wm-label-from')?.value.trim() || undefined;
+    const labelTo   = document.getElementById('wm-label-to')?.value.trim()   || undefined;
+    const lineWidth = parseInt(document.getElementById('wm-width')?.value)   || 4;
+    const lineStyle = document.getElementById('wm-style')?.value             || 'solid';
+    const split     = document.getElementById('wm-split')?.checked  ?? true;
+    const arrow     = document.getElementById('wm-arrow')?.checked  ?? true;
+    props = { line_type: type === 'weathermap' ? 'weathermap' : undefined,
+              host_from: type === 'weathermap' ? hostFrom : undefined,
+              host_to:   type === 'weathermap' ? hostTo   : undefined,
+              label_from: type === 'weathermap' ? labelFrom : undefined,
+              label_to:   type === 'weathermap' ? labelTo   : undefined,
+              line_split: split, show_arrow: arrow, line_width: lineWidth, line_style: lineStyle };
+  }
 
   const objRef = activeMapCfg?.objects?.find(o => o.object_id === objectId);
   if (objRef) Object.assign(objRef, props);
@@ -3195,13 +3387,14 @@ window._wmDlgSave = async function(objectId) {
   const svg  = document.getElementById('nv2-lines-svg');
   const gOld = document.getElementById(`nv2-${objectId}`);
   if (gOld) gOld.remove();
+  objRef?._lineVis?.remove();               // sichtbare statische Linie (hat keine ID)
   if (objRef?._handles) objRef._handles.forEach(h => h.remove());
 
   if (objRef && svg) { Object.assign(objRef, props); _renderLine(objRef); if (editActive) { const newEl = document.getElementById(`nv2-${objectId}`); if (newEl) makeDraggable(newEl); } }
 
   await api(`/api/maps/${activeMapId}/objects/${objectId}/props`, 'PATCH', props);
   document.getElementById('dlg-wm-line')?.remove();
-  setStatusBar('Weathermap-Linie aktualisiert');
+  setStatusBar(`${type === 'service' ? 'Service-' : type === 'weathermap' ? 'Weathermap-' : ''}Linie aktualisiert`);
 };
 
 function openResizeDialog(el, obj) {

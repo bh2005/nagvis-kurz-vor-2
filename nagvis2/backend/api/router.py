@@ -109,6 +109,7 @@ class ObjectProps(BaseModel):
     line_style: Optional[str] = None
     line_width: Optional[int] = None
     line_type: Optional[str] = None
+    service_description: Optional[str] = None
     host_from: Optional[str] = None
     host_to: Optional[str] = None
     label_from: Optional[str] = None

@@ -28,6 +28,7 @@ window.ICON_SVG = {
   unknown:  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><circle cx="18" cy="18" r="16" fill="#9e9e9e"/><text x="18" y="24" text-anchor="middle" font-size="20" font-weight="bold" fill="#fff">?</text></svg>`,
   pending:  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><circle cx="18" cy="18" r="16" fill="#9e9e9e"/><text x="18" y="24" text-anchor="middle" font-size="16" fill="#fff">…</text></svg>`,
   down:     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><circle cx="18" cy="18" r="16" fill="#f44336"/><text x="18" y="24" text-anchor="middle" font-size="18" font-weight="bold" fill="#fff">↓</text></svg>`,
+  downtime: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><circle cx="18" cy="18" r="16" fill="#42a5f5"/><rect x="12" y="11" width="5" height="14" rx="2" fill="#fff"/><rect x="19" y="11" width="5" height="14" rx="2" fill="#fff"/></svg>`,
 };
 window.ICONSET_SHAPE = {
   server:   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><rect x="6" y="8" width="24" height="7" rx="2" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/><rect x="6" y="18" width="24" height="7" rx="2" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/><circle cx="10" cy="11.5" r="1.2" fill="rgba(255,255,255,0.85)"/><circle cx="10" cy="21.5" r="1.2" fill="rgba(255,255,255,0.85)"/></svg>`,
@@ -47,7 +48,8 @@ function svgToDataUri(svg) {
   return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 }
 
-function iconSrc(iconset, stateLabel) {
+function iconSrc(iconset, stateLabel, inDowntime) {
+  if (inDowntime) return { type: 'img', src: svgToDataUri(ICON_SVG.downtime) };
   const stateKey = !stateLabel ? 'unknown'
     : stateLabel === 'UP' || stateLabel === 'OK'        ? 'ok'
     : stateLabel === 'WARNING'                           ? 'warning'
@@ -58,10 +60,10 @@ function iconSrc(iconset, stateLabel) {
   return { type: 'img', src: svgToDataUri(ICON_SVG[stateKey] ?? ICON_SVG.unknown) };
 }
 
-function updateNodeIcon(el, stateLabel) {
+function updateNodeIcon(el, stateLabel, inDowntime) {
   const ring = el.querySelector('.nv2-ring');
   if (!ring) return;
-  const { src } = iconSrc(null, stateLabel);
+  const { src } = iconSrc(null, stateLabel, inDowntime);
   const img = ring.querySelector('img.nv2-icon');
   if (img) img.src = src;
 }
