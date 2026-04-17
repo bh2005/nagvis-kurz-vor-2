@@ -987,9 +987,25 @@
     </div>
 
     <div id="dlg-fields-line" class="dlg-fields" style="display:none">
-      <div class="f-row f-row-inline">
+      <!-- Linientyp -->
+      <div class="f-row">
+        <label class="f-label">Linientyp</label>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px">
+            <input type="radio" name="dlg-ln-type" value="static" checked onchange="_dlgLnTypeChange()">⬛ Statisch
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px">
+            <input type="radio" name="dlg-ln-type" value="weathermap" onchange="_dlgLnTypeChange()">🌡 Weathermap
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px">
+            <input type="radio" name="dlg-ln-type" value="service" onchange="_dlgLnTypeChange()">🔵 Service
+          </label>
+        </div>
+      </div>
+      <!-- Gemeinsame Felder -->
+      <div class="f-row f-row-inline" style="margin-top:8px">
         <div>
-          <label class="f-label" for="dlg-ln-style">Stil</label>
+          <label class="f-label" for="dlg-ln-style">Linienstil</label>
           <select class="f-select" id="dlg-ln-style">
             <option value="solid">Durchgehend</option>
             <option value="dashed">Gestrichelt</option>
@@ -998,20 +1014,66 @@
         </div>
         <div>
           <label class="f-label" for="dlg-ln-width">Breite (px)</label>
-          <input class="f-input f-input-sm" id="dlg-ln-width" type="number" value="1" min="1" max="8">
+          <input class="f-input f-input-sm" id="dlg-ln-width" type="number" value="1" min="1" max="12">
         </div>
-        <div>
+        <div id="dlg-ln-color-wrap">
           <label class="f-label" for="dlg-ln-color">Farbe</label>
           <input class="f-input-color" id="dlg-ln-color" type="color" value="#555555">
         </div>
+        <div id="dlg-ln-arrow-wrap" style="display:none">
+          <label class="f-label" for="dlg-ln-arrow">Pfeilstil</label>
+          <select class="f-select" id="dlg-ln-arrow">
+            <option value="chevron">&#9654; Gefüllt</option>
+            <option value="thin">&#9655; Offen</option>
+            <option value="dot">&#9679; Punkt</option>
+            <option value="none">&mdash; Kein Pfeil</option>
+          </select>
+        </div>
+        <div id="dlg-ln-arrowsz-wrap" style="display:none">
+          <label class="f-label" for="dlg-ln-arrow-size">Pfeilgröße</label>
+          <select class="f-select" id="dlg-ln-arrow-size">
+            <option value="sm">Klein</option>
+            <option value="md" selected>Normal</option>
+            <option value="lg">Groß</option>
+          </select>
+        </div>
       </div>
-      <div style="margin-top:8px">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
-          <input type="checkbox" id="dlg-ln-weathermap">
-          <span>🌡 Weathermap (Status-Farbe nach verknüpften Nodes)</span>
-        </label>
+      <!-- Weathermap: Von/Nach-Host -->
+      <div id="dlg-ln-wm-wrap" style="display:none;margin-top:8px">
+        <div class="f-row f-row-inline">
+          <div style="flex:1">
+            <label class="f-label" for="dlg-ln-wm-from">Von (host_from)</label>
+            <input class="f-input" id="dlg-ln-wm-from" type="text" placeholder="Host A" autocomplete="off" list="known-ln-wm-hosts">
+          </div>
+          <div style="flex:1">
+            <label class="f-label" for="dlg-ln-wm-to">Nach (host_to)</label>
+            <input class="f-input" id="dlg-ln-wm-to" type="text" placeholder="Host B" autocomplete="off" list="known-ln-wm-hosts">
+          </div>
+        </div>
+        <datalist id="known-ln-wm-hosts"></datalist>
       </div>
-      <p class="f-hint">Endpunkt: 20% rechts vom Klickpunkt. Nach dem Platzieren per Rechtsklick → 🌡 Weathermap-Konfig. Nodes zuweisen.</p>
+      <!-- Service-Linie: Host + Service -->
+      <div id="dlg-ln-svc-wrap" style="display:none;margin-top:8px">
+        <div class="f-row f-row-inline">
+          <div style="flex:1">
+            <label class="f-label" for="dlg-ln-svc-host">Host</label>
+            <input class="f-input" id="dlg-ln-svc-host" type="text" placeholder="Hostname" autocomplete="off"
+                   list="known-ln-svc-hosts" oninput="_dlgLnSvcHostChange()">
+            <datalist id="known-ln-svc-hosts"></datalist>
+          </div>
+          <div style="flex:1">
+            <label class="f-label" for="dlg-ln-svc-service">Service</label>
+            <input class="f-input" id="dlg-ln-svc-service" type="text" placeholder="Service-Name" autocomplete="off"
+                   list="known-ln-svc-services">
+            <datalist id="known-ln-svc-services"></datalist>
+          </div>
+        </div>
+        <div style="margin-top:6px">
+          <label class="f-label" for="dlg-ln-svc-label">Label <span style="color:var(--text-dim);font-size:10px">(optional)</span></label>
+          <input class="f-input" id="dlg-ln-svc-label" type="text" placeholder="z.B. Ping · Traffic">
+        </div>
+      </div>
+      <p class="f-hint" id="dlg-ln-hint">Endpunkt liegt 20 % rechts vom Startpunkt. Stil per Rechtsklick nachträglich anpassen.</p>
     </div>
 
     <div id="dlg-fields-container" class="dlg-fields" style="display:none">

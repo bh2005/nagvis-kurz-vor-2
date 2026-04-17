@@ -319,8 +319,53 @@ Beschriftungsfeld auf der Karte. Konfigurierbar: Text, Schriftgröße, Farbe, Hi
 
 ### Linie
 
-Einfache Verbindungslinie zwischen zwei Punkten.
-Mit Option **🌡 Weathermap**: Linie färbt sich nach dem Status der verknüpften Hosts.
+Verbindungslinie zwischen zwei Punkten. Drei Typen stehen zur Auswahl — bereits im **Platzier-Dialog** festlegbar:
+
+| Typ | Beschreibung |
+|---|---|
+| ⬛ **Statisch** | Feste Farbe, kein Statusbezug. Farbe und Stil frei wählbar. |
+| 🌡 **Weathermap** | Geteilte Linie: jede Hälfte zeigt den Status eines Endpunkts. Unterstützt **Service-Modus** (s.u.) für Bandbreiten-Visualisierung. |
+| 🔵 **Service** | Einfarbige Linie, Farbe folgt dem Status eines überwachten Services. |
+
+#### Linie platzieren
+
+Rechtsklick auf Canvas → **+ Linie**. Im Dialog:
+
+- **Linientyp** (Statisch / Weathermap / Service) bereits auswählen
+- Bei Weathermap/Service: **Host** und **Service** direkt eingeben (Autocomplete aus Live-Daten)
+- **Pfeilstil** und **Pfeilgröße** wählen
+- Optionales **Label** für Service-Linien
+
+#### Linie nachträglich konfigurieren
+
+Rechtsklick auf Linie → **⚙ Linie konfigurieren**:
+
+| Feld | Beschreibung |
+|---|---|
+| **Linientyp** | Zwischen Statisch / Weathermap / Service wechseln |
+| **Host / Service** | Monitoring-Objekt zuweisen (Autocomplete) |
+| **Breite / Linienstil** | Linienbreite in px, Stil (Durchgezogen / Gestrichelt / Gepunktet) |
+| **Pfeilstil** | ▶ Gefüllt · ▷ Offen · ● Punkt · — Kein Pfeil |
+| **Pfeilgröße** | Klein / Normal / Groß |
+| **Label** | Optionaler Text an der Linienmitte (Service-Linien) |
+| **Geteilte Linie** | Nur Weathermap: Linie in zwei Hälften trennen |
+
+#### Weathermap-Linie: Service-Modus
+
+Statt zweier Hosts kann eine Weathermap-Linie auch mit **einem Host + einem Service** betrieben werden. Das ist ideal für Bandbreiten-Checks (z.B. „Traffic eth0"):
+
+| Feld | Beschreibung |
+|---|---|
+| **Host** | Monitoring-Host des Traffic-Services |
+| **Service** | Service-Description (z.B. `Traffic_eth0`) |
+| **Perfdata Out** | Name der Ausgehend-Metrik in den Perfdata (z.B. `traffic_out`) |
+| **Perfdata In** | Name der Eingehend-Metrik (z.B. `traffic_in`) |
+
+Die Labels der beiden Linienhälften aktualisieren sich bei jedem Status-Update automatisch mit den Live-Werten aus den Perfdata. Die Linienfarbe folgt dem Service-Status (OK/WARN/CRIT).
+
+#### Endpunkte verschieben
+
+Im **Edit-Modus** erscheinen an beiden Endpunkten und am Mittelpunkt blaue Kreise. Per Drag lassen sich Start-/Endpunkt (Länge + Winkel) und der gesamte Mittelpunkt verschieben.
 
 ### Container
 

@@ -76,6 +76,18 @@ class ObjectCreate(BaseModel):
     line_style: Optional[str] = None
     line_width: Optional[int] = None
     line_type: Optional[str] = None
+    line_split: Optional[bool] = None
+    service_description: Optional[str] = None
+    host_from: Optional[str] = None
+    host_to: Optional[str] = None
+    label_from: Optional[str] = None
+    label_to: Optional[str] = None
+    perf_label_out: Optional[str] = None
+    perf_label_in: Optional[str] = None
+    arrow_style: Optional[str] = None
+    arrow_size: Optional[str] = None
+    border_color: Optional[str] = None
+    border_width: Optional[int] = None
     layer: Optional[int] = None
     gadget_config: Optional[dict] = None
 
@@ -114,7 +126,11 @@ class ObjectProps(BaseModel):
     host_to: Optional[str] = None
     label_from: Optional[str] = None
     label_to: Optional[str] = None
+    perf_label_out: Optional[str] = None
+    perf_label_in: Optional[str] = None
     show_arrow: Optional[bool] = None
+    arrow_style: Optional[str] = None
+    arrow_size: Optional[str] = None
     line_split: Optional[bool] = None
     x2: Optional[float] = None
     y2: Optional[float] = None
