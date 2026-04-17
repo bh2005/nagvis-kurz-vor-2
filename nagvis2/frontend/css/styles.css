@@ -1413,7 +1413,17 @@ img.nv2-icon { display: block; width: 100%; height: 100%; object-fit: contain; t
 .nv2-wm-line circle { transition: fill 0.35s ease; }
 .nv2-wm-line:hover .wm-seg-from,
 .nv2-wm-line:hover .wm-seg-to { filter: brightness(1.3); }
+.nv2-wm-line > line:last-of-type { pointer-events: stroke; }
 #nv2-canvas.nv2-edit-mode .nv2-wm-line { cursor: pointer; }
+
+/* Service-Linie */
+.nv2-svc-line line { transition: stroke 0.35s ease; }
+.nv2-svc-line > line:last-of-type { pointer-events: stroke; }
+.nv2-svc-line:hover .wm-seg-from,
+.nv2-svc-line:hover .wm-seg-to { filter: brightness(1.3); }
+#nv2-canvas.nv2-edit-mode .nv2-svc-line { cursor: pointer; }
+#nv2-canvas.nv2-edit-mode .nv2-svc-line line { pointer-events: none; }
+#nv2-canvas.nv2-edit-mode .nv2-svc-line > line:last-of-type { pointer-events: stroke; }
 
 
 /* ═══════════════════════════════════════════════════════════════════════

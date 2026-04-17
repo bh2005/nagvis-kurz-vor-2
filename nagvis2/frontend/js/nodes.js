@@ -1028,6 +1028,75 @@ function _serviceStateColor(hostName, svcName) {
   return 'var(--unkn)';
 }
 
+// ── SVG-Marker-Definitionen (Pfeile) ────────────────────────────────────────
+// Wird einmalig pro SVG-Element aufgerufen. Erstellt <defs> mit drei Pfeilstilen:
+//   nv2-arr-chevron  – gefülltes Dreieck (Standard)
+//   nv2-arr-thin     – Chevron-Form (>-Stil, weniger massiv)
+//   nv2-arr-dot      – Kreis am Endpunkt (bisheriges Verhalten)
+// fill="context-stroke" → Farbe folgt automatisch dem stroke des referenzierenden Elements.
+// Größen-Multiplikatoren für markerWidth/Height (in strokeWidth-Einheiten)
+const _ARROW_SIZES = { sm: 2, md: 3, lg: 5 };
+
+function _ensureLineDefs(svg) {
+  if (svg.querySelector('#nv2-line-defs')) return;
+  const NS = 'http://www.w3.org/2000/svg';
+  const defs = document.createElementNS(NS, 'defs');
+  defs.id = 'nv2-line-defs';
+
+  // Path-Marker (chevron / thin) in 3 Größen
+  const addPathMkr = (id, mw, mh, d) => {
+    const m = document.createElementNS(NS, 'marker');
+    m.setAttribute('id', id); m.setAttribute('viewBox', '0 0 10 10');
+    m.setAttribute('refX', '10'); m.setAttribute('refY', '5');
+    m.setAttribute('markerWidth', mw); m.setAttribute('markerHeight', mh);
+    m.setAttribute('markerUnits', 'strokeWidth'); m.setAttribute('orient', 'auto');
+    const p = document.createElementNS(NS, 'path');
+    p.setAttribute('d', d); p.setAttribute('fill', 'context-stroke');
+    m.appendChild(p); defs.appendChild(m);
+  };
+  // Kreis-Marker (dot) in 3 Größen
+  const addDotMkr = (id, mw, mh) => {
+    const m = document.createElementNS(NS, 'marker');
+    m.setAttribute('id', id); m.setAttribute('viewBox', '0 0 10 10');
+    m.setAttribute('refX', '5'); m.setAttribute('refY', '5');
+    m.setAttribute('markerWidth', mw); m.setAttribute('markerHeight', mh);
+    m.setAttribute('markerUnits', 'strokeWidth'); m.setAttribute('orient', 'auto');
+    const c = document.createElementNS(NS, 'circle');
+    c.setAttribute('cx', '5'); c.setAttribute('cy', '5'); c.setAttribute('r', '5');
+    c.setAttribute('fill', 'context-stroke'); m.appendChild(c); defs.appendChild(m);
+  };
+
+  for (const [sz, mv] of Object.entries(_ARROW_SIZES)) {
+    const sfx = sz === 'md' ? '' : `-${sz}`;   // md = kein Suffix (Rückwärtskompatibilität)
+    addPathMkr(`nv2-arr-chevron${sfx}`, mv, mv, 'M0,0 L10,5 L0,10 Z');
+    addPathMkr(`nv2-arr-thin${sfx}`,    mv, mv, 'M0,0 L10,5 L0,10 L2.5,5 Z');
+    addDotMkr (`nv2-arr-dot${sfx}`,     mv, mv);
+  }
+  svg.insertBefore(defs, svg.firstChild);
+}
+
+// Ermittelt den effektiven Pfeilstil aus obj (Rückwärtskompatibilität mit show_arrow).
+function _resolveArrowStyle(obj) {
+  if (obj.arrow_style === 'none') return 'none';
+  if (obj.arrow_style) return obj.arrow_style;           // 'chevron' | 'thin' | 'dot'
+  return obj.show_arrow === false ? 'none' : 'chevron';  // Standard: gefüllter Pfeil
+}
+
+// Liefert den Marker-ID-Suffix für die gewählte Größe ('sm','md','lg').
+function _arrowSizeSuffix(obj) {
+  const sz = obj.arrow_size ?? 'md';
+  return sz === 'md' ? '' : `-${sz}`;
+}
+
+// Setzt oder entfernt marker-end auf einem SVG-Linienelement.
+function _applyArrow(el, arrowStyle, obj) {
+  if (!arrowStyle || arrowStyle === 'none') {
+    el.removeAttribute('marker-end');
+  } else {
+    el.setAttribute('marker-end', `url(#nv2-arr-${arrowStyle}${_arrowSizeSuffix(obj)})`);
+  }
+}
+
 function _renderServiceLine(obj, svg) {
   const x1 = obj.x,  y1 = obj.y;
   const x2 = obj.x2 ?? obj.x + 20;
@@ -1043,15 +1112,31 @@ function _renderServiceLine(obj, svg) {
   g.dataset.lineType = 'service';
   g.classList.add('nv2-svc-line');
 
+  _ensureLineDefs(svg);
   // Zwei Segmente damit _wmUpdateGeometry die Geometrie korrekt aktualisiert
   const seg1 = _wmSegment(x1, y1, mx, my, col, w, obj.line_style);
   seg1.classList.add('wm-seg-from');
   const seg2 = _wmSegment(mx, my, x2, y2, col, w, obj.line_style);
   seg2.classList.add('wm-seg-to');
+  _applyArrow(seg2, _resolveArrowStyle(obj), obj);
   g.appendChild(seg1);
   g.appendChild(seg2);
 
-  if (obj.show_arrow !== false) g.appendChild(_wmArrow(x1, y1, x2, y2, col, w));
+  // Optionales Label an der Linienmitte
+  if (obj.label) {
+    const lbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    lbl.setAttribute('x', `${mx}%`);
+    lbl.setAttribute('y', `${my - 1}%`);
+    lbl.setAttribute('text-anchor', 'middle');
+    lbl.setAttribute('dominant-baseline', 'auto');
+    lbl.setAttribute('font-size', '10');
+    lbl.setAttribute('font-family', 'var(--mono, monospace)');
+    lbl.setAttribute('fill', col);
+    lbl.classList.add('svc-label');
+    lbl.style.pointerEvents = 'none';
+    lbl.textContent = obj.label;
+    g.appendChild(lbl);
+  }
 
   // unsichtbare Hit-Fläche
   const hit = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -1141,11 +1226,23 @@ function _updateServiceLines() {
     const col  = _serviceStateColor(obj.host_name, obj.service_description);
     const seg1 = g.querySelector('.wm-seg-from');
     const seg2 = g.querySelector('.wm-seg-to');
-    const arrows = g.querySelectorAll('.wm-arrow');
     if (seg1) seg1.setAttribute('stroke', col);
     if (seg2) seg2.setAttribute('stroke', col);
-    arrows.forEach(a => a.setAttribute('fill', col));
+    // marker-end mit context-stroke übernimmt Farbe automatisch
+    const lblEl = g.querySelector('.svc-label');
+    if (lblEl) lblEl.setAttribute('fill', col);
   });
+}
+
+// Gibt den Live-Wert einer Perfdata-Metrik als formatierten String zurück.
+// Fallback: manuelles Label oder ''.
+function _wmLiveLabel(hostName, svcName, perfKey, fallback) {
+  if (perfKey) {
+    const pd = perfdataCache[`${hostName}::${svcName}`];
+    const m  = pd?.[perfKey] ?? Object.entries(pd ?? {}).find(([k]) => k.toLowerCase() === perfKey.toLowerCase())?.[1];
+    if (m != null) return `${_fmtVal(typeof m === 'object' ? m.value : m)}${(typeof m === 'object' ? m.unit : '') || ''}`;
+  }
+  return fallback ?? '';
 }
 
 function _renderWeathermapLine(obj, svg) {
@@ -1154,8 +1251,11 @@ function _renderWeathermapLine(obj, svg) {
   const y2 = obj.y2 ?? obj.y;
   const w  = obj.line_width ?? 3;
 
-  const colFrom = obj.host_from ? _worstStateColor(obj.host_from) : 'var(--ok)';
-  const colTo   = obj.host_to   ? _worstStateColor(obj.host_to)   : 'var(--ok)';
+  // Service-Modus: ein Host + ein Service → Farbe aus Service-Status, Labels aus Perfdata
+  const isSvcMode = !!(obj.host_name && obj.service_description);
+  const svcCol    = isSvcMode ? _serviceStateColor(obj.host_name, obj.service_description) : null;
+  const colFrom   = svcCol ?? (obj.host_from ? _worstStateColor(obj.host_from) : 'var(--ok)');
+  const colTo     = svcCol ?? (obj.host_to   ? _worstStateColor(obj.host_to)   : 'var(--ok)');
 
   const g   = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   g.id               = `nv2-${obj.object_id}`;
@@ -1166,6 +1266,7 @@ function _renderWeathermapLine(obj, svg) {
 
   const split = obj.line_split ?? true;
 
+  _ensureLineDefs(svg);
   if (split) {
     const mx = (x1 + x2) / 2;
     const my = (y1 + y2) / 2;
@@ -1173,21 +1274,27 @@ function _renderWeathermapLine(obj, svg) {
     const l2 = _wmSegment(mx, my, x2, y2, colTo,   w, obj.line_style);
     l1.classList.add('wm-seg-from');
     l2.classList.add('wm-seg-to');
+    _applyArrow(l2, _resolveArrowStyle(obj), obj);
     g.appendChild(l1);
     g.appendChild(l2);
-    if (obj.show_arrow !== false) g.appendChild(_wmArrow(mx, my, x2, y2, colTo, w));
-    if (obj.label_from || obj.label_to || obj.host_from || obj.host_to) {
+    const lbFrom = isSvcMode
+      ? _wmLiveLabel(obj.host_name, obj.service_description, obj.perf_label_out, obj.label_from)
+      : (obj.label_from || obj.host_from || '');
+    const lbTo = isSvcMode
+      ? _wmLiveLabel(obj.host_name, obj.service_description, obj.perf_label_in,  obj.label_to)
+      : (obj.label_to   || obj.host_to   || '');
+    if (lbFrom || lbTo) {
       const lf = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       lf.classList.add('wm-label', 'wm-label-from');
       _wmPositionLabel(lf, x1, y1, mx, my, 0.35);
       lf.setAttribute('fill', colFrom);
-      lf.textContent = obj.label_from || obj.host_from || '';
+      lf.textContent = lbFrom;
       lf.style.fontSize = '9px'; lf.style.fontFamily = 'monospace';
       const lt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       lt.classList.add('wm-label', 'wm-label-to');
       _wmPositionLabel(lt, mx, my, x2, y2, 0.65);
       lt.setAttribute('fill', colTo);
-      lt.textContent = obj.label_to || obj.host_to || '';
+      lt.textContent = lbTo;
       lt.style.fontSize = '9px'; lt.style.fontFamily = 'monospace';
       g.appendChild(lf); g.appendChild(lt);
     }
@@ -1196,8 +1303,10 @@ function _renderWeathermapLine(obj, svg) {
               : (colTo === 'var(--warn)' || colFrom === 'var(--warn)') ? 'var(--warn)'
               : (colTo === 'var(--ok)'   && colFrom === 'var(--ok)')   ? 'var(--ok)'
               : 'var(--unkn)';
-    g.appendChild(_wmSegment(x1, y1, x2, y2, col, w, obj.line_style));
-    if (obj.show_arrow !== false) g.appendChild(_wmArrow(x1, y1, x2, y2, col, w));
+    const segFull = _wmSegment(x1, y1, x2, y2, col, w, obj.line_style);
+    segFull.classList.add('wm-seg-to');
+    _applyArrow(segFull, _resolveArrowStyle(obj), obj);
+    g.appendChild(segFull);
   }
 
   const hit = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -1254,7 +1363,6 @@ function _createWmHandles(g, hit, obj, svg) {
     c.style.stroke      = 'var(--bg-panel, #2b2b2b)';
     c.style.strokeWidth = '2';
     c.style.cursor      = role === 'mid' ? 'move' : 'crosshair';
-    c.style.opacity     = '0';
     c.dataset.wmRole    = role;
     c.addEventListener('mousedown', e => {
       if (!editActive || e.button !== 0) return;
@@ -1317,8 +1425,7 @@ function _wmUpdateGeometry(g, hit, obj, x1, y1, x2, y2) {
   const segTo   = g.querySelector('.wm-seg-to');
   if (segFrom) { segFrom.setAttribute('x1', `${x1}%`); segFrom.setAttribute('y1', `${y1}%`); segFrom.setAttribute('x2', `${mx}%`); segFrom.setAttribute('y2', `${my}%`); }
   if (segTo)   { segTo  .setAttribute('x1', `${mx}%`); segTo  .setAttribute('y1', `${my}%`); segTo  .setAttribute('x2', `${x2}%`); segTo  .setAttribute('y2', `${y2}%`); }
-  const arrow  = g.querySelector('.wm-arrow');
-  if (arrow) { arrow.setAttribute('cx', `${x2}%`); arrow.setAttribute('cy', `${y2}%`); }
+  // marker-end positioniert sich automatisch am Segment-Endpunkt — kein manuelles Update nötig
   const lf = g.querySelector('.wm-label-from'), lt = g.querySelector('.wm-label-to');
   if (lf) { lf.setAttribute('x', `${x1 + (mx - x1) * 0.35}%`); lf.setAttribute('y', `${y1 + (my - y1) * 0.35}%`); }
   if (lt) { lt.setAttribute('x', `${mx + (x2 - mx) * 0.65}%`); lt.setAttribute('y', `${my + (y2 - my) * 0.65}%`); }
@@ -1342,15 +1449,6 @@ function _wmSegment(x1, y1, x2, y2, color, w, style) {
   return l;
 }
 
-function _wmArrow(x1, y1, x2, y2, color, w) {
-  const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-  dot.setAttribute('cx', `${x2}%`); dot.setAttribute('cy', `${y2}%`);
-  dot.setAttribute('r', `${Math.max(6, w * 2.5) * 0.4}`);
-  dot.setAttribute('fill', color);
-  dot.style.pointerEvents = 'none'; dot.style.transition = 'fill 0.3s ease';
-  dot.classList.add('wm-arrow');
-  return dot;
-}
 
 function _wmPositionLabel(el, x1, y1, x2, y2, t) {
   el.setAttribute('x', `${x1 + (x2 - x1) * t}%`);
@@ -1363,17 +1461,43 @@ function _wmShowTooltip(obj) {
   hideTooltip();
   const tt = document.createElement('div');
   tt.className = 'nv2-tooltip';
-  const hf = obj.host_from ? hostCache[obj.host_from] : null;
-  const ht = obj.host_to   ? hostCache[obj.host_to]   : null;
-  const cf = hf ? _worstStateClass(obj.host_from) : 'unkn';
-  const ct = ht ? _worstStateClass(obj.host_to)   : 'unkn';
-  tt.innerHTML = `
-    <div class="tt-name">Weathermap-Linie</div>
-    ${obj.host_from ? `<div class="tt-row"><span>Von</span><b class="tt-${cf}">${esc(obj.host_from)} · ${hf?.state_label ?? 'UNKNOWN'}</b></div>` : ''}
-    ${obj.label_from ? `<div class="tt-row"><span>Out</span><b>${esc(obj.label_from)}</b></div>` : ''}
-    ${obj.host_to ? `<div class="tt-row"><span>Nach</span><b class="tt-${ct}">${esc(obj.host_to)} · ${ht?.state_label ?? 'UNKNOWN'}</b></div>` : ''}
-    ${obj.label_to ? `<div class="tt-row"><span>In</span><b>${esc(obj.label_to)}</b></div>` : ''}
-    <div class="tt-row"><span>Typ</span><b>Weathermap-Linie</b></div>`;
+  const isSvcMode = !!(obj.host_name && obj.service_description);
+  if (isSvcMode) {
+    // Service-Modus: Anzeige wie Service-Node-Tooltip
+    const key  = `${obj.host_name}::${obj.service_description}`;
+    const s    = hostCache[key];
+    const lbl  = s?.state_label ?? 'UNKNOWN';
+    const tc   = s?.in_downtime ? 'downtime' : (STATE_CHIP[lbl] ?? 'unkn');
+    const lbOut = _wmLiveLabel(obj.host_name, obj.service_description, obj.perf_label_out, obj.label_from);
+    const lbIn  = _wmLiveLabel(obj.host_name, obj.service_description, obj.perf_label_in,  obj.label_to);
+    const pd    = perfdataCache[key];
+    let rows = `<div class="tt-name">${esc(obj.service_description)}</div>`;
+    rows += `<div class="tt-row"><span>Host</span><b>${esc(obj.host_name)}</b></div>`;
+    rows += `<div class="tt-row"><span>Status</span><b class="tt-${tc}">${lbl}</b></div>`;
+    if (s?.output) rows += `<div class="tt-row"><span>Output</span><b>${esc(s.output.substring(0, 80))}</b></div>`;
+    if (lbOut) rows += `<div class="tt-row"><span>→ Out</span><b>${esc(lbOut)}</b></div>`;
+    if (lbIn)  rows += `<div class="tt-row"><span>← In</span><b>${esc(lbIn)}</b></div>`;
+    if (pd && Object.keys(pd).length) {
+      rows += `<div class="tt-row" style="margin-top:4px;border-top:1px solid var(--border);padding-top:4px"><span style="color:var(--text-dim);font-size:10px">Perfdata</span><b></b></div>`;
+      Object.entries(pd).forEach(([k, m]) => {
+        const mCol = m.crit != null && m.value >= m.crit ? 'crit' : m.warn != null && m.value >= m.warn ? 'warn' : 'ok';
+        rows += `<div class="tt-row"><span>${esc(k)}</span><b class="tt-${mCol}">${_fmtVal(m.value)}${m.unit || ''}</b></div>`;
+      });
+    }
+    tt.innerHTML = rows;
+  } else {
+    const hf = obj.host_from ? hostCache[obj.host_from] : null;
+    const ht = obj.host_to   ? hostCache[obj.host_to]   : null;
+    const cf = hf ? _worstStateClass(obj.host_from) : 'unkn';
+    const ct = ht ? _worstStateClass(obj.host_to)   : 'unkn';
+    tt.innerHTML = `
+      <div class="tt-name">Weathermap-Linie</div>
+      ${obj.host_from ? `<div class="tt-row"><span>Von</span><b class="tt-${cf}">${esc(obj.host_from)} · ${hf?.state_label ?? 'UNKNOWN'}</b></div>` : ''}
+      ${obj.label_from ? `<div class="tt-row"><span>Out</span><b>${esc(obj.label_from)}</b></div>` : ''}
+      ${obj.host_to ? `<div class="tt-row"><span>Nach</span><b class="tt-${ct}">${esc(obj.host_to)} · ${ht?.state_label ?? 'UNKNOWN'}</b></div>` : ''}
+      ${obj.label_to ? `<div class="tt-row"><span>In</span><b>${esc(obj.label_to)}</b></div>` : ''}
+      <div class="tt-row"><span>Typ</span><b>Weathermap-Linie</b></div>`;
+  }
   const cvRect = document.getElementById('nv2-canvas').getBoundingClientRect();
   const mx = (obj.x + (obj.x2 ?? obj.x + 20)) / 2;
   const my = (obj.y + (obj.y2 ?? obj.y)) / 2;
@@ -1388,18 +1512,21 @@ function _updateWeathermapLines() {
     const oid = g.dataset.objectId;
     const obj = activeMapCfg?.objects?.find(o => o.object_id === oid);
     if (!obj) return;
-    const colFrom = obj.host_from ? _worstStateColor(obj.host_from) : 'var(--unkn)';
-    const colTo   = obj.host_to   ? _worstStateColor(obj.host_to)   : 'var(--unkn)';
+    const isSvcMode = !!(obj.host_name && obj.service_description);
+    const svcCol    = isSvcMode ? _serviceStateColor(obj.host_name, obj.service_description) : null;
+    const colFrom   = svcCol ?? (obj.host_from ? _worstStateColor(obj.host_from) : 'var(--unkn)');
+    const colTo     = svcCol ?? (obj.host_to   ? _worstStateColor(obj.host_to)   : 'var(--unkn)');
     const segFrom = g.querySelector('.wm-seg-from');
     const segTo   = g.querySelector('.wm-seg-to');
-    const arrows  = g.querySelectorAll('.wm-arrow');
     const lblFrom = g.querySelector('.wm-label-from');
     const lblTo   = g.querySelector('.wm-label-to');
     if (segFrom) segFrom.setAttribute('stroke', colFrom);
     if (segTo)   segTo  .setAttribute('stroke', colTo);
-    if (lblFrom) lblFrom.setAttribute('fill',   colFrom);
-    if (lblTo)   lblTo  .setAttribute('fill',   colTo);
-    arrows.forEach((a, i) => a.setAttribute('fill', i === 0 ? colFrom : colTo));
+    if (lblFrom) { lblFrom.setAttribute('fill', colFrom);
+      if (isSvcMode) lblFrom.textContent = _wmLiveLabel(obj.host_name, obj.service_description, obj.perf_label_out, obj.label_from); }
+    if (lblTo)   { lblTo  .setAttribute('fill', colTo);
+      if (isSvcMode) lblTo.textContent   = _wmLiveLabel(obj.host_name, obj.service_description, obj.perf_label_in,  obj.label_to); }
+    // marker-end mit context-stroke übernimmt Pfeilfarbe automatisch
   });
 }
 
@@ -1409,7 +1536,7 @@ function _createLineHandles(lineVis, hitLine, obj, svg) {
     c.classList.add('line-handle');
     c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', '5');
     c.style.fill = 'var(--acc, #29b6d4)'; c.style.stroke = 'var(--bg-panel, #2b2b2b)';
-    c.style.strokeWidth = '2'; c.style.cursor = 'crosshair'; c.style.opacity = '0';
+    c.style.strokeWidth = '2'; c.style.cursor = 'crosshair';
     c.addEventListener('mousedown', e => {
       if (!editActive || e.button !== 0) return;
       e.preventDefault(); e.stopPropagation();
@@ -3235,11 +3362,24 @@ function openWeathermapLineDlg(lineVis, obj) {
   const hosts = Object.keys(hostCache);
   const hostOpts = (val) => hosts.map(h => `<option value="${esc(h)}" ${val===h?'selected':''}>${esc(h)}</option>`).join('');
 
+  // Aktueller Pfeilstil (Rückwärtskompatibilität mit show_arrow)
+  const curArrowStyle = _resolveArrowStyle(obj);
+  const curArrowSize  = obj.arrow_size ?? 'md';
+  const arrOpts = (cur) =>
+    `<option value="chevron" ${cur==='chevron'?'selected':''}>&#9654; Gefüllt</option>` +
+    `<option value="thin"    ${cur==='thin'   ?'selected':''}>&#9655; Offen</option>` +
+    `<option value="dot"     ${cur==='dot'    ?'selected':''}>&#9679; Punkt</option>` +
+    `<option value="none"    ${cur==='none'   ?'selected':''}>&mdash; Kein Pfeil</option>`;
+  const sizeOpts = (cur) =>
+    `<option value="sm" ${cur==='sm'?'selected':''}>Klein</option>` +
+    `<option value="md" ${cur==='md'||!cur?'selected':''}>Normal</option>` +
+    `<option value="lg" ${cur==='lg'?'selected':''}>Groß</option>`;
+
   const dlg = document.createElement('div');
   dlg.id = 'dlg-wm-line'; dlg.className = 'dlg-overlay show';
   dlg.innerHTML = `
     <div class="dlg-box" style="width:420px">
-      <h3>Weathermap-Linie konfigurieren</h3>
+      <h3>Linie konfigurieren</h3>
       <div class="f-row">
         <label class="f-label">Linientyp</label>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
@@ -3249,30 +3389,62 @@ function openWeathermapLineDlg(lineVis, obj) {
         </div>
       </div>
       <div id="wm-fields" style="${obj.line_type==='weathermap'?'':'display:none'}">
+        <!-- Service-Modus: ein Host + ein Service liefert Farbe + Perfdata-Labels -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
-          <div><label class="f-label">Von (host_from)</label><select class="f-select" id="wm-host-from"><option value="">(keiner)</option>${hostOpts(obj.host_from ?? '')}</select></div>
-          <div><label class="f-label">Nach (host_to)</label><select class="f-select" id="wm-host-to"><option value="">(keiner)</option>${hostOpts(obj.host_to ?? '')}</select></div>
+          <div><label class="f-label">Host <span style="color:var(--text-dim);font-size:10px">(Service-Modus)</span></label>
+            <select class="f-select" id="wm-svc-host" onchange="_wmSvcHostChange()">
+              <option value="">(keiner)</option>${hosts.filter(k=>!k.includes('::')).map(h=>`<option value="${esc(h)}" ${(obj.host_name??'')===h?'selected':''}>${esc(h)}</option>`).join('')}
+            </select></div>
+          <div><label class="f-label">Service</label>
+            <select class="f-select" id="wm-svc-service">
+              <option value="">(keiner)</option>${(serviceCache[obj.host_name??'']??[]).map(s=>`<option value="${esc(s)}" ${(obj.service_description??'')===s?'selected':''}>${esc(s)}</option>`).join('')}
+            </select></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
-          <div><label class="f-label">Label Von</label><input class="f-input" id="wm-label-from" type="text" placeholder="42 Mbps out" value="${esc(obj.label_from ?? '')}"></div>
-          <div><label class="f-label">Label Nach</label><input class="f-input" id="wm-label-to" type="text" placeholder="18 Mbps in" value="${esc(obj.label_to ?? '')}"></div>
+          <div><label class="f-label">Perfdata Out <span style="color:var(--text-dim);font-size:10px">(Metrik-Name)</span></label>
+            <input class="f-input" id="wm-perf-out" type="text" placeholder="traffic_out" value="${esc(obj.perf_label_out ?? '')}"></div>
+          <div><label class="f-label">Perfdata In</label>
+            <input class="f-input" id="wm-perf-in" type="text" placeholder="traffic_in" value="${esc(obj.perf_label_in ?? '')}"></div>
+        </div>
+        <!-- Zwei-Host-Modus -->
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+          <div style="font-size:10px;color:var(--text-dim);margin-bottom:6px">— oder Zwei-Host-Modus (Farbe je Endpunkt) —</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div><label class="f-label">Von (host_from)</label><select class="f-select" id="wm-host-from"><option value="">(keiner)</option>${hostOpts(obj.host_from ?? '')}</select></div>
+            <div><label class="f-label">Nach (host_to)</label><select class="f-select" id="wm-host-to"><option value="">(keiner)</option>${hostOpts(obj.host_to ?? '')}</select></div>
+          </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
-          <div><label class="f-label">Linienbreite</label><input class="f-input" id="wm-width" type="number" value="${obj.line_width ?? 4}" min="1" max="12"></div>
-          <div><label class="f-label">Stil</label><select class="f-select" id="wm-style"><option value="solid" ${(obj.line_style??'solid')==='solid'?'selected':''}>Durchgezogen</option><option value="dashed" ${obj.line_style==='dashed'?'selected':''}>Gestrichelt</option><option value="dotted" ${obj.line_style==='dotted'?'selected':''}>Gepunktet</option></select></div>
+          <div><label class="f-label">Label Von / Out</label><input class="f-input" id="wm-label-from" type="text" placeholder="42 Mbps out" value="${esc(obj.label_from ?? '')}"></div>
+          <div><label class="f-label">Label Nach / In</label><input class="f-input" id="wm-label-to" type="text" placeholder="18 Mbps in" value="${esc(obj.label_to ?? '')}"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-top:8px">
+          <div><label class="f-label">Breite</label><input class="f-input" id="wm-width" type="number" value="${obj.line_width ?? 4}" min="1" max="12"></div>
+          <div><label class="f-label">Linienstil</label><select class="f-select" id="wm-style"><option value="solid" ${(obj.line_style??'solid')==='solid'?'selected':''}>Durchgezogen</option><option value="dashed" ${obj.line_style==='dashed'?'selected':''}>Gestrichelt</option><option value="dotted" ${obj.line_style==='dotted'?'selected':''}>Gepunktet</option></select></div>
+          <div><label class="f-label">Pfeilstil</label><select class="f-select" id="wm-arrow-style">${arrOpts(curArrowStyle)}</select></div>
+          <div><label class="f-label">Pfeilgröße</label><select class="f-select" id="wm-arrow-size">${sizeOpts(curArrowSize)}</select></div>
         </div>
         <div style="margin-top:8px">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px"><input type="checkbox" id="wm-split" ${obj.line_split !== false ? 'checked' : ''}> Geteilte Linie</label>
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;margin-top:6px"><input type="checkbox" id="wm-arrow" ${obj.show_arrow !== false ? 'checked' : ''}> Pfeilkopf anzeigen</label>
         </div>
         <div style="margin-top:12px;padding:10px;background:var(--bg);border-radius:var(--r);border:1px solid var(--border)">
           <div style="font-size:9px;font-family:var(--mono);color:var(--text-dim);margin-bottom:6px">VORSCHAU</div>
           <svg viewBox="0 0 200 40" width="200" height="40" id="wm-preview-svg">
-            <line x1="10%" y1="50%" x2="45%" y2="50%" id="wm-prev-from" stroke="var(--ok)" stroke-width="4" stroke-linecap="round"/>
-            <line x1="55%" y1="50%" x2="90%" y2="50%" id="wm-prev-to" stroke="var(--warn)" stroke-width="4" stroke-linecap="round"/>
-            <circle cx="90%" cy="50%" r="4" id="wm-prev-arrow" fill="var(--warn)"/>
-            <text x="25%" y="35%" font-size="8" font-family="monospace" id="wm-prev-lf" fill="var(--ok)" text-anchor="middle"></text>
-            <text x="72%" y="35%" font-size="8" font-family="monospace" id="wm-prev-lt" fill="var(--warn)" text-anchor="middle"></text>
+            <defs>
+              <marker id="wm-prev-arr-chevron"    viewBox="0 0 10 10" refX="10" refY="5" markerWidth="2" markerHeight="2" markerUnits="strokeWidth" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="context-stroke"/></marker>
+              <marker id="wm-prev-arr-chevron-md" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="3" markerHeight="3" markerUnits="strokeWidth" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="context-stroke"/></marker>
+              <marker id="wm-prev-arr-chevron-lg" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="5" markerHeight="5" markerUnits="strokeWidth" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="context-stroke"/></marker>
+              <marker id="wm-prev-arr-thin"       viewBox="0 0 10 10" refX="10" refY="5" markerWidth="2" markerHeight="2" markerUnits="strokeWidth" orient="auto"><path d="M0,0 L10,5 L0,10 L2.5,5 Z" fill="context-stroke"/></marker>
+              <marker id="wm-prev-arr-thin-md"    viewBox="0 0 10 10" refX="10" refY="5" markerWidth="3" markerHeight="3" markerUnits="strokeWidth" orient="auto"><path d="M0,0 L10,5 L0,10 L2.5,5 Z" fill="context-stroke"/></marker>
+              <marker id="wm-prev-arr-thin-lg"    viewBox="0 0 10 10" refX="10" refY="5" markerWidth="5" markerHeight="5" markerUnits="strokeWidth" orient="auto"><path d="M0,0 L10,5 L0,10 L2.5,5 Z" fill="context-stroke"/></marker>
+              <marker id="wm-prev-arr-dot"        viewBox="0 0 10 10" refX="5"  refY="5" markerWidth="2" markerHeight="2" markerUnits="strokeWidth" orient="auto"><circle cx="5" cy="5" r="5" fill="context-stroke"/></marker>
+              <marker id="wm-prev-arr-dot-md"     viewBox="0 0 10 10" refX="5"  refY="5" markerWidth="3" markerHeight="3" markerUnits="strokeWidth" orient="auto"><circle cx="5" cy="5" r="5" fill="context-stroke"/></marker>
+              <marker id="wm-prev-arr-dot-lg"     viewBox="0 0 10 10" refX="5"  refY="5" markerWidth="5" markerHeight="5" markerUnits="strokeWidth" orient="auto"><circle cx="5" cy="5" r="5" fill="context-stroke"/></marker>
+            </defs>
+            <line x1="10%" y1="50%" x2="45%" y2="50%" id="wm-prev-from" stroke="var(--ok)"   stroke-width="4" stroke-linecap="round"/>
+            <line x1="55%" y1="50%" x2="90%" y2="50%" id="wm-prev-to"   stroke="var(--warn)" stroke-width="4" stroke-linecap="round" marker-end="url(#wm-prev-arr-chevron-md)"/>
+            <text x="25%" y="30%" font-size="8" font-family="monospace" id="wm-prev-lf" fill="var(--ok)"   text-anchor="middle"></text>
+            <text x="72%" y="30%" font-size="8" font-family="monospace" id="wm-prev-lt" fill="var(--warn)" text-anchor="middle"></text>
           </svg>
         </div>
       </div>
@@ -3291,20 +3463,25 @@ function openWeathermapLineDlg(lineVis, obj) {
             </select>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
-          <div><label class="f-label">Linienbreite</label><input class="f-input" id="svc-width" type="number" value="${obj.line_width ?? 3}" min="1" max="12"></div>
-          <div><label class="f-label">Stil</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-top:8px">
+          <div><label class="f-label">Breite</label><input class="f-input" id="svc-width" type="number" value="${obj.line_width ?? 3}" min="1" max="12"></div>
+          <div><label class="f-label">Linienstil</label>
             <select class="f-select" id="svc-style">
               <option value="solid"  ${(obj.line_style??'solid')==='solid' ?'selected':''}>Durchgezogen</option>
               <option value="dashed" ${obj.line_style==='dashed'?'selected':''}>Gestrichelt</option>
               <option value="dotted" ${obj.line_style==='dotted'?'selected':''}>Gepunktet</option>
             </select>
           </div>
+          <div><label class="f-label">Pfeilstil</label>
+            <select class="f-select" id="svc-arrow-style">${arrOpts(curArrowStyle)}</select>
+          </div>
+          <div><label class="f-label">Pfeilgröße</label>
+            <select class="f-select" id="svc-arrow-size">${sizeOpts(curArrowSize)}</select>
+          </div>
         </div>
         <div style="margin-top:8px">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
-            <input type="checkbox" id="svc-arrow" ${obj.show_arrow !== false ? 'checked' : ''}> Pfeilkopf anzeigen
-          </label>
+          <label class="f-label">Label <span style="color:var(--text-dim);font-size:10px">(optional, wird an der Linienmitte angezeigt)</span></label>
+          <input class="f-input" id="svc-label" type="text" placeholder="z.B. Ping · Traffic · CPU" value="${esc(obj.label ?? '')}">
         </div>
       </div>
       <div class="dlg-actions" style="margin-top:16px">
@@ -3316,6 +3493,14 @@ function openWeathermapLineDlg(lineVis, obj) {
   dlg.addEventListener('click', e => { if (e.target === dlg) dlg.remove(); });
   _wmDlgPreview();
 }
+
+window._wmSvcHostChange = function() {
+  const host = document.getElementById('wm-svc-host')?.value;
+  const sel  = document.getElementById('wm-svc-service');
+  if (!sel) return;
+  const svcs = (host && serviceCache[host]) ?? [];
+  sel.innerHTML = `<option value="">(keiner)</option>${svcs.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('')}`;
+};
 
 window._svcDlgUpdateServices = function() {
   const host = document.getElementById('svc-host')?.value;
@@ -3340,11 +3525,21 @@ window._wmDlgPreview = function() {
   const ct = ht ? _worstStateColor(ht) : 'var(--unkn)';
   const lf = document.getElementById('wm-label-from')?.value || hf || '';
   const lt = document.getElementById('wm-label-to')?.value   || ht || '';
-  document.getElementById('wm-prev-from') ?.setAttribute('stroke', cf);
-  document.getElementById('wm-prev-to')   ?.setAttribute('stroke', ct);
-  document.getElementById('wm-prev-arrow')?.setAttribute('fill',   ct);
-  document.getElementById('wm-prev-lf')   ?.setAttribute('fill',   cf);
-  document.getElementById('wm-prev-lt')   ?.setAttribute('fill',   ct);
+  const arrowStyle = document.getElementById('wm-arrow-style')?.value ?? 'chevron';
+  const arrowSz    = document.getElementById('wm-arrow-size')?.value  ?? 'md';
+  const szSfx      = arrowSz === 'md' ? '-md' : arrowSz === 'lg' ? '-lg' : '';  // sm → kein Suffix im Vorschau-SVG
+  const prevTo = document.getElementById('wm-prev-to');
+  document.getElementById('wm-prev-from')?.setAttribute('stroke', cf);
+  if (prevTo) {
+    prevTo.setAttribute('stroke', ct);
+    if (arrowStyle && arrowStyle !== 'none') {
+      prevTo.setAttribute('marker-end', `url(#wm-prev-arr-${arrowStyle}${szSfx})`);
+    } else {
+      prevTo.removeAttribute('marker-end');
+    }
+  }
+  document.getElementById('wm-prev-lf')?.setAttribute('fill', cf);
+  document.getElementById('wm-prev-lt')?.setAttribute('fill', ct);
   const lfe = document.getElementById('wm-prev-lf'), lte = document.getElementById('wm-prev-lt');
   if (lfe) lfe.textContent = lf; if (lte) lte.textContent = lt;
 };
@@ -3357,28 +3552,38 @@ window._wmDlgSave = async function(objectId) {
   let props;
 
   if (type === 'service') {
-    const hostName  = document.getElementById('svc-host')?.value    || undefined;
-    const svcName   = document.getElementById('svc-service')?.value || undefined;
-    const lineWidth = parseInt(document.getElementById('svc-width')?.value) || 3;
-    const lineStyle = document.getElementById('svc-style')?.value   || 'solid';
-    const arrow     = document.getElementById('svc-arrow')?.checked ?? true;
+    const hostName   = document.getElementById('svc-host')?.value         || undefined;
+    const svcName    = document.getElementById('svc-service')?.value      || undefined;
+    const lineWidth  = parseInt(document.getElementById('svc-width')?.value) || 3;
+    const lineStyle  = document.getElementById('svc-style')?.value        || 'solid';
+    const arrowStyle = document.getElementById('svc-arrow-style')?.value  || 'chevron';
+    const arrowSize  = document.getElementById('svc-arrow-size')?.value   || 'md';
+    const label      = document.getElementById('svc-label')?.value.trim() || undefined;
     props = { line_type: 'service', host_name: hostName, service_description: svcName,
-              line_width: lineWidth, line_style: lineStyle, show_arrow: arrow };
+              line_width: lineWidth, line_style: lineStyle, arrow_style: arrowStyle, arrow_size: arrowSize,
+              ...(label !== undefined ? { label } : { label: null }) };
   } else {
-    const hostFrom  = document.getElementById('wm-host-from')?.value.trim()  || undefined;
-    const hostTo    = document.getElementById('wm-host-to')?.value.trim()    || undefined;
-    const labelFrom = document.getElementById('wm-label-from')?.value.trim() || undefined;
-    const labelTo   = document.getElementById('wm-label-to')?.value.trim()   || undefined;
-    const lineWidth = parseInt(document.getElementById('wm-width')?.value)   || 4;
-    const lineStyle = document.getElementById('wm-style')?.value             || 'solid';
-    const split     = document.getElementById('wm-split')?.checked  ?? true;
-    const arrow     = document.getElementById('wm-arrow')?.checked  ?? true;
+    const svcHost    = document.getElementById('wm-svc-host')?.value.trim()    || undefined;
+    const svcService = document.getElementById('wm-svc-service')?.value.trim() || undefined;
+    const perfOut    = document.getElementById('wm-perf-out')?.value.trim()    || undefined;
+    const perfIn     = document.getElementById('wm-perf-in')?.value.trim()     || undefined;
+    const hostFrom   = document.getElementById('wm-host-from')?.value.trim()   || undefined;
+    const hostTo     = document.getElementById('wm-host-to')?.value.trim()     || undefined;
+    const labelFrom  = document.getElementById('wm-label-from')?.value.trim()  || undefined;
+    const labelTo    = document.getElementById('wm-label-to')?.value.trim()    || undefined;
+    const lineWidth  = parseInt(document.getElementById('wm-width')?.value)    || 4;
+    const lineStyle  = document.getElementById('wm-style')?.value              || 'solid';
+    const split      = document.getElementById('wm-split')?.checked   ?? true;
+    const arrowStyle = document.getElementById('wm-arrow-style')?.value        || 'chevron';
+    const arrowSize  = document.getElementById('wm-arrow-size')?.value         || 'md';
     props = { line_type: type === 'weathermap' ? 'weathermap' : undefined,
+              host_name: svcHost, service_description: svcService,
+              perf_label_out: perfOut, perf_label_in: perfIn,
               host_from: type === 'weathermap' ? hostFrom : undefined,
               host_to:   type === 'weathermap' ? hostTo   : undefined,
-              label_from: type === 'weathermap' ? labelFrom : undefined,
-              label_to:   type === 'weathermap' ? labelTo   : undefined,
-              line_split: split, show_arrow: arrow, line_width: lineWidth, line_style: lineStyle };
+              label_from: labelFrom, label_to: labelTo,
+              line_split: split, arrow_style: arrowStyle, arrow_size: arrowSize,
+              line_width: lineWidth, line_style: lineStyle };
   }
 
   const objRef = activeMapCfg?.objects?.find(o => o.object_id === objectId);

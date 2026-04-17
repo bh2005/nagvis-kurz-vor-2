@@ -690,6 +690,49 @@ function selectObjType(type) {
   }
 }
 
+// Blendet im Linie-Platzieren-Dialog typabhängige Felder ein/aus.
+window._dlgLnTypeChange = function() {
+  const type       = document.querySelector('input[name="dlg-ln-type"]:checked')?.value ?? 'static';
+  const colorWrap  = document.getElementById('dlg-ln-color-wrap');
+  const arrowWrap  = document.getElementById('dlg-ln-arrow-wrap');
+  const arrowSzWrap= document.getElementById('dlg-ln-arrowsz-wrap');
+  const wmWrap     = document.getElementById('dlg-ln-wm-wrap');
+  const svcWrap    = document.getElementById('dlg-ln-svc-wrap');
+  const widthEl    = document.getElementById('dlg-ln-width');
+  const hint       = document.getElementById('dlg-ln-hint');
+  const showArrow  = type !== 'static';
+
+  if (colorWrap)   colorWrap.style.display   = type === 'static'     ? '' : 'none';
+  if (arrowWrap)   arrowWrap.style.display   = showArrow             ? '' : 'none';
+  if (arrowSzWrap) arrowSzWrap.style.display = showArrow             ? '' : 'none';
+  if (wmWrap)      wmWrap.style.display      = type === 'weathermap' ? '' : 'none';
+  if (svcWrap)     svcWrap.style.display     = type === 'service'    ? '' : 'none';
+  if (widthEl)     widthEl.value             = type === 'static'     ? 1  : 4;
+
+  // Host-Datalist befüllen (einmalig beim Öffnen des jeweiligen Felds)
+  const hosts = Object.keys(window.hostCache ?? {}).filter(k => !k.includes('::'));
+  const hostOpts = hosts.map(h => `<option value="${h}">`).join('');
+  const wmDl = document.getElementById('known-ln-wm-hosts');
+  if (wmDl) wmDl.innerHTML = hostOpts;
+  const svcDl = document.getElementById('known-ln-svc-hosts');
+  if (svcDl) svcDl.innerHTML = hostOpts;
+
+  const hints = {
+    static:     'Endpunkt liegt 20 % rechts vom Startpunkt. Stil per Rechtsklick nachträglich anpassen.',
+    weathermap: 'Von/Nach-Host optional — Farbe folgt dem schlechtesten Status. Nachträglich per Rechtsklick änderbar.',
+    service:    'Linie färbt sich entsprechend dem Service-Status. Nachträglich per Rechtsklick änderbar.',
+  };
+  if (hint) hint.textContent = hints[type] ?? '';
+};
+
+window._dlgLnSvcHostChange = function() {
+  const host = document.getElementById('dlg-ln-svc-host')?.value.trim() ?? '';
+  const dl   = document.getElementById('known-ln-svc-services');
+  if (!dl) return;
+  const svcs = (host && window.serviceCache?.[host]) ?? [];
+  dl.innerHTML = svcs.map(s => `<option value="${s}">`).join('');
+};
+
 async function confirmAddObject() {
   const type = _activeObjType;
   const pos  = pendingPos ?? { x: (15 + Math.random() * 70).toFixed(1), y: (15 + Math.random() * 70).toFixed(1) };
@@ -708,8 +751,28 @@ async function confirmAddObject() {
   } else if (type === 'textbox') {
     Object.assign(payload, { text: document.getElementById('dlg-tb-text').value.trim() || 'Text', font_size: parseInt(document.getElementById('dlg-tb-size').value) || 13, bold: document.getElementById('dlg-tb-bold').checked, color: document.getElementById('dlg-tb-color').value, bg_color: document.getElementById('dlg-tb-bg').value, border_color: '', w: 14, h: 4 });
   } else if (type === 'line') {
-    const isWM = document.getElementById('dlg-ln-weathermap')?.checked;
-    Object.assign(payload, { x2: parseFloat(pos.x) + 20, y2: parseFloat(pos.y), line_style: document.getElementById('dlg-ln-style').value, line_width: parseInt(document.getElementById('dlg-ln-width').value) || (isWM ? 4 : 1), color: document.getElementById('dlg-ln-color').value, ...(isWM ? { line_type:'weathermap', line_split:true, show_arrow:true } : {}) });
+    const lineType   = document.querySelector('input[name="dlg-ln-type"]:checked')?.value ?? 'static';
+    const lineStyle  = document.getElementById('dlg-ln-style').value;
+    const lineWidth  = parseInt(document.getElementById('dlg-ln-width').value) || (lineType === 'static' ? 1 : 4);
+    const arrowStyle = document.getElementById('dlg-ln-arrow')?.value      ?? 'chevron';
+    const arrowSize  = document.getElementById('dlg-ln-arrow-size')?.value ?? 'md';
+    const wmFrom     = document.getElementById('dlg-ln-wm-from')?.value.trim()    || undefined;
+    const wmTo       = document.getElementById('dlg-ln-wm-to')?.value.trim()      || undefined;
+    const svcHost    = document.getElementById('dlg-ln-svc-host')?.value.trim()    || undefined;
+    const svcService = document.getElementById('dlg-ln-svc-service')?.value.trim() || undefined;
+    const svcLabel   = document.getElementById('dlg-ln-svc-label')?.value.trim()   || undefined;
+    Object.assign(payload, {
+      x2: parseFloat(pos.x) + 20, y2: parseFloat(pos.y),
+      line_style: lineStyle, line_width: lineWidth,
+      ...(lineType === 'static'     ? { color: document.getElementById('dlg-ln-color').value } : {}),
+      ...(lineType === 'weathermap' ? { line_type: 'weathermap', line_split: true, arrow_style: arrowStyle, arrow_size: arrowSize,
+                                        ...(wmFrom ? { host_from: wmFrom } : {}),
+                                        ...(wmTo   ? { host_to:   wmTo   } : {}) } : {}),
+      ...(lineType === 'service'    ? { line_type: 'service', arrow_style: arrowStyle, arrow_size: arrowSize,
+                                        ...(svcHost    ? { host_name:           svcHost    } : {}),
+                                        ...(svcService ? { service_description: svcService } : {}),
+                                        ...(svcLabel   ? { label:               svcLabel   } : {}) } : {}),
+    });
   } else if (type === 'container') {
     Object.assign(payload, { url: document.getElementById('dlg-ct-url').value.trim(), w: 12, h: 8 });
   } else if (type === 'gadget') {
@@ -733,6 +796,8 @@ async function confirmAddObject() {
 
   const obj = await api(`/api/maps/${activeMapId}/objects`, 'POST', payload);
   if (obj) {
+    // In lokalen Cache einfügen damit _wmDlgSave / _dragHandle das Objekt finden können
+    if (activeMapCfg) (activeMapCfg.objects ??= []).push(obj);
     const el = createNode(obj);
     if (el && editActive) makeDraggable(el);
     if (type === 'gadget' && el && typeof openGadgetConfigDialog === 'function') {

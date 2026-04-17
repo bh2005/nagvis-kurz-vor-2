@@ -113,6 +113,10 @@ function onWsMsg(ev) {
 
     case 'object_added':
       if (ev.map_id === activeMapId) {
+        // Nur hinzufügen wenn noch nicht im Cache (confirmAddObject hat es ggf. schon eingepflegt)
+        if (activeMapCfg && !activeMapCfg.objects?.find(o => o.object_id === ev.object.object_id)) {
+          (activeMapCfg.objects ??= []).push(ev.object);
+        }
         const el = createNode(ev.object);
         if (el && editActive) makeDraggable(el);
       }
@@ -120,6 +124,18 @@ function onWsMsg(ev) {
 
     case 'object_updated':
       if (ev.map_id === activeMapId) {
+        // Cache-Eintrag ersetzen und verwaiste Handles/lineVis aufräumen
+        if (activeMapCfg?.objects) {
+          const idx = activeMapCfg.objects.findIndex(o => o.object_id === ev.object.object_id);
+          if (idx >= 0) {
+            const stale = activeMapCfg.objects[idx];
+            stale._handles?.forEach(h => h.remove());
+            stale._lineVis?.remove();
+            activeMapCfg.objects[idx] = ev.object;  // neues Objekt ist ab jetzt die Quelle der Wahrheit
+          } else {
+            (activeMapCfg.objects ??= []).push(ev.object);
+          }
+        }
         const old = document.getElementById(`nv2-${ev.object.object_id}`);
         if (old) old.remove();
         const el = createNode(ev.object);
