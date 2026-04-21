@@ -1038,19 +1038,56 @@
           </select>
         </div>
       </div>
-      <!-- Weathermap: Von/Nach-Host -->
+      <!-- Weathermap: Host + Service + Perfdata -->
       <div id="dlg-ln-wm-wrap" style="display:none;margin-top:8px">
         <div class="f-row f-row-inline">
           <div style="flex:1">
-            <label class="f-label" for="dlg-ln-wm-from">Von (host_from)</label>
-            <input class="f-input" id="dlg-ln-wm-from" type="text" placeholder="Host A" autocomplete="off" list="known-ln-wm-hosts">
+            <label class="f-label" for="dlg-ln-wm-host">Host</label>
+            <input class="f-input" id="dlg-ln-wm-host" type="text" placeholder="Hostname" autocomplete="off"
+                   list="known-ln-wm-hosts" oninput="_dlgLnWmHostChange()">
+            <datalist id="known-ln-wm-hosts"></datalist>
           </div>
           <div style="flex:1">
-            <label class="f-label" for="dlg-ln-wm-to">Nach (host_to)</label>
-            <input class="f-input" id="dlg-ln-wm-to" type="text" placeholder="Host B" autocomplete="off" list="known-ln-wm-hosts">
+            <label class="f-label" for="dlg-ln-wm-service">Service</label>
+            <input class="f-input" id="dlg-ln-wm-service" type="text" placeholder="z.B. Traffic_eth0" autocomplete="off"
+                   list="known-ln-wm-services">
+            <datalist id="known-ln-wm-services"></datalist>
           </div>
         </div>
-        <datalist id="known-ln-wm-hosts"></datalist>
+        <div class="f-row f-row-inline" style="margin-top:6px">
+          <div style="flex:1">
+            <label class="f-label" for="dlg-ln-wm-perf-out">Perfdata Out <span style="color:var(--text-dim);font-size:10px">(Metrik-Name)</span></label>
+            <input class="f-input" id="dlg-ln-wm-perf-out" type="text" placeholder="out" value="out">
+          </div>
+          <div style="flex:1">
+            <label class="f-label" for="dlg-ln-wm-perf-in">Perfdata In</label>
+            <input class="f-input" id="dlg-ln-wm-perf-in" type="text" placeholder="in" value="in">
+          </div>
+        </div>
+        <div class="f-row" style="margin-top:6px">
+          <label class="f-label" for="dlg-ln-wm-bandwidth">Leitungsgeschwindigkeit</label>
+          <select class="f-select" id="dlg-ln-wm-bandwidth">
+            <option value="">auto (aus Perfdata)</option>
+            <option value="10000000">10 Mbit/s</option>
+            <option value="100000000">100 Mbit/s</option>
+            <option value="1000000000">1 Gbit/s</option>
+            <option value="10000000000">10 Gbit/s</option>
+            <option value="25000000000">25 Gbit/s</option>
+            <option value="40000000000">40 Gbit/s</option>
+            <option value="100000000000">100 Gbit/s</option>
+          </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin-top:6px">
+          <div>
+            <label class="f-label" for="dlg-ln-wm-label-size">Schriftgröße Labels (px)</label>
+            <input class="f-input" id="dlg-ln-wm-label-size" type="number" min="8" max="60" step="1" value="22">
+          </div>
+          <div>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;white-space:nowrap;padding-bottom:6px">
+              <input type="checkbox" id="dlg-ln-wm-show-labels" checked> Labels anzeigen
+            </label>
+          </div>
+        </div>
       </div>
       <!-- Service-Linie: Host + Service -->
       <div id="dlg-ln-svc-wrap" style="display:none;margin-top:8px">

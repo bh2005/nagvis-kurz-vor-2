@@ -90,7 +90,7 @@ Vollständige Liste aller implementierten Features, geordnet nach Bereich.
 | ▬ Linear (H/V) | Horizontaler oder vertikaler Balken |
 | 〜 Sparkline | Zeitverlaufskurve (konfigurierbarer History-Puffer) |
 | 🌡 Thermometer | Füllstand / Temperatur |
-| → Flow / Weather | Uni- oder bidirektionale Durchflussanzeige |
+| → Flow / Weather | Uni- oder bidirektionale Durchflussanzeige (Weathermap-Darstellung) |
 | 🔢 Raw-Number | Numerischer Wert (Divisor, Einheit, Nachkommastellen) |
 | 📊 Graph / iframe | Externe Grafik einbetten (Grafana-Panel, Checkmk-Graph, beliebige URL) |
 
@@ -99,6 +99,17 @@ Alle Gadgets:
 - Backend pro Gadget wählbar
 - Live-Vorschau im Konfigurations-Dialog
 - **Live-Tooltip**: Mouseover zeigt aktuellen Wert aus `perfdataCache`, alle Metriken des Services, Service-Status und Plugin-Ausgabe
+
+**Flow / Weather-Gadget** (Detail):
+
+| Feature | Beschreibung |
+|---|---|
+| Bidirektional | Separate Metriken für Out (`metric_out`) und In (`metric_in`) konfigurierbar |
+| Bandbreiten-Selector | Dropdown: auto / 10M / 100M / 1G / 10G / 25G / 40G / 100G Bit/s; Grundlage für %-Berechnung |
+| Einheit automatisch | Unit wird aus Perfdata gelesen (nicht im Dialog konfiguriert); leere Unit = Bytes/s → automatisch × 8 für Bit-Darstellung |
+| Warn/Crit aus Perfdata | Farb-Schwellwerte basieren auf den tatsächlichen Perfdata-Warn/Crit-Werten (nicht hartkodiert) |
+| Bit-Umrechnung | `_fmtBw()` unterstützt `b`, `B`, `bit`, `Bit`, `kbit`, `mbit`, `gbit` sowie leerem Unit (= Bytes/s) |
+| Max-Berechnung | `bandwidth / 8` (Bytes/s) wenn konfiguriert; sonst `max` aus Perfdata; Fallback 1000 |
 
 **Graph-Gadget** zusätzlich:
 - Einbettung via `<iframe>` (Standard) oder `<img>` (für PNG-Render-APIs)

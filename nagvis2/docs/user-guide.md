@@ -361,7 +361,19 @@ Statt zweier Hosts kann eine Weathermap-Linie auch mit **einem Host + einem Serv
 | **Perfdata Out** | Name der Ausgehend-Metrik in den Perfdata (z.B. `traffic_out`) |
 | **Perfdata In** | Name der Eingehend-Metrik (z.B. `traffic_in`) |
 
-Die Labels der beiden Linienhälften aktualisieren sich bei jedem Status-Update automatisch mit den Live-Werten aus den Perfdata. Die Linienfarbe folgt dem Service-Status (OK/WARN/CRIT).
+Die Labels der beiden Linienhälften aktualisieren sich bei jedem Status-Update automatisch. Wenn die Perfdata einen `max`-Wert liefern (Leitungskapazität), wird die Auslastung berechnet und nach folgender Skala eingefärbt:
+
+| Auslastung | Farbe |
+|---|---|
+| 0–10 % | Lila |
+| 10–25 % | Blau |
+| 25–40 % | Hellblau |
+| 40–55 % | Grün |
+| 55–70 % | Gelb |
+| 70–85 % | Orange |
+| 85–100 % | Rot |
+
+Labels zeigen Rohwert + Auslastung in Klammern, z.B. `42 Mbit/s (34%)`. Wenn kein `max`-Wert vorhanden ist, wird die Farbe aus dem Service-Status (OK/WARN/CRIT) genommen. Unterstützte Perfdata-Formate: direkte Prozentangabe (UOM `%`) oder Byte-Rate mit `max`-Wert (z.B. `in=7196;;;0;1250000`).
 
 #### Endpunkte verschieben
 

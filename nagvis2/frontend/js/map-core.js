@@ -709,20 +709,28 @@ window._dlgLnTypeChange = function() {
   if (svcWrap)     svcWrap.style.display     = type === 'service'    ? '' : 'none';
   if (widthEl)     widthEl.value             = type === 'static'     ? 1  : 4;
 
-  // Host-Datalist befüllen (einmalig beim Öffnen des jeweiligen Felds)
+  // Host-Datalists befüllen
   const hosts = Object.keys(window.hostCache ?? {}).filter(k => !k.includes('::'));
   const hostOpts = hosts.map(h => `<option value="${h}">`).join('');
-  const wmDl = document.getElementById('known-ln-wm-hosts');
-  if (wmDl) wmDl.innerHTML = hostOpts;
-  const svcDl = document.getElementById('known-ln-svc-hosts');
-  if (svcDl) svcDl.innerHTML = hostOpts;
+  ['known-ln-wm-hosts', 'known-ln-svc-hosts'].forEach(id => {
+    const dl = document.getElementById(id);
+    if (dl) dl.innerHTML = hostOpts;
+  });
 
   const hints = {
     static:     'Endpunkt liegt 20 % rechts vom Startpunkt. Stil per Rechtsklick nachträglich anpassen.',
-    weathermap: 'Von/Nach-Host optional — Farbe folgt dem schlechtesten Status. Nachträglich per Rechtsklick änderbar.',
+    weathermap: 'Farbe nach Auslastung (7-stufige Skala). Metriknamen sind meist "in" und "out".',
     service:    'Linie färbt sich entsprechend dem Service-Status. Nachträglich per Rechtsklick änderbar.',
   };
   if (hint) hint.textContent = hints[type] ?? '';
+};
+
+window._dlgLnWmHostChange = function() {
+  const host = document.getElementById('dlg-ln-wm-host')?.value.trim() ?? '';
+  const dl   = document.getElementById('known-ln-wm-services');
+  if (!dl) return;
+  const svcs = (host && window.serviceCache?.[host]) ?? [];
+  dl.innerHTML = svcs.map(s => `<option value="${s}">`).join('');
 };
 
 window._dlgLnSvcHostChange = function() {
@@ -756,8 +764,14 @@ async function confirmAddObject() {
     const lineWidth  = parseInt(document.getElementById('dlg-ln-width').value) || (lineType === 'static' ? 1 : 4);
     const arrowStyle = document.getElementById('dlg-ln-arrow')?.value      ?? 'chevron';
     const arrowSize  = document.getElementById('dlg-ln-arrow-size')?.value ?? 'md';
-    const wmFrom     = document.getElementById('dlg-ln-wm-from')?.value.trim()    || undefined;
-    const wmTo       = document.getElementById('dlg-ln-wm-to')?.value.trim()      || undefined;
+    const wmHost     = document.getElementById('dlg-ln-wm-host')?.value.trim()     || undefined;
+    const wmService  = document.getElementById('dlg-ln-wm-service')?.value.trim()  || undefined;
+    const wmPerfOut  = document.getElementById('dlg-ln-wm-perf-out')?.value.trim() || 'out';
+    const wmPerfIn   = document.getElementById('dlg-ln-wm-perf-in')?.value.trim()  || 'in';
+    const wmBwVal     = document.getElementById('dlg-ln-wm-bandwidth')?.value;
+    const wmBandwidth = wmBwVal ? parseFloat(wmBwVal) : null;
+    const wmLabelSize = parseInt(document.getElementById('dlg-ln-wm-label-size')?.value) || 22;
+    const wmShowLbls  = document.getElementById('dlg-ln-wm-show-labels')?.checked ?? true;
     const svcHost    = document.getElementById('dlg-ln-svc-host')?.value.trim()    || undefined;
     const svcService = document.getElementById('dlg-ln-svc-service')?.value.trim() || undefined;
     const svcLabel   = document.getElementById('dlg-ln-svc-label')?.value.trim()   || undefined;
@@ -765,9 +779,14 @@ async function confirmAddObject() {
       x2: parseFloat(pos.x) + 20, y2: parseFloat(pos.y),
       line_style: lineStyle, line_width: lineWidth,
       ...(lineType === 'static'     ? { color: document.getElementById('dlg-ln-color').value } : {}),
-      ...(lineType === 'weathermap' ? { line_type: 'weathermap', line_split: true, arrow_style: arrowStyle, arrow_size: arrowSize,
-                                        ...(wmFrom ? { host_from: wmFrom } : {}),
-                                        ...(wmTo   ? { host_to:   wmTo   } : {}) } : {}),
+      ...(lineType === 'weathermap' ? { line_type: 'weathermap', line_split: true,
+                                        arrow_style: arrowStyle, arrow_size: arrowSize,
+                                        ...(wmBandwidth !== null ? { bandwidth: wmBandwidth } : {}),
+                                        label_size: wmLabelSize, show_labels: wmShowLbls,
+                                        ...(wmHost    ? { host_name:           wmHost,
+                                                          service_description: wmService,
+                                                          perf_label_out:      wmPerfOut,
+                                                          perf_label_in:       wmPerfIn  } : {}) } : {}),
       ...(lineType === 'service'    ? { line_type: 'service', arrow_style: arrowStyle, arrow_size: arrowSize,
                                         ...(svcHost    ? { host_name:           svcHost    } : {}),
                                         ...(svcService ? { service_description: svcService } : {}),
