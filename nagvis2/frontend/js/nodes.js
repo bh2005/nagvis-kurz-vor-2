@@ -490,23 +490,53 @@ function _applyGadgetPerfdata() {
     const pd     = (bidKey && perfdataCache[bidKey]) || perfdataCache[key];
     if (!pd) return;
 
-    // Metrik suchen: perf_label → metric (case-insensitive) → erste Metrik
-    const searchLabel = (cfg.perf_label || cfg.metric || '').toLowerCase();
-    const metric =
-      pd[cfg.perf_label || cfg.metric] ??
-      Object.entries(pd).find(([k]) => k.toLowerCase() === searchLabel)?.[1] ??
-      Object.values(pd)[0];
+    const liveCfg = { ...cfg };
 
-    if (!metric || metric.value == null) return;
+    if (cfg.type === 'weather' && cfg.direction === 'both') {
+      // Bidirektional: zwei separate Metriken nachschlagen
+      const findMetric = name => {
+        const nl = name.toLowerCase();
+        return pd[name] ?? Object.entries(pd).find(([k]) => k.toLowerCase() === nl)?.[1] ?? null;
+      };
+      const mOut = findMetric(cfg.metric_out || 'out');
+      const mIn  = findMetric(cfg.metric_in  || 'in');
+      if (!mOut && !mIn) return;
+      if (mOut) liveCfg.value_out = mOut.value;
+      if (mIn)  liveCfg.value_in  = mIn.value;
+      // Einheit und Grenzen aus der Out-Metrik (primär)
+      const mRef = mOut ?? mIn;
+      liveCfg.value = mRef.value;
+      liveCfg.unit = mRef.unit || '';
+      if (!cfg.bandwidth && mRef.warn != null)         liveCfg.warning  = mRef.warn;
+      if (!cfg.bandwidth && mRef.crit != null)         liveCfg.critical = mRef.crit;
+      liveCfg.min = 0;
+      if (!cfg.bandwidth && mRef.max  != null)         liveCfg.max      = mRef.max;
+    } else {
+      // Einfacher Modus: eine Metrik
+      const searchLabel = (cfg.perf_label || cfg.metric || '').toLowerCase();
+      const metric =
+        pd[cfg.perf_label || cfg.metric] ??
+        Object.entries(pd).find(([k]) => k.toLowerCase() === searchLabel)?.[1] ??
+        Object.values(pd)[0];
 
-    // Live-Konfiguration zusammenbauen:
-    // Eigene warn/crit/min/max aus Gadget-Config haben Vorrang vor Perfdata-Werten
-    const liveCfg = { ...cfg, value: metric.value };
-    if (!cfg.unit)                        liveCfg.unit     = metric.unit || '';
-    if (cfg.warning  == null && metric.warn != null) liveCfg.warning  = metric.warn;
-    if (cfg.critical == null && metric.crit != null) liveCfg.critical = metric.crit;
-    if (cfg.min      == null && metric.min  != null) liveCfg.min      = metric.min;
-    if (cfg.max      == null && metric.max  != null) liveCfg.max      = metric.max;
+      if (!metric || metric.value == null) return;
+
+      liveCfg.value = metric.value;
+      if (!cfg.unit)                          liveCfg.unit     = metric.unit || '';
+      if (cfg.type === 'weather') {
+        // Flow-Gadget: Einheit und Grenzen immer aus Perfdata (außer bandwidth gesetzt)
+        liveCfg.unit = metric.unit || '';
+        if (!cfg.bandwidth && metric.warn != null) liveCfg.warning  = metric.warn;
+        if (!cfg.bandwidth && metric.crit != null) liveCfg.critical = metric.crit;
+        liveCfg.min = 0;
+        if (!cfg.bandwidth && metric.max  != null) liveCfg.max      = metric.max;
+      } else {
+        if (cfg.warning  == null && metric.warn != null) liveCfg.warning  = metric.warn;
+        if (cfg.critical == null && metric.crit != null) liveCfg.critical = metric.crit;
+        if (cfg.min      == null && metric.min  != null) liveCfg.min      = metric.min;
+        if (cfg.max      == null && metric.max  != null) liveCfg.max      = metric.max;
+      }
+    }
 
     updateGadget(el, liveCfg);
   });
@@ -597,10 +627,14 @@ function openGadgetConfigDialog(el, obj) {
           <input class="f-input" id="gc-metric" type="text" placeholder="z.B. CPU Auslastung"
                  value="${esc(cfg.metric || '')}">
         </div>
-        <div id="gc-unit-col">
+        <div id="gc-unit-col" ${cfg.type==='weather'?'style="display:none"':''}>
           <label class="f-label">Einheit</label>
-          <input class="f-input" id="gc-unit" type="text" placeholder="%, Mbps, °C …"
-                 value="${esc(cfg.unit || '%')}" style="max-width:80px">
+          <select class="f-input" id="gc-unit" style="max-width:110px">
+            ${[['%','%'],['','(leer) bytes/s'],['B/s','B/s'],['KB/s','KB/s'],['MB/s','MB/s'],
+               ['Mbps','Mbps'],['Gbps','Gbps'],['ms','ms'],['s','s'],['°C','°C'],['°F','°F'],
+               ['MB','MB'],['GB','GB'],['W','W'],['V','V'],['dBm','dBm'],['rpm','rpm'],['Hz','Hz']
+              ].map(([v,l])=>`<option value="${esc(v)}" ${(cfg.unit??'%')===v?'selected':''}>${esc(l)}</option>`).join('')}
+          </select>
         </div>
       </div>
       <div id="gc-graph-row" style="margin-top:8px;${cfg.type==='graph'?'':'display:none'}">
@@ -626,7 +660,7 @@ function openGadgetConfigDialog(el, obj) {
           <input class="f-input" id="gc-graph-refresh" type="number" min="0" step="30" value="${cfg.refresh??0}" style="max-width:90px">
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-top:8px" id="gc-minmax-row">
+      <div style="display:${(cfg.type==='weather'||cfg.type==='graph'||cfg.type==='sparkline')?'none':'grid'};grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-top:8px" id="gc-minmax-row">
         <div><label class="f-label">Min</label><input class="f-input" id="gc-min" type="number" value="${cfg.min ?? 0}"></div>
         <div><label class="f-label">Max</label><input class="f-input" id="gc-max" type="number" value="${cfg.max ?? 100}"></div>
         <div><label class="f-label">Warning</label><input class="f-input" id="gc-warning" type="number" value="${cfg.warning ?? 70}" style="border-color:var(--warn)"></div>
@@ -640,9 +674,24 @@ function openGadgetConfigDialog(el, obj) {
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="gc-direction" value="both" ${cfg.direction==='both'?'checked':''}><span>⇄ Bidirektional</span></label>
         </div>
       </div>
+      <div id="gc-bandwidth-row" style="margin-top:8px;${cfg.type==='weather'?'':'display:none'}">
+        <label class="f-label">Leitungsbandbreite (Mbit/s)
+          <span style="color:var(--text-dim);font-weight:400">(für % – leer = max aus Perfdata)</span>
+        </label>
+        <select class="f-input" id="gc-bandwidth" style="max-width:160px">
+          <option value=""    ${!cfg.bandwidth?'selected':''}>auto (aus Perfdata)</option>
+          <option value="10000000"   ${cfg.bandwidth===10000000  ?'selected':''}>10 Mbit/s</option>
+          <option value="100000000"  ${cfg.bandwidth===100000000 ?'selected':''}>100 Mbit/s</option>
+          <option value="1000000000" ${cfg.bandwidth===1000000000?'selected':''}>1 Gbit/s</option>
+          <option value="10000000000" ${cfg.bandwidth===10000000000?'selected':''}>10 Gbit/s</option>
+          <option value="25000000000" ${cfg.bandwidth===25000000000?'selected':''}>25 Gbit/s</option>
+          <option value="40000000000" ${cfg.bandwidth===40000000000?'selected':''}>40 Gbit/s</option>
+          <option value="100000000000" ${cfg.bandwidth===100000000000?'selected':''}>100 Gbit/s</option>
+        </select>
+      </div>
       <div id="gc-inout-row" style="display:${cfg.direction==='both'?'grid':'none'};grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
-        <div><label class="f-label">↑ Ausgehend (Out)</label><input class="f-input" id="gc-value-out" type="number" value="${cfg.value_out ?? cfg.value ?? 0}" min="0"></div>
-        <div><label class="f-label">↓ Eingehend (In)</label><input class="f-input" id="gc-value-in" type="number" value="${cfg.value_in ?? 0}" min="0"></div>
+        <div><label class="f-label">↑ Metrik Out (Perfdata-Name)</label><input class="f-input" id="gc-metric-out" type="text" placeholder="out" value="${esc(cfg.metric_out || 'out')}"></div>
+        <div><label class="f-label">↓ Metrik In (Perfdata-Name)</label><input class="f-input" id="gc-metric-in" type="text" placeholder="in" value="${esc(cfg.metric_in || 'in')}"></div>
       </div>
       <div id="gc-orientation-row" style="margin-top:8px;${cfg.type==='linear'?'':'display:none'}">
         <label class="f-label">Orientierung</label>
@@ -705,10 +754,11 @@ function openGadgetConfigDialog(el, obj) {
   _gcUpdatePreview();
   _gcUpdatePerfLabels();
   ['gc-metric','gc-unit','gc-min','gc-max','gc-warning','gc-critical','gc-demo-value','gc-size',
-   'gc-history-points','gc-decimals','gc-divide','gc-display-unit','gc-value-out','gc-value-in',
+   'gc-history-points','gc-decimals','gc-divide','gc-display-unit','gc-metric-out','gc-metric-in',
    'gc-graph-url','gc-graph-width','gc-graph-height']
     .forEach(id => document.getElementById(id)?.addEventListener('input', _gcUpdatePreview));
   document.getElementById('gc-graph-embed')?.addEventListener('change', _gcUpdatePreview);
+  document.getElementById('gc-unit')?.addEventListener('change', _gcUpdatePreview);
   document.getElementById('gc-service')?.addEventListener('input', _gcUpdatePerfLabels);
 }
 
@@ -719,6 +769,7 @@ window._gcSelectType = function(btn) {
   const isGraph = type === 'graph';
   const mmRow   = document.getElementById('gc-minmax-row');
   const dirRow  = document.getElementById('gc-direction-row');
+  const bwRow   = document.getElementById('gc-bandwidth-row');
   const divRow  = document.getElementById('gc-divide-row');
   const orRow   = document.getElementById('gc-orientation-row');
   const spkRow  = document.getElementById('gc-sparkline-row');
@@ -731,14 +782,15 @@ window._gcSelectType = function(btn) {
 
   // Metrik-Zeile: für graph nur Label (Titel), keine Einheit
   if (lbl)     lbl.textContent      = isGraph ? 'Titel / Beschriftung' : 'Bezeichnung (Label)';
-  if (unitCol) unitCol.style.display = isGraph ? 'none' : '';
+  if (unitCol) unitCol.style.display = (isGraph || type === 'weather') ? 'none' : '';
 
   // Sektionen ein-/ausblenden
   if (dsRow)   dsRow.style.display   = isGraph ? 'none' : '';
   if (grpRow)  grpRow.style.display  = isGraph ? 'block' : 'none';
   if (demoRow) demoRow.style.display = isGraph ? 'none' : '';
-  if (mmRow)   mmRow.style.display   = (isGraph || type === 'sparkline') ? 'none' : 'grid';
+  if (mmRow)   mmRow.style.display   = (isGraph || type === 'sparkline' || type === 'weather') ? 'none' : 'grid';
   if (dirRow)  dirRow.style.display  = type === 'weather'   ? 'block' : 'none';
+  if (bwRow)   bwRow.style.display   = type === 'weather'   ? 'block' : 'none';
   if (divRow)  divRow.style.display  = type === 'rawnumber' ? 'block' : 'none';
   if (orRow)   orRow.style.display   = type === 'linear'    ? 'block' : 'none';
   if (spkRow)  spkRow.style.display  = type === 'sparkline' ? 'block' : 'none';
@@ -774,8 +826,8 @@ window._gcUpdatePreview = function() {
   const decimals    = parseInt(document.getElementById('gc-decimals')?.value)        || 0;
   const divide      = parseFloat(document.getElementById('gc-divide')?.value)       || 1;
   const displayUnit = document.getElementById('gc-display-unit')?.value?.trim()     || '';
-  const valueOut    = parseFloat(document.getElementById('gc-value-out')?.value)    || value;
-  const valueIn     = parseFloat(document.getElementById('gc-value-in')?.value)     || 0;
+  const valueOut    = value;
+  const valueIn     = value * 0.5;
 
   const _demoHist = [30,45,52,38,61,55,70,65,48,58,72,68,80,75,62,68,55,70,65,78,75,60,65,58,72];
   const tmpCfg = { type, metric, unit, min, max, warning, critical, value,
@@ -887,8 +939,10 @@ window._gcSave = async function(objectId) {
   const displayUnit = document.getElementById('gc-display-unit')?.value.trim()      || '';
   const decimals    = parseInt(document.getElementById('gc-decimals')?.value)        || 0;
   const histPoints  = parseInt(document.getElementById('gc-history-points')?.value)  || 25;
-  const valueOut    = parseFloat(document.getElementById('gc-value-out')?.value)    || value;
-  const valueIn     = parseFloat(document.getElementById('gc-value-in')?.value)     || 0;
+  const metricOut   = document.getElementById('gc-metric-out')?.value.trim()        || 'out';
+  const metricIn    = document.getElementById('gc-metric-in')?.value.trim()         || 'in';
+  const bandwidthRaw = document.getElementById('gc-bandwidth')?.value               || '';
+  const bandwidth   = bandwidthRaw ? parseFloat(bandwidthRaw) : null;
   const backendId   = document.getElementById('gc-backend-id')?.value               || null;
 
   let newCfg;
@@ -901,11 +955,15 @@ window._gcSave = async function(objectId) {
     newCfg = { type, url: gUrl, embed: gEmbed, width: gWidth, height: gHeight,
                metric, ...(gRefresh > 0 ? { refresh: gRefresh } : {}) };
   } else {
-    newCfg = { type, metric, unit, min, max, warning, critical, value,
+    newCfg = { type, metric,
+      // Einheit und min/max/warning/critical nicht für weather speichern –
+      // diese kommen beim Flow-Gadget immer aus den Perfdata
+      ...(type !== 'weather' ? { unit, min, max, warning, critical } : {}),
+      value,
       ...(type === 'linear'    ? { orientation: orientation !== 'horizontal' ? orientation : undefined } : {}),
       ...(type === 'sparkline' ? { history_points: histPoints !== 25 ? histPoints : undefined } : {}),
       ...(type === 'rawnumber' ? { divide: divide !== 1 ? divide : undefined, display_unit: displayUnit || undefined, decimals: decimals || undefined } : {}),
-      ...(type === 'weather'   ? { direction, ...(direction === 'both' ? { value_out: valueOut, value_in: valueIn } : {}) } : {}),
+      ...(type === 'weather'   ? { direction, ...(bandwidth != null ? { bandwidth } : {}), ...(direction === 'both' ? { metric_out: metricOut, metric_in: metricIn } : {}) } : {}),
       ...(hostName  ? { host_name: hostName }                  : {}),
       ...(svcName   ? { service_description: svcName }         : {}),
       ...(perfLabel ? { perf_label: perfLabel }                : {}),
@@ -1043,13 +1101,13 @@ function _ensureLineDefs(svg) {
   const defs = document.createElementNS(NS, 'defs');
   defs.id = 'nv2-line-defs';
 
-  // Path-Marker (chevron / thin) in 3 Größen
-  const addPathMkr = (id, mw, mh, d) => {
+  // Path-Marker (chevron / thin) in 3 Größen, optional orient
+  const addPathMkr = (id, mw, mh, d, orient = 'auto') => {
     const m = document.createElementNS(NS, 'marker');
     m.setAttribute('id', id); m.setAttribute('viewBox', '0 0 10 10');
     m.setAttribute('refX', '10'); m.setAttribute('refY', '5');
     m.setAttribute('markerWidth', mw); m.setAttribute('markerHeight', mh);
-    m.setAttribute('markerUnits', 'strokeWidth'); m.setAttribute('orient', 'auto');
+    m.setAttribute('markerUnits', 'strokeWidth'); m.setAttribute('orient', orient);
     const p = document.createElementNS(NS, 'path');
     p.setAttribute('d', d); p.setAttribute('fill', 'context-stroke');
     m.appendChild(p); defs.appendChild(m);
@@ -1071,6 +1129,10 @@ function _ensureLineDefs(svg) {
     addPathMkr(`nv2-arr-chevron${sfx}`, mv, mv, 'M0,0 L10,5 L0,10 Z');
     addPathMkr(`nv2-arr-thin${sfx}`,    mv, mv, 'M0,0 L10,5 L0,10 L2.5,5 Z');
     addDotMkr (`nv2-arr-dot${sfx}`,     mv, mv);
+    // Rückwärts-Varianten für marker-start (zeigen weg vom Linienstartpunkt)
+    addPathMkr(`nv2-arr-chevron${sfx}-rev`, mv, mv, 'M0,0 L10,5 L0,10 Z',       'auto-start-reverse');
+    addPathMkr(`nv2-arr-thin${sfx}-rev`,    mv, mv, 'M0,0 L10,5 L0,10 L2.5,5 Z','auto-start-reverse');
+    addDotMkr (`nv2-arr-dot${sfx}-rev`,     mv, mv);
   }
   svg.insertBefore(defs, svg.firstChild);
 }
@@ -1088,12 +1150,17 @@ function _arrowSizeSuffix(obj) {
   return sz === 'md' ? '' : `-${sz}`;
 }
 
-// Setzt oder entfernt marker-end auf einem SVG-Linienelement.
-function _applyArrow(el, arrowStyle, obj) {
+// Setzt Pfeile auf einem SVG-Linienelement.
+// mode: 'end' (vorwärts), 'start' (rückwärts), 'both' (beidseitig)
+function _applyArrow(el, arrowStyle, obj, mode = 'end') {
+  const sfx = _arrowSizeSuffix(obj);
   if (!arrowStyle || arrowStyle === 'none') {
-    el.removeAttribute('marker-end');
+    el.removeAttribute('marker-end'); el.removeAttribute('marker-start');
   } else {
-    el.setAttribute('marker-end', `url(#nv2-arr-${arrowStyle}${_arrowSizeSuffix(obj)})`);
+    if (mode === 'end'  || mode === 'both') el.setAttribute('marker-end',   `url(#nv2-arr-${arrowStyle}${sfx})`);
+    else                                    el.removeAttribute('marker-end');
+    if (mode === 'start' || mode === 'both') el.setAttribute('marker-start', `url(#nv2-arr-${arrowStyle}${sfx}-rev)`);
+    else                                     el.removeAttribute('marker-start');
   }
 }
 
@@ -1118,7 +1185,8 @@ function _renderServiceLine(obj, svg) {
   seg1.classList.add('wm-seg-from');
   const seg2 = _wmSegment(mx, my, x2, y2, col, w, obj.line_style);
   seg2.classList.add('wm-seg-to');
-  _applyArrow(seg2, _resolveArrowStyle(obj), obj);
+  _applyArrow(seg1, _resolveArrowStyle(obj), obj, 'start');
+  _applyArrow(seg2, _resolveArrowStyle(obj), obj, 'end');
   g.appendChild(seg1);
   g.appendChild(seg2);
 
@@ -1234,13 +1302,55 @@ function _updateServiceLines() {
   });
 }
 
-// Gibt den Live-Wert einer Perfdata-Metrik als formatierten String zurück.
-// Fallback: manuelles Label oder ''.
-function _wmLiveLabel(hostName, svcName, perfKey, fallback) {
+// 7-stufige Auslastungs-Farbskala (Original NagVis Weathermap)
+const _WM_UTIL_COLORS = [
+  [10,  '#8c00ff'],
+  [25,  '#2020ff'],
+  [40,  '#00c0ff'],
+  [55,  '#00f000'],
+  [70,  '#f0f000'],
+  [85,  '#ffc000'],
+  [Infinity, '#ff0000'],
+];
+function _wmUtilColor(pct) {
+  if (pct === null || pct === undefined) return null;
+  for (const [thresh, col] of _WM_UTIL_COLORS) if (pct < thresh) return col;
+  return '#ff0000';
+}
+
+// Berechnet Auslastung 0-100 aus Perfdata-Metrik.
+// bandwidth (bits/s): überschreibt Perfdata-Max wenn gesetzt.
+function _wmCalcUtil(hostName, svcName, perfKey, bandwidth) {
+  if (!hostName || !svcName || !perfKey) return null;
+  const pd = perfdataCache[`${hostName}::${svcName}`];
+  if (!pd) return null;
+  const m = pd[perfKey] ?? Object.entries(pd).find(([k]) => k.toLowerCase() === perfKey.toLowerCase())?.[1];
+  if (m == null) return null;
+  const val   = typeof m === 'object' ? m.value : m;
+  const unit  = typeof m === 'object' ? (m.unit ?? '') : '';
+  const pdMax = typeof m === 'object' ? m.max  : null;
+  if (unit === '%') return Math.min(100, Math.max(0, val));
+  const maxBps = bandwidth ? bandwidth / 8 : (pdMax != null && pdMax > 0 ? pdMax : null);
+  if (maxBps != null && maxBps > 0) return Math.min(100, Math.max(0, val / maxBps * 100));
+  return null;
+}
+
+// Gibt den Live-Wert als formatierten String zurück.
+// bandwidth (bits/s): überschreibt Perfdata-Max für Prozentberechnung.
+function _wmLiveLabel(hostName, svcName, perfKey, fallback, bandwidth) {
   if (perfKey) {
     const pd = perfdataCache[`${hostName}::${svcName}`];
     const m  = pd?.[perfKey] ?? Object.entries(pd ?? {}).find(([k]) => k.toLowerCase() === perfKey.toLowerCase())?.[1];
-    if (m != null) return `${_fmtVal(typeof m === 'object' ? m.value : m)}${(typeof m === 'object' ? m.unit : '') || ''}`;
+    if (m != null) {
+      const val   = typeof m === 'object' ? m.value : m;
+      const unit  = typeof m === 'object' ? (m.unit ?? '') : '';
+      const pdMax = typeof m === 'object' ? m.max  : null;
+      if (unit === '%') return `${_fmtVal(val)}%`;
+      const maxBps = bandwidth ? bandwidth / 8 : (pdMax != null && pdMax > 0 ? pdMax : null);
+      const pct = maxBps ? Math.min(100, Math.max(0, val / maxBps * 100)) : null;
+      const valStr = unit === '' ? _fmtBitRate(val) : `${_fmtVal(val)}${unit}`;
+      return `${valStr}${pct !== null ? ` (${Math.round(pct)}%)` : ''}`;
+    }
   }
   return fallback ?? '';
 }
@@ -1251,11 +1361,16 @@ function _renderWeathermapLine(obj, svg) {
   const y2 = obj.y2 ?? obj.y;
   const w  = obj.line_width ?? 3;
 
-  // Service-Modus: ein Host + ein Service → Farbe aus Service-Status, Labels aus Perfdata
+  // Service-Modus: Auslastungsfarbe aus Perfdata, Fallback Service-Status
   const isSvcMode = !!(obj.host_name && obj.service_description);
-  const svcCol    = isSvcMode ? _serviceStateColor(obj.host_name, obj.service_description) : null;
-  const colFrom   = svcCol ?? (obj.host_from ? _worstStateColor(obj.host_from) : 'var(--ok)');
-  const colTo     = svcCol ?? (obj.host_to   ? _worstStateColor(obj.host_to)   : 'var(--ok)');
+  const _svcColor = (perfKey) => {
+    const pct = _wmCalcUtil(obj.host_name, obj.service_description, perfKey, obj.bandwidth);
+    return _wmUtilColor(pct) ?? _serviceStateColor(obj.host_name, obj.service_description);
+  };
+  const colFrom = isSvcMode ? _svcColor(obj.perf_label_out)
+                             : (obj.host_from ? _worstStateColor(obj.host_from) : 'var(--ok)');
+  const colTo   = isSvcMode ? _svcColor(obj.perf_label_in)
+                             : (obj.host_to   ? _worstStateColor(obj.host_to)   : 'var(--ok)');
 
   const g   = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   g.id               = `nv2-${obj.object_id}`;
@@ -1274,28 +1389,31 @@ function _renderWeathermapLine(obj, svg) {
     const l2 = _wmSegment(mx, my, x2, y2, colTo,   w, obj.line_style);
     l1.classList.add('wm-seg-from');
     l2.classList.add('wm-seg-to');
-    _applyArrow(l2, _resolveArrowStyle(obj), obj);
+    _applyArrow(l1, _resolveArrowStyle(obj), obj, 'start');
+    _applyArrow(l2, _resolveArrowStyle(obj), obj, 'end');
     g.appendChild(l1);
     g.appendChild(l2);
     const lbFrom = isSvcMode
-      ? _wmLiveLabel(obj.host_name, obj.service_description, obj.perf_label_out, obj.label_from)
+      ? _wmLiveLabel(obj.host_name, obj.service_description, obj.perf_label_out, obj.label_from, obj.bandwidth)
       : (obj.label_from || obj.host_from || '');
     const lbTo = isSvcMode
-      ? _wmLiveLabel(obj.host_name, obj.service_description, obj.perf_label_in,  obj.label_to)
+      ? _wmLiveLabel(obj.host_name, obj.service_description, obj.perf_label_in,  obj.label_to,   obj.bandwidth)
       : (obj.label_to   || obj.host_to   || '');
-    if (lbFrom || lbTo) {
+    const showLbl = obj.show_labels !== false;
+    const lblPx   = `${obj.label_size ?? 22}px`;
+    if (showLbl && (lbFrom || lbTo)) {
       const lf = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       lf.classList.add('wm-label', 'wm-label-from');
       _wmPositionLabel(lf, x1, y1, mx, my, 0.35);
       lf.setAttribute('fill', colFrom);
       lf.textContent = lbFrom;
-      lf.style.fontSize = '9px'; lf.style.fontFamily = 'monospace';
+      lf.style.fontSize = lblPx; lf.style.fontFamily = 'monospace';
       const lt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       lt.classList.add('wm-label', 'wm-label-to');
       _wmPositionLabel(lt, mx, my, x2, y2, 0.65);
       lt.setAttribute('fill', colTo);
       lt.textContent = lbTo;
-      lt.style.fontSize = '9px'; lt.style.fontFamily = 'monospace';
+      lt.style.fontSize = lblPx; lt.style.fontFamily = 'monospace';
       g.appendChild(lf); g.appendChild(lt);
     }
   } else {
@@ -1305,7 +1423,7 @@ function _renderWeathermapLine(obj, svg) {
               : 'var(--unkn)';
     const segFull = _wmSegment(x1, y1, x2, y2, col, w, obj.line_style);
     segFull.classList.add('wm-seg-to');
-    _applyArrow(segFull, _resolveArrowStyle(obj), obj);
+    _applyArrow(segFull, _resolveArrowStyle(obj), obj, 'both');
     g.appendChild(segFull);
   }
 
@@ -1468,20 +1586,25 @@ function _wmShowTooltip(obj) {
     const s    = hostCache[key];
     const lbl  = s?.state_label ?? 'UNKNOWN';
     const tc   = s?.in_downtime ? 'downtime' : (STATE_CHIP[lbl] ?? 'unkn');
-    const lbOut = _wmLiveLabel(obj.host_name, obj.service_description, obj.perf_label_out, obj.label_from);
-    const lbIn  = _wmLiveLabel(obj.host_name, obj.service_description, obj.perf_label_in,  obj.label_to);
-    const pd    = perfdataCache[key];
+    const pctOut = _wmCalcUtil(obj.host_name, obj.service_description, obj.perf_label_out, obj.bandwidth);
+    const pctIn  = _wmCalcUtil(obj.host_name, obj.service_description, obj.perf_label_in,  obj.bandwidth);
+    const lbOut  = _wmLiveLabel(obj.host_name, obj.service_description, obj.perf_label_out, obj.label_from, obj.bandwidth);
+    const lbIn   = _wmLiveLabel(obj.host_name, obj.service_description, obj.perf_label_in,  obj.label_to,   obj.bandwidth);
+    const colOut = _wmUtilColor(pctOut) ?? 'var(--text)';
+    const colIn  = _wmUtilColor(pctIn)  ?? 'var(--text)';
+    const pd     = perfdataCache[key];
     let rows = `<div class="tt-name">${esc(obj.service_description)}</div>`;
     rows += `<div class="tt-row"><span>Host</span><b>${esc(obj.host_name)}</b></div>`;
     rows += `<div class="tt-row"><span>Status</span><b class="tt-${tc}">${lbl}</b></div>`;
     if (s?.output) rows += `<div class="tt-row"><span>Output</span><b>${esc(s.output.substring(0, 80))}</b></div>`;
-    if (lbOut) rows += `<div class="tt-row"><span>→ Out</span><b>${esc(lbOut)}</b></div>`;
-    if (lbIn)  rows += `<div class="tt-row"><span>← In</span><b>${esc(lbIn)}</b></div>`;
+    if (lbOut) rows += `<div class="tt-row"><span>→ Out</span><b style="color:${colOut}">${esc(lbOut)}</b></div>`;
+    if (lbIn)  rows += `<div class="tt-row"><span>← In</span><b style="color:${colIn}">${esc(lbIn)}</b></div>`;
     if (pd && Object.keys(pd).length) {
       rows += `<div class="tt-row" style="margin-top:4px;border-top:1px solid var(--border);padding-top:4px"><span style="color:var(--text-dim);font-size:10px">Perfdata</span><b></b></div>`;
       Object.entries(pd).forEach(([k, m]) => {
         const mCol = m.crit != null && m.value >= m.crit ? 'crit' : m.warn != null && m.value >= m.warn ? 'warn' : 'ok';
-        rows += `<div class="tt-row"><span>${esc(k)}</span><b class="tt-${mCol}">${_fmtVal(m.value)}${m.unit || ''}</b></div>`;
+        const mDisp = (m.unit == null || m.unit === '') ? _fmtBitRate(m.value) : `${_fmtVal(m.value)}${m.unit}`;
+        rows += `<div class="tt-row"><span>${esc(k)}</span><b class="tt-${mCol}">${mDisp}</b></div>`;
       });
     }
     tt.innerHTML = rows;
@@ -1513,9 +1636,14 @@ function _updateWeathermapLines() {
     const obj = activeMapCfg?.objects?.find(o => o.object_id === oid);
     if (!obj) return;
     const isSvcMode = !!(obj.host_name && obj.service_description);
-    const svcCol    = isSvcMode ? _serviceStateColor(obj.host_name, obj.service_description) : null;
-    const colFrom   = svcCol ?? (obj.host_from ? _worstStateColor(obj.host_from) : 'var(--unkn)');
-    const colTo     = svcCol ?? (obj.host_to   ? _worstStateColor(obj.host_to)   : 'var(--unkn)');
+    const _svcCol = (perfKey) => {
+      const pct = _wmCalcUtil(obj.host_name, obj.service_description, perfKey, obj.bandwidth);
+      return _wmUtilColor(pct) ?? _serviceStateColor(obj.host_name, obj.service_description);
+    };
+    const colFrom = isSvcMode ? _svcCol(obj.perf_label_out)
+                               : (obj.host_from ? _worstStateColor(obj.host_from) : 'var(--unkn)');
+    const colTo   = isSvcMode ? _svcCol(obj.perf_label_in)
+                               : (obj.host_to   ? _worstStateColor(obj.host_to)   : 'var(--unkn)');
     const segFrom = g.querySelector('.wm-seg-from');
     const segTo   = g.querySelector('.wm-seg-to');
     const lblFrom = g.querySelector('.wm-label-from');
@@ -1523,9 +1651,9 @@ function _updateWeathermapLines() {
     if (segFrom) segFrom.setAttribute('stroke', colFrom);
     if (segTo)   segTo  .setAttribute('stroke', colTo);
     if (lblFrom) { lblFrom.setAttribute('fill', colFrom);
-      if (isSvcMode) lblFrom.textContent = _wmLiveLabel(obj.host_name, obj.service_description, obj.perf_label_out, obj.label_from); }
+      if (isSvcMode) lblFrom.textContent = _wmLiveLabel(obj.host_name, obj.service_description, obj.perf_label_out, obj.label_from, obj.bandwidth); }
     if (lblTo)   { lblTo  .setAttribute('fill', colTo);
-      if (isSvcMode) lblTo.textContent   = _wmLiveLabel(obj.host_name, obj.service_description, obj.perf_label_in,  obj.label_to); }
+      if (isSvcMode) lblTo.textContent   = _wmLiveLabel(obj.host_name, obj.service_description, obj.perf_label_in,  obj.label_to,   obj.bandwidth); }
     // marker-end mit context-stroke übernimmt Pfeilfarbe automatisch
   });
 }
@@ -2167,6 +2295,13 @@ function showTooltip(el, obj) {
 }
 
 function _fmtVal(v) { const n = parseFloat(v); if (isNaN(n)) return '–'; return n % 1 === 0 ? String(n) : n.toFixed(1); }
+function _fmtBitRate(bytesPerSec) {
+  const bps = bytesPerSec * 8;
+  if (bps >= 1e9) return `${Math.round(bps / 1e9)} Gbit/s`;
+  if (bps >= 1e6) return `${Math.round(bps / 1e6)} Mbit/s`;
+  if (bps >= 1e3) return `${Math.round(bps / 1e3)} kbit/s`;
+  return `${Math.round(bps)} bit/s`;
+}
 function _pctVal(val, min, max) { return Math.min(100, Math.max(0, ((val - min) / ((max - min) || 1)) * 100)); }
 function hideTooltip() { _activeTooltip?.remove(); _activeTooltip = null; }
 
@@ -3402,9 +3537,31 @@ function openWeathermapLineDlg(lineVis, obj) {
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
           <div><label class="f-label">Perfdata Out <span style="color:var(--text-dim);font-size:10px">(Metrik-Name)</span></label>
-            <input class="f-input" id="wm-perf-out" type="text" placeholder="traffic_out" value="${esc(obj.perf_label_out ?? '')}"></div>
+            <input class="f-input" id="wm-perf-out" type="text" placeholder="out" value="${esc(obj.perf_label_out ?? 'out')}"></div>
           <div><label class="f-label">Perfdata In</label>
-            <input class="f-input" id="wm-perf-in" type="text" placeholder="traffic_in" value="${esc(obj.perf_label_in ?? '')}"></div>
+            <input class="f-input" id="wm-perf-in" type="text" placeholder="in" value="${esc(obj.perf_label_in ?? 'in')}"></div>
+        </div>
+        <div style="margin-top:8px">
+          <label class="f-label">Leitungsgeschwindigkeit <span style="color:var(--text-dim);font-size:10px">(überschreibt Perfdata-Max für %-Berechnung)</span></label>
+          <select class="f-select" id="wm-bandwidth">
+            ${[['','auto (aus Perfdata)'],['10000000','10 Mbit/s'],['100000000','100 Mbit/s'],['1000000000','1 Gbit/s'],['10000000000','10 Gbit/s'],['25000000000','25 Gbit/s'],['40000000000','40 Gbit/s'],['100000000000','100 Gbit/s']].map(([v,l])=>`<option value="${v}" ${String(obj.bandwidth??'')===v?'selected':''}>${l}</option>`).join('')}
+          </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin-top:8px">
+          <div>
+            <label class="f-label">Schriftgröße Labels <span style="color:var(--text-dim);font-size:10px">(px)</span></label>
+            <input class="f-input" id="wm-label-size" type="number" min="8" max="60" step="1" value="${obj.label_size ?? 22}">
+          </div>
+          <div>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;white-space:nowrap;padding-bottom:6px">
+              <input type="checkbox" id="wm-show-labels" ${obj.show_labels !== false ? 'checked' : ''}> Labels anzeigen
+            </label>
+          </div>
+        </div>
+        <!-- Auslastungs-Farbskala Legende -->
+        <div style="margin-top:8px;display:flex;align-items:center;gap:3px;font-size:9px;font-family:monospace">
+          <span style="color:var(--text-dim)">Auslastung:</span>
+          ${_WM_UTIL_COLORS.map(([t,c],i,a)=>{const from=i===0?0:a[i-1][0]; const to=t===Infinity?100:t; return `<span style="background:${c};color:#fff;padding:1px 4px;border-radius:2px" title="${from}–${to}%">${from}%</span>`;}).join('')}
         </div>
         <!-- Zwei-Host-Modus -->
         <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
@@ -3443,8 +3600,8 @@ function openWeathermapLineDlg(lineVis, obj) {
             </defs>
             <line x1="10%" y1="50%" x2="45%" y2="50%" id="wm-prev-from" stroke="var(--ok)"   stroke-width="4" stroke-linecap="round"/>
             <line x1="55%" y1="50%" x2="90%" y2="50%" id="wm-prev-to"   stroke="var(--warn)" stroke-width="4" stroke-linecap="round" marker-end="url(#wm-prev-arr-chevron-md)"/>
-            <text x="25%" y="30%" font-size="8" font-family="monospace" id="wm-prev-lf" fill="var(--ok)"   text-anchor="middle"></text>
-            <text x="72%" y="30%" font-size="8" font-family="monospace" id="wm-prev-lt" fill="var(--warn)" text-anchor="middle"></text>
+            <text x="25%" y="25%" font-size="12" font-family="monospace" id="wm-prev-lf" fill="var(--ok)"   text-anchor="middle"></text>
+            <text x="72%" y="25%" font-size="12" font-family="monospace" id="wm-prev-lt" fill="var(--warn)" text-anchor="middle"></text>
           </svg>
         </div>
       </div>
@@ -3565,8 +3722,12 @@ window._wmDlgSave = async function(objectId) {
   } else {
     const svcHost    = document.getElementById('wm-svc-host')?.value.trim()    || undefined;
     const svcService = document.getElementById('wm-svc-service')?.value.trim() || undefined;
-    const perfOut    = document.getElementById('wm-perf-out')?.value.trim()    || undefined;
-    const perfIn     = document.getElementById('wm-perf-in')?.value.trim()     || undefined;
+    const perfOut    = document.getElementById('wm-perf-out')?.value.trim()    || 'out';
+    const perfIn     = document.getElementById('wm-perf-in')?.value.trim()     || 'in';
+    const bwVal      = document.getElementById('wm-bandwidth')?.value;
+    const bandwidth  = bwVal ? parseFloat(bwVal) : null;
+    const labelSize  = parseInt(document.getElementById('wm-label-size')?.value) || 22;
+    const showLabels = document.getElementById('wm-show-labels')?.checked ?? true;
     const hostFrom   = document.getElementById('wm-host-from')?.value.trim()   || undefined;
     const hostTo     = document.getElementById('wm-host-to')?.value.trim()     || undefined;
     const labelFrom  = document.getElementById('wm-label-from')?.value.trim()  || undefined;
@@ -3579,6 +3740,8 @@ window._wmDlgSave = async function(objectId) {
     props = { line_type: type === 'weathermap' ? 'weathermap' : undefined,
               host_name: svcHost, service_description: svcService,
               perf_label_out: perfOut, perf_label_in: perfIn,
+              bandwidth: bandwidth ?? null,
+              label_size: labelSize, show_labels: showLabels,
               host_from: type === 'weathermap' ? hostFrom : undefined,
               host_to:   type === 'weathermap' ? hostTo   : undefined,
               label_from: labelFrom, label_to: labelTo,

@@ -84,6 +84,9 @@ class ObjectCreate(BaseModel):
     label_to: Optional[str] = None
     perf_label_out: Optional[str] = None
     perf_label_in: Optional[str] = None
+    bandwidth: Optional[float] = None
+    label_size: Optional[int] = None
+    show_labels: Optional[bool] = None
     arrow_style: Optional[str] = None
     arrow_size: Optional[str] = None
     border_color: Optional[str] = None
@@ -128,6 +131,9 @@ class ObjectProps(BaseModel):
     label_to: Optional[str] = None
     perf_label_out: Optional[str] = None
     perf_label_in: Optional[str] = None
+    bandwidth: Optional[float] = None
+    label_size: Optional[int] = None
+    show_labels: Optional[bool] = None
     show_arrow: Optional[bool] = None
     arrow_style: Optional[str] = None
     arrow_size: Optional[str] = None

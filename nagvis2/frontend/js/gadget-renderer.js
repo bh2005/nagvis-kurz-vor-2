@@ -353,12 +353,14 @@ function _weather(cfg) {
 
 /** Einfacher unidirektionaler Flow (→ oder ←) */
 function _weatherOne(cfg) {
-  const max   = cfg.max  || 1000;
-  const pct   = _pct(cfg.value, 0, max);
-  const thick = Math.min(8, Math.max(1.5, pct / 12));
-  const col   = _color(pct);
-  const wX = (8  + _pct(cfg.warning  ?? max*.7, 0, max) / 100 * 80).toFixed(1);
-  const cX = (8  + _pct(cfg.critical ?? max*.9, 0, max) / 100 * 80).toFixed(1);
+  const max     = cfg.bandwidth ? cfg.bandwidth / 8 : (cfg.max || 1000);
+  const pct     = _pct(cfg.value, 0, max);
+  const thick   = Math.min(8, Math.max(1.5, pct / 12));
+  const warnPct = _pct(cfg.warning  ?? max * .7, 0, max);
+  const critPct = _pct(cfg.critical ?? max * .9, 0, max);
+  const col     = _colorW(pct, warnPct, critPct);
+  const wX = (8  + warnPct / 100 * 80).toFixed(1);
+  const cX = (8  + critPct / 100 * 80).toFixed(1);
   const isIn  = cfg.direction === 'in';
   const utilPct = Math.round(pct);
   const bwLabel = _fmtBw(cfg.value, cfg.unit);
@@ -399,17 +401,19 @@ function _weatherOne(cfg) {
 
 /** Bidirektionaler Flow (⇄) */
 function _weatherBoth(cfg) {
-  const max    = cfg.max  || 1000;
-  const valOut = cfg.value_out ?? cfg.value ?? 0;
-  const valIn  = cfg.value_in  ?? 0;
-  const pctOut = _pct(valOut, 0, max);
-  const pctIn  = _pct(valIn,  0, max);
-  const thkOut = Math.min(7, Math.max(1.5, pctOut / 14));
-  const thkIn  = Math.min(7, Math.max(1.5, pctIn  / 14));
-  const colOut = _color(pctOut);
-  const colIn  = _color(pctIn);
-  const wX = (12 + _pct(cfg.warning  ?? max*.7, 0, max) / 100 * 76).toFixed(1);
-  const cX = (12 + _pct(cfg.critical ?? max*.9, 0, max) / 100 * 76).toFixed(1);
+  const max     = cfg.bandwidth ? cfg.bandwidth / 8 : (cfg.max || 1000);
+  const valOut  = cfg.value_out ?? cfg.value ?? 0;
+  const valIn   = cfg.value_in  ?? 0;
+  const pctOut  = _pct(valOut, 0, max);
+  const pctIn   = _pct(valIn,  0, max);
+  const thkOut  = Math.min(7, Math.max(1.5, pctOut / 14));
+  const thkIn   = Math.min(7, Math.max(1.5, pctIn  / 14));
+  const warnPct = _pct(cfg.warning  ?? max * .7, 0, max);
+  const critPct = _pct(cfg.critical ?? max * .9, 0, max);
+  const colOut  = _colorW(pctOut, warnPct, critPct);
+  const colIn   = _colorW(pctIn,  warnPct, critPct);
+  const wX = (12 + warnPct / 100 * 76).toFixed(1);
+  const cX = (12 + critPct / 100 * 76).toFixed(1);
   const unit = cfg.unit || '';
   const bwOut  = _fmtBw(valOut, unit);
   const bwIn   = _fmtBw(valIn,  unit);
@@ -458,15 +462,19 @@ function _updateWeather(el, newVal, max, cfg) {
   const svg = el.querySelector('svg');
   if (!svg) return;
   const isBoth = !!svg.querySelector('.g-wline-out');
-  const _max   = max || 1000;
+  const _max   = cfg?.bandwidth ? cfg.bandwidth / 8 : (max || 1000);
   const unit   = cfg?.unit || '';
 
   if (isBoth) {
     // Bidirektional: newVal = value_out, cfg.value_in für Gegenseite
-    const valOut = newVal ?? 0;
-    const valIn  = cfg?.value_in ?? 0;
-    const pctOut = _pct(valOut, 0, _max), colOut = _color(pctOut);
-    const pctIn  = _pct(valIn,  0, _max), colIn  = _color(pctIn);
+    const valOut  = newVal ?? 0;
+    const valIn   = cfg?.value_in ?? 0;
+    const pctOut  = _pct(valOut, 0, _max);
+    const pctIn   = _pct(valIn,  0, _max);
+    const warnPct = _pct(cfg?.warning  ?? _max * .7, 0, _max);
+    const critPct = _pct(cfg?.critical ?? _max * .9, 0, _max);
+    const colOut  = _colorW(pctOut, warnPct, critPct);
+    const colIn   = _colorW(pctIn,  warnPct, critPct);
     const thkOut = Math.min(7, Math.max(1.5, pctOut / 14));
     const thkIn  = Math.min(7, Math.max(1.5, pctIn  / 14));
 
@@ -486,8 +494,10 @@ function _updateWeather(el, newVal, max, cfg) {
     svg.querySelector('.g-val-pct-in')  && (svg.querySelector('.g-val-pct-in').textContent  = `${Math.round(pctIn)}%`);
   } else {
     // Unidirektional
-    const pct   = _pct(newVal, 0, _max);
-    const col   = _color(pct);
+    const pct     = _pct(newVal, 0, _max);
+    const warnPct = _pct(cfg?.warning  ?? _max * .7, 0, _max);
+    const critPct = _pct(cfg?.critical ?? _max * .9, 0, _max);
+    const col     = _colorW(pct, warnPct, critPct);
     const thick = Math.min(8, Math.max(1.5, pct / 12));
     for (const cls of ['.g-wline', '.g-wflow']) {
       const ln = svg.querySelector(cls);
@@ -510,6 +520,12 @@ function _pct(val, min, max) {
 function _color(pct) {
   if (pct >= 90) return 'var(--crit)';
   if (pct >= 70) return 'var(--warn)';
+  return 'var(--ok)';
+}
+
+function _colorW(pct, warnPct, critPct) {
+  if (pct >= critPct) return 'var(--crit)';
+  if (pct >= warnPct) return 'var(--warn)';
   return 'var(--ok)';
 }
 
@@ -536,6 +552,7 @@ function _fmtBw(val, unit) {
   else if (u.startsWith('byte') || u === 'b/s')                    bits = n * 8;
   else if (u.startsWith('mbyte')|| u === 'mb/s')                   bits = n * 8e6;
   else if (u.startsWith('gbyte')|| u === 'gb/s')                   bits = n * 8e9;
+  else if (u === '')                                                bits = n * 8;  // unit-less perfdata = bytes/s
   // sonst: Wert schon in bit/s (bps, bit/s) oder unbekannte Einheit → direkt verwenden
 
   if (bits >= 1e9)       return `${(bits / 1e9).toFixed(bits >= 100e9 ? 0 : 1)} Gbit/s`;
