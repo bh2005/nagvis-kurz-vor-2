@@ -1,16 +1,16 @@
 # Web Framework & Server
-fastapi>=0.111.0
+fastapi>=0.136.1
 
 # Auth – JWT + Passwort-Hashing + LDAP
 PyJWT>=2.8.0
 bcrypt>=4.0.0
 ldap3>=2.9.1
-uvicorn[standard]>=0.29.0
-python-multipart>=0.0.9
+uvicorn[standard]>=0.46.0
+python-multipart>=0.0.26
 
 # Data Validation
-pydantic>=2.0
-pydantic-settings>=2.0
+pydantic>=2.13.3
+pydantic-settings>=2.14.0
 
 # Help-System (Markdown to HTML)
 markdown2>=2.4.13
