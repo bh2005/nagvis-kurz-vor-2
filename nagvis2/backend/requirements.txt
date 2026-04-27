@@ -13,7 +13,7 @@ pydantic>=2.0
 pydantic-settings>=2.0
 
 # Help-System (Markdown to HTML)
-markdown2>=2.4.13
+markdown2>=2.5.5
 
 # Optional: Falls du später Websockets mit hoher Last nutzt
 websockets>=12.0
