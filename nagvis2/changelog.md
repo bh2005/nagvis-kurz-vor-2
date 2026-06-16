@@ -2,6 +2,66 @@
 
 ---
 
+## [2026-04-21]
+
+### Feature: Flow/Weather-Gadget erweitert — bidirektional, Bandbreite, Warn/Crit aus Perfdata
+- Bidirektionale Anzeige: `metric_out` und `metric_in` als separate konfigurierbare Metriken
+- Bandbreiten-Dropdown: auto / 10M / 100M / 1G / 10G / 25G / 40G / 100G Bit/s — Grundlage für die %-Berechnung (`bandwidth / 8` = max Bytes/s)
+- Unit wird für den Weather-Typ automatisch aus Perfdata gelesen statt im Dialog konfiguriert
+- Warn/Crit-Färbung (`_colorW`) basiert auf den tatsächlichen Perfdata-Schwellwerten statt fest auf 70 %/90 %
+- `_fmtBw()`: leere Unit = Bytes/s, automatische ×8-Umrechnung für Bit-Darstellung
+- `FEATURES.md`, `docs/user-guide.md`, `backend/api/router.py`, `js/gadget-renderer.js`, `js/nodes.js`
+
+### Bugfix: iOS — fehlende `-webkit`-Präfixe für `user-select` und `backdrop-filter`
+- Safari/iOS ignorierte `user-select: none` (Sidebar, Minimap, Overview-Icons) und `backdrop-filter` (Minimap-Hintergrund) ohne `-webkit`-Präfix
+- `css/styles.css`
+
+---
+
+---
+
+## [2026-04-17]
+
+### Feature: Service-Linie — neuer Linientyp mit Status-Farbe, Hover-Tooltip, optionalem Label
+- Neuer Linientyp `service`: Farbe folgt direkt dem Status eines einzelnen Host-Services (statt zwei Hosts wie bei der Weathermap-Linie)
+- Neues Feld `service_description` in `ObjectProps`; eigenes Downtime-Icon
+- Bugfix: `.nv2-svc-line` fehlte `pointer-events: stroke` → kein Hover/Tooltip/Kontextmenü
+- Optionales Label an der Linienmitte, Farbe folgt dem Service-Status, aktualisiert sich live bei jedem WS-Update
+- `backend/api/router.py`, `css/styles.css`, `js/nodes.js`, `js/constants.js`, `js/map-core.js`
+
+### Feature: Weathermap-Linie — Service-Modus (Host + Service + Perfdata)
+- Alternative zum Zwei-Host-Modus: ein Host + ein Service genügt für bidirektionale Bandbreiten-Visualisierung
+- Farbe beider Segmente folgt dem Service-Status (OK/WARN/CRIT)
+- `perf_label_out` / `perf_label_in`: Metrik-Namen aus den Service-Perfdata, live aktualisiert
+- `js/nodes.js`, `backend/api/router.py`
+
+### Feature: Weathermap-Linie — 7-stufige Auslastungs-Farbskala
+- Farbe der Linienhälften basiert auf der berechneten Auslastung (0–100 %) statt auf dem Service-Status
+- Farbskala wie im Original-NagVis: 0–10 % Lila · 10–25 % Blau · 25–40 % Hellblau · 40–55 % Grün · 55–70 % Gelb · 70–85 % Orange · 85–100 % Rot
+- Unterstützt UOM `%` direkt sowie Byte-Raten (`value/max*100`)
+- `js/nodes.js`
+
+### Feature: Linien — SVG-Marker-Pfeile (chevron / thin / dot)
+- Pfeile an Linienenden basieren auf echten SVG `<marker>`-Elementen statt einem Kreis-Punkt; `fill="context-stroke"` synchronisiert die Pfeilfarbe automatisch mit der Linienstatus-Farbe
+- Drei wählbare Pfeilstile im Konfigurations-Dialog (Gefüllt/chevron, Offen/thin, Punkt/dot) sowie „Kein Pfeil"
+- Neue Eigenschaft `arrow_style` ersetzt das bisherige `show_arrow`-Boolean; alte Maps mit `show_arrow=false` bleiben kompatibel
+- Gilt für Weathermap-Linien, Service-Linien und kombinierte Linien
+- `js/nodes.js`, `css/styles.css`
+
+### Feature: Linien — Endpunkte per Drag verschieben (Länge + Winkel)
+- Im Edit-Modus erscheinen an Start, Mitte und Ende jeder Linie blaue Drag-Handles
+- Bugfix: inline `style.opacity='0'` überschrieb die CSS-Sichtbarkeitsregel im Edit-Mode → Handles waren permanent unsichtbar
+- `js/nodes.js`
+
+### Feature: Linientyp + Host/Service bereits im Platzier-Dialog konfigurieren
+- Im „Objekt hinzufügen"-Dialog können Linientyp (Statisch/Weathermap/Service), Host, Service und optionales Label direkt beim Platzieren festgelegt werden
+- Für Weathermap-Linien: `host_from`/`host_to` als Text-Inputs mit Datalist
+- `js/map-core.js`, `frontend/index.html`, `backend/api/router.py`
+
+---
+
+---
+
 ## [2026-04-16]
 
 ### Bugfix: Lasso-Selektion durch nachfolgenden Click-Event geleert
@@ -83,6 +143,8 @@
 - DOM-Einfügung immer vor dem ersten Nicht-Zonen-Element — visuelles Layering korrekt
 - Lasso-Selektion, Ctrl+A, Kontextmenü, Undo/Redo vollständig unterstützt
 - `js/nodes.js`, `js/map-core.js`, `css/styles.css`, `frontend/index.html`, `backend/api/router.py`
+
+---
 
 ---
 
@@ -764,5 +826,3 @@ Einstellungen persistiert in `nv2-user-settings` (localStorage). Standard: deakt
 - Projekt-Grundstruktur angelegt
 - WebSocket-Grundgerüst, Docker-Vorbereitung
 - README erstellt
-
----

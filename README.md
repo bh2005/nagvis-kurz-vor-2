@@ -29,7 +29,8 @@ Eine komplette Neuentwicklung von NagVis mit FastAPI-Backend, WebSocket-Livestat
 | **Gadgets** | Radial, Linear (H/V), Sparkline, Thermometer, Flow/Weather, Raw-Number, **Graph/iframe** |
 | **Graph-Gadget** | Grafana-Panels, Checkmk-Graphen oder beliebige URLs per `<iframe>` / `<img>`; Auto-Refresh |
 | **Perfdata** | Nagios/Checkmk Performance-Daten automatisch in Gadgets eingespeist |
-| **Weathermap-Linien** | Statusfarbe, Bandbreiten-Labels, bidirektionale Pfeile |
+| **Weathermap-Linien** | Statusfarbe, Bandbreiten-Labels, bidirektionale Pfeile, wählbare Pfeilstile, Service-Modus |
+| **Service-Linien** | Eigener Linientyp mit Statusfarbe nach einzelnem Host-Service, Hover-Tooltip, optionales Label |
 | **Multi-Backend** | Livestatus TCP/Unix, Checkmk REST API, Icinga2 REST API, **Naemon**, Zabbix JSON-RPC, Prometheus/VictoriaMetrics, **SolarWinds Orion** — gemischt, Hot-Add |
 | **draw.io Import** | `.drawio`/`.xml`-Diagramme als Map importieren (Shapes → Textboxen/Hosts, Connectors → Linien) |
 | **Authentifizierung** | JWT (30 Tage), Auto-Refresh, Login-Overlay, Rollen (viewer/admin), Benutzer-Management |
@@ -242,7 +243,7 @@ Dieses Projekt steht unter der **MIT License** – siehe [LICENSE](LICENSE).
 
 **Projektstatus:** Beta (funktioniert stabil, aktive Weiterentwicklung)  
 **Autor:** bh2005  
-**Version:** 2.3 Beta (April 2026)
+**Version:** 2.4 Beta (April 2026)
 
 ---
 

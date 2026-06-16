@@ -978,6 +978,106 @@ NagVis 2 - Changelog
                - DOM-Einfuerung immer vor dem ersten Nicht-Zonen-Element (visuelle Layering)
                - Lasso-Selektion, Ctrl+A, Kontextmenue, Undo/Redo unterstuetzt
                - js/nodes.js, js/map-core.js, css/styles.css, frontend/index.html, backend/api/router.py
+
+[2026-04-17]   Feature: Weathermap-Linie -- 7-stufige Auslastungs-Farbskala
+               - Farbe der Linienhaelften im Service-Modus basiert nun auf der
+                 berechneten Auslastung (0-100 %), nicht mehr auf dem Service-Status.
+               - Farbskala identisch zum Original-NagVis:
+                 0-10% Lila . 10-25% Blau . 25-40% Hellblau . 40-55% Gruen
+                 55-70% Gelb . 70-85% Orange . 85-100% Rot
+               - Zwei Perfdata-Formate unterstuetzt:
+                 1) UOM='%' -> Wert direkt als Auslastung verwenden
+                 2) Byte-Rate: value/max*100 (max = Leitungskapazitaet in Bytes/s)
+               - Labels zeigen Rohwert + berechneten Prozentwert in Klammern,
+                 z.B. "42 Mbit/s (34%)" oder "34%" bei direktem Prozentformat.
+               - Tooltip zeigt Out/In mit zugehoeriger Auslastungsfarbe.
+               - Fallback auf Service-Status-Farbe wenn kein max-Wert in Perfdata.
+               - Farbskala als Mini-Legende im Konfigurations-Dialog sichtbar.
+               - js/nodes.js
+
+[2026-04-17]   Feature: Linien -- Endpunkte per Drag verschieben (Laenge + Winkel)
+               - Im Edit-Modus erscheinen an Start, Mitte und Ende jeder Linie blaue
+                 Kreise (line-handle). Per Drag lassen sich Endpunkte (Laenge/Winkel) und
+                 der Gesamtmittelpunkt verschieben.
+               - Bugfix: inline style.opacity='0' ueberschrieb die CSS-Regel
+                 #nv2-canvas.nv2-edit-mode .line-handle { opacity: 1 } -> Handles waren
+                 permanent unsichtbar. Fix: inline-Opacity in _createWmHandles und
+                 _createLineHandles entfernt; CSS uebernimmt vollstaendig die Kontrolle.
+               - js/nodes.js
+
+[2026-04-17]   Feature: Linien -- SVG-Marker-Pfeile (chevron / thin / dot)
+               - Pfeile an Linienenden basieren jetzt auf echten SVG <marker>-Elementen
+                 statt dem bisherigen Kreis-Punkt: fill="context-stroke" synchronisiert
+                 die Pfeilfarbe automatisch mit der Linienstatus-Farbe (kein separater
+                 Update-Schritt mehr noetig); orient="auto" richtet den Pfeil korrekt an
+                 der Linienrichtung aus.
+               - Drei waehlbare Pfeilstile im Konfigurations-Dialog:
+                   Gefuellt (chevron) - neuer Standard, klassischer Dreieck-Pfeil
+                   Offen   (thin)    - Chevron-Form mit ausgehoehlter Mitte
+                   Punkt   (dot)     - Kreis wie bisher, nun als Marker-Element
+                   Kein Pfeil        - deaktiviert den Pfeil
+               - Neue Eigenschaft arrow_style (ersetzt show_arrow boolesch);
+                 bestehende Maps mit show_arrow=false werden weiterhin korrekt gelesen.
+               - Gilt fuer Weathermap-Linien, Service-Linien und kombinierte Linien.
+               - Vorschau im Dialog zeigt gewaehlten Pfeilstil live.
+               - js/nodes.js, css/styles.css
+
+[2026-04-17]   Feature: Linientyp + Host/Service bereits im Platzier-Dialog konfigurieren
+               - Im "Objekt hinzufuegen"-Dialog koennen Linientyp (Statisch / Weathermap /
+                 Service), Host, Service und optionales Label direkt beim Platzieren
+                 festgelegt werden -- kein zweiter Rechtsklick-Dialog mehr noetig.
+               - Fuer Weathermap-Linien: host_from / host_to (Zwei-Host-Modus) als
+                 Text-Inputs mit Datalist ergaenzt.
+               - Fuer Service-Linien: host_name + service_description + optionales Label.
+               - js/map-core.js, frontend/index.html, backend/api/router.py
+
+[2026-04-17]   Feature: Service-Linie -- Status-Farbe, Hover-Tooltip, optionales Label
+               - Neuer Linientyp "service": einfache Linie zwischen zwei Punkten, deren
+                 Farbe direkt dem Status eines einzelnen Host-Services folgt (statt zwei
+                 Hosts wie bei der Weathermap-Linie). Eigenes Feld service_description
+                 in ObjectProps; Icon-Ring zeigt zusaetzlich ein Downtime-Symbol.
+               - Bugfix: .nv2-svc-line fehlte pointer-events: stroke -> kein Hover,
+                 kein Tooltip, kein Kontextmenue. Analog .nv2-wm-line in View-Mode
+                 (> line:last-of-type) ergaenzt.
+               - Hover-Highlight (.nv2-svc-line:hover .wm-seg-*) und stroke-Transition
+                 analog zu Weathermap-Linien.
+               - Optionales Label: Text-Element an der Linienmitte, Farbe folgt dem
+                 Service-Status und wird bei jedem WS-Update aktualisiert.
+               - Konfigurierbar im Konfigurationsdialog (Rechtsklick -> Zahnrad) und direkt
+                 beim Platzieren.
+               - backend/api/router.py, css/styles.css, js/nodes.js, js/constants.js, frontend/index.html, js/map-core.js
+
+[2026-04-17]   Feature: Weathermap-Linie -- Service-Modus (Host + Service + Perfdata)
+               - Neue Alternative zum Zwei-Host-Modus: ein Host + ein Service genuegt
+                 fuer bidirektionale Bandbreiten-Visualisierung.
+               - Farbe beider Segmente folgt dem Service-Status (OK/WARN/CRIT).
+               - Felder perf_label_out / perf_label_in: Metrik-Name aus den Service-
+                 Perfdata -> Labels der beiden Linienhaelften aktualisieren sich live
+                 bei jedem WS-Update (z.B. "42 Mbit/s" <-> "18 Mbit/s").
+               - Tooltip im Service-Modus zeigt Service-Status, Output und alle
+                 Perfdata-Werte.
+               - js/nodes.js, backend/api/router.py
+
+[2026-04-21]   Feature: Flow/Weather-Gadget -- bidirektional, Bandbreite, Warn/Crit aus Perfdata
+               - Bidirektionale Anzeige: metric_out und metric_in als separate konfigurierbare
+                 Metriken (statt Ableitung aus einer einzigen Metrik).
+               - Bandbreiten-Dropdown im Dialog: auto / 10M / 100M / 1G / 10G / 25G / 40G / 100G Bit/s;
+                 Grundlage fuer %-Berechnung: bandwidth / 8 = max Bytes/s.
+               - Unit-Feld fuer Weather-Typ ausgeblendet: Einheit wird automatisch aus Perfdata
+                 gelesen (Eingabe-Interpretation, kein Anzeige-Format).
+               - Min/Max/Warn/Crit-Zeile fuer Weather-Typ ausgeblendet; Werte kommen aus Perfdata.
+               - _colorW(pct, warnPct, critPct): Warn/Crit-Faerbung basiert auf tatsaechlichen
+                 Perfdata-Schwellwerten statt hartkodierter 70%/90%-Grenze.
+               - Bytes/s-Erkennung in _fmtBw(): leere Unit = Bytes/s, Multiplikation x8 fuer Bit-Darstellung.
+               - Gespeicherte Konfiguration fuer Weather-Typ schliesst unit/min/max/warn/crit aus
+                 (verhindert das max:100-Blockier-Problem).
+               - FEATURES.md, docs/user-guide.md, backend/api/router.py, gadget-renderer.js, js/nodes.js, css/styles.css, frontend/index.html
+
+[2026-04-21]   Bugfix: iOS -- fehlende -webkit-Praefixe fuer user-select und backdrop-filter
+               - Safari/iOS ignorierte user-select: none (Sidebar-Labels, Minimap, Overview-
+                 Icons) und backdrop-filter (Minimap-Hintergrund) ohne -webkit-Praefix
+               - Fix: -webkit-user-select / -webkit-backdrop-filter ergaenzt
+               - css/styles.css
 """
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -985,6 +1085,209 @@ NagVis 2 - Changelog
 # ══════════════════════════════════════════════════════════════════════════════
 MD = """\
 # NagVis 2 – Changelog
+
+---
+
+## [2026-04-21]
+
+### Feature: Flow/Weather-Gadget erweitert — bidirektional, Bandbreite, Warn/Crit aus Perfdata
+- Bidirektionale Anzeige: `metric_out` und `metric_in` als separate konfigurierbare Metriken
+- Bandbreiten-Dropdown: auto / 10M / 100M / 1G / 10G / 25G / 40G / 100G Bit/s — Grundlage für die %-Berechnung (`bandwidth / 8` = max Bytes/s)
+- Unit wird für den Weather-Typ automatisch aus Perfdata gelesen statt im Dialog konfiguriert
+- Warn/Crit-Färbung (`_colorW`) basiert auf den tatsächlichen Perfdata-Schwellwerten statt fest auf 70 %/90 %
+- `_fmtBw()`: leere Unit = Bytes/s, automatische ×8-Umrechnung für Bit-Darstellung
+- `FEATURES.md`, `docs/user-guide.md`, `backend/api/router.py`, `js/gadget-renderer.js`, `js/nodes.js`
+
+### Bugfix: iOS — fehlende `-webkit`-Präfixe für `user-select` und `backdrop-filter`
+- Safari/iOS ignorierte `user-select: none` (Sidebar, Minimap, Overview-Icons) und `backdrop-filter` (Minimap-Hintergrund) ohne `-webkit`-Präfix
+- `css/styles.css`
+
+---
+
+## [2026-04-17]
+
+### Feature: Service-Linie — neuer Linientyp mit Status-Farbe, Hover-Tooltip, optionalem Label
+- Neuer Linientyp `service`: Farbe folgt direkt dem Status eines einzelnen Host-Services (statt zwei Hosts wie bei der Weathermap-Linie)
+- Neues Feld `service_description` in `ObjectProps`; eigenes Downtime-Icon
+- Bugfix: `.nv2-svc-line` fehlte `pointer-events: stroke` → kein Hover/Tooltip/Kontextmenü
+- Optionales Label an der Linienmitte, Farbe folgt dem Service-Status, aktualisiert sich live bei jedem WS-Update
+- `backend/api/router.py`, `css/styles.css`, `js/nodes.js`, `js/constants.js`, `js/map-core.js`
+
+### Feature: Weathermap-Linie — Service-Modus (Host + Service + Perfdata)
+- Alternative zum Zwei-Host-Modus: ein Host + ein Service genügt für bidirektionale Bandbreiten-Visualisierung
+- Farbe beider Segmente folgt dem Service-Status (OK/WARN/CRIT)
+- `perf_label_out` / `perf_label_in`: Metrik-Namen aus den Service-Perfdata, live aktualisiert
+- `js/nodes.js`, `backend/api/router.py`
+
+### Feature: Weathermap-Linie — 7-stufige Auslastungs-Farbskala
+- Farbe der Linienhälften basiert auf der berechneten Auslastung (0–100 %) statt auf dem Service-Status
+- Farbskala wie im Original-NagVis: 0–10 % Lila · 10–25 % Blau · 25–40 % Hellblau · 40–55 % Grün · 55–70 % Gelb · 70–85 % Orange · 85–100 % Rot
+- Unterstützt UOM `%` direkt sowie Byte-Raten (`value/max*100`)
+- `js/nodes.js`
+
+### Feature: Linien — SVG-Marker-Pfeile (chevron / thin / dot)
+- Pfeile an Linienenden basieren auf echten SVG `<marker>`-Elementen statt einem Kreis-Punkt; `fill="context-stroke"` synchronisiert die Pfeilfarbe automatisch mit der Linienstatus-Farbe
+- Drei wählbare Pfeilstile im Konfigurations-Dialog (Gefüllt/chevron, Offen/thin, Punkt/dot) sowie „Kein Pfeil"
+- Neue Eigenschaft `arrow_style` ersetzt das bisherige `show_arrow`-Boolean; alte Maps mit `show_arrow=false` bleiben kompatibel
+- Gilt für Weathermap-Linien, Service-Linien und kombinierte Linien
+- `js/nodes.js`, `css/styles.css`
+
+### Feature: Linien — Endpunkte per Drag verschieben (Länge + Winkel)
+- Im Edit-Modus erscheinen an Start, Mitte und Ende jeder Linie blaue Drag-Handles
+- Bugfix: inline `style.opacity='0'` überschrieb die CSS-Sichtbarkeitsregel im Edit-Mode → Handles waren permanent unsichtbar
+- `js/nodes.js`
+
+### Feature: Linientyp + Host/Service bereits im Platzier-Dialog konfigurieren
+- Im „Objekt hinzufügen"-Dialog können Linientyp (Statisch/Weathermap/Service), Host, Service und optionales Label direkt beim Platzieren festgelegt werden
+- Für Weathermap-Linien: `host_from`/`host_to` als Text-Inputs mit Datalist
+- `js/map-core.js`, `frontend/index.html`, `backend/api/router.py`
+
+---
+
+## [2026-04-16]
+
+### Bugfix: Lasso-Selektion durch nachfolgenden Click-Event geleert
+- Browser feuert `click` nach `mouseup`; Click-Handler löschte Selektion
+- Fix: `window._nv2LassoDone`-Flag in `onUp` gesetzt; `onCanvasClick` prüft und löscht Flag
+- `js/nodes.js`
+
+### Bugfix: „Im Monitoring öffnen" aus Snap-Tabs nicht funktionsfähig
+- `_openInMonitoringOrFocus` fand kein Backend (Livestatus-Adressen haben kein `http://`-Präfix)
+- Fix: 5-stufige Backend-Suche (backend_id+checkmk → backend_id+web_url → checkmk → web_url → http)
+- `js/ui-core.js`
+
+### Feature: `web_url`-Feld für Livestatus-Backends
+- Livestatus TCP/Unix können optional eine Checkmk-Web-URL konfigurieren
+- Wird für „Im Monitoring öffnen" und Topbar-Pills genutzt
+- Backend: `LivestatusConfig.web_url`, `BackendCreate.web_url`, `connectors/registry.py`
+- Frontend: `map-core.js` — `bm-ls-web-url`-Feld im Backend-Dialog
+
+### Bugfix: `web_url` wurde nicht gespeichert (`BackendCreate`-Modell unvollständig)
+- `BackendCreate` deklarierte `web_url` nicht → `model_dump()` verwarf es stillschweigend
+- Fix: `web_url: Optional[str] = None` in `BackendCreate` ergänzt
+- `backend/api/router.py`
+
+### Feature: Topbar-Pills klickbar — öffnet Checkmk Problems-Dashboard
+- Klick auf Topbar-Pills öffnet Checkmk Problems-Dashboard
+- URL-Aufbau: `{web_url}/index.py?start_url=.../dashboard.py?name=problems&owner=`
+- `js/ui-core.js`: `openMonitoringDashboard()`, `_monitoringSiteBase()`
+- `css/styles.css`: `.pill` mit `cursor:pointer` + Hover-Effekt
+
+### Feature: CLAUDE.md Entwicklerdokumentation
+- Befehle, Backend-/Frontend-Architektur, Test-Details für Claude Code
+- `nagvis2/CLAUDE.md`
+
+### Bugfix: GitHub Pages Pipeline (`static.yml`) schlug fehl
+- `docs.yml` (`mkdocs gh-deploy`) konkurrierte mit `static.yml` um Concurrency-Gruppe
+- Fix: `docs.yml` auf `workflow_dispatch` umgestellt; MkDocs-Build in `static.yml` integriert
+- `changelog.md` wird vor Build nach `docs/` und `frontend/` kopiert
+
+### Bugfix: CI Vitest-Test — `SyntaxError: Unexpected identifier 'globalThis'`
+- `nodes.js` war über Zeile 51 hinausgewachsen; `slice(0,51)` schnitt Template-Literal
+- Fix: dynamisches `findIndex` nach erstem `}`-Zeichen auf Spalte 0 nach Zeile 30
+- `frontend/tests/unit/setup.js`
+
+### Bugfix: Auto-Map — Abstände zu groß; Grid nicht zentriert nach Erstellung
+- Radius-Formel: `r = max(STEP*3, n*STEP)` statt `STEP*n*1.5`
+- `_centerAutoMap()`: berechnet Bounding-Box aller Nodes, zentriert Canvas via `NV2_ZOOM.setState`
+- `js/map-core.js`
+
+### Feature: Auto-Map Layouts Kreis und Stern entfernt
+- Nur noch Grid und Hierarchie verfügbar (Kreis/Stern waren instabil)
+- `backend/api/router.py`: `_circle()`, `_star()` entfernt; `AutoMapRequest.layout` aktualisiert
+- `frontend/index.html`: Optionen aus `#nm-am-layout`-Select entfernt
+
+### Bugfix: Backend-Liste nicht aktualisiert nach Datasource-Änderung
+- `window.backendList` wurde nur beim App-Start geladen — kein Refresh nach Änderung
+- Fix: nach POST/PATCH Backend sofortiger Refresh aus `/api/backends`
+- `js/map-core.js`: `_bmAdd()`
+
+### Bugfix: Changelog im About-Dialog konnte nicht geladen werden (Docker)
+- `changelog.txt`/`.md` befanden sich nicht im Docker-Container (fehlende Volume-Mounts)
+- Fix: Volume-Mounts für `changelog.*` in `docker-compose.yml` ergänzt
+- Fallback-Fetch auf `/changelog.md` wenn `/api/v1/changelog` nicht erreichbar
+- `docker-compose.yml`, `js/ui-core.js`
+
+### Feature: Auto-Layout (F4) — Grid-Sortierung nach Objektgröße
+- F4-Button sortiert selektierte (oder alle) Nodes automatisch im Raster
+- Sortierung nach Pixel-Fläche absteigend (größte Objekte links oben)
+- Spaltenanzahl: `round(√n)`; Zellenabstand: Node-Größe + 8 px
+- Ohne Selektion: zentriert auf Canvas-Mitte (50 %/50 %)
+- Mit Teilselektion: zentriert auf Schwerpunkt der aktuellen Positionen (kein Drift)
+- Align-Toolbar: immer sichtbar im Edit-Mode
+- `js/align.js`, `frontend/index.html`
+
+### Feature: Zonen-Objekt — farbiges Rechteck als Hintergrund-Layer
+- Neuer Objekt-Typ `zone` — optisch beschriftbares Rechteck hinter allen anderen Objekten
+- Konfigurierbar: Beschriftung, Hintergrundfarbe (RGBA), Rahmenfarbe, Rahmenbreite, Schriftgröße
+- Im Edit-Mode verschiebbar (Drag) und größenveränderbar (Resize-Handle unten-rechts)
+- Z-Index 1 (hinter `.nv2-node` / `.nv2-textbox` / `.nv2-container` bei z-index 10)
+- DOM-Einfügung immer vor dem ersten Nicht-Zonen-Element — visuelles Layering korrekt
+- Lasso-Selektion, Ctrl+A, Kontextmenü, Undo/Redo vollständig unterstützt
+- `js/nodes.js`, `js/map-core.js`, `css/styles.css`, `frontend/index.html`, `backend/api/router.py`
+
+---
+
+## [2026-04-14]
+
+### Bugfix: „Im Monitoring öffnen" — falsche URLs für Host, Hostgroup, Servicegroup
+- Host-Link verwendete fälschlich `index.py?start_url=...`-Wrapper
+- Korrekt: `view.py?host={name}&site={site}&view_name=host` / `hostgroup` / `servicegroup`
+- `js/nodes.js`: `_buildMonitoringUrl` komplett überarbeitet (switch über `obj.type`)
+
+### Feature: Live-Perfdata in Tooltips (Gadgets + Service-Objekte)
+- Gadgets: Mouseover zeigt Live-Wert aus `perfdataCache`, alle Metriken, Service-Status
+- Service-Objekte: Perfdata-Metriken mit Warn/Crit-Farben; aktive Metrik fett
+- `js/nodes.js`: `showTooltip` komplett überarbeitet
+
+### Feature: Service-Objekte mit Perfdata-Metrik (`perf_label`)
+- Service-Objekte können eine Perfdata-Metrik konfigurieren
+- Live-Wert erscheint im Node-Label: `"Label: 1.234ms"`
+- Autocomplete für Service-Name und Metrik-Name + aktuellen Wert
+- `$PERFVALUE$`-Macro in Label-Templates
+- `backend/api/router.py`: `ObjectProps` um `perf_label` erweitert
+
+### Feature: Eigenschaften-Dialog im View-Mode (Editor/Admin)
+- Rechtsklick-Kontextmenü zeigt „Eigenschaften" für Rolle `editor`/`admin`
+
+### Feature: „Im Monitoring öffnen" — automatische URL pro Backend (Checkmk)
+- Immer sichtbar (war: nur wenn `monitoring_url` konfiguriert)
+- Checkmk: URL automatisch aus API-Base-URL abgeleitet (kein manuelles Konfigurieren)
+
+### Feature: Probleme-Panel zeigt Host- UND Service-Probleme
+- Bisher: nur Hosts; jetzt: auch Services als `hostname / service_description`
+- `js/ui-core.js`: `renderProblemsPanel`; `js/ws-client.js`: vollständiger Cache-Transfer
+
+### Feature: Makros im Label-Feld (`$HOSTALIAS$`, `$HOSTSTATE$` etc.)
+- Makros funktionieren jetzt auch im Label-Feld (nicht nur im Label-Template-Feld)
+- `js/nodes.js`: `_nodeLabel`, `_applyLabelTemplate`, `applyStatuses`
+
+### Bugfix: + Schaltfläche in Übersichtskarte öffnete keine neue Map
+- Ursache: doppelte `id="btn-new-map"`; Fix: `id="ov-btn-new-map"`
+
+### Bugfix: Service-Dropdown leer beim Platzieren
+- `serviceCache` nicht ans Platzierungs-Formular gebunden
+- `js/map-core.js`: input-Listener für `dlg-svc-host` und `dlg-svc-name`
+
+### Bugfix: Gadget-Werte nicht angezeigt (Checkmk Perfdata als Liste)
+- Checkmk REST API liefert `performance_data` teils als Array
+- `_to_perf_str` verbindet Array-Elemente mit Leerzeichen
+
+### Bugfix: Service-Anzahl im Host-Tooltip immer 0
+- Checkmk REST API liefert `num_services_*` in Hosts-Collection nicht
+- Live-Zählung aus `hostCache`; Fallback auf Backend-Daten
+
+### Bugfix: „undefined" in Hosts- und Probleme-Panel
+- `Object.values(hostCache)` enthält auch Service-Einträge ohne `name`-Feld
+- Panels filtern getrennt nach `type === 'host'`
+
+### Bugfix: Kontextmenü-Aktionen (ACK, Downtime …) erschienen nicht
+- `h` war `null` durch direkten `hostCache`-Lookup statt `_resolveStatus`
+- `_actionConfig.enabled`: Migration für alte localStorage-Stände
+
+### Bugfix: `backend_id` vs. `_backend_id` in Status-Cache
+- `applyStatuses` befüllte `backendStatusCache` nie (falscher Feldname)
+- Fix: `h.backend_id || h._backend_id`
 
 ---
 
@@ -1590,152 +1893,6 @@ Einstellungen persistiert in `nv2-user-settings` (localStorage). Standard: deakt
 - WebSocket-Grundgerüst, Docker-Vorbereitung
 - README erstellt
 
----
-
-## [2026-04-14]
-
-### Bugfix: „Im Monitoring öffnen" — falsche URLs für Host, Hostgroup, Servicegroup
-- Host-Link verwendete fälschlich `index.py?start_url=...`-Wrapper
-- Korrekt: `view.py?host={name}&site={site}&view_name=host` / `hostgroup` / `servicegroup`
-- `js/nodes.js`: `_buildMonitoringUrl` komplett überarbeitet (switch über `obj.type`)
-
-### Feature: Live-Perfdata in Tooltips (Gadgets + Service-Objekte)
-- Gadgets: Mouseover zeigt Live-Wert aus `perfdataCache`, alle Metriken, Service-Status
-- Service-Objekte: Perfdata-Metriken mit Warn/Crit-Farben; aktive Metrik fett
-- `js/nodes.js`: `showTooltip` komplett überarbeitet
-
-### Feature: Service-Objekte mit Perfdata-Metrik (`perf_label`)
-- Service-Objekte können eine Perfdata-Metrik konfigurieren
-- Live-Wert erscheint im Node-Label: `"Label: 1.234ms"`
-- Autocomplete für Service-Name und Metrik-Name + aktuellen Wert
-- `$PERFVALUE$`-Macro in Label-Templates
-- `backend/api/router.py`: `ObjectProps` um `perf_label` erweitert
-
-### Feature: Eigenschaften-Dialog im View-Mode (Editor/Admin)
-- Rechtsklick-Kontextmenü zeigt „Eigenschaften" für Rolle `editor`/`admin`
-
-### Feature: „Im Monitoring öffnen" — automatische URL pro Backend (Checkmk)
-- Immer sichtbar (war: nur wenn `monitoring_url` konfiguriert)
-- Checkmk: URL automatisch aus API-Base-URL abgeleitet (kein manuelles Konfigurieren)
-
-### Feature: Probleme-Panel zeigt Host- UND Service-Probleme
-- Bisher: nur Hosts; jetzt: auch Services als `hostname / service_description`
-- `js/ui-core.js`: `renderProblemsPanel`; `js/ws-client.js`: vollständiger Cache-Transfer
-
-### Feature: Makros im Label-Feld (`$HOSTALIAS$`, `$HOSTSTATE$` etc.)
-- Makros funktionieren jetzt auch im Label-Feld (nicht nur im Label-Template-Feld)
-- `js/nodes.js`: `_nodeLabel`, `_applyLabelTemplate`, `applyStatuses`
-
-### Bugfix: + Schaltfläche in Übersichtskarte öffnete keine neue Map
-- Ursache: doppelte `id="btn-new-map"`; Fix: `id="ov-btn-new-map"`
-
-### Bugfix: Service-Dropdown leer beim Platzieren
-- `serviceCache` nicht ans Platzierungs-Formular gebunden
-- `js/map-core.js`: input-Listener für `dlg-svc-host` und `dlg-svc-name`
-
-### Bugfix: Gadget-Werte nicht angezeigt (Checkmk Perfdata als Liste)
-- Checkmk REST API liefert `performance_data` teils als Array
-- `_to_perf_str` verbindet Array-Elemente mit Leerzeichen
-
-### Bugfix: Service-Anzahl im Host-Tooltip immer 0
-- Checkmk REST API liefert `num_services_*` in Hosts-Collection nicht
-- Live-Zählung aus `hostCache`; Fallback auf Backend-Daten
-
-### Bugfix: „undefined" in Hosts- und Probleme-Panel
-- `Object.values(hostCache)` enthält auch Service-Einträge ohne `name`-Feld
-- Panels filtern getrennt nach `type === 'host'`
-
-### Bugfix: Kontextmenü-Aktionen (ACK, Downtime …) erschienen nicht
-- `h` war `null` durch direkten `hostCache`-Lookup statt `_resolveStatus`
-- `_actionConfig.enabled`: Migration für alte localStorage-Stände
-
-### Bugfix: `backend_id` vs. `_backend_id` in Status-Cache
-- `applyStatuses` befüllte `backendStatusCache` nie (falscher Feldname)
-- Fix: `h.backend_id || h._backend_id`
-
----
-
-## [2026-04-16]
-
-### Bugfix: Lasso-Selektion durch nachfolgenden Click-Event geleert
-- Browser feuert `click` nach `mouseup`; Click-Handler löschte Selektion
-- Fix: `window._nv2LassoDone`-Flag in `onUp` gesetzt; `onCanvasClick` prüft und löscht Flag
-- `js/nodes.js`
-
-### Bugfix: „Im Monitoring öffnen" aus Snap-Tabs nicht funktionsfähig
-- `_openInMonitoringOrFocus` fand kein Backend (Livestatus-Adressen haben kein `http://`-Präfix)
-- Fix: 5-stufige Backend-Suche (backend_id+checkmk → backend_id+web_url → checkmk → web_url → http)
-- `js/ui-core.js`
-
-### Feature: `web_url`-Feld für Livestatus-Backends
-- Livestatus TCP/Unix können optional eine Checkmk-Web-URL konfigurieren
-- Wird für „Im Monitoring öffnen" und Topbar-Pills genutzt
-- Backend: `LivestatusConfig.web_url`, `BackendCreate.web_url`, `connectors/registry.py`
-- Frontend: `map-core.js` — `bm-ls-web-url`-Feld im Backend-Dialog
-
-### Bugfix: `web_url` wurde nicht gespeichert (`BackendCreate`-Modell unvollständig)
-- `BackendCreate` deklarierte `web_url` nicht → `model_dump()` verwarf es stillschweigend
-- Fix: `web_url: Optional[str] = None` in `BackendCreate` ergänzt
-- `backend/api/router.py`
-
-### Feature: Topbar-Pills klickbar — öffnet Checkmk Problems-Dashboard
-- Klick auf Topbar-Pills öffnet Checkmk Problems-Dashboard
-- URL-Aufbau: `{web_url}/index.py?start_url=.../dashboard.py?name=problems&owner=`
-- `js/ui-core.js`: `openMonitoringDashboard()`, `_monitoringSiteBase()`
-- `css/styles.css`: `.pill` mit `cursor:pointer` + Hover-Effekt
-
-### Feature: CLAUDE.md Entwicklerdokumentation
-- Befehle, Backend-/Frontend-Architektur, Test-Details für Claude Code
-- `nagvis2/CLAUDE.md`
-
-### Bugfix: GitHub Pages Pipeline (`static.yml`) schlug fehl
-- `docs.yml` (`mkdocs gh-deploy`) konkurrierte mit `static.yml` um Concurrency-Gruppe
-- Fix: `docs.yml` auf `workflow_dispatch` umgestellt; MkDocs-Build in `static.yml` integriert
-- `changelog.md` wird vor Build nach `docs/` und `frontend/` kopiert
-
-### Bugfix: CI Vitest-Test — `SyntaxError: Unexpected identifier 'globalThis'`
-- `nodes.js` war über Zeile 51 hinausgewachsen; `slice(0,51)` schnitt Template-Literal
-- Fix: dynamisches `findIndex` nach erstem `}`-Zeichen auf Spalte 0 nach Zeile 30
-- `frontend/tests/unit/setup.js`
-
-### Bugfix: Auto-Map — Abstände zu groß; Grid nicht zentriert nach Erstellung
-- Radius-Formel: `r = max(STEP*3, n*STEP)` statt `STEP*n*1.5`
-- `_centerAutoMap()`: berechnet Bounding-Box aller Nodes, zentriert Canvas via `NV2_ZOOM.setState`
-- `js/map-core.js`
-
-### Feature: Auto-Map Layouts Kreis und Stern entfernt
-- Nur noch Grid und Hierarchie verfügbar (Kreis/Stern waren instabil)
-- `backend/api/router.py`: `_circle()`, `_star()` entfernt; `AutoMapRequest.layout` aktualisiert
-- `frontend/index.html`: Optionen aus `#nm-am-layout`-Select entfernt
-
-### Bugfix: Backend-Liste nicht aktualisiert nach Datasource-Änderung
-- `window.backendList` wurde nur beim App-Start geladen — kein Refresh nach Änderung
-- Fix: nach POST/PATCH Backend sofortiger Refresh aus `/api/backends`
-- `js/map-core.js`: `_bmAdd()`
-
-### Bugfix: Changelog im About-Dialog konnte nicht geladen werden (Docker)
-- `changelog.txt`/`.md` befanden sich nicht im Docker-Container (fehlende Volume-Mounts)
-- Fix: Volume-Mounts für `changelog.*` in `docker-compose.yml` ergänzt
-- Fallback-Fetch auf `/changelog.md` wenn `/api/v1/changelog` nicht erreichbar
-- `docker-compose.yml`, `js/ui-core.js`
-
-### Feature: Auto-Layout (F4) — Grid-Sortierung nach Objektgröße
-- F4-Button sortiert selektierte (oder alle) Nodes automatisch im Raster
-- Sortierung nach Pixel-Fläche absteigend (größte Objekte links oben)
-- Spaltenanzahl: `round(√n)`; Zellenabstand: Node-Größe + 8 px
-- Ohne Selektion: zentriert auf Canvas-Mitte (50 %/50 %)
-- Mit Teilselektion: zentriert auf Schwerpunkt der aktuellen Positionen (kein Drift)
-- Align-Toolbar: immer sichtbar im Edit-Mode
-- `js/align.js`, `frontend/index.html`
-
-### Feature: Zonen-Objekt — farbiges Rechteck als Hintergrund-Layer
-- Neuer Objekt-Typ `zone` — optisch beschriftbares Rechteck hinter allen anderen Objekten
-- Konfigurierbar: Beschriftung, Hintergrundfarbe (RGBA), Rahmenfarbe, Rahmenbreite, Schriftgröße
-- Im Edit-Mode verschiebbar (Drag) und größenveränderbar (Resize-Handle unten-rechts)
-- Z-Index 1 (hinter `.nv2-node` / `.nv2-textbox` / `.nv2-container` bei z-index 10)
-- DOM-Einfügung immer vor dem ersten Nicht-Zonen-Element — visuelles Layering korrekt
-- Lasso-Selektion, Ctrl+A, Kontextmenü, Undo/Redo vollständig unterstützt
-- `js/nodes.js`, `js/map-core.js`, `css/styles.css`, `frontend/index.html`, `backend/api/router.py`
 """
 
 

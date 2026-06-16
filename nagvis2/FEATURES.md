@@ -78,7 +78,10 @@ Vollständige Liste aller implementierten Features, geordnet nach Bereich.
 
 - **Textbox** — Freitext, konfigurierbar: Schriftgröße, Farbe, Hintergrund, Fettschrift, Link
 - **Linie** — einfache Verbindungslinie (Farbe, Strichart, Breite)
-- **Weathermap-Linie** — Statusfarbe nach Host-Zustand; Bandbreiten-Labels; uni-/bidirektionale Pfeile
+- **Weathermap-Linie** — Statusfarbe nach Host-Zustand; Bandbreiten-Labels; uni-/bidirektionale Pfeile; alternativ Service-Modus (ein Host + ein Service statt zwei Hosts)
+- **Service-Linie** — Statusfarbe nach einzelnem Host-Service, Hover-Tooltip, optionales Label an der Linienmitte
+- **Pfeilstile** — wählbar pro Linie: Gefüllt (chevron), Offen (thin), Punkt (dot) oder kein Pfeil; Linientyp + Host/Service bereits im Platzier-Dialog konfigurierbar
+- **Linien-Endpunkte per Drag** — Länge und Winkel im Edit-Mode direkt anpassbar
 - **Container** — zeigt Bild (PNG/SVG) auf der Karte
 - **Zone** — farbiges Rechteck als Hintergrund-Layer (z-index 1, hinter allen anderen Objekten); konfigurierbar: Beschriftung, Hintergrundfarbe (RGBA), Rahmenfarbe, Rahmenbreite; im Edit-Mode verschiebbar und größenveränderbar
 

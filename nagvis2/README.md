@@ -17,7 +17,8 @@ Eine komplette Neuentwicklung von NagVis mit FastAPI-Backend, WebSocket-Livestat
 | **Gadgets** | Radial, Linear (H/V), Sparkline, Thermometer, Flow/Weather, Raw-Number, **Graph/iframe** |
 | **Graph-Gadget** | Grafana-Panels, Checkmk-Graphen oder beliebige URLs per `<iframe>` / `<img>` einbetten |
 | **Perfdata** | Nagios/Checkmk Performance-Daten automatisch in Gadgets + Service-Objekten; Live-Werte im Tooltip und Node-Label |
-| **Weathermap-Linien** | Statusfarbe, Bandbreiten-Labels, bidirektionale Pfeile |
+| **Weathermap-Linien** | Statusfarbe, Bandbreiten-Labels, bidirektionale Pfeile, wählbare Pfeilstile, Service-Modus |
+| **Service-Linien** | Linientyp mit Statusfarbe nach einzelnem Host-Service, Hover-Tooltip, optionales Label |
 | **Multi-Backend** | Livestatus (TCP/Unix + optionale `web_url`), Checkmk REST API, Icinga2 REST API, **Naemon** (Livestatus/REST), Zabbix JSON-RPC, Prometheus / VictoriaMetrics, **SolarWinds Orion** (SWIS) |
 | **draw.io Import** | `.drawio`/`.xml`-Diagramme direkt als Map importieren |
 | **Authentifizierung** | JWT (30 Tage), Auto-Refresh, Login-Overlay, Rollen (viewer/editor/admin) |
@@ -189,9 +190,20 @@ Dieses Projekt steht unter der **MIT License** – siehe [LICENSE](LICENSE).
 
 **Projektstatus:** Beta (funktioniert stabil, aktive Weiterentwicklung)
 **Autor:** bh2005
-**Version:** 2.3 Beta (April 2026)
+**Version:** 2.4 Beta (April 2026)
 
 ---
+
+## Neu in 2.4
+
+- **Service-Linie** — neuer Linientyp: Statusfarbe folgt direkt einem einzelnen Host-Service statt zwei Hosts; Hover-Tooltip, optionales Label
+- **Weathermap-Linie: Service-Modus** — ein Host + ein Service genügt für bidirektionale Bandbreiten-Visualisierung statt Zwei-Host-Modus
+- **Wählbare Pfeilstile** — Gefüllt (chevron), Offen (thin), Punkt (dot) oder kein Pfeil, je Linie konfigurierbar; basiert auf echten SVG-`<marker>`-Elementen
+- **Linien-Endpunkte per Drag** — Länge und Winkel im Edit-Mode direkt anpassbar
+- **Linientyp + Host/Service im Platzier-Dialog** — kein zweiter Rechtsklick-Dialog mehr nötig
+- **Weathermap-Linie: 7-stufige Auslastungs-Farbskala** — Linienfarbe nach berechneter Auslastung statt Service-Status
+- **Flow/Weather-Gadget erweitert** — bidirektionale Metriken (`metric_out`/`metric_in`), Bandbreiten-Selector, Einheit + Warn/Crit automatisch aus Perfdata
+- **iOS-Fixes** — fehlende `-webkit`-Präfixe für `user-select`/`backdrop-filter` ergänzt
 
 ## Neu in 2.3
 
