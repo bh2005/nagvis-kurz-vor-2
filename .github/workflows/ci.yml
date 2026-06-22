@@ -28,7 +28,7 @@ jobs:
         working-directory: nagvis2/backend
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Python ${{ matrix.python-version }} einrichten
         uses: actions/setup-python@v5
@@ -63,7 +63,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Node.js 24 einrichten
         uses: actions/setup-node@v6
