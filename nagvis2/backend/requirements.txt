@@ -2,7 +2,7 @@
 fastapi>=0.111.0
 
 # Auth – JWT + Passwort-Hashing + LDAP
-PyJWT>=2.8.0
+PyJWT>=2.13.0
 bcrypt>=4.0.0
 ldap3>=2.9.1
 uvicorn[standard]>=0.29.0
